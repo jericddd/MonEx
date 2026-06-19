@@ -1,0 +1,11 @@
+# Secrets / credentials - never commit these
+saved OAth/
+*secret*.txt
+*Secret*.txt
+*.env
+.env
+
+# Local dev / tooling
+node_modules/
+package.json
+package-lock.json
