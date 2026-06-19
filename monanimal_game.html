@@ -396,6 +396,16 @@ button,
     display: block;
 }
 
+/* ===== Currency pills (balls-card) ===== */
+.currency-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.currency-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: #f3e8ff; border: 2px solid #6B21A8;
+    padding: 6px 10px; font-size: 13px; white-space: nowrap;
+}
+.cur-ico { font-size: 18px; }
+.currency-pill b { color: #6B21A8; }
+
 /* ===== Card stat extras ===== */
 .mon-card { position: relative; }
 .info-icon {
@@ -659,12 +669,14 @@ button,
     </div>
 </div>
 
-<!-- Balls -->
+<!-- Balls & currencies -->
 <div class="balls-card">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div>
-            <strong>MONBALL</strong><br>
-            <span id="monball-count">12</span>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div class="currency-row">
+            <div class="currency-pill" title="Monballs"><span class="cur-ico">&#127944;</span><span><strong>MONBALL</strong> <b id="monball-count">12</b></span></div>
+            <div class="currency-pill" title="Gold"><span class="cur-ico">&#129689;</span><span><strong>GOLD</strong> <b id="gold-count">0</b></span></div>
+            <div class="currency-pill" title="Essence"><span class="cur-ico">&#10024;</span><span><strong>ESSENCE</strong> <b id="essence-count">0</b></span></div>
+            <div class="currency-pill" title="Mon Shards"><span class="cur-ico">&#128311;</span><span><strong>SHARDS</strong> <b id="shard-count">0</b></span></div>
         </div>
         <div style="display:flex; gap:8px;">
             <button onclick="buyMonball()" style="padding:8px 16px; border:2px solid #6B21A8; background:white; cursor:pointer;">Buy (500)</button>
@@ -816,6 +828,8 @@ let party = [];
 let box = [];
 let monballs = 15;
 let money = 5000;
+let essence = 0;
+let monShards = 0;
 let lastResetDate = null;
 let isInAdventureBattle = false;
 
@@ -971,6 +985,15 @@ function levelUpMon(mon) {
     const hpGain = mon.max_hp - oldMaxHP;
     mon.current_hp = Math.min(mon.max_hp, mon.current_hp + hpGain);
 }
+
+// Phase 2: rarity level caps + material-based leveling cost.
+function getLevelCap(rarity) {
+    return { Common: 20, Uncommon: 30, Rare: 40, Legendary: 60, Mythic: 80 }[rarity] || 20;
+}
+function getLevelCost(mon) {
+    const lvl = Math.floor(mon.level);
+    return { gold: 50 * lvl, essence: 5 + lvl * 3 };
+}
 function passiveBonus(fighter, key) {
     const p = (fighter.skills || []).find(s => s[key] != null);
     return p ? p[key] : 0;
@@ -1013,7 +1036,7 @@ function checkDailyReset() {
 
 function saveData() {
     if (!currentUser) return;
-    localStorage.setItem("monex_" + currentUser, JSON.stringify({ party, box, monballs, money, lastResetDate }));
+    localStorage.setItem("monex_" + currentUser, JSON.stringify({ party, box, monballs, money, essence, monShards, lastResetDate }));
 }
 
 function loadData() {
@@ -1025,6 +1048,8 @@ function loadData() {
         box = data.box || [];
         monballs = data.monballs || 15;
         money = data.money || 5000;
+        essence = data.essence || 0;
+        monShards = data.monShards || 0;
         lastResetDate = data.lastResetDate || null;
 
         [...party, ...box].forEach(ensureMonReady);
@@ -1033,6 +1058,8 @@ function loadData() {
         box = [];
         monballs = 15;
         money = 5000;
+        essence = 0;
+        monShards = 0;
         lastResetDate = null;
         saveData();
     }
@@ -1045,6 +1072,9 @@ function loadData() {
 function updateUI() {
     document.getElementById("trainer-name").innerText = currentUser || "Trainer";
     document.getElementById("monball-count").innerText = monballs;
+    document.getElementById("gold-count").innerText = money;
+    document.getElementById("essence-count").innerText = essence;
+    document.getElementById("shard-count").innerText = monShards;
 
     const grid = document.getElementById("party-grid");
 grid.innerHTML = "";
@@ -1060,9 +1090,13 @@ if (party.length === 0) {
     party.forEach((mon, index) => {
         ensureMonReady(mon);
 
-        const xpNeeded = getXPForNextLevel(Math.floor(mon.level));
-        const currentXP = mon.xp || 0;
-        const progress = Math.min(100, Math.floor((currentXP / xpNeeded) * 100));
+        const cap = getLevelCap(mon.rarity);
+        const atCap = Math.floor(mon.level) >= cap;
+        const cost = getLevelCost(mon);
+        const canAfford = money >= cost.gold && essence >= cost.essence;
+        const levelBtn = atCap
+            ? `<button class="green" style="width:100%; margin-top:8px; border-radius:0px; opacity:0.6; cursor:not-allowed;" disabled>MAX LEVEL (${cap})</button>`
+            : `<button onclick="levelUpMonManual(${index})" class="green" style="width:100%; margin-top:8px; border-radius:0px; box-shadow:2px 2px 3px #16a34a; ${canAfford ? '' : 'opacity:0.7;'}">LEVEL UP &#129689;${cost.gold} &#10024;${cost.essence}</button>`;
 
         const card = document.createElement("div");
         card.className = "mon-card";
@@ -1078,13 +1112,8 @@ if (party.length === 0) {
     </div>
     ${renderSkillsGrid(mon)}
     <div class="mon-stats">
-        <div class="xp-bar">
-            <div class="xp-fill" style="width: ${progress}%;"></div>
-            <div class="xp-text">${currentXP} / ${xpNeeded} XP</div>
-        </div>
-        <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)}</span></div>
+        <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
         <div class="stat-row"><span><strong>HP</strong></span><span>${Math.ceil(mon.current_hp)} / ${mon.max_hp}</span></div>
-        <div class="stat-row"><span><strong>HUNGER</strong></span><span>${Math.floor(mon.hunger)}%</span></div>
         <div class="stat-row"><span><strong>WINS</strong></span><span>${mon.wins}</span></div>
     </div>
     <div class="currently-text">Currently: ready for battle</div>
@@ -1092,7 +1121,7 @@ if (party.length === 0) {
         <button onclick="toBox(${index})">TO BOX</button>
         <button onclick="releaseMon(${index})" class="red">RELEASE</button>
     </div>
-    <button onclick="feedMon(${index})" class="green" style="width:100%; margin-top:8px; border-radius:0px; box-shadow:2px 2px 3px #16a34a;">FEED</button>
+    ${levelBtn}
 `;
         grid.appendChild(card);
     });
@@ -1118,11 +1147,8 @@ function renderBox() {
     }
 
     box.forEach((mon, i) => {
-        const xpNeeded = getXPForNextLevel(Math.floor(mon.level));
-        const currentXP = mon.xp || 0;
-        const progress = Math.min(100, Math.floor((currentXP / xpNeeded) * 100));
-
         ensureMonReady(mon);
+        const cap = getLevelCap(mon.rarity);
 
         const card = document.createElement("div");
         card.className = "mon-card";
@@ -1137,13 +1163,8 @@ function renderBox() {
     </div>
     ${renderSkillsGrid(mon)}
     <div class="mon-stats">
-        <div class="xp-bar">
-            <div class="xp-fill" style="width: ${progress}%;"></div>
-            <div class="xp-text">${currentXP} / ${xpNeeded} XP</div>
-        </div>
-        <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)}</span></div>
-        <div class="stat-row"><span><strong>HP</strong></span><span>${mon.max_hp}</span></div>
-        <div class="stat-row"><span><strong>HUNGER</strong></span><span>${Math.floor(mon.hunger)}%</span></div>
+        <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
+        <div class="stat-row"><span><strong>HP</strong></span><span>${Math.ceil(mon.current_hp)} / ${mon.max_hp}</span></div>
         <div class="stat-row"><span><strong>WINS</strong></span><span>${mon.wins}</span></div>
     </div>
     <div class="mon-actions">
@@ -1167,13 +1188,22 @@ function buyMonball() {
     }
 }
 
-function feedMon(index) {
-    party[index].hunger = 100;
-    party[index].lastFed = new Date().toISOString();
-    // Feeding also restores HP, so a damaged team can recover between battles
-    // (no healing happens during a battle).
-    ensureMonReady(party[index]);
-    party[index].current_hp = party[index].max_hp;
+// Spend Essence + Gold to level a party member up by one (also fully heals it).
+function levelUpMonManual(index) {
+    const mon = party[index];
+    ensureMonReady(mon);
+    const cap = getLevelCap(mon.rarity);
+    if (Math.floor(mon.level) >= cap) { alert(mon.name + " is at the max level for its rarity (" + cap + ").");
+        return; }
+    const cost = getLevelCost(mon);
+    if (money < cost.gold || essence < cost.essence) {
+        alert("Not enough materials!\nNeed: " + cost.gold + " Gold + " + cost.essence + " Essence.\nYou have: " + money + " Gold, " + essence + " Essence.");
+        return;
+    }
+    money -= cost.gold;
+    essence -= cost.essence;
+    levelUpMon(mon);
+    mon.current_hp = mon.max_hp; // leveling up fully heals
     saveData();
     updateUI();
 }
@@ -1897,17 +1927,18 @@ function endBattle(win, player) {
     isInAdventureBattle = false;
     player.forEach(f => { if (f.ref) f.ref.current_hp = Math.max(0, Math.round(f.hp)); });
 
-    let reward = 0;
+    let reward = { gold: 0, essence: 0, shards: 0 };
     if (win) {
-        reward = 120 + currentStage * 15;
-        money += reward;
-        party.slice(0, 3).forEach(m => {
-            const xp = getXPFromBattle(Math.floor(m.level), Math.floor(m.level));
-            m.xp = (m.xp || 0) + xp;
-            m.wins = (m.wins || 0) + 1;
-            let need = getXPForNextLevel(Math.floor(m.level));
-            while (m.xp >= need) { m.xp -= need; levelUpMon(m); need = getXPForNextLevel(Math.floor(m.level)); }
-        });
+        // Phase 2: battles drop materials (Gold + Essence, plus Mon Shards deeper in).
+        reward.gold = 80 + currentStage * 12;
+        reward.essence = 10 + currentStage * 4;
+        if (currentStage >= 3 && (currentStage % 10 === 0 || Math.random() < 0.25)) {
+            reward.shards = 1 + Math.floor(currentStage / 10);
+        }
+        money += reward.gold;
+        essence += reward.essence;
+        monShards += reward.shards;
+        party.slice(0, 3).forEach(m => { m.wins = (m.wins || 0) + 1; });
         currentStage = Math.min(40, currentStage + 1);
         saveAdventureProgress();
     } else {
@@ -1920,12 +1951,18 @@ function endBattle(win, player) {
 
 function showBattleResult(win, reward) {
     const content = document.getElementById("battle-content");
+    const drops = win
+        ? `<div style="margin:18px 0; font-size:15px;">
+               <div>&#129689; Gold <b>+${reward.gold}</b></div>
+               <div>&#10024; Essence <b>+${reward.essence}</b></div>
+               ${reward.shards > 0 ? `<div>&#128311; Mon Shards <b>+${reward.shards}</b></div>` : ''}
+               <div style="margin-top:8px; color:#666; font-size:13px;">Materials added to your Inventory.</div>
+           </div>`
+        : `<p style="font-size:15px; margin:20px 0;">Your team was defeated, but they recovered to full HP. Level them up and try again!</p>`;
     content.innerHTML = `
         <div style="padding:40px; text-align:center; background:white; border:4px solid #6B21A8; box-shadow:4px 4px 0px #6B21A8;">
             <h2 style="color:${win ? '#16a34a' : '#ef4444'}; font-family:'Press Start 2P', monospace;">${win ? 'VICTORY!' : 'DEFEAT'}</h2>
-            <p style="font-size:15px; margin:20px 0;">${win
-                ? ('Your team won! Earned ' + reward + ' coins and gained XP.')
-                : 'Your team was defeated. Feed/heal your team and try again!'}</p>
+            ${drops}
             <button onclick="enterAdventureMode()" style="margin-top:10px; padding:14px 45px; background:#6B21A8; color:white; border:none; cursor:pointer; font-family:'Press Start 2P', monospace;">
                 CONTINUE
             </button>
@@ -1937,7 +1974,13 @@ function renderInventory() {
     const grid = document.getElementById("inventory-grid");
     grid.innerHTML = "";
 
-    // Create 40 storage slots (8 columns x 5 rows)
+    // Materials occupy the first slots; the rest stay as empty storage.
+    const materials = [
+        { icon: "\uD83E\uDE99", name: "Gold",       count: money },
+        { icon: "\u2728",       name: "Essence",    count: essence },
+        { icon: "\uD83D\uDD37", name: "Mon Shards", count: monShards },
+    ];
+
     for (let i = 0; i < 40; i++) {
         const slot = document.createElement("div");
         slot.style.cssText = `
@@ -1953,9 +1996,16 @@ function renderInventory() {
             box-shadow: 2px 2px 0px #6B21A8;
             position: relative;
         `;
-        slot.innerHTML = `
-            <span style="font-size: 22px; opacity: 0.3;">📦</span>
-        `;
+        if (i < materials.length) {
+            const m = materials[i];
+            slot.title = m.name + ": " + m.count;
+            slot.innerHTML = `
+                <span style="font-size: 30px;">${m.icon}</span>
+                <span style="position:absolute; bottom:2px; right:4px; font-size:12px; font-weight:bold; color:#111; background:rgba(255,255,255,0.85); padding:0 2px; border-radius:3px;">${m.count}</span>
+            `;
+        } else {
+            slot.innerHTML = `<span style="font-size: 22px; opacity: 0.3;">\uD83D\uDCE6</span>`;
+        }
         grid.appendChild(slot);
     }
 }
