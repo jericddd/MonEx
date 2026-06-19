@@ -337,15 +337,7 @@ button.green {
 button.green:hover {
     background: #15803d;
 }
-.mon-actions.shard-row {
-    flex-wrap: wrap;
-    margin-top: 6px;
-}
-.mon-actions.shard-row button {
-    flex: 1 1 45%;
-    font-size: 7px;
-    padding: 6px 4px;
-}
+/* Hover symbol */
 .shop-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -902,16 +894,10 @@ let highestStageCleared = 0;
 let lastResetDate = null;
 let isInAdventureBattle = false;
 
-const SHARD_CAP_COST = 5;
-const SHARD_CAP_BONUS = 5;
-const SHARD_REROLL_COST = 2;
-const SHARD_ASCEND_COST = 10;
-const MAX_CAP_BONUS = 50;
-
 const SHOP_ITEMS = [
     { id: "monball5",   name: "Monball Pack",   desc: "5 Monballs for catching.",     cost: { gold: 2000 },              grant: { monballs: 5 } },
     { id: "essence25",  name: "Essence Pack",   desc: "25 Essence for leveling.",     cost: { gold: 900 },               grant: { essence: 25 } },
-    { id: "shards3",    name: "Shard Pack",     desc: "3 Mon Shards for upgrades.",   cost: { gold: 1800, essence: 15 }, grant: { monShards: 3 } },
+    { id: "shards3",    name: "Shard Pack",     desc: "3 Mon Shards.",                cost: { gold: 1800, essence: 15 }, grant: { monShards: 3 } },
 ];
 
 // ==================== HELPER FUNCTIONS ====================
@@ -1051,8 +1037,6 @@ function generateSkills(name, rarity) {
 function ensureMonReady(mon) {
     if (!mon.max_hp) mon.max_hp = getMaxHP(mon.level, mon.rarity);
     if (mon.current_hp == null) mon.current_hp = mon.max_hp;
-    if (mon.capBonus == null) mon.capBonus = 0;
-    if (mon.ascension == null) mon.ascension = 0;
     if (!mon.stats || mon.stats.spd == null) mon.stats = generateStats(mon.rarity);
     const expected = getSkillCount(mon.rarity);
     if (!mon.skills || mon.skills.length !== expected || !mon.skills[0] || !mon.skills[0].type) {
@@ -1074,7 +1058,7 @@ function getBaseLevelCap(rarity) {
     return { Common: 20, Uncommon: 30, Rare: 40, Legendary: 60, Mythic: 80 }[rarity] || 20;
 }
 function getLevelCap(mon) {
-    return getBaseLevelCap(mon.rarity) + (mon.capBonus || 0) + ((mon.ascension || 0) * 10);
+    return getBaseLevelCap(mon.rarity);
 }
 function getLevelCost(mon) {
     const lvl = Math.floor(mon.level);
@@ -1231,13 +1215,6 @@ if (party.length === 0) {
         const levelBtn = atCap
             ? `<button class="green" style="width:100%; margin-top:8px; border-radius:0px; opacity:0.6; cursor:not-allowed;" disabled>MAX LEVEL (${cap})</button>`
             : `<button onclick="levelUpMonManual(${index})" class="green" style="width:100%; margin-top:8px; border-radius:0px; box-shadow:2px 2px 3px #16a34a; ${canAfford ? '' : 'opacity:0.7;'}">LEVEL UP &#129689;${cost.gold} &#10024;${cost.essence}</button>`;
-        const ascTag = mon.ascension ? `<span class="type-tag rarity-legendary" style="margin-left:4px;">A${mon.ascension}</span>` : "";
-        const shardBtns = `
-    <div class="mon-actions shard-row">
-        <button onclick="breakLevelCap(${index})" ${monShards >= SHARD_CAP_COST && (mon.capBonus || 0) < MAX_CAP_BONUS ? "" : "disabled"}>CAP +${SHARD_CAP_BONUS} (${SHARD_CAP_COST}&#128311;)</button>
-        <button onclick="rerollMonSkill(${index})" ${monShards >= SHARD_REROLL_COST ? "" : "disabled"}>REROLL (${SHARD_REROLL_COST}&#128311;)</button>
-        <button onclick="ascendMon(${index})" ${atCap && monShards >= SHARD_ASCEND_COST ? "" : "disabled"}>ASCEND (${SHARD_ASCEND_COST}&#128311;)</button>
-    </div>`;
 
         const card = document.createElement("div");
         card.className = "mon-card";
@@ -1249,7 +1226,7 @@ if (party.length === 0) {
     </div>
     <div class="mon-name">${mon.name}</div>
     <div class="type-tags">
-        <span class="type-tag ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>${ascTag}
+        <span class="type-tag ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
     </div>
     ${renderSkillsGrid(mon)}
     <div class="mon-stats">
@@ -1262,7 +1239,6 @@ if (party.length === 0) {
         <button onclick="releaseMon(${index})" class="red">RELEASE</button>
     </div>
     ${levelBtn}
-    ${shardBtns}
 `;
         grid.appendChild(card);
     });
@@ -1290,7 +1266,6 @@ function renderBox() {
     box.forEach((mon, i) => {
         ensureMonReady(mon);
         const cap = getLevelCap(mon);
-        const ascTag = mon.ascension ? `<span class="type-tag rarity-legendary" style="margin-left:4px;">A${mon.ascension}</span>` : "";
 
         const card = document.createElement("div");
         card.className = "mon-card";
@@ -1301,7 +1276,7 @@ function renderBox() {
     </div>
     <div class="mon-name">${mon.name}</div>
     <div class="type-tags">
-        <span class="type-tag ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>${ascTag}
+        <span class="type-tag ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
     </div>
     ${renderSkillsGrid(mon)}
     <div class="mon-stats">
@@ -1347,72 +1322,6 @@ function levelUpMonManual(index) {
     mon.current_hp = mon.max_hp; // leveling up fully heals
     saveData();
     updateUI();
-}
-
-function breakLevelCap(index) {
-    const mon = party[index];
-    if (!mon) return;
-    if ((mon.capBonus || 0) >= MAX_CAP_BONUS) {
-        alert("This monanimal cannot raise its cap further.");
-        return;
-    }
-    if (monShards < SHARD_CAP_COST) {
-        alert("Need " + SHARD_CAP_COST + " Mon Shards.");
-        return;
-    }
-    monShards -= SHARD_CAP_COST;
-    mon.capBonus = (mon.capBonus || 0) + SHARD_CAP_BONUS;
-    saveData();
-    updateUI();
-}
-
-function rerollMonSkill(index) {
-    const mon = party[index];
-    if (!mon) return;
-    if (monShards < SHARD_REROLL_COST) {
-        alert("Need " + SHARD_REROLL_COST + " Mon Shards.");
-        return;
-    }
-    ensureMonReady(mon);
-    const rerollable = mon.skills.map((s, i) => (s.type !== "passive" ? i : -1)).filter(i => i >= 0);
-    if (!rerollable.length) {
-        alert("No skills available to reroll.");
-        return;
-    }
-    const pick = rerollable[randInt(0, rerollable.length - 1)];
-    const oldName = mon.skills[pick].name;
-    mon.skills[pick] = { ...ACTIVE_SKILL_POOL[randInt(0, ACTIVE_SKILL_POOL.length - 1)] };
-    monShards -= SHARD_REROLL_COST;
-    saveData();
-    updateUI();
-    alert(mon.name + " rerolled " + oldName + " → " + mon.skills[pick].name + "!");
-}
-
-function ascendMon(index) {
-    const mon = party[index];
-    if (!mon) return;
-    ensureMonReady(mon);
-    const cap = getLevelCap(mon);
-    if (Math.floor(mon.level) < cap) {
-        alert(mon.name + " must reach max level (" + cap + ") before ascending.");
-        return;
-    }
-    if (monShards < SHARD_ASCEND_COST) {
-        alert("Need " + SHARD_ASCEND_COST + " Mon Shards.");
-        return;
-    }
-    monShards -= SHARD_ASCEND_COST;
-    mon.ascension = (mon.ascension || 0) + 1;
-    const keys = ["spd", "crit", "dodge", "block", "hit", "pierce"];
-    keys.forEach(k => {
-        if (k === "spd") mon.stats[k] += 5;
-        else mon.stats[k] = Math.round((mon.stats[k] + 3) * 10) / 10;
-    });
-    mon.max_hp = Math.floor(mon.max_hp * 1.1);
-    mon.current_hp = mon.max_hp;
-    saveData();
-    updateUI();
-    alert(mon.name + " ascended to A" + mon.ascension + "! Stats boosted and level cap increased.");
 }
 
 function buyShopItem(itemId) {
@@ -1556,7 +1465,6 @@ function attemptCatch() {
         const maxHP = getMaxHP(1, rarity);
         const newMon = { 
             name, rarity, level: 1, max_hp: maxHP, current_hp: maxHP,
-            capBonus: 0, ascension: 0,
             stats: generateStats(rarity),
             skills: generateSkills(name, rarity),
             ultimate: getSpeciesUltimate(name)
