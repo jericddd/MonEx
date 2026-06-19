@@ -395,6 +395,178 @@ button,
 .tab-content.active {
     display: block;
 }
+
+/* ===== Card stat extras ===== */
+.ult-badge {
+    margin-top: 6px;
+    font-size: 11px;
+    text-align: center;
+    background: #6B21A8;
+    color: white;
+    padding: 4px;
+    font-weight: bold;
+}
+.combat-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 10px;
+    font-size: 11px;
+    margin-top: 8px;
+    padding: 6px 8px;
+    background: #f3e8ff;
+    border: 2px solid #6B21A8;
+}
+.specialty-badge {
+    margin-top: 6px;
+    font-size: 10px;
+    font-weight: bold;
+    color: #6B21A8;
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+
+/* ===== Battle stage ===== */
+.battle-stage {
+    position: relative;
+    width: 100%;
+    height: 520px;
+    border: 4px solid #6B21A8;
+    box-shadow: 4px 4px 0px #6B21A8;
+    overflow: hidden;
+    background: url('for%20result%20banner/battlebackground.jpg') center/cover no-repeat;
+}
+.stage-label {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.55);
+    color: white;
+    padding: 4px 14px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    z-index: 5;
+}
+.fighter-wrap {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 200px;
+    z-index: 4;
+}
+.fighter-wrap.player { left: 7%; bottom: 6%; }
+.fighter-wrap.enemy { right: 7%; top: 6%; }
+.bsprite {
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 5px rgba(0,0,0,0.45));
+}
+.bsprite.mirrored { transform: scaleX(-1); }
+.nameplate {
+    background: rgba(255,255,255,0.92);
+    border: 3px solid #6B21A8;
+    padding: 6px 8px;
+    width: 190px;
+    box-shadow: 2px 2px 0 #6B21A8;
+}
+.np-row {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    margin-bottom: 5px;
+}
+.hpbar { position: relative; height: 15px; background: #333; border: 1px solid #111; }
+.hpfill { height: 100%; background: #22c55e; transition: width .4s ease; }
+.hptext {
+    position: absolute; top: 0; left: 0; width: 100%;
+    text-align: center; font-size: 9px; color: white;
+    line-height: 15px; text-shadow: 0 0 2px #000;
+}
+.enbar { height: 6px; background: #222; border: 1px solid #111; margin-top: 4px; }
+.enfill { height: 100%; width: 0; background: linear-gradient(90deg, #facc15, #f59e0b); transition: width .3s ease; }
+.bench { position: absolute; display: flex; gap: 6px; z-index: 5; }
+.bench-enemy { top: 10px; left: 10px; }
+.bench-player { bottom: 10px; left: 10px; }
+.bench-dot {
+    width: 34px; height: 34px;
+    border: 2px solid #6B21A8;
+    background-color: #fff;
+    background-size: cover;
+    background-position: center;
+    border-radius: 4px;
+}
+.bench-dot.dead { filter: grayscale(1) brightness(0.5); opacity: 0.5; }
+.bench-dot.active { outline: 2px solid #facc15; box-shadow: 0 0 8px #facc15; }
+.fx-layer { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+.fx {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    font-size: 64px;
+    animation: fxpop .65s ease-out forwards;
+}
+.fx-ultimate { font-size: 120px; animation: fxpop 1s ease-out forwards; }
+@keyframes fxpop {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(-15deg); }
+    40%  { opacity: 1; transform: translate(-50%, -50%) scale(1.2) rotate(6deg); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.6) rotate(0deg); }
+}
+.dmgnum {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 15px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 0 #000, -1px -1px 0 #000;
+    animation: floatup 1s ease-out forwards;
+    white-space: nowrap;
+}
+.dmgnum.crit  { color: #f59e0b; font-size: 19px; }
+.dmgnum.block { color: #cbd5e1; }
+.dmgnum.miss  { color: #67e8f9; }
+.dmgnum.heal  { color: #22c55e; }
+@keyframes floatup {
+    0%   { opacity: 0; }
+    20%  { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -170%); }
+}
+.skill-banner {
+    position: absolute;
+    top: 40%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0;
+    background: rgba(107,33,168,0.92);
+    color: white;
+    padding: 10px 26px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 13px;
+    border: 3px solid white;
+    white-space: nowrap;
+    transition: all .25s ease;
+    z-index: 7;
+}
+.skill-banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.skill-banner.ult { background: rgba(220,38,38,0.95); font-size: 17px; box-shadow: 0 0 30px #f59e0b; }
+.screen-flash { position: absolute; inset: 0; background: white; opacity: 0; pointer-events: none; z-index: 8; }
+.screen-flash.on { animation: flash .35s ease-out; }
+@keyframes flash { 0% { opacity: 0; } 30% { opacity: 0.85; } 100% { opacity: 0; } }
+.fighter-wrap.hit-shake { animation: shake .3s; }
+@keyframes shake {
+    0%, 100% { }
+    25% { transform: translate(-6px, 0); }
+    50% { transform: translate(6px, 0); }
+    75% { transform: translate(-4px, 0); }
+}
+.fighter-wrap.fainted {
+    transition: all .5s ease;
+    opacity: 0;
+    transform: translateY(45px) scale(0.7) !important;
+    filter: grayscale(1);
+}
 </style>
 </head>
 <body>
@@ -509,28 +681,70 @@ const SPRITE_MAP = {
     "Shramp": "128x128/shramp.png", "Spidermon": "128x128/spidermon.png", "Moyaki": "128x128/moyaki.png"
 };
 
+// Normal active skills are RNG-rolled per individual. Each carries a clear
+// element so its battle animation always matches its name.
 const ACTIVE_SKILL_POOL = [
-    {name: "Power Strike", desc: "Deals strong physical damage.", type: "active", power: 1.0},
-    {name: "Swift Dodge", desc: "Quickly evades and counters.", type: "active", power: 0.9},
-    {name: "Venom Fang", desc: "Bites with poisonous fangs.", type: "active", power: 1.1},
-    {name: "Shock Wave", desc: "Releases an electric shock.", type: "active", power: 1.05},
-    {name: "Flame Burst", desc: "Shoots a burst of fire.", type: "active", power: 1.15},
-    {name: "Aqua Jet", desc: "Fast water pressure attack.", type: "active", power: 0.95},
-    {name: "Rock Throw", desc: "Hurls heavy rocks.", type: "active", power: 1.2},
-    {name: "Leaf Blade", desc: "Sharp leaf slash.", type: "active", power: 1.0},
-    {name: "Psychic Beam", desc: "Psychic energy beam.", type: "active", power: 1.1},
-    {name: "Shadow Sneak", desc: "Surprise shadow attack.", type: "active", power: 1.05},
-    {name: "Hyper Fang", desc: "Powerful bite attack.", type: "active", power: 1.25},
+    {name: "Slash",         element: "physical", type: "active", power: 1.0,  desc: "A swift physical slash."},
+    {name: "Flame Burst",   element: "fire",     type: "active", power: 1.15, desc: "Bursts the target in flames."},
+    {name: "Aqua Jet",      element: "water",    type: "active", power: 0.95, desc: "A fast jet of water."},
+    {name: "Shock Bolt",    element: "electric", type: "active", power: 1.05, desc: "A bolt of lightning."},
+    {name: "Rock Throw",    element: "earth",    type: "active", power: 1.2,  desc: "Hurls heavy rocks."},
+    {name: "Venom Bite",    element: "poison",   type: "active", power: 1.1,  desc: "A venomous bite."},
+    {name: "Frost Shard",   element: "ice",      type: "active", power: 1.0,  desc: "Shards of sharp ice."},
+    {name: "Gale Slash",    element: "wind",     type: "active", power: 1.0,  desc: "A crescent of wind."},
+    {name: "Shadow Strike", element: "dark",     type: "active", power: 1.1,  desc: "A strike from the shadows."},
+    {name: "Psy Beam",      element: "psychic",  type: "active", power: 1.1,  desc: "A focused psychic beam."},
+    {name: "Mend",          element: "heal",     type: "heal",   power: 0,    heal: 0.35, desc: "Restores 35% of max HP."},
 ];
 
+// Passive skills are also RNG-rolled. They apply continuously in battle.
 const PASSIVE_SKILL_POOL = [
-    {name: "Tough Hide", desc: "Reduces damage taken by 15%.", type: "passive", power: 0.85},
-    {name: "Sharp Claws", desc: "Increases damage dealt by 20%.", type: "passive", power: 1.2},
-    {name: "Quick Feet", desc: "Increases attack speed slightly.", type: "passive", power: 1.1},
-    {name: "Regenerator", desc: "Recovers a little HP each turn.", type: "passive", power: 1.0},
-    {name: "Intimidating Aura", desc: "Lowers enemy damage output.", type: "passive", power: 0.9},
-    {name: "Critical Instinct", desc: "Higher chance for strong hits.", type: "passive", power: 1.15},
+    {name: "Tough Hide",        element: "passive", type: "passive", dmgTaken: 0.85, desc: "Takes 15% less damage."},
+    {name: "Sharp Claws",       element: "passive", type: "passive", dmgDealt: 1.2,  desc: "Deals 20% more damage."},
+    {name: "Critical Instinct", element: "passive", type: "passive", critBonus: 10,  desc: "+10% crit chance."},
+    {name: "Evasive",           element: "passive", type: "passive", dodgeBonus: 10, desc: "+10% dodge chance."},
+    {name: "Bulwark",           element: "passive", type: "passive", blockBonus: 10, desc: "+10% block chance."},
+    {name: "Regenerator",       element: "passive", type: "passive", regen: 0.05,    desc: "Heals 5% max HP each turn."},
 ];
+
+// Per-rarity stat budget. %-stats roll within [pct], SPD within [spd].
+const STAT_RANGES = {
+    Common:    { pct: [1, 6],  spd: [80, 95]  },
+    Uncommon:  { pct: [2, 9],  spd: [85, 105] },
+    Rare:      { pct: [3, 13], spd: [90, 115] },
+    Legendary: { pct: [5, 18], spd: [100, 130] },
+    Mythic:    { pct: [7, 24], spd: [110, 150] },
+};
+
+// Each species has its own FIXED ultimate (energy-triggered, fires once per run).
+const SPECIES_ULTIMATE = {
+    "Molandak":   { name: "Frost Nova",     element: "ice",      power: 2.2 },
+    "Chog":       { name: "Croak Quake",    element: "earth",    power: 2.2 },
+    "Mouch":      { name: "Static Swarm",   element: "electric", power: 2.1 },
+    "Salmonad":   { name: "Tidal Crash",    element: "water",    power: 2.3 },
+    "Anago":      { name: "Abyssal Coil",   element: "water",    power: 2.2 },
+    "Larvanad":   { name: "Venom Bloom",    element: "poison",   power: 2.1 },
+    "Lyraffe":    { name: "Gale Stampede",  element: "wind",     power: 2.2 },
+    "Mokadal":    { name: "Mind Crush",     element: "psychic",  power: 2.3 },
+    "Monavara":   { name: "Void Pulse",     element: "dark",     power: 2.3 },
+    "Moncock":    { name: "Crimson Spur",   element: "fire",     power: 2.2 },
+    "Mondigrade": { name: "Seismic Shell",  element: "earth",    power: 2.4 },
+    "Montiger":   { name: "Apex Roar",      element: "physical", power: 2.4 },
+    "Mopo":       { name: "Cyclone Rush",   element: "wind",     power: 2.1 },
+    "Mosferatu":  { name: "Blood Moon",     element: "dark",     power: 2.3 },
+    "Moxy":       { name: "Shock Nova",     element: "electric", power: 2.2 },
+    "Shramp":     { name: "Bubble Barrage", element: "water",    power: 2.0 },
+    "Spidermon":  { name: "Web Cataclysm",  element: "poison",   power: 2.3 },
+    "Moyaki":     { name: "Flame Geyser",   element: "fire",     power: 2.3 },
+};
+
+// Visual glyph per element (used for the code-generated attack effects).
+const ELEMENT_GLYPH = {
+    physical: "\u2694\uFE0F", fire: "\uD83D\uDD25", water: "\uD83D\uDCA7",
+    electric: "\u26A1", earth: "\uD83E\uDEA8", poison: "\u2620\uFE0F",
+    ice: "\u2744\uFE0F", wind: "\uD83C\uDF00", dark: "\uD83C\uDF11",
+    psychic: "\uD83D\uDD2E", heal: "\u2728"
+};
 
 // ==================== STATE ====================
 let currentUser = null;
@@ -602,32 +816,57 @@ function getSkillCount(rarity) {
     return 6;
 }
 
+function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function randF(min, max) { return Math.round((Math.random() * (max - min) + min) * 10) / 10; }
+
+// Roll combat stats. Rarity sets the budget; one random "specialty" gets a bonus,
+// so two monanimals of the same species/rarity still differ.
+function generateStats(rarity) {
+    const R = STAT_RANGES[rarity] || STAT_RANGES.Common;
+    const s = {
+        spd:    randInt(R.spd[0], R.spd[1]),
+        crit:   randF(R.pct[0], R.pct[1]),
+        dodge:  randF(R.pct[0], R.pct[1]),
+        block:  randF(R.pct[0], R.pct[1]),
+        hit:    randF(R.pct[0], R.pct[1]),
+        pierce: randF(R.pct[0], R.pct[1]),
+    };
+    const keys = ["spd", "crit", "dodge", "block", "hit", "pierce"];
+    const spec = keys[randInt(0, keys.length - 1)];
+    if (spec === "spd") s.spd += 25;
+    else s[spec] = Math.round((s[spec] + randF(8, 12)) * 10) / 10;
+    s.specialty = spec;
+    return s;
+}
+
+function getSpeciesUltimate(name) {
+    return { ...(SPECIES_ULTIMATE[name] || { name: "Power Surge", element: "physical", power: 2.0 }) };
+}
+
+// Normal skills (active + passive) are RNG per individual: one passive + the rest actives.
 function generateSkills(name, rarity) {
     const count = getSkillCount(rarity);
-    const skills = [];
-    let seed = 0;
-    for (let i = 0; i < name.length; i++) {
-        seed += name.charCodeAt(i) * (i + 1);
+    const skills = [ { ...PASSIVE_SKILL_POOL[randInt(0, PASSIVE_SKILL_POOL.length - 1)] } ];
+    while (skills.length < count) {
+        skills.push({ ...ACTIVE_SKILL_POOL[randInt(0, ACTIVE_SKILL_POOL.length - 1)] });
     }
-
-    let startIdx = seed % ACTIVE_SKILL_POOL.length;
-    for (let i = 0; i < count; i++) {
-        const idx = (startIdx + i) % ACTIVE_SKILL_POOL.length;
-        skills.push({...ACTIVE_SKILL_POOL[idx]});
+    for (let i = skills.length - 1; i > 0; i--) {
+        const j = randInt(0, i);
+        [skills[i], skills[j]] = [skills[j], skills[i]];
     }
-
-    if (count >= 4) {
-        const passiveIdx = seed % PASSIVE_SKILL_POOL.length;
-        skills[3] = {...PASSIVE_SKILL_POOL[passiveIdx]};
-    }
-
-    if (skills.length > 0) {
-        skills[0].isUltimate = true;
-        skills[0].name = `[Ultimate] ${skills[0].name}`;
-        skills[0].power = (skills[0].power || 1) * 1.8;
-    }
-
     return skills;
+}
+
+// Backfill any missing data (stats / skills / ultimate / hp) on existing or new monanimals.
+function ensureMonReady(mon) {
+    if (!mon.max_hp) mon.max_hp = getMaxHP(mon.level, mon.rarity);
+    if (mon.current_hp == null) mon.current_hp = mon.max_hp;
+    if (!mon.stats || mon.stats.spd == null) mon.stats = generateStats(mon.rarity);
+    const expected = getSkillCount(mon.rarity);
+    if (!mon.skills || mon.skills.length !== expected || !mon.skills[0] || !mon.skills[0].type) {
+        mon.skills = generateSkills(mon.name, mon.rarity);
+    }
+    if (!mon.ultimate || !mon.ultimate.element) mon.ultimate = getSpeciesUltimate(mon.name);
 }
 
 function levelUpMon(mon) {
@@ -637,15 +876,22 @@ function levelUpMon(mon) {
     const hpGain = mon.max_hp - oldMaxHP;
     mon.current_hp = Math.min(mon.max_hp, mon.current_hp + hpGain);
 }
-function calculateDamage(mon, skill) {
-    let dmg = getAttackDamage(mon.level, mon.rarity);
+function passiveBonus(fighter, key) {
+    const p = (fighter.skills || []).find(s => s[key] != null);
+    return p ? p[key] : 0;
+}
+
+function calculateDamage(attacker, defender, skill) {
+    let dmg = getAttackDamage(attacker.level, attacker.rarity);
     dmg = Math.floor(dmg * (skill.power || 1));
 
-    const passive = (mon.skills || []).find(s => s.type === "passive");
-    if (passive && passive.power > 1) {
-        dmg = Math.floor(dmg * passive.power);
-    }
-    return dmg;
+    const dealt = (attacker.skills || []).find(s => s.dmgDealt);
+    if (dealt) dmg = Math.floor(dmg * dealt.dmgDealt);
+
+    const taken = (defender.skills || []).find(s => s.dmgTaken);
+    if (taken) dmg = Math.floor(dmg * taken.dmgTaken);
+
+    return Math.max(1, dmg);
 }
 
 // ==================== STATE MANAGEMENT ====================
@@ -686,17 +932,7 @@ function loadData() {
         money = data.money || 5000;
         lastResetDate = data.lastResetDate || null;
 
-        [...party, ...box].forEach(mon => {
-            if (!mon.max_hp || !mon.current_hp) {
-                mon.max_hp = getMaxHP(mon.level, mon.rarity);
-                mon.current_hp = mon.max_hp;
-            }
-            const expected = getSkillCount(mon.rarity);
-            const needsRegen = !mon.skills || mon.skills.length !== expected || !mon.skills[0] || !mon.skills[0].type;
-            if (needsRegen) {
-                mon.skills = generateSkills(mon.name, mon.rarity);
-            }
-        });
+        [...party, ...box].forEach(ensureMonReady);
     } else {
         party = [];
         box = [];
@@ -727,14 +963,7 @@ if (party.length === 0) {
     `;
 } else {
     party.forEach((mon, index) => {
-        // ... your existing card creation code stays the same
-        if (!mon.max_hp) mon.max_hp = getMaxHP(mon.level, mon.rarity);
-        if (!mon.current_hp) mon.current_hp = mon.max_hp;
-
-        const expected = getSkillCount(mon.rarity);
-        if (!mon.skills || mon.skills.length !== expected || !mon.skills[0] || !mon.skills[0].type) {
-            mon.skills = generateSkills(mon.name, mon.rarity);
-        }
+        ensureMonReady(mon);
 
         const xpNeeded = getXPForNextLevel(Math.floor(mon.level));
         const currentXP = mon.xp || 0;
@@ -755,23 +984,29 @@ if (party.length === 0) {
         ${mon.skills.map(skill => `
             <div class="skill-square" 
                  data-name="${skill.name}" 
-                 data-desc="${skill.desc}" 
                  data-type="${skill.type}"
-                 title="${skill.type.toUpperCase()}: ${skill.name} — ${skill.desc}">
+                 title="${skill.type.toUpperCase()}: ${skill.name} — ${skill.desc || skill.element}">
                 <span>${skill.name.substring(0,2).toUpperCase()}</span>
             </div>
         `).join('')}
     </div>
+    <div class="ult-badge" title="Fixed ultimate (charges with energy in battle)">ULT: ${mon.ultimate.name}</div>
     <div class="mon-stats">
         <div class="xp-bar">
             <div class="xp-fill" style="width: ${progress}%;"></div>
             <div class="xp-text">${currentXP} / ${xpNeeded} XP</div>
         </div>
         <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)}</span></div>
-        <div class="stat-row"><span><strong>HP</strong></span><span>${mon.max_hp}</span></div>
+        <div class="stat-row"><span><strong>HP</strong></span><span>${Math.ceil(mon.current_hp)} / ${mon.max_hp}</span></div>
         <div class="stat-row"><span><strong>HUNGER</strong></span><span>${Math.floor(mon.hunger)}%</span></div>
         <div class="stat-row"><span><strong>WINS</strong></span><span>${mon.wins}</span></div>
     </div>
+    <div class="combat-stats">
+        <span>SPD ${mon.stats.spd}</span><span>CRIT ${mon.stats.crit}%</span>
+        <span>DODGE ${mon.stats.dodge}%</span><span>BLOCK ${mon.stats.block}%</span>
+        <span>HIT ${mon.stats.hit}%</span><span>PIERCE ${mon.stats.pierce}%</span>
+    </div>
+    <div class="specialty-badge">\u2605 ${mon.stats.specialty.toUpperCase()} SPECIALTY</div>
     <div class="currently-text">Currently: ready for battle</div>
     <div class="mon-actions">
         <button onclick="toBox(${index})">TO BOX</button>
@@ -807,9 +1042,7 @@ function renderBox() {
         const currentXP = mon.xp || 0;
         const progress = Math.min(100, Math.floor((currentXP / xpNeeded) * 100));
 
-        if (!mon.skills || mon.skills.length !== getSkillCount(mon.rarity)) {
-            mon.skills = generateSkills(mon.name, mon.rarity);
-        }
+        ensureMonReady(mon);
 
         const card = document.createElement("div");
         card.className = "mon-card";
@@ -825,13 +1058,13 @@ function renderBox() {
         ${mon.skills.map(skill => `
             <div class="skill-square" 
                  data-name="${skill.name}" 
-                 data-desc="${skill.desc}" 
                  data-type="${skill.type}"
-                 title="${skill.type.toUpperCase()}: ${skill.name} — ${skill.desc}">
+                 title="${skill.type.toUpperCase()}: ${skill.name} — ${skill.desc || skill.element}">
                 <span>${skill.name.substring(0,2).toUpperCase()}</span>
             </div>
         `).join('')}
     </div>
+    <div class="ult-badge" title="Fixed ultimate">ULT: ${mon.ultimate.name}</div>
     <div class="mon-stats">
         <div class="xp-bar">
             <div class="xp-fill" style="width: ${progress}%;"></div>
@@ -842,6 +1075,12 @@ function renderBox() {
         <div class="stat-row"><span><strong>HUNGER</strong></span><span>${Math.floor(mon.hunger)}%</span></div>
         <div class="stat-row"><span><strong>WINS</strong></span><span>${mon.wins}</span></div>
     </div>
+    <div class="combat-stats">
+        <span>SPD ${mon.stats.spd}</span><span>CRIT ${mon.stats.crit}%</span>
+        <span>DODGE ${mon.stats.dodge}%</span><span>BLOCK ${mon.stats.block}%</span>
+        <span>HIT ${mon.stats.hit}%</span><span>PIERCE ${mon.stats.pierce}%</span>
+    </div>
+    <div class="specialty-badge">\u2605 ${mon.stats.specialty.toUpperCase()} SPECIALTY</div>
     <div class="mon-actions">
         <button onclick="withdrawFromBox(${i})" class="green">TO PARTY</button>
         <button onclick="releaseFromBox(${i})" class="red">RELEASE</button>
@@ -866,6 +1105,10 @@ function buyMonball() {
 function feedMon(index) {
     party[index].hunger = 100;
     party[index].lastFed = new Date().toISOString();
+    // Feeding also restores HP, so a damaged team can recover between battles
+    // (no healing happens during a battle).
+    ensureMonReady(party[index]);
+    party[index].current_hp = party[index].max_hp;
     saveData();
     updateUI();
 }
@@ -982,7 +1225,9 @@ function attemptCatch() {
         const newMon = { 
             name, rarity, level: 1, xp: 0, max_hp: maxHP, current_hp: maxHP,
             hunger: 100, wins: 0, lastFed: new Date().toISOString(),
-            skills: generateSkills(name, rarity)
+            stats: generateStats(rarity),
+            skills: generateSkills(name, rarity),
+            ultimate: getSpeciesUltimate(name)
         };
 
         if (party.length >= 3) {
@@ -1261,66 +1506,352 @@ function startAdventureBattle() {
     isInAdventureBattle = true;
     start3v3Battle(party.slice(0, 3));
 }
-// 3v3 Sequential Battle
-function start3v3Battle(playerTeam) {
-    // Create enemy team
-    const enemyTeam = [];
+// ==================== BATTLE ENGINE (Phase 1) ====================
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Build an in-battle fighter. Player fighters reference the real party mon so
+// their HP can be written back (it persists after the battle).
+function makeFighter(mon, isPlayer) {
+    ensureMonReady(mon);
+    return {
+        ref: isPlayer ? mon : null,
+        name: mon.name, rarity: mon.rarity, level: Math.floor(mon.level),
+        maxHp: mon.max_hp,
+        hp: isPlayer ? Math.max(0, mon.current_hp) : mon.max_hp,
+        stats: { ...mon.stats },
+        skills: mon.skills.map(s => ({ ...s })),
+        ultimate: { ...mon.ultimate },
+        sprite: getSpritePath(mon.name),
+        energy: 0, ultimateUsed: false, status: [], isPlayer
+    };
+}
+
+function makeEnemyTeam(playerParty) {
+    const baseLevel = Math.floor(playerParty[0].level);
+    const team = [];
     for (let i = 0; i < 3; i++) {
-        const name = MONANIMAL_NAMES[Math.floor(Math.random() * MONANIMAL_NAMES.length)];
+        const name = MONANIMAL_NAMES[randInt(0, MONANIMAL_NAMES.length - 1)];
         const rarity = getRarityRoll();
-        const level = Math.max(1, Math.floor(playerTeam[0].level - 3 + Math.random() * 7));
-        enemyTeam.push({
-            name: name,
-            rarity: rarity,
-            level: level,
-            max_hp: getMaxHP(level, rarity),
-            current_hp: getMaxHP(level, rarity),
-            skills: generateSkills(name, rarity)
-        });
+        const level = Math.max(1, baseLevel - 2 + randInt(0, 4));
+        const mon = { name, rarity, level, max_hp: getMaxHP(level, rarity) };
+        mon.current_hp = mon.max_hp;
+        mon.stats = generateStats(rarity);
+        mon.skills = generateSkills(name, rarity);
+        mon.ultimate = getSpeciesUltimate(name);
+        team.push(makeFighter(mon, false));
     }
+    return team;
+}
 
-    let playerIndex = 0;
-    let enemyIndex = 0;
-    let playerHp = playerTeam[playerIndex].current_hp || playerTeam[playerIndex].max_hp;
-    let enemyHp = enemyTeam[enemyIndex].current_hp || enemyTeam[enemyIndex].max_hp;
+function start3v3Battle(playerParty) {
+    isInAdventureBattle = true;
+    const playerTeam = playerParty.slice(0, 3).map(m => makeFighter(m, true));
+    const enemyTeam = makeEnemyTeam(playerParty);
+    renderBattleScene();
+    runBattle(playerTeam, enemyTeam);
+}
 
-    // Battle UI
+function renderBattleScene() {
     const content = document.getElementById("battle-content");
     content.innerHTML = `
-        <div style="padding:20px; text-align:center;">
-            <h2>CHAPTER 1 - STAGE ${currentStage}</h2>
-            <div id="battle-log" style="background:#111; color:#0f0; padding:15px; height:260px; overflow-y:auto; text-align:left; margin:15px 0; font-family:monospace;"></div>
-            
-            <div style="display:flex; justify-content:space-around; margin:20px 0;">
-                <div>
-                    <strong>${playerTeam[playerIndex].name} (P${playerIndex+1})</strong><br>
-                    <div id="player-hp" style="height:18px; background:#22c55e; width:280px;"></div>
+        <div class="battle-stage" id="battle-stage">
+            <div class="bench bench-enemy" id="bench-enemy"></div>
+            <div class="bench bench-player" id="bench-player"></div>
+            <div class="stage-label">CHAPTER 1 - STAGE ${currentStage}</div>
+            <div class="fighter-wrap enemy" id="wrap-enemy">
+                <div class="nameplate">
+                    <div class="np-row"><span class="np-name" id="np-name-enemy"></span><span class="np-lv" id="np-lv-enemy"></span></div>
+                    <div class="hpbar"><div class="hpfill" id="hp-enemy"></div><span class="hptext" id="hptext-enemy"></span></div>
+                    <div class="enbar"><div class="enfill" id="en-enemy"></div></div>
                 </div>
-                <div>
-                    <strong>${enemyTeam[enemyIndex].name} (E${enemyIndex+1})</strong><br>
-                    <div id="enemy-hp" style="height:18px; background:#22c55e; width:280px;"></div>
+                <img class="bsprite mirrored" id="sprite-enemy" onerror="this.style.visibility='hidden'">
+            </div>
+            <div class="fighter-wrap player" id="wrap-player">
+                <img class="bsprite" id="sprite-player" onerror="this.style.visibility='hidden'">
+                <div class="nameplate">
+                    <div class="np-row"><span class="np-name" id="np-name-player"></span><span class="np-lv" id="np-lv-player"></span></div>
+                    <div class="hpbar"><div class="hpfill" id="hp-player"></div><span class="hptext" id="hptext-player"></span></div>
+                    <div class="enbar"><div class="enfill" id="en-player"></div></div>
                 </div>
             </div>
+            <div class="fx-layer" id="fx-layer"></div>
+            <div class="skill-banner" id="skill-banner"></div>
+            <div class="screen-flash" id="screen-flash"></div>
         </div>
     `;
+}
 
-    const log = document.getElementById("battle-log");
+function setFighter(side, f) {
+    const sprite = document.getElementById("sprite-" + side);
+    sprite.style.visibility = "visible";
+    sprite.src = f.sprite;
+    document.getElementById("np-name-" + side).textContent = f.name;
+    document.getElementById("np-lv-" + side).textContent = "Lv." + f.level;
+    updateBars(side, f);
+}
 
-    function logMsg(msg) {
-        log.innerHTML += `<div>${msg}</div>`;
-        log.scrollTop = log.scrollHeight;
+function updateBars(side, f) {
+    const pct = Math.max(0, Math.min(100, (f.hp / f.maxHp) * 100));
+    const hf = document.getElementById("hp-" + side);
+    hf.style.width = pct + "%";
+    hf.style.background = pct > 50 ? "#22c55e" : pct > 25 ? "#f59e0b" : "#ef4444";
+    document.getElementById("hptext-" + side).textContent = Math.max(0, Math.ceil(f.hp)) + " / " + f.maxHp;
+    document.getElementById("en-" + side).style.width = Math.min(100, f.energy) + "%";
+}
+
+function renderBench(side, team, curIdx) {
+    const el = document.getElementById("bench-" + side);
+    el.innerHTML = "";
+    team.forEach((f, i) => {
+        const d = document.createElement("div");
+        d.className = "bench-dot" + (f.hp <= 0 ? " dead" : "") + (i === curIdx ? " active" : "");
+        d.style.backgroundImage = `url('${f.sprite}')`;
+        el.appendChild(d);
+    });
+}
+
+function playEffect(side, element, isUltimate) {
+    const stage = document.getElementById("battle-stage");
+    const sprite = document.getElementById("sprite-" + side);
+    const sR = sprite.getBoundingClientRect(), stR = stage.getBoundingClientRect();
+    const fx = document.createElement("div");
+    fx.className = "fx" + (isUltimate ? " fx-ultimate" : "");
+    fx.textContent = ELEMENT_GLYPH[element] || "\uD83D\uDCA5";
+    fx.style.left = (sR.left - stR.left + sR.width / 2) + "px";
+    fx.style.top = (sR.top - stR.top + sR.height / 2) + "px";
+    document.getElementById("fx-layer").appendChild(fx);
+    setTimeout(() => fx.remove(), isUltimate ? 1000 : 650);
+}
+
+function showDamage(side, amount, kind) {
+    const stage = document.getElementById("battle-stage");
+    const sprite = document.getElementById("sprite-" + side);
+    const sR = sprite.getBoundingClientRect(), stR = stage.getBoundingClientRect();
+    const d = document.createElement("div");
+    d.className = "dmgnum " + (kind || "");
+    if (kind === "miss") d.textContent = "MISS";
+    else if (kind === "heal") d.textContent = "+" + amount;
+    else d.textContent = "-" + amount + (kind === "crit" ? " CRIT" : kind === "block" ? " BLOCK" : "");
+    d.style.left = (sR.left - stR.left + sR.width / 2) + "px";
+    d.style.top = (sR.top - stR.top + sR.height / 3) + "px";
+    document.getElementById("fx-layer").appendChild(d);
+    setTimeout(() => d.remove(), 1000);
+}
+
+function showBanner(text, isUlt) {
+    const b = document.getElementById("skill-banner");
+    b.textContent = text;
+    b.className = "skill-banner show" + (isUlt ? " ult" : "");
+    setTimeout(() => { b.className = "skill-banner"; }, 900);
+}
+
+function screenFlash() {
+    const f = document.getElementById("screen-flash");
+    f.classList.add("on");
+    setTimeout(() => f.classList.remove("on"), 350);
+}
+
+async function approach(side) {
+    const wrap = document.getElementById("wrap-" + side);
+    const dx = side === "player" ? 130 : -130;
+    const dy = side === "player" ? -150 : 150;
+    wrap.style.transition = "transform .28s ease-in";
+    wrap.style.transform = `translate(${dx}px, ${dy}px)`;
+    await delay(280);
+}
+
+async function recoil(side) {
+    const wrap = document.getElementById("wrap-" + side);
+    wrap.style.transition = "transform .25s ease-out";
+    wrap.style.transform = "translate(0,0)";
+    await delay(250);
+}
+
+async function faintAnim(side) {
+    const wrap = document.getElementById("wrap-" + side);
+    wrap.style.transform = "translate(0,0)";
+    wrap.classList.add("fainted");
+    await delay(550);
+}
+
+async function slideIn(side) {
+    const wrap = document.getElementById("wrap-" + side);
+    wrap.classList.remove("fainted");
+    wrap.style.transition = "none";
+    wrap.style.transform = side === "player" ? "translate(-240px,130px)" : "translate(240px,-130px)";
+    void wrap.offsetWidth;
+    wrap.style.transition = "transform .4s ease-out";
+    wrap.style.transform = "translate(0,0)";
+    await delay(420);
+}
+
+function clearStatuses(f) { f.status = []; }
+
+async function takeTurn(atk, def, atkSide, defSide) {
+    // Start-of-turn regeneration passive
+    const regenP = atk.skills.find(s => s.regen);
+    if (regenP && atk.hp > 0) {
+        const heal = Math.ceil(atk.maxHp * regenP.regen);
+        atk.hp = Math.min(atk.maxHp, atk.hp + heal);
+        updateBars(atkSide, atk);
+        showDamage(atkSide, heal, "heal");
+        await delay(250);
     }
 
-    // Auto battle loop will be expanded in next update
-    logMsg(`Battle Start! ${playerTeam[playerIndex].name} vs ${enemyTeam[enemyIndex].name}`);
-    
-    // For now, simulate win to test progression
-    setTimeout(() => {
+    // Pick a skill: ultimate fires when energy is full and not yet used
+    let skill, isUlt = false;
+    if (atk.energy >= 100 && !atk.ultimateUsed) {
+        skill = atk.ultimate; isUlt = true;
+    } else {
+        const usable = atk.skills.filter(s => s.type === "active" || s.type === "heal");
+        skill = usable.length ? usable[randInt(0, usable.length - 1)]
+                              : { name: "Struggle", element: "physical", power: 0.5, type: "active" };
+    }
+
+    showBanner((isUlt ? "\u2605 " : "") + skill.name + (isUlt ? " \u2605" : ""), isUlt);
+    if (isUlt) screenFlash();
+    await delay(isUlt ? 500 : 300);
+
+    const spendEnergy = () => {
+        atk.energy = Math.min(100, atk.energy + 30);
+        if (isUlt) { atk.ultimateUsed = true; atk.energy = 0; }
+    };
+
+    // Healing skill
+    if (skill.type === "heal") {
+        const heal = Math.ceil(atk.maxHp * (skill.heal || 0.35));
+        atk.hp = Math.min(atk.maxHp, atk.hp + heal);
+        playEffect(atkSide, "heal", isUlt);
+        showDamage(atkSide, heal, "heal");
+        spendEnergy();
+        updateBars(atkSide, atk);
+        await delay(600);
+        return;
+    }
+
+    // Damage skill: approach, hit, recoil
+    await approach(atkSide);
+    playEffect(defSide, skill.element, isUlt);
+
+    const effDodge = Math.max(0, Math.min(60, def.stats.dodge + passiveBonus(def, "dodgeBonus") - atk.stats.hit));
+    if (Math.random() * 100 < effDodge) {
+        showDamage(defSide, 0, "miss");
+        spendEnergy();
+        updateBars(atkSide, atk);
+        await delay(250);
+        await recoil(atkSide);
+        return;
+    }
+
+    let dmg = calculateDamage(atk, def, skill);
+    let crit = false, blocked = false;
+    if (Math.random() * 100 < (atk.stats.crit + passiveBonus(atk, "critBonus"))) { dmg = Math.floor(dmg * 1.8); crit = true; }
+    const effBlock = Math.max(0, Math.min(60, def.stats.block + passiveBonus(def, "blockBonus") - atk.stats.pierce));
+    if (Math.random() * 100 < effBlock) { dmg = Math.floor(dmg * 0.5); blocked = true; }
+    dmg = Math.max(1, dmg);
+
+    def.hp = Math.max(0, def.hp - dmg);
+    const dw = document.getElementById("wrap-" + defSide);
+    dw.classList.add("hit-shake");
+    setTimeout(() => dw.classList.remove("hit-shake"), 300);
+    showDamage(defSide, dmg, crit ? "crit" : blocked ? "block" : "");
+    updateBars(defSide, def);
+
+    spendEnergy();
+    if (def.hp > 0) def.energy = Math.min(100, def.energy + 15);
+    updateBars(atkSide, atk);
+    updateBars(defSide, def);
+
+    await delay(250);
+    await recoil(atkSide);
+    await delay(120);
+}
+
+async function runBattle(player, enemy) {
+    let pi = 0, ei = 0;
+    setFighter("player", player[pi]);
+    setFighter("enemy", enemy[ei]);
+    renderBench("player", player, pi);
+    renderBench("enemy", enemy, ei);
+    await delay(700);
+
+    let guard = 0;
+    while (guard++ < 500) {
+        const P = player[pi], E = enemy[ei];
+        const seq = P.stats.spd >= E.stats.spd
+            ? [["player", "enemy"], ["enemy", "player"]]
+            : [["enemy", "player"], ["player", "enemy"]];
+
+        for (const [atkSide, defSide] of seq) {
+            const atk = atkSide === "player" ? P : E;
+            const def = defSide === "player" ? P : E;
+            if (atk.hp <= 0 || def.hp <= 0) continue;
+            await takeTurn(atk, def, atkSide, defSide);
+            if (def.hp <= 0) break;
+        }
+
+        if (E.hp <= 0) {
+            await faintAnim("enemy");
+            renderBench("enemy", enemy, ei);
+            ei++;
+            if (ei >= enemy.length) return endBattle(true, player);
+            clearStatuses(P);
+            setFighter("enemy", enemy[ei]);
+            renderBench("enemy", enemy, ei);
+            await slideIn("enemy");
+            await delay(250);
+        }
+        if (P.hp <= 0) {
+            await faintAnim("player");
+            renderBench("player", player, pi);
+            pi++;
+            if (pi >= player.length) return endBattle(false, player);
+            setFighter("player", player[pi]);
+            renderBench("player", player, pi);
+            await slideIn("player");
+            await delay(250);
+        }
+        // Persist player HP live (HP carries over; no healing during battle)
+        player.forEach(f => { if (f.ref) f.ref.current_hp = Math.max(0, Math.round(f.hp)); });
+    }
+}
+
+function endBattle(win, player) {
+    isInAdventureBattle = false;
+    player.forEach(f => { if (f.ref) f.ref.current_hp = Math.max(0, Math.round(f.hp)); });
+
+    let reward = 0;
+    if (win) {
+        reward = 120 + currentStage * 15;
+        money += reward;
+        party.slice(0, 3).forEach(m => {
+            const xp = getXPFromBattle(Math.floor(m.level), Math.floor(m.level));
+            m.xp = (m.xp || 0) + xp;
+            m.wins = (m.wins || 0) + 1;
+            let need = getXPForNextLevel(Math.floor(m.level));
+            while (m.xp >= need) { m.xp -= need; levelUpMon(m); need = getXPForNextLevel(Math.floor(m.level)); }
+        });
         currentStage = Math.min(40, currentStage + 1);
         saveAdventureProgress();
-        alert("You won the battle! Progressing to next stage.");
-        enterAdventureMode();
-    }, 2500);
+    }
+    saveData();
+    showBattleResult(win, reward);
+}
+
+function showBattleResult(win, reward) {
+    const content = document.getElementById("battle-content");
+    content.innerHTML = `
+        <div style="padding:40px; text-align:center; background:white; border:4px solid #6B21A8; box-shadow:4px 4px 0px #6B21A8;">
+            <h2 style="color:${win ? '#16a34a' : '#ef4444'}; font-family:'Press Start 2P', monospace;">${win ? 'VICTORY!' : 'DEFEAT'}</h2>
+            <p style="font-size:15px; margin:20px 0;">${win
+                ? ('Your team won! Earned ' + reward + ' coins and gained XP.')
+                : 'Your team was defeated. Feed/heal your team and try again!'}</p>
+            <button onclick="enterAdventureMode()" style="margin-top:10px; padding:14px 45px; background:#6B21A8; color:white; border:none; cursor:pointer; font-family:'Press Start 2P', monospace;">
+                CONTINUE
+            </button>
+        </div>
+    `;
+    updateUI();
 }
 function renderInventory() {
     const grid = document.getElementById("inventory-grid");
