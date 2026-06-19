@@ -477,11 +477,11 @@ button,
     display: none;
     position: absolute;
     top: 26px; right: 0;
-    width: 160px;
+    width: 270px;
     background: #1f1235;
     color: #fff;
     border: 2px solid #facc15;
-    padding: 8px 10px;
+    padding: 8px 10px 6px;
     z-index: 10;
     box-shadow: 0 4px 14px rgba(0,0,0,0.4);
 }
@@ -493,15 +493,67 @@ button,
     margin-bottom: 6px;
     text-align: center;
 }
-.stats-tooltip div:not(.st-title) {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    padding: 2px 0;
+.st-pair-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(250, 204, 21, 0.22);
 }
-.stats-tooltip .gold {
+.st-pair-row:last-child { border-bottom: none; padding-bottom: 2px; }
+.st-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+.st-label {
+    font-family: 'Lato', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #e9d5ff;
+}
+.st-value {
+    font-family: 'Lato', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 6px;
+    border: 1px solid rgba(250, 204, 21, 0.55);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.07);
+    text-align: center;
+    color: #fff;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.st-cell.gold .st-label { color: #facc15; }
+.st-cell.gold .st-value {
     color: #facc15;
-    font-weight: bold;
+    border-color: #facc15;
+    background: rgba(250, 204, 21, 0.12);
+}
+.st-pair-row:hover .st-cell {
+    background: rgba(250, 204, 21, 0.1);
+}
+.st-pair-row:hover .st-value {
+    border-color: #facc15;
+    background: rgba(250, 204, 21, 0.14);
+}
+.st-pair-row.counter:hover .st-cell {
+    background: rgba(250, 204, 21, 0.16);
+    box-shadow: inset 0 0 0 1px rgba(250, 204, 21, 0.35);
+}
+.st-pair-row.counter:hover .st-value {
+    border-color: #fde047;
+    color: #fde047;
+}
+.st-pair-row .st-cell:hover .st-value,
+.st-pair-row:hover .st-cell:hover .st-value {
+    border-color: #fde047;
+    background: rgba(250, 204, 21, 0.22);
 }
 .skill-square.skill-ult {
     background: linear-gradient(145deg, #fde68a, #f59e0b);
@@ -988,20 +1040,21 @@ function getSpeciesUltimate(name) {
     return { ...(SPECIES_ULTIMATE[name] || { name: "Power Surge", element: "physical", power: 2.0, desc: "A powerful signature move." }) };
 }
 
-// Card "i" info icon: hover to reveal combat stats. The specialty stat is gold.
+// Card "i" info icon: hover to reveal paired combat stats.
 function renderStatsInfo(mon) {
     const sp = mon.stats.specialty;
-    const row = (key, label, val) => `<div class="${sp === key ? 'gold' : ''}">${label}<span>${val}</span></div>`;
+    const cell = (key, label, val) => {
+        const gold = sp === key ? " gold" : "";
+        return `<div class="st-cell${gold}" data-stat="${key}"><span class="st-label">${label}</span><span class="st-value">${val}</span></div>`;
+    };
+    const pair = (pairClass, left, right) => `<div class="st-pair-row ${pairClass}">${left}${right}</div>`;
     return `
     <div class="info-icon">i
         <div class="stats-tooltip">
             <div class="st-title">COMBAT STATS</div>
-            ${row('spd', 'SPD', mon.stats.spd)}
-            ${row('crit', 'CRIT', mon.stats.crit + '%')}
-            ${row('dodge', 'DODGE', mon.stats.dodge + '%')}
-            ${row('block', 'BLOCK', mon.stats.block + '%')}
-            ${row('hit', 'HIT', mon.stats.hit + '%')}
-            ${row('pierce', 'PIERCE', mon.stats.pierce + '%')}
+            ${pair("", cell("spd", "SPD", mon.stats.spd), cell("crit", "CRIT", mon.stats.crit + "%"))}
+            ${pair("counter", cell("pierce", "PIERCE", mon.stats.pierce + "%"), cell("block", "BLOCK", mon.stats.block + "%"))}
+            ${pair("counter", cell("hit", "HIT", mon.stats.hit + "%"), cell("dodge", "DODGE", mon.stats.dodge + "%"))}
         </div>
     </div>`;
 }
