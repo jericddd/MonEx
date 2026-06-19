@@ -1,0 +1,34 @@
+{
+  "party": [
+    {
+      "name": "Chog",
+      "rarity": "Uncommon",
+      "level": 1.5,
+      "hp": 100,
+      "hunger": 48,
+      "wins": 1,
+      "last_fed": "2026-06-10T21:27:09.354823"
+    },
+    {
+      "name": "Molandak",
+      "rarity": "Common",
+      "level": 1,
+      "hp": 100,
+      "hunger": 86,
+      "wins": 0,
+      "last_fed": "2026-06-10T21:53:49.252567"
+    },
+    {
+      "name": "Shramp",
+      "rarity": "Common",
+      "level": 1,
+      "hp": 100,
+      "hunger": 100,
+      "wins": 0,
+      "last_fed": "2026-06-10T22:14:17.300590"
+    }
+  ],
+  "box": [],
+  "monballs": 9,
+  "last_reset_date": "2026-06-10"
+}

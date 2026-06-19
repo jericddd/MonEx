@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MonEx - Home</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+    body {
+        margin: 0;
+        font-family: 'Lato', system-ui, sans-serif;
+        background: url('file:///C:/Users/Jeric/Downloads/MonanimalX/for%20result%20banner/homebg.jpg') no-repeat center center fixed;
+        background-size: cover;
+        color: #111;
+        min-height: 100vh;
+    }
+
+    .header {
+    background: transparent;
+    padding: 12px 0;
+    border-bottom: none;
+}
+    .header-inner {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 15px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .nav-btn {
+        padding: 8px 16px;
+        margin: 4px 2px;
+        border: 2px solid #6B21A8;
+        background: white;
+        color: #111;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: "Press Start 2P", sans-serif;
+        font-size: 11px;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+    }
+    .nav-btn:hover {
+        background: #6B21A8;
+        color: white;
+        transform: translateY(-4px) scale(1.05);
+    }
+
+    .main-container {
+        max-width: 1200px;
+        margin: 20px auto;
+        padding: 20px 15px;
+        display: flex;
+        gap: 15px;
+        background: rgba(0, 0, 0, 0.45);
+        border-radius: 8px;
+        flex-wrap: wrap;
+    }
+
+    /* Left Sidebar */
+    .left-sidebar {
+        width: 100%;
+        max-width: 240px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .sidebar-btn {
+        padding: 16px;
+        background: white;
+        border: 4px solid #6B21A8;
+        box-shadow: 4px 4px 0px #6B21A8;
+        font-family: "Press Start 2P", sans-serif;
+        font-size: 14px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.4s ease;
+    }
+    .sidebar-btn:hover {
+        background: #6B21A8;
+        color: white;
+        transform: translateX(8px) scale(1.03);
+    }
+
+    /* Central Banner */
+    .central-banner {
+        flex: 1;
+        min-width: 280px;
+        background: rgba(255,255,255,0.92);
+        border: 4px solid #6B21A8;
+        box-shadow: 4px 4px 0px #6B21A8;
+        padding: 20px;
+        text-align: center;
+    }
+
+    /* Right Sidebar */
+    .right-sidebar {
+        width: 100%;
+        max-width: 260px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .side-box {
+        background: white;
+        border: 4px solid #6B21A8;
+        box-shadow: 4px 4px 0px #6B21A8;
+        padding: 15px;
+        transition: all 0.3s ease;
+    }
+    .side-box:hover {
+        transform: translateY(-5px);
+    }
+
+    h2 {
+        font-family: "Press Start 2P", monospace;
+        color: #6B21A8;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 900px) {
+        .main-container {
+            flex-direction: column;
+            align-items: center;
+        }
+        .left-sidebar, .right-sidebar {
+            max-width: 100%;
+        }
+        .nav-btn {
+            font-size: 10px;
+            padding: 8px 12px;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .header-inner {
+            flex-direction: column;
+            gap: 10px;
+        }
+    }
+    @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header - Transparent -->
+<div class="header" style="background: transparent; border-bottom: none;">
+    <div class="header-inner">
+    <img src="file:///C:/Users/Jeric/Downloads/MonanimalX/logo.png" alt="MonEx Logo" style="height: 45px; margin-top: 5px;">
+    <div id="nav-buttons" class="nav-buttons"></div>
+</div>
+</div>
+
+<div class="main-container">
+    
+<!-- Left Sidebar -->
+<div class="left-sidebar">
+    <div class="sidebar-btn" onclick="handleGameStart()" 
+     style="background: linear-gradient(145deg, #c084fc, #7c3aed); 
+            color: white; 
+            font-size: 15px; 
+            box-shadow: 0 0 25px rgba(168, 85, 247, 0.9), 
+                        inset 0 6px 15px rgba(255,255,255,0.5); 
+            text-shadow: 0 2px 4px rgba(0,0,0,0.4); 
+            border: 4px solid #6B21A8;">
+    GAME START
+</div>
+    
+    <div class="sidebar-btn" onclick="window.location.href='docs.html'">DOCS</div>
+    
+    <div class="sidebar-btn" onclick="window.location.href='monanimal_game.html'">SHOP</div>
+
+    <!-- Monanimal Showcase - Below Shop -->
+<div style="margin-top: 15px; background: white; border: 4px solid #6B21A8; box-shadow: 4px 4px 0px #6B21A8; padding: 12px; text-align: center;">
+    <h3 style="margin: 0 0 10px 0; font-family: 'Press Start 2P', monospace; color: #6B21A8; font-size: 12px;">MONANIMAL SHOWCASE</h3>
+    
+    <div id="showcase" style="position: relative; height: 160px; overflow: hidden; background: #ffffff;">
+            <img id="showcase-img" src="" style="width: 100%; height: 100%; object-fit: contain; transition: all 0.6s ease;">
+        </div>
+        
+        <div style="margin-top: 8px; font-family: 'Press Start 2P', monospace; font-size: 12px;" id="showcase-name"></div>
+        
+        <div style="margin-top: 10px; display: flex; justify-content: center; gap: 15px;">
+            <button onclick="prevMon()" style="background: #6B21A8; color: white; border: none; width: 35px; height: 35px; cursor: pointer; font-size: 16px;">←</button>
+            <button onclick="nextMon()" style="background: #6B21A8; color: white; border: none; width: 35px; height: 35px; cursor: pointer; font-size: 16px;">→</button>
+        </div>
+    </div>
+</div>
+
+    <!-- Central Banner -->
+    <div class="central-banner">
+        <h2>WELCOME TO MONEX</h2>
+        <p style="font-size: 18px; margin: 20px 0;">Catch. Train. Battle.</p>
+        <img src="C:\Users\Jeric\Downloads\MonanimalX\for result banner\homepagebackground.jpg" 
+             style="max-width: 100%; border: 4px solid #6B21A8; margin: 15px 0;">
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="right-sidebar">
+        <div class="side-box">
+            <h2 style="margin-top:0;">NEWBIE GUIDE</h2>
+            <p>How to start playing MonEx</p>
+        </div>
+        <div class="side-box">
+    <h2 style="margin-top:0;">SERVER STATUS</h2>
+    <div id="server-status" style="font-weight: bold; font-size: 16px; display: flex; align-items: center; gap: 10px;">
+        <span id="status-dot" style="display: inline-block; width: 12px; height: 12px; background: #22c55e; border-radius: 50%; animation: blink 1.5s infinite;"></span>
+        <span id="status-text" style="color: #22c55e;">Online</span>
+    </div>
+</div>
+        <div class="side-box">
+            <h2>DAILY LOGIN</h2>
+            <p>Claim your daily reward!</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function goToProfile() {
+        window.location.href = 'monanimal_game.html';
+    }
+</script>
+<script>
+// Monanimal Showcase
+const monanimals = [
+    {name: "Chog", path: "file:///C:/Users/Jeric/Downloads/MonanimalX/128x128/chog.gif"},
+    {name: "Mopo", path: "file:///C:/Users/Jeric/Downloads/MonanimalX/128x128/mopo.gif"},
+    {name: "Molandak", path: "file:///C:/Users/Jeric/Downloads/MonanimalX/128x128/molandak.gif"},
+    {name: "Monavara", path: "file:///C:/Users/Jeric/Downloads/MonanimalX/128x128/monavara.png"},
+    {name: "Moxy", path: "file:///C:/Users/Jeric/Downloads/MonanimalX/128x128/moxy.png"}
+];
+
+let currentIndex = 0;
+let autoPlayInterval;
+
+function updateShowcase() {
+    const img = document.getElementById("showcase-img");
+    const nameEl = document.getElementById("showcase-name");
+    img.src = monanimals[currentIndex].path;
+    nameEl.textContent = monanimals[currentIndex].name;
+}
+
+function nextMon() {
+    currentIndex = (currentIndex + 1) % monanimals.length;
+    updateShowcase();
+}
+
+function prevMon() {
+    currentIndex = (currentIndex - 1 + monanimals.length) % monanimals.length;
+    updateShowcase();
+}
+
+function startAutoPlay() {
+    autoPlayInterval = setInterval(nextMon, 3500);
+}
+
+updateShowcase();
+startAutoPlay();
+</script>
+<script>
+// Dynamic Header Logic
+function updateHeader() {
+    const nav = document.getElementById("nav-buttons");
+    const currentUser = localStorage.getItem("monex_current_user");
+
+    if (!currentUser) {
+        // Logged Out - Show Login with X
+        nav.innerHTML = `
+            <button onclick="mockXLogin()" style="
+                padding: 12px 28px;
+                background: linear-gradient(145deg, #1DA1F2, #0A7CC2);
+                color: white;
+                border: none;
+                font-weight: bold;
+                font-size: 14px;
+                cursor: pointer;
+                border-radius: 4px;
+                box-shadow: 0 4px 12px rgba(29, 161, 242, 0.4);
+            ">
+                LOGIN WITH X
+            </button>
+        `;
+    } else {
+        // Logged In - Show normal nav
+        nav.innerHTML = `
+            <button class="nav-btn" onclick="goToProfile()">PROFILE</button>
+            <button class="nav-btn" onclick="logout()">LOGOUT</button>
+        `;
+    }
+}
+
+// Mock X Login Flow - Stay on Home after login
+function mockXLogin() {
+    const modal = document.createElement("div");
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.7); display: flex; align-items: center;
+        justify-content: center; z-index: 300;
+    `;
+    modal.innerHTML = `
+        <div style="background:white; padding:30px; border:4px solid #6B21A8; text-align:center; min-width:300px;">
+            <p style="font-size:16px;">Connecting to X...</p>
+            <p style="margin-top:15px; color:#666;">Please wait</p>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    setTimeout(() => {
+        const username = "Player" + Math.floor(Math.random() * 9999);
+        localStorage.setItem("monex_current_user", username);
+        modal.remove();
+        
+        // Stay on homepage after login
+        updateHeader();   // Refresh header to show logged-in state
+    }, 1800);
+}
+function handleGameStart() {
+    const currentUser = localStorage.getItem("monex_current_user");
+
+    if (!currentUser) {
+        // Not logged in
+        showCustomModal("Please login first");
+        return;
+    }
+
+    // Always go to game (Party tab) regardless of party status
+    window.location.href = 'monanimal_game.html';
+}
+
+function showCustomModal(message) {
+    const modal = document.createElement("div");
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.7); display: flex; align-items: center;
+        justify-content: center; z-index: 300;
+    `;
+    modal.innerHTML = `
+        <div style="background:white; padding:30px; border:4px solid #6B21A8; 
+                    box-shadow:4px 4px 0px #6B21A8; text-align:center; min-width:320px;">
+            <p style="font-size:16px; margin-bottom:25px;">${message}</p>
+            <button onclick="this.parentElement.parentElement.remove()" 
+                    style="padding:10px 30px; background:#6B21A8; color:white; border:none; cursor:pointer;">
+                OK
+            </button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function goToProfile() {
+    window.location.href = 'monanimal_game.html';
+}
+
+function logout() {
+    localStorage.removeItem("monex_current_user");
+    window.location.href = 'home.html';   // Force go to home page
+}
+
+// Initialize
+updateHeader();
+</script>
+</body>
+</html>
