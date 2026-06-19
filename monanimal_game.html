@@ -320,42 +320,7 @@ body {
     filter: brightness(1.1);
 }
 
-/* Level-up row */
-.level-up-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8px;
-}
-.level-up-btn {
-    background: #16a34a;
-    color: white;
-    border: none;
-    padding: 9px 12px;
-    border-radius: 0;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: 2px 2px 3px #16a34a;
-    font-family: "Press Start 2P", sans-serif;
-    font-size: 8px;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-}
-.level-up-btn:hover:not(:disabled) {
-    background: #15803d;
-}
-.level-up-btn:disabled {
-    background: #9ca3af;
-    box-shadow: 2px 2px 3px #6b7280;
-    cursor: not-allowed;
-    opacity: 0.75;
-}
-.level-up-cost {
-    flex: 1;
-    font-size: 9px;
-    color: #4b5563;
-    line-height: 1.4;
-}
+/* FEED button */
 button.green {
     background: #16a34a;
     color: white;
@@ -431,33 +396,69 @@ button,
     display: block;
 }
 
+/* ===== Currency pills (balls-card) ===== */
+.currency-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.currency-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: #f3e8ff; border: 2px solid #6B21A8;
+    padding: 6px 10px; font-size: 13px; white-space: nowrap;
+}
+.cur-ico { font-size: 18px; }
+.currency-pill b { color: #6B21A8; }
+
 /* ===== Card stat extras ===== */
-.ult-badge {
-    margin-top: 6px;
-    font-size: 11px;
-    text-align: center;
-    background: #6B21A8;
-    color: white;
-    padding: 4px;
-    font-weight: bold;
-}
-.combat-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2px 10px;
-    font-size: 11px;
-    margin-top: 8px;
-    padding: 6px 8px;
-    background: #f3e8ff;
+.mon-card { position: relative; }
+.info-icon {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 22px; height: 22px;
     border: 2px solid #6B21A8;
-}
-.specialty-badge {
-    margin-top: 6px;
-    font-size: 10px;
-    font-weight: bold;
+    border-radius: 50%;
+    background: #fff;
     color: #6B21A8;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    line-height: 19px;
     text-align: center;
-    letter-spacing: 0.5px;
+    cursor: help;
+    z-index: 3;
+    user-select: none;
+}
+.stats-tooltip {
+    display: none;
+    position: absolute;
+    top: 26px; right: 0;
+    width: 160px;
+    background: #1f1235;
+    color: #fff;
+    border: 2px solid #facc15;
+    padding: 8px 10px;
+    z-index: 10;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+}
+.info-icon:hover .stats-tooltip { display: block; }
+.stats-tooltip .st-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #c4b5fd;
+    margin-bottom: 6px;
+    text-align: center;
+}
+.stats-tooltip div:not(.st-title) {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 2px 0;
+}
+.stats-tooltip .gold {
+    color: #facc15;
+    font-weight: bold;
+}
+.skill-square.skill-ult {
+    background: linear-gradient(145deg, #fde68a, #f59e0b);
+    border-color: #b45309;
+    color: #7c2d12;
+    box-shadow: 0 0 6px rgba(245,158,11,0.7);
 }
 
 /* ===== Battle stage ===== */
@@ -472,7 +473,7 @@ button,
 }
 .stage-label {
     position: absolute;
-    top: 8px;
+    bottom: 8px;
     left: 50%;
     transform: translateX(-50%);
     background: rgba(0,0,0,0.55);
@@ -488,11 +489,49 @@ button,
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    width: 200px;
+    width: 170px;
     z-index: 4;
 }
-.fighter-wrap.player { left: 7%; bottom: 6%; }
-.fighter-wrap.enemy { right: 7%; top: 6%; }
+.fighter-wrap.player { left: 8%; bottom: 8%; }
+.fighter-wrap.enemy { right: 8%; top: 28%; }
+
+/* ===== Pockie-style VS bar ===== */
+.vs-bar {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; padding: 8px 14px;
+    background: linear-gradient(180deg, rgba(20,10,40,0.88), rgba(20,10,40,0.5));
+    z-index: 6;
+}
+.vs-side { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.vs-side.right { justify-content: flex-end; }
+.vs-portrait {
+    width: 50px; height: 50px; object-fit: cover; object-position: top;
+    border: 3px solid #facc15; background: #fff; border-radius: 6px; flex-shrink: 0;
+}
+.vs-side.right .vs-portrait { transform: scaleX(-1); }
+.team-col { display: flex; gap: 4px; flex-shrink: 0; }
+.team-dot {
+    width: 26px; height: 26px; border: 2px solid #fff;
+    background-color: #fff; background-size: cover; background-position: center; border-radius: 4px;
+}
+.team-dot.dead { filter: grayscale(1) brightness(0.5); opacity: 0.5; }
+.team-dot.active { border-color: #facc15; box-shadow: 0 0 8px #facc15; }
+.vs-bars { flex: 1; min-width: 0; }
+.vs-name {
+    color: #fff; font-family: 'Press Start 2P', monospace; font-size: 9px;
+    margin-bottom: 4px; text-shadow: 0 1px 2px #000; white-space: nowrap; overflow: hidden;
+}
+.vs-side.right .vs-name { text-align: right; }
+.hpbar.big { height: 16px; }
+.enbar.big { height: 7px; margin-top: 3px; }
+.vs-badge {
+    flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #fde68a, #f59e0b);
+    border: 3px solid #fff; color: #7c2d12; font-family: 'Press Start 2P', monospace;
+    font-size: 13px; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 12px rgba(245,158,11,0.8); transform: rotate(-8deg);
+}
 .bsprite {
     width: 150px;
     height: 150px;
@@ -630,26 +669,14 @@ button,
     </div>
 </div>
 
-<!-- Balls -->
+<!-- Balls & currencies -->
 <div class="balls-card">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="display:flex; gap:24px;">
-            <div>
-                <strong>MONBALL</strong><br>
-                <span id="monball-count">12</span>
-            </div>
-            <div>
-                <strong>GOLD</strong><br>
-                <span id="gold-count">0</span>
-            </div>
-            <div>
-                <strong>ESSENCE</strong><br>
-                <span id="essence-count">0</span>
-            </div>
-            <div>
-                <strong>MONSHARD</strong><br>
-                <span id="monshard-count">0</span>
-            </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div class="currency-row">
+            <div class="currency-pill" title="Monballs"><span class="cur-ico">&#127944;</span><span><strong>MONBALL</strong> <b id="monball-count">12</b></span></div>
+            <div class="currency-pill" title="Gold"><span class="cur-ico">&#129689;</span><span><strong>GOLD</strong> <b id="gold-count">0</b></span></div>
+            <div class="currency-pill" title="Essence"><span class="cur-ico">&#10024;</span><span><strong>ESSENCE</strong> <b id="essence-count">0</b></span></div>
+            <div class="currency-pill" title="Mon Shards"><span class="cur-ico">&#128311;</span><span><strong>SHARDS</strong> <b id="shard-count">0</b></span></div>
         </div>
         <div style="display:flex; gap:8px;">
             <button onclick="buyMonball()" style="padding:8px 16px; border:2px solid #6B21A8; background:white; cursor:pointer;">Buy (500)</button>
@@ -767,24 +794,24 @@ const STAT_RANGES = {
 
 // Each species has its own FIXED ultimate (energy-triggered, fires once per run).
 const SPECIES_ULTIMATE = {
-    "Molandak":   { name: "Frost Nova",     element: "ice",      power: 2.2 },
-    "Chog":       { name: "Croak Quake",    element: "earth",    power: 2.2 },
-    "Mouch":      { name: "Static Swarm",   element: "electric", power: 2.1 },
-    "Salmonad":   { name: "Tidal Crash",    element: "water",    power: 2.3 },
-    "Anago":      { name: "Abyssal Coil",   element: "water",    power: 2.2 },
-    "Larvanad":   { name: "Venom Bloom",    element: "poison",   power: 2.1 },
-    "Lyraffe":    { name: "Gale Stampede",  element: "wind",     power: 2.2 },
-    "Mokadal":    { name: "Mind Crush",     element: "psychic",  power: 2.3 },
-    "Monavara":   { name: "Void Pulse",     element: "dark",     power: 2.3 },
-    "Moncock":    { name: "Crimson Spur",   element: "fire",     power: 2.2 },
-    "Mondigrade": { name: "Seismic Shell",  element: "earth",    power: 2.4 },
-    "Montiger":   { name: "Apex Roar",      element: "physical", power: 2.4 },
-    "Mopo":       { name: "Cyclone Rush",   element: "wind",     power: 2.1 },
-    "Mosferatu":  { name: "Blood Moon",     element: "dark",     power: 2.3 },
-    "Moxy":       { name: "Shock Nova",     element: "electric", power: 2.2 },
-    "Shramp":     { name: "Bubble Barrage", element: "water",    power: 2.0 },
-    "Spidermon":  { name: "Web Cataclysm",  element: "poison",   power: 2.3 },
-    "Moyaki":     { name: "Flame Geyser",   element: "fire",     power: 2.3 },
+    "Molandak":   { name: "Frost Nova",     element: "ice",      power: 2.2, desc: "Erupts in an icy nova for massive damage." },
+    "Chog":       { name: "Croak Quake",    element: "earth",    power: 2.2, desc: "A ground-shaking quake that crushes the foe." },
+    "Mouch":      { name: "Static Swarm",   element: "electric", power: 2.1, desc: "A swarm of static that shocks the enemy." },
+    "Salmonad":   { name: "Tidal Crash",    element: "water",    power: 2.3, desc: "A towering wave crashes down." },
+    "Anago":      { name: "Abyssal Coil",   element: "water",    power: 2.2, desc: "Crushing pressure from the deep." },
+    "Larvanad":   { name: "Venom Bloom",    element: "poison",   power: 2.1, desc: "A burst of toxic spores." },
+    "Lyraffe":    { name: "Gale Stampede",  element: "wind",     power: 2.2, desc: "A stampede wrapped in howling wind." },
+    "Mokadal":    { name: "Mind Crush",     element: "psychic",  power: 2.3, desc: "Shatters the foe's mind." },
+    "Monavara":   { name: "Void Pulse",     element: "dark",     power: 2.3, desc: "A pulse of pure void energy." },
+    "Moncock":    { name: "Crimson Spur",   element: "fire",     power: 2.2, desc: "A blazing crimson strike." },
+    "Mondigrade": { name: "Seismic Shell",  element: "earth",    power: 2.4, desc: "An armored seismic slam." },
+    "Montiger":   { name: "Apex Roar",      element: "physical", power: 2.4, desc: "A ferocious apex-predator assault." },
+    "Mopo":       { name: "Cyclone Rush",   element: "wind",     power: 2.1, desc: "A spinning cyclone charge." },
+    "Mosferatu":  { name: "Blood Moon",     element: "dark",     power: 2.3, desc: "Drains life under a blood moon." },
+    "Moxy":       { name: "Shock Nova",     element: "electric", power: 2.2, desc: "An explosive nova of lightning." },
+    "Shramp":     { name: "Bubble Barrage", element: "water",    power: 2.0, desc: "A relentless barrage of bubbles." },
+    "Spidermon":  { name: "Web Cataclysm",  element: "poison",   power: 2.3, desc: "Ensnares and poisons the foe." },
+    "Moyaki":     { name: "Flame Geyser",   element: "fire",     power: 2.3, desc: "A geyser of searing flame." },
 };
 
 // Visual glyph per element (used for the code-generated attack effects).
@@ -801,10 +828,9 @@ let party = [];
 let box = [];
 let monballs = 15;
 let money = 5000;
-let essence = 10;
-let monshards = 3;
+let essence = 0;
+let monShards = 0;
 let lastResetDate = null;
-const MAX_LEVEL = 100;
 let isInAdventureBattle = false;
 
 // ==================== HELPER FUNCTIONS ====================
@@ -854,37 +880,6 @@ function getXPFromBattle(playerLevel, enemyLevel) {
     return Math.max(3, Math.floor(xp / scaling));
 }
 
-const RARITY_COST_MULT = { Common: 1, Uncommon: 1.15, Rare: 1.35, Legendary: 1.6, Mythic: 2 };
-
-function getLevelUpCost(level, rarity) {
-    const nextLvl = Math.floor(level) + 1;
-    const mult = RARITY_COST_MULT[rarity] || 1;
-    const cost = {
-        gold: Math.floor(200 * nextLvl * mult),
-        essence: nextLvl >= 3 ? Math.max(1, Math.floor(nextLvl / 4)) : 0,
-        monshard: 0
-    };
-    if (rarity === "Legendary" || rarity === "Mythic") {
-        if (nextLvl >= 5) cost.monshard = Math.max(1, Math.floor(nextLvl / 8));
-    } else if (rarity === "Rare") {
-        if (nextLvl >= 10) cost.monshard = Math.max(1, Math.floor(nextLvl / 12));
-    } else if (nextLvl >= 20) {
-        cost.monshard = 1;
-    }
-    return cost;
-}
-
-function formatLevelUpCost(cost) {
-    const parts = [`${cost.gold} gold`];
-    if (cost.essence > 0) parts.push(`${cost.essence} essence`);
-    if (cost.monshard > 0) parts.push(`${cost.monshard} monshard`);
-    return parts.join(" \u2022 ");
-}
-
-function canAffordLevelUp(cost) {
-    return money >= cost.gold && essence >= cost.essence && monshards >= cost.monshard;
-}
-
 function getCatchRate(rarity) {
     return 0.95;   // 95% Catch Rate for all rarities
 }
@@ -923,7 +918,38 @@ function generateStats(rarity) {
 }
 
 function getSpeciesUltimate(name) {
-    return { ...(SPECIES_ULTIMATE[name] || { name: "Power Surge", element: "physical", power: 2.0 }) };
+    return { ...(SPECIES_ULTIMATE[name] || { name: "Power Surge", element: "physical", power: 2.0, desc: "A powerful signature move." }) };
+}
+
+// Card "i" info icon: hover to reveal combat stats. The specialty stat is gold.
+function renderStatsInfo(mon) {
+    const sp = mon.stats.specialty;
+    const row = (key, label, val) => `<div class="${sp === key ? 'gold' : ''}">${label}<span>${val}</span></div>`;
+    return `
+    <div class="info-icon">i
+        <div class="stats-tooltip">
+            <div class="st-title">COMBAT STATS</div>
+            ${row('spd', 'SPD', mon.stats.spd)}
+            ${row('crit', 'CRIT', mon.stats.crit + '%')}
+            ${row('dodge', 'DODGE', mon.stats.dodge + '%')}
+            ${row('block', 'BLOCK', mon.stats.block + '%')}
+            ${row('hit', 'HIT', mon.stats.hit + '%')}
+            ${row('pierce', 'PIERCE', mon.stats.pierce + '%')}
+        </div>
+    </div>`;
+}
+
+// Skill boxes: the normal RNG skills plus the fixed ultimate (gold box, marked with a star).
+function renderSkillsGrid(mon) {
+    const normal = mon.skills.map(skill => `
+        <div class="skill-square" data-type="${skill.type}" title="${skill.type.toUpperCase()}: ${skill.name} \u2014 ${skill.desc || skill.element}">
+            <span>${skill.name.substring(0, 2).toUpperCase()}</span>
+        </div>`).join('');
+    const ult = `
+        <div class="skill-square skill-ult" title="ULTIMATE: ${mon.ultimate.name} \u2014 ${mon.ultimate.desc || 'A powerful signature move.'}">
+            <span>\u2605</span>
+        </div>`;
+    return `<div class="skills-grid">${normal}${ult}</div>`;
 }
 
 // Normal skills (active + passive) are RNG per individual: one passive + the rest actives.
@@ -959,6 +985,15 @@ function levelUpMon(mon) {
     const hpGain = mon.max_hp - oldMaxHP;
     mon.current_hp = Math.min(mon.max_hp, mon.current_hp + hpGain);
 }
+
+// Phase 2: rarity level caps + material-based leveling cost.
+function getLevelCap(rarity) {
+    return { Common: 20, Uncommon: 30, Rare: 40, Legendary: 60, Mythic: 80 }[rarity] || 20;
+}
+function getLevelCost(mon) {
+    const lvl = Math.floor(mon.level);
+    return { gold: 50 * lvl, essence: 5 + lvl * 3 };
+}
 function passiveBonus(fighter, key) {
     const p = (fighter.skills || []).find(s => s[key] != null);
     return p ? p[key] : 0;
@@ -978,6 +1013,16 @@ function calculateDamage(attacker, defender, skill) {
 }
 
 // ==================== STATE MANAGEMENT ====================
+function updateHunger() {
+    const now = new Date();
+    party.forEach(m => {
+        if (m.lastFed) {
+            const hours = (now - new Date(m.lastFed)) / 3600000;
+            m.hunger = Math.max(10, m.hunger - Math.floor(hours * 8));
+        }
+    });
+}
+
 function checkDailyReset() {
     const now = new Date();
     const utc8 = new Date(now.getTime() + (8 * 60 * 60 * 1000));
@@ -991,7 +1036,7 @@ function checkDailyReset() {
 
 function saveData() {
     if (!currentUser) return;
-    localStorage.setItem("monex_" + currentUser, JSON.stringify({ party, box, monballs, money, essence, monshards, lastResetDate }));
+    localStorage.setItem("monex_" + currentUser, JSON.stringify({ party, box, monballs, money, essence, monShards, lastResetDate }));
 }
 
 function loadData() {
@@ -1003,8 +1048,8 @@ function loadData() {
         box = data.box || [];
         monballs = data.monballs || 15;
         money = data.money || 5000;
-        essence = data.essence ?? 10;
-        monshards = data.monshards ?? 3;
+        essence = data.essence || 0;
+        monShards = data.monShards || 0;
         lastResetDate = data.lastResetDate || null;
 
         [...party, ...box].forEach(ensureMonReady);
@@ -1013,12 +1058,13 @@ function loadData() {
         box = [];
         monballs = 15;
         money = 5000;
-        essence = 10;
-        monshards = 3;
+        essence = 0;
+        monShards = 0;
         lastResetDate = null;
         saveData();
     }
     checkDailyReset();
+    updateHunger();
     updateUI();
 }
 
@@ -1028,7 +1074,7 @@ function updateUI() {
     document.getElementById("monball-count").innerText = monballs;
     document.getElementById("gold-count").innerText = money;
     document.getElementById("essence-count").innerText = essence;
-    document.getElementById("monshard-count").innerText = monshards;
+    document.getElementById("shard-count").innerText = monShards;
 
     const grid = document.getElementById("party-grid");
 grid.innerHTML = "";
@@ -1044,17 +1090,19 @@ if (party.length === 0) {
     party.forEach((mon, index) => {
         ensureMonReady(mon);
 
-        const xpNeeded = getXPForNextLevel(Math.floor(mon.level));
-        const currentXP = mon.xp || 0;
-        const progress = Math.min(100, Math.floor((currentXP / xpNeeded) * 100));
-        const levelUpCost = getLevelUpCost(mon.level, mon.rarity);
-        const atMaxLevel = Math.floor(mon.level) >= MAX_LEVEL;
-        const canLevelUp = !atMaxLevel && canAffordLevelUp(levelUpCost);
+        const cap = getLevelCap(mon.rarity);
+        const atCap = Math.floor(mon.level) >= cap;
+        const cost = getLevelCost(mon);
+        const canAfford = money >= cost.gold && essence >= cost.essence;
+        const levelBtn = atCap
+            ? `<button class="green" style="width:100%; margin-top:8px; border-radius:0px; opacity:0.6; cursor:not-allowed;" disabled>MAX LEVEL (${cap})</button>`
+            : `<button onclick="levelUpMonManual(${index})" class="green" style="width:100%; margin-top:8px; border-radius:0px; box-shadow:2px 2px 3px #16a34a; ${canAfford ? '' : 'opacity:0.7;'}">LEVEL UP &#129689;${cost.gold} &#10024;${cost.essence}</button>`;
 
         const card = document.createElement("div");
         card.className = "mon-card";
         card.style.cursor = "pointer";
         card.innerHTML = `
+    ${renderStatsInfo(mon)}
     <div class="mon-sprite">
         <img src="${getSpritePath(mon.name)}" alt="${mon.name}" style="max-width:110px; max-height:110px;" onerror="this.style.display='none'">
     </div>
@@ -1062,40 +1110,18 @@ if (party.length === 0) {
     <div class="type-tags">
         <span class="type-tag ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
     </div>
-    <div class="skills-grid">
-        ${mon.skills.map(skill => `
-            <div class="skill-square" 
-                 data-name="${skill.name}" 
-                 data-type="${skill.type}"
-                 title="${skill.type.toUpperCase()}: ${skill.name} — ${skill.desc || skill.element}">
-                <span>${skill.name.substring(0,2).toUpperCase()}</span>
-            </div>
-        `).join('')}
-    </div>
-    <div class="ult-badge" title="Fixed ultimate (charges with energy in battle)">ULT: ${mon.ultimate.name}</div>
+    ${renderSkillsGrid(mon)}
     <div class="mon-stats">
-        <div class="xp-bar">
-            <div class="xp-fill" style="width: ${progress}%;"></div>
-            <div class="xp-text">${currentXP} / ${xpNeeded} XP</div>
-        </div>
-        <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)}</span></div>
+        <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
         <div class="stat-row"><span><strong>HP</strong></span><span>${Math.ceil(mon.current_hp)} / ${mon.max_hp}</span></div>
+        <div class="stat-row"><span><strong>WINS</strong></span><span>${mon.wins}</span></div>
     </div>
-    <div class="combat-stats">
-        <span>SPD ${mon.stats.spd}</span><span>CRIT ${mon.stats.crit}%</span>
-        <span>DODGE ${mon.stats.dodge}%</span><span>BLOCK ${mon.stats.block}%</span>
-        <span>HIT ${mon.stats.hit}%</span><span>PIERCE ${mon.stats.pierce}%</span>
-    </div>
-    <div class="specialty-badge">\u2605 ${mon.stats.specialty.toUpperCase()} SPECIALTY</div>
     <div class="currently-text">Currently: ready for battle</div>
     <div class="mon-actions">
         <button onclick="toBox(${index})">TO BOX</button>
         <button onclick="releaseMon(${index})" class="red">RELEASE</button>
     </div>
-    <div class="level-up-row">
-        <button onclick="levelUpFromParty(${index})" class="level-up-btn" ${canLevelUp ? "" : "disabled"}>${atMaxLevel ? "MAX LEVEL" : "LEVEL-UP"}</button>
-        <span class="level-up-cost">${atMaxLevel ? "Reached level cap" : formatLevelUpCost(levelUpCost)}</span>
-    </div>
+    ${levelBtn}
 `;
         grid.appendChild(card);
     });
@@ -1121,15 +1147,13 @@ function renderBox() {
     }
 
     box.forEach((mon, i) => {
-        const xpNeeded = getXPForNextLevel(Math.floor(mon.level));
-        const currentXP = mon.xp || 0;
-        const progress = Math.min(100, Math.floor((currentXP / xpNeeded) * 100));
-
         ensureMonReady(mon);
+        const cap = getLevelCap(mon.rarity);
 
         const card = document.createElement("div");
         card.className = "mon-card";
         card.innerHTML = `
+    ${renderStatsInfo(mon)}
     <div class="mon-sprite">
         <img src="${getSpritePath(mon.name) || ''}" alt="${mon.name}" style="max-width:96px; max-height:96px;" onerror="this.style.display='none'">
     </div>
@@ -1137,31 +1161,12 @@ function renderBox() {
     <div class="type-tags">
         <span class="type-tag ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
     </div>
-    <div class="skills-grid">
-        ${mon.skills.map(skill => `
-            <div class="skill-square" 
-                 data-name="${skill.name}" 
-                 data-type="${skill.type}"
-                 title="${skill.type.toUpperCase()}: ${skill.name} — ${skill.desc || skill.element}">
-                <span>${skill.name.substring(0,2).toUpperCase()}</span>
-            </div>
-        `).join('')}
-    </div>
-    <div class="ult-badge" title="Fixed ultimate">ULT: ${mon.ultimate.name}</div>
+    ${renderSkillsGrid(mon)}
     <div class="mon-stats">
-        <div class="xp-bar">
-            <div class="xp-fill" style="width: ${progress}%;"></div>
-            <div class="xp-text">${currentXP} / ${xpNeeded} XP</div>
-        </div>
-        <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)}</span></div>
-        <div class="stat-row"><span><strong>HP</strong></span><span>${mon.max_hp}</span></div>
+        <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
+        <div class="stat-row"><span><strong>HP</strong></span><span>${Math.ceil(mon.current_hp)} / ${mon.max_hp}</span></div>
+        <div class="stat-row"><span><strong>WINS</strong></span><span>${mon.wins}</span></div>
     </div>
-    <div class="combat-stats">
-        <span>SPD ${mon.stats.spd}</span><span>CRIT ${mon.stats.crit}%</span>
-        <span>DODGE ${mon.stats.dodge}%</span><span>BLOCK ${mon.stats.block}%</span>
-        <span>HIT ${mon.stats.hit}%</span><span>PIERCE ${mon.stats.pierce}%</span>
-    </div>
-    <div class="specialty-badge">\u2605 ${mon.stats.specialty.toUpperCase()} SPECIALTY</div>
     <div class="mon-actions">
         <button onclick="withdrawFromBox(${i})" class="green">TO PARTY</button>
         <button onclick="releaseFromBox(${i})" class="red">RELEASE</button>
@@ -1179,30 +1184,26 @@ function buyMonball() {
         saveData();
         updateUI();
     } else {
-        alert("Not enough gold!");
+        alert("Not enough money!");
     }
 }
 
-function levelUpFromParty(index) {
+// Spend Essence + Gold to level a party member up by one (also fully heals it).
+function levelUpMonManual(index) {
     const mon = party[index];
-    if (!mon) return;
-
-    const currentLevel = Math.floor(mon.level);
-    if (currentLevel >= MAX_LEVEL) {
-        alert("This monanimal is already at max level!");
+    ensureMonReady(mon);
+    const cap = getLevelCap(mon.rarity);
+    if (Math.floor(mon.level) >= cap) { alert(mon.name + " is at the max level for its rarity (" + cap + ").");
+        return; }
+    const cost = getLevelCost(mon);
+    if (money < cost.gold || essence < cost.essence) {
+        alert("Not enough materials!\nNeed: " + cost.gold + " Gold + " + cost.essence + " Essence.\nYou have: " + money + " Gold, " + essence + " Essence.");
         return;
     }
-
-    const cost = getLevelUpCost(mon.level, mon.rarity);
-    if (!canAffordLevelUp(cost)) {
-        alert("Not enough resources! Need: " + formatLevelUpCost(cost));
-        return;
-    }
-
     money -= cost.gold;
     essence -= cost.essence;
-    monshards -= cost.monshard;
     levelUpMon(mon);
+    mon.current_hp = mon.max_hp; // leveling up fully heals
     saveData();
     updateUI();
 }
@@ -1318,6 +1319,7 @@ function attemptCatch() {
         const maxHP = getMaxHP(1, rarity);
         const newMon = { 
             name, rarity, level: 1, xp: 0, max_hp: maxHP, current_hp: maxHP,
+            hunger: 100, wins: 0, lastFed: new Date().toISOString(),
             stats: generateStats(rarity),
             skills: generateSkills(name, rarity),
             ultimate: getSpeciesUltimate(name)
@@ -1648,24 +1650,33 @@ function renderBattleScene() {
     const content = document.getElementById("battle-content");
     content.innerHTML = `
         <div class="battle-stage" id="battle-stage">
-            <div class="bench bench-enemy" id="bench-enemy"></div>
-            <div class="bench bench-player" id="bench-player"></div>
+            <div class="vs-bar">
+                <div class="vs-side left">
+                    <img class="vs-portrait" id="portrait-player" onerror="this.style.visibility='hidden'">
+                    <div class="team-col" id="team-player"></div>
+                    <div class="vs-bars">
+                        <div class="vs-name"><span id="np-name-player"></span> <span class="vs-lv" id="np-lv-player"></span></div>
+                        <div class="hpbar big"><div class="hpfill" id="hp-player"></div><span class="hptext" id="hptext-player"></span></div>
+                        <div class="enbar big"><div class="enfill" id="en-player"></div></div>
+                    </div>
+                </div>
+                <div class="vs-badge">VS</div>
+                <div class="vs-side right">
+                    <div class="vs-bars">
+                        <div class="vs-name"><span class="vs-lv" id="np-lv-enemy"></span> <span id="np-name-enemy"></span></div>
+                        <div class="hpbar big"><div class="hpfill" id="hp-enemy"></div><span class="hptext" id="hptext-enemy"></span></div>
+                        <div class="enbar big"><div class="enfill" id="en-enemy"></div></div>
+                    </div>
+                    <div class="team-col" id="team-enemy"></div>
+                    <img class="vs-portrait" id="portrait-enemy" onerror="this.style.visibility='hidden'">
+                </div>
+            </div>
             <div class="stage-label">CHAPTER 1 - STAGE ${currentStage}</div>
             <div class="fighter-wrap enemy" id="wrap-enemy">
-                <div class="nameplate">
-                    <div class="np-row"><span class="np-name" id="np-name-enemy"></span><span class="np-lv" id="np-lv-enemy"></span></div>
-                    <div class="hpbar"><div class="hpfill" id="hp-enemy"></div><span class="hptext" id="hptext-enemy"></span></div>
-                    <div class="enbar"><div class="enfill" id="en-enemy"></div></div>
-                </div>
                 <img class="bsprite mirrored" id="sprite-enemy" onerror="this.style.visibility='hidden'">
             </div>
             <div class="fighter-wrap player" id="wrap-player">
                 <img class="bsprite" id="sprite-player" onerror="this.style.visibility='hidden'">
-                <div class="nameplate">
-                    <div class="np-row"><span class="np-name" id="np-name-player"></span><span class="np-lv" id="np-lv-player"></span></div>
-                    <div class="hpbar"><div class="hpfill" id="hp-player"></div><span class="hptext" id="hptext-player"></span></div>
-                    <div class="enbar"><div class="enfill" id="en-player"></div></div>
-                </div>
             </div>
             <div class="fx-layer" id="fx-layer"></div>
             <div class="skill-banner" id="skill-banner"></div>
@@ -1678,6 +1689,9 @@ function setFighter(side, f) {
     const sprite = document.getElementById("sprite-" + side);
     sprite.style.visibility = "visible";
     sprite.src = f.sprite;
+    const portrait = document.getElementById("portrait-" + side);
+    portrait.style.visibility = "visible";
+    portrait.src = f.sprite;
     document.getElementById("np-name-" + side).textContent = f.name;
     document.getElementById("np-lv-" + side).textContent = "Lv." + f.level;
     updateBars(side, f);
@@ -1692,12 +1706,12 @@ function updateBars(side, f) {
     document.getElementById("en-" + side).style.width = Math.min(100, f.energy) + "%";
 }
 
-function renderBench(side, team, curIdx) {
-    const el = document.getElementById("bench-" + side);
+function renderTeam(side, team, curIdx) {
+    const el = document.getElementById("team-" + side);
     el.innerHTML = "";
     team.forEach((f, i) => {
         const d = document.createElement("div");
-        d.className = "bench-dot" + (f.hp <= 0 ? " dead" : "") + (i === curIdx ? " active" : "");
+        d.className = "team-dot" + (f.hp <= 0 ? " dead" : "") + (i === curIdx ? " active" : "");
         d.style.backgroundImage = `url('${f.sprite}')`;
         el.appendChild(d);
     });
@@ -1864,8 +1878,8 @@ async function runBattle(player, enemy) {
     let pi = 0, ei = 0;
     setFighter("player", player[pi]);
     setFighter("enemy", enemy[ei]);
-    renderBench("player", player, pi);
-    renderBench("enemy", enemy, ei);
+    renderTeam("player", player, pi);
+    renderTeam("enemy", enemy, ei);
     await delay(700);
 
     let guard = 0;
@@ -1885,22 +1899,22 @@ async function runBattle(player, enemy) {
 
         if (E.hp <= 0) {
             await faintAnim("enemy");
-            renderBench("enemy", enemy, ei);
+            renderTeam("enemy", enemy, ei);
             ei++;
             if (ei >= enemy.length) return endBattle(true, player);
             clearStatuses(P);
             setFighter("enemy", enemy[ei]);
-            renderBench("enemy", enemy, ei);
+            renderTeam("enemy", enemy, ei);
             await slideIn("enemy");
             await delay(250);
         }
         if (P.hp <= 0) {
             await faintAnim("player");
-            renderBench("player", player, pi);
+            renderTeam("player", player, pi);
             pi++;
             if (pi >= player.length) return endBattle(false, player);
             setFighter("player", player[pi]);
-            renderBench("player", player, pi);
+            renderTeam("player", player, pi);
             await slideIn("player");
             await delay(250);
         }
@@ -1913,20 +1927,23 @@ function endBattle(win, player) {
     isInAdventureBattle = false;
     player.forEach(f => { if (f.ref) f.ref.current_hp = Math.max(0, Math.round(f.hp)); });
 
-    let reward = 0;
+    let reward = { gold: 0, essence: 0, shards: 0 };
     if (win) {
-        reward = 120 + currentStage * 15;
-        money += reward;
-        essence += Math.max(1, Math.floor(currentStage / 3) + 1);
-        if (currentStage >= 5 && Math.random() < 0.15) monshards += 1;
-        party.slice(0, 3).forEach(m => {
-            const xp = getXPFromBattle(Math.floor(m.level), Math.floor(m.level));
-            m.xp = (m.xp || 0) + xp;
-            let need = getXPForNextLevel(Math.floor(m.level));
-            while (m.xp >= need) { m.xp -= need; levelUpMon(m); need = getXPForNextLevel(Math.floor(m.level)); }
-        });
+        // Phase 2: battles drop materials (Gold + Essence, plus Mon Shards deeper in).
+        reward.gold = 80 + currentStage * 12;
+        reward.essence = 10 + currentStage * 4;
+        if (currentStage >= 3 && (currentStage % 10 === 0 || Math.random() < 0.25)) {
+            reward.shards = 1 + Math.floor(currentStage / 10);
+        }
+        money += reward.gold;
+        essence += reward.essence;
+        monShards += reward.shards;
+        party.slice(0, 3).forEach(m => { m.wins = (m.wins || 0) + 1; });
         currentStage = Math.min(40, currentStage + 1);
         saveAdventureProgress();
+    } else {
+        // On defeat, fully restore the team so the stage can be retried fairly.
+        party.forEach(m => { ensureMonReady(m); m.current_hp = m.max_hp; });
     }
     saveData();
     showBattleResult(win, reward);
@@ -1934,12 +1951,18 @@ function endBattle(win, player) {
 
 function showBattleResult(win, reward) {
     const content = document.getElementById("battle-content");
+    const drops = win
+        ? `<div style="margin:18px 0; font-size:15px;">
+               <div>&#129689; Gold <b>+${reward.gold}</b></div>
+               <div>&#10024; Essence <b>+${reward.essence}</b></div>
+               ${reward.shards > 0 ? `<div>&#128311; Mon Shards <b>+${reward.shards}</b></div>` : ''}
+               <div style="margin-top:8px; color:#666; font-size:13px;">Materials added to your Inventory.</div>
+           </div>`
+        : `<p style="font-size:15px; margin:20px 0;">Your team was defeated, but they recovered to full HP. Level them up and try again!</p>`;
     content.innerHTML = `
         <div style="padding:40px; text-align:center; background:white; border:4px solid #6B21A8; box-shadow:4px 4px 0px #6B21A8;">
             <h2 style="color:${win ? '#16a34a' : '#ef4444'}; font-family:'Press Start 2P', monospace;">${win ? 'VICTORY!' : 'DEFEAT'}</h2>
-            <p style="font-size:15px; margin:20px 0;">${win
-                ? ('Your team won! Earned ' + reward + ' gold and gained XP.')
-                : 'Your team was defeated. Level up your team and try again!'}</p>
+            ${drops}
             <button onclick="enterAdventureMode()" style="margin-top:10px; padding:14px 45px; background:#6B21A8; color:white; border:none; cursor:pointer; font-family:'Press Start 2P', monospace;">
                 CONTINUE
             </button>
@@ -1951,7 +1974,13 @@ function renderInventory() {
     const grid = document.getElementById("inventory-grid");
     grid.innerHTML = "";
 
-    // Create 40 storage slots (8 columns x 5 rows)
+    // Materials occupy the first slots; the rest stay as empty storage.
+    const materials = [
+        { icon: "\uD83E\uDE99", name: "Gold",       count: money },
+        { icon: "\u2728",       name: "Essence",    count: essence },
+        { icon: "\uD83D\uDD37", name: "Mon Shards", count: monShards },
+    ];
+
     for (let i = 0; i < 40; i++) {
         const slot = document.createElement("div");
         slot.style.cssText = `
@@ -1967,9 +1996,16 @@ function renderInventory() {
             box-shadow: 2px 2px 0px #6B21A8;
             position: relative;
         `;
-        slot.innerHTML = `
-            <span style="font-size: 22px; opacity: 0.3;">📦</span>
-        `;
+        if (i < materials.length) {
+            const m = materials[i];
+            slot.title = m.name + ": " + m.count;
+            slot.innerHTML = `
+                <span style="font-size: 30px;">${m.icon}</span>
+                <span style="position:absolute; bottom:2px; right:4px; font-size:12px; font-weight:bold; color:#111; background:rgba(255,255,255,0.85); padding:0 2px; border-radius:3px;">${m.count}</span>
+            `;
+        } else {
+            slot.innerHTML = `<span style="font-size: 22px; opacity: 0.3;">\uD83D\uDCE6</span>`;
+        }
         grid.appendChild(slot);
     }
 }
