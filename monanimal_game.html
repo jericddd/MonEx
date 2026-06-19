@@ -397,32 +397,58 @@ button,
 }
 
 /* ===== Card stat extras ===== */
-.ult-badge {
-    margin-top: 6px;
-    font-size: 11px;
-    text-align: center;
-    background: #6B21A8;
-    color: white;
-    padding: 4px;
-    font-weight: bold;
-}
-.combat-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2px 10px;
-    font-size: 11px;
-    margin-top: 8px;
-    padding: 6px 8px;
-    background: #f3e8ff;
+.mon-card { position: relative; }
+.info-icon {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 22px; height: 22px;
     border: 2px solid #6B21A8;
-}
-.specialty-badge {
-    margin-top: 6px;
-    font-size: 10px;
-    font-weight: bold;
+    border-radius: 50%;
+    background: #fff;
     color: #6B21A8;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    line-height: 19px;
     text-align: center;
-    letter-spacing: 0.5px;
+    cursor: help;
+    z-index: 3;
+    user-select: none;
+}
+.stats-tooltip {
+    display: none;
+    position: absolute;
+    top: 26px; right: 0;
+    width: 160px;
+    background: #1f1235;
+    color: #fff;
+    border: 2px solid #facc15;
+    padding: 8px 10px;
+    z-index: 10;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+}
+.info-icon:hover .stats-tooltip { display: block; }
+.stats-tooltip .st-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #c4b5fd;
+    margin-bottom: 6px;
+    text-align: center;
+}
+.stats-tooltip div:not(.st-title) {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 2px 0;
+}
+.stats-tooltip .gold {
+    color: #facc15;
+    font-weight: bold;
+}
+.skill-square.skill-ult {
+    background: linear-gradient(145deg, #fde68a, #f59e0b);
+    border-color: #b45309;
+    color: #7c2d12;
+    box-shadow: 0 0 6px rgba(245,158,11,0.7);
 }
 
 /* ===== Battle stage ===== */
@@ -437,7 +463,7 @@ button,
 }
 .stage-label {
     position: absolute;
-    top: 8px;
+    bottom: 8px;
     left: 50%;
     transform: translateX(-50%);
     background: rgba(0,0,0,0.55);
@@ -453,11 +479,49 @@ button,
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    width: 200px;
+    width: 170px;
     z-index: 4;
 }
-.fighter-wrap.player { left: 7%; bottom: 6%; }
-.fighter-wrap.enemy { right: 7%; top: 6%; }
+.fighter-wrap.player { left: 8%; bottom: 8%; }
+.fighter-wrap.enemy { right: 8%; top: 28%; }
+
+/* ===== Pockie-style VS bar ===== */
+.vs-bar {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; padding: 8px 14px;
+    background: linear-gradient(180deg, rgba(20,10,40,0.88), rgba(20,10,40,0.5));
+    z-index: 6;
+}
+.vs-side { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.vs-side.right { justify-content: flex-end; }
+.vs-portrait {
+    width: 50px; height: 50px; object-fit: cover; object-position: top;
+    border: 3px solid #facc15; background: #fff; border-radius: 6px; flex-shrink: 0;
+}
+.vs-side.right .vs-portrait { transform: scaleX(-1); }
+.team-col { display: flex; gap: 4px; flex-shrink: 0; }
+.team-dot {
+    width: 26px; height: 26px; border: 2px solid #fff;
+    background-color: #fff; background-size: cover; background-position: center; border-radius: 4px;
+}
+.team-dot.dead { filter: grayscale(1) brightness(0.5); opacity: 0.5; }
+.team-dot.active { border-color: #facc15; box-shadow: 0 0 8px #facc15; }
+.vs-bars { flex: 1; min-width: 0; }
+.vs-name {
+    color: #fff; font-family: 'Press Start 2P', monospace; font-size: 9px;
+    margin-bottom: 4px; text-shadow: 0 1px 2px #000; white-space: nowrap; overflow: hidden;
+}
+.vs-side.right .vs-name { text-align: right; }
+.hpbar.big { height: 16px; }
+.enbar.big { height: 7px; margin-top: 3px; }
+.vs-badge {
+    flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #fde68a, #f59e0b);
+    border: 3px solid #fff; color: #7c2d12; font-family: 'Press Start 2P', monospace;
+    font-size: 13px; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 12px rgba(245,158,11,0.8); transform: rotate(-8deg);
+}
 .bsprite {
     width: 150px;
     height: 150px;
@@ -718,24 +782,24 @@ const STAT_RANGES = {
 
 // Each species has its own FIXED ultimate (energy-triggered, fires once per run).
 const SPECIES_ULTIMATE = {
-    "Molandak":   { name: "Frost Nova",     element: "ice",      power: 2.2 },
-    "Chog":       { name: "Croak Quake",    element: "earth",    power: 2.2 },
-    "Mouch":      { name: "Static Swarm",   element: "electric", power: 2.1 },
-    "Salmonad":   { name: "Tidal Crash",    element: "water",    power: 2.3 },
-    "Anago":      { name: "Abyssal Coil",   element: "water",    power: 2.2 },
-    "Larvanad":   { name: "Venom Bloom",    element: "poison",   power: 2.1 },
-    "Lyraffe":    { name: "Gale Stampede",  element: "wind",     power: 2.2 },
-    "Mokadal":    { name: "Mind Crush",     element: "psychic",  power: 2.3 },
-    "Monavara":   { name: "Void Pulse",     element: "dark",     power: 2.3 },
-    "Moncock":    { name: "Crimson Spur",   element: "fire",     power: 2.2 },
-    "Mondigrade": { name: "Seismic Shell",  element: "earth",    power: 2.4 },
-    "Montiger":   { name: "Apex Roar",      element: "physical", power: 2.4 },
-    "Mopo":       { name: "Cyclone Rush",   element: "wind",     power: 2.1 },
-    "Mosferatu":  { name: "Blood Moon",     element: "dark",     power: 2.3 },
-    "Moxy":       { name: "Shock Nova",     element: "electric", power: 2.2 },
-    "Shramp":     { name: "Bubble Barrage", element: "water",    power: 2.0 },
-    "Spidermon":  { name: "Web Cataclysm",  element: "poison",   power: 2.3 },
-    "Moyaki":     { name: "Flame Geyser",   element: "fire",     power: 2.3 },
+    "Molandak":   { name: "Frost Nova",     element: "ice",      power: 2.2, desc: "Erupts in an icy nova for massive damage." },
+    "Chog":       { name: "Croak Quake",    element: "earth",    power: 2.2, desc: "A ground-shaking quake that crushes the foe." },
+    "Mouch":      { name: "Static Swarm",   element: "electric", power: 2.1, desc: "A swarm of static that shocks the enemy." },
+    "Salmonad":   { name: "Tidal Crash",    element: "water",    power: 2.3, desc: "A towering wave crashes down." },
+    "Anago":      { name: "Abyssal Coil",   element: "water",    power: 2.2, desc: "Crushing pressure from the deep." },
+    "Larvanad":   { name: "Venom Bloom",    element: "poison",   power: 2.1, desc: "A burst of toxic spores." },
+    "Lyraffe":    { name: "Gale Stampede",  element: "wind",     power: 2.2, desc: "A stampede wrapped in howling wind." },
+    "Mokadal":    { name: "Mind Crush",     element: "psychic",  power: 2.3, desc: "Shatters the foe's mind." },
+    "Monavara":   { name: "Void Pulse",     element: "dark",     power: 2.3, desc: "A pulse of pure void energy." },
+    "Moncock":    { name: "Crimson Spur",   element: "fire",     power: 2.2, desc: "A blazing crimson strike." },
+    "Mondigrade": { name: "Seismic Shell",  element: "earth",    power: 2.4, desc: "An armored seismic slam." },
+    "Montiger":   { name: "Apex Roar",      element: "physical", power: 2.4, desc: "A ferocious apex-predator assault." },
+    "Mopo":       { name: "Cyclone Rush",   element: "wind",     power: 2.1, desc: "A spinning cyclone charge." },
+    "Mosferatu":  { name: "Blood Moon",     element: "dark",     power: 2.3, desc: "Drains life under a blood moon." },
+    "Moxy":       { name: "Shock Nova",     element: "electric", power: 2.2, desc: "An explosive nova of lightning." },
+    "Shramp":     { name: "Bubble Barrage", element: "water",    power: 2.0, desc: "A relentless barrage of bubbles." },
+    "Spidermon":  { name: "Web Cataclysm",  element: "poison",   power: 2.3, desc: "Ensnares and poisons the foe." },
+    "Moyaki":     { name: "Flame Geyser",   element: "fire",     power: 2.3, desc: "A geyser of searing flame." },
 };
 
 // Visual glyph per element (used for the code-generated attack effects).
@@ -840,7 +904,38 @@ function generateStats(rarity) {
 }
 
 function getSpeciesUltimate(name) {
-    return { ...(SPECIES_ULTIMATE[name] || { name: "Power Surge", element: "physical", power: 2.0 }) };
+    return { ...(SPECIES_ULTIMATE[name] || { name: "Power Surge", element: "physical", power: 2.0, desc: "A powerful signature move." }) };
+}
+
+// Card "i" info icon: hover to reveal combat stats. The specialty stat is gold.
+function renderStatsInfo(mon) {
+    const sp = mon.stats.specialty;
+    const row = (key, label, val) => `<div class="${sp === key ? 'gold' : ''}">${label}<span>${val}</span></div>`;
+    return `
+    <div class="info-icon">i
+        <div class="stats-tooltip">
+            <div class="st-title">COMBAT STATS</div>
+            ${row('spd', 'SPD', mon.stats.spd)}
+            ${row('crit', 'CRIT', mon.stats.crit + '%')}
+            ${row('dodge', 'DODGE', mon.stats.dodge + '%')}
+            ${row('block', 'BLOCK', mon.stats.block + '%')}
+            ${row('hit', 'HIT', mon.stats.hit + '%')}
+            ${row('pierce', 'PIERCE', mon.stats.pierce + '%')}
+        </div>
+    </div>`;
+}
+
+// Skill boxes: the normal RNG skills plus the fixed ultimate (gold box, marked with a star).
+function renderSkillsGrid(mon) {
+    const normal = mon.skills.map(skill => `
+        <div class="skill-square" data-type="${skill.type}" title="${skill.type.toUpperCase()}: ${skill.name} \u2014 ${skill.desc || skill.element}">
+            <span>${skill.name.substring(0, 2).toUpperCase()}</span>
+        </div>`).join('');
+    const ult = `
+        <div class="skill-square skill-ult" title="ULTIMATE: ${mon.ultimate.name} \u2014 ${mon.ultimate.desc || 'A powerful signature move.'}">
+            <span>\u2605</span>
+        </div>`;
+    return `<div class="skills-grid">${normal}${ult}</div>`;
 }
 
 // Normal skills (active + passive) are RNG per individual: one passive + the rest actives.
@@ -973,6 +1068,7 @@ if (party.length === 0) {
         card.className = "mon-card";
         card.style.cursor = "pointer";
         card.innerHTML = `
+    ${renderStatsInfo(mon)}
     <div class="mon-sprite">
         <img src="${getSpritePath(mon.name)}" alt="${mon.name}" style="max-width:110px; max-height:110px;" onerror="this.style.display='none'">
     </div>
@@ -980,17 +1076,7 @@ if (party.length === 0) {
     <div class="type-tags">
         <span class="type-tag ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
     </div>
-    <div class="skills-grid">
-        ${mon.skills.map(skill => `
-            <div class="skill-square" 
-                 data-name="${skill.name}" 
-                 data-type="${skill.type}"
-                 title="${skill.type.toUpperCase()}: ${skill.name} — ${skill.desc || skill.element}">
-                <span>${skill.name.substring(0,2).toUpperCase()}</span>
-            </div>
-        `).join('')}
-    </div>
-    <div class="ult-badge" title="Fixed ultimate (charges with energy in battle)">ULT: ${mon.ultimate.name}</div>
+    ${renderSkillsGrid(mon)}
     <div class="mon-stats">
         <div class="xp-bar">
             <div class="xp-fill" style="width: ${progress}%;"></div>
@@ -1001,12 +1087,6 @@ if (party.length === 0) {
         <div class="stat-row"><span><strong>HUNGER</strong></span><span>${Math.floor(mon.hunger)}%</span></div>
         <div class="stat-row"><span><strong>WINS</strong></span><span>${mon.wins}</span></div>
     </div>
-    <div class="combat-stats">
-        <span>SPD ${mon.stats.spd}</span><span>CRIT ${mon.stats.crit}%</span>
-        <span>DODGE ${mon.stats.dodge}%</span><span>BLOCK ${mon.stats.block}%</span>
-        <span>HIT ${mon.stats.hit}%</span><span>PIERCE ${mon.stats.pierce}%</span>
-    </div>
-    <div class="specialty-badge">\u2605 ${mon.stats.specialty.toUpperCase()} SPECIALTY</div>
     <div class="currently-text">Currently: ready for battle</div>
     <div class="mon-actions">
         <button onclick="toBox(${index})">TO BOX</button>
@@ -1047,6 +1127,7 @@ function renderBox() {
         const card = document.createElement("div");
         card.className = "mon-card";
         card.innerHTML = `
+    ${renderStatsInfo(mon)}
     <div class="mon-sprite">
         <img src="${getSpritePath(mon.name) || ''}" alt="${mon.name}" style="max-width:96px; max-height:96px;" onerror="this.style.display='none'">
     </div>
@@ -1054,17 +1135,7 @@ function renderBox() {
     <div class="type-tags">
         <span class="type-tag ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
     </div>
-    <div class="skills-grid">
-        ${mon.skills.map(skill => `
-            <div class="skill-square" 
-                 data-name="${skill.name}" 
-                 data-type="${skill.type}"
-                 title="${skill.type.toUpperCase()}: ${skill.name} — ${skill.desc || skill.element}">
-                <span>${skill.name.substring(0,2).toUpperCase()}</span>
-            </div>
-        `).join('')}
-    </div>
-    <div class="ult-badge" title="Fixed ultimate">ULT: ${mon.ultimate.name}</div>
+    ${renderSkillsGrid(mon)}
     <div class="mon-stats">
         <div class="xp-bar">
             <div class="xp-fill" style="width: ${progress}%;"></div>
@@ -1075,12 +1146,6 @@ function renderBox() {
         <div class="stat-row"><span><strong>HUNGER</strong></span><span>${Math.floor(mon.hunger)}%</span></div>
         <div class="stat-row"><span><strong>WINS</strong></span><span>${mon.wins}</span></div>
     </div>
-    <div class="combat-stats">
-        <span>SPD ${mon.stats.spd}</span><span>CRIT ${mon.stats.crit}%</span>
-        <span>DODGE ${mon.stats.dodge}%</span><span>BLOCK ${mon.stats.block}%</span>
-        <span>HIT ${mon.stats.hit}%</span><span>PIERCE ${mon.stats.pierce}%</span>
-    </div>
-    <div class="specialty-badge">\u2605 ${mon.stats.specialty.toUpperCase()} SPECIALTY</div>
     <div class="mon-actions">
         <button onclick="withdrawFromBox(${i})" class="green">TO PARTY</button>
         <button onclick="releaseFromBox(${i})" class="red">RELEASE</button>
@@ -1555,24 +1620,33 @@ function renderBattleScene() {
     const content = document.getElementById("battle-content");
     content.innerHTML = `
         <div class="battle-stage" id="battle-stage">
-            <div class="bench bench-enemy" id="bench-enemy"></div>
-            <div class="bench bench-player" id="bench-player"></div>
+            <div class="vs-bar">
+                <div class="vs-side left">
+                    <img class="vs-portrait" id="portrait-player" onerror="this.style.visibility='hidden'">
+                    <div class="team-col" id="team-player"></div>
+                    <div class="vs-bars">
+                        <div class="vs-name"><span id="np-name-player"></span> <span class="vs-lv" id="np-lv-player"></span></div>
+                        <div class="hpbar big"><div class="hpfill" id="hp-player"></div><span class="hptext" id="hptext-player"></span></div>
+                        <div class="enbar big"><div class="enfill" id="en-player"></div></div>
+                    </div>
+                </div>
+                <div class="vs-badge">VS</div>
+                <div class="vs-side right">
+                    <div class="vs-bars">
+                        <div class="vs-name"><span class="vs-lv" id="np-lv-enemy"></span> <span id="np-name-enemy"></span></div>
+                        <div class="hpbar big"><div class="hpfill" id="hp-enemy"></div><span class="hptext" id="hptext-enemy"></span></div>
+                        <div class="enbar big"><div class="enfill" id="en-enemy"></div></div>
+                    </div>
+                    <div class="team-col" id="team-enemy"></div>
+                    <img class="vs-portrait" id="portrait-enemy" onerror="this.style.visibility='hidden'">
+                </div>
+            </div>
             <div class="stage-label">CHAPTER 1 - STAGE ${currentStage}</div>
             <div class="fighter-wrap enemy" id="wrap-enemy">
-                <div class="nameplate">
-                    <div class="np-row"><span class="np-name" id="np-name-enemy"></span><span class="np-lv" id="np-lv-enemy"></span></div>
-                    <div class="hpbar"><div class="hpfill" id="hp-enemy"></div><span class="hptext" id="hptext-enemy"></span></div>
-                    <div class="enbar"><div class="enfill" id="en-enemy"></div></div>
-                </div>
                 <img class="bsprite mirrored" id="sprite-enemy" onerror="this.style.visibility='hidden'">
             </div>
             <div class="fighter-wrap player" id="wrap-player">
                 <img class="bsprite" id="sprite-player" onerror="this.style.visibility='hidden'">
-                <div class="nameplate">
-                    <div class="np-row"><span class="np-name" id="np-name-player"></span><span class="np-lv" id="np-lv-player"></span></div>
-                    <div class="hpbar"><div class="hpfill" id="hp-player"></div><span class="hptext" id="hptext-player"></span></div>
-                    <div class="enbar"><div class="enfill" id="en-player"></div></div>
-                </div>
             </div>
             <div class="fx-layer" id="fx-layer"></div>
             <div class="skill-banner" id="skill-banner"></div>
@@ -1585,6 +1659,9 @@ function setFighter(side, f) {
     const sprite = document.getElementById("sprite-" + side);
     sprite.style.visibility = "visible";
     sprite.src = f.sprite;
+    const portrait = document.getElementById("portrait-" + side);
+    portrait.style.visibility = "visible";
+    portrait.src = f.sprite;
     document.getElementById("np-name-" + side).textContent = f.name;
     document.getElementById("np-lv-" + side).textContent = "Lv." + f.level;
     updateBars(side, f);
@@ -1599,12 +1676,12 @@ function updateBars(side, f) {
     document.getElementById("en-" + side).style.width = Math.min(100, f.energy) + "%";
 }
 
-function renderBench(side, team, curIdx) {
-    const el = document.getElementById("bench-" + side);
+function renderTeam(side, team, curIdx) {
+    const el = document.getElementById("team-" + side);
     el.innerHTML = "";
     team.forEach((f, i) => {
         const d = document.createElement("div");
-        d.className = "bench-dot" + (f.hp <= 0 ? " dead" : "") + (i === curIdx ? " active" : "");
+        d.className = "team-dot" + (f.hp <= 0 ? " dead" : "") + (i === curIdx ? " active" : "");
         d.style.backgroundImage = `url('${f.sprite}')`;
         el.appendChild(d);
     });
@@ -1771,8 +1848,8 @@ async function runBattle(player, enemy) {
     let pi = 0, ei = 0;
     setFighter("player", player[pi]);
     setFighter("enemy", enemy[ei]);
-    renderBench("player", player, pi);
-    renderBench("enemy", enemy, ei);
+    renderTeam("player", player, pi);
+    renderTeam("enemy", enemy, ei);
     await delay(700);
 
     let guard = 0;
@@ -1792,22 +1869,22 @@ async function runBattle(player, enemy) {
 
         if (E.hp <= 0) {
             await faintAnim("enemy");
-            renderBench("enemy", enemy, ei);
+            renderTeam("enemy", enemy, ei);
             ei++;
             if (ei >= enemy.length) return endBattle(true, player);
             clearStatuses(P);
             setFighter("enemy", enemy[ei]);
-            renderBench("enemy", enemy, ei);
+            renderTeam("enemy", enemy, ei);
             await slideIn("enemy");
             await delay(250);
         }
         if (P.hp <= 0) {
             await faintAnim("player");
-            renderBench("player", player, pi);
+            renderTeam("player", player, pi);
             pi++;
             if (pi >= player.length) return endBattle(false, player);
             setFighter("player", player[pi]);
-            renderBench("player", player, pi);
+            renderTeam("player", player, pi);
             await slideIn("player");
             await delay(250);
         }
@@ -1833,6 +1910,9 @@ function endBattle(win, player) {
         });
         currentStage = Math.min(40, currentStage + 1);
         saveAdventureProgress();
+    } else {
+        // On defeat, fully restore the team so the stage can be retried fairly.
+        party.forEach(m => { ensureMonReady(m); m.current_hp = m.max_hp; });
     }
     saveData();
     showBattleResult(win, reward);
