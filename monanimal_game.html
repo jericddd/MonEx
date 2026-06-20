@@ -387,6 +387,82 @@ button.green:hover {
     font-size: 10px !important;
 }
 
+/* ===== Equipment (Phase 3) ===== */
+.gear-row {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    margin: 8px 0 4px;
+}
+.gear-slot {
+    width: 32px;
+    height: 32px;
+    border: 2px solid #6B21A8;
+    background: #f8f4ff;
+    font-size: 14px;
+    cursor: pointer;
+    position: relative;
+    padding: 0;
+    line-height: 28px;
+}
+.gear-slot.filled { background: #ede9fe; box-shadow: 0 0 0 2px rgba(250,204,21,0.5); }
+.gear-slot .gear-tier-dot {
+    position: absolute;
+    bottom: 1px;
+    right: 1px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    border: 1px solid #111;
+}
+.gear-inv-slot {
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+.gear-inv-slot:hover { transform: scale(1.05); }
+.equip-modal-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+}
+.equip-modal {
+    background: white;
+    border: 4px solid #6B21A8;
+    box-shadow: 4px 4px 0 #6B21A8;
+    padding: 20px;
+    max-width: 420px;
+    width: 92%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+.equip-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    margin: 6px 0;
+    border: 2px solid #ddd;
+    cursor: pointer;
+    font-size: 12px;
+}
+.equip-option:hover { border-color: #6B21A8; background: #faf5ff; }
+.ascend-btn {
+    width: 100%;
+    margin-top: 6px;
+    padding: 8px;
+    background: linear-gradient(145deg, #fde68a, #f59e0b);
+    border: none;
+    color: #7c2d12;
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 7px;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 #b45309;
+}
+
 /* Hover symbol */
 button:hover::before,
 .tab-btn:hover::before,
@@ -952,6 +1028,23 @@ const SHOP_ITEMS = [
     { id: "shards3",    name: "Shard Pack",     desc: "3 Mon Shards.",                cost: { gold: 1800, essence: 15 }, grant: { monShards: 3 } },
 ];
 
+// Phase 3 — Equipment & Ascension
+const GEAR_SLOTS = ["weapon", "armor", "helmet", "boots"];
+const GEAR_SLOT_LABELS = { weapon: "Weapon", armor: "Armor", helmet: "Helmet", boots: "Boots" };
+const GEAR_SLOT_ICONS = { weapon: "\u2694\uFE0F", armor: "\uD83D\uDEE1\uFE0F", helmet: "\u2B50", boots: "\uD83D\uDC5E" };
+const GEAR_TIERS = [
+    null,
+    { name: "Worn",      color: "#9ca3af" },
+    { name: "Fine",      color: "#22c55e" },
+    { name: "Rare",      color: "#2563eb" },
+    { name: "Epic",      color: "#a855f7" },
+    { name: "Legendary", color: "#ca8a04" },
+];
+const RARITY_ORDER = ["Common", "Uncommon", "Rare", "Legendary", "Mythic"];
+const ASCEND_SHARD_COST = { Common: 5, Uncommon: 10, Rare: 20, Legendary: 40 };
+let gearInventory = [];
+let _gearIdSeq = 0;
+
 // ==================== HELPER FUNCTIONS ====================
 function getSpritePath(name) {
     if (name === "Chog" || name === "Mopo" || name === "Anago" || name === "Molandak") {
@@ -1040,8 +1133,9 @@ function getSpeciesUltimate(name) {
     return { ...(SPECIES_ULTIMATE[name] || { name: "Power Surge", element: "physical", power: 2.0, desc: "A powerful signature move." }) };
 }
 
-// Card "i" info icon: hover to reveal paired combat stats.
+// Card "i" info icon: hover to reveal paired combat stats (includes gear bonuses).
 function renderStatsInfo(mon) {
+    const eff = getEffectiveStats(mon);
     const sp = mon.stats.specialty;
     const cell = (key, label, val) => {
         const gold = sp === key ? " gold" : "";
@@ -1052,11 +1146,33 @@ function renderStatsInfo(mon) {
     <div class="info-icon">i
         <div class="stats-tooltip">
             <div class="st-title">COMBAT STATS</div>
-            ${pair("", cell("spd", "SPD", mon.stats.spd), cell("crit", "CRIT", mon.stats.crit + "%"))}
-            ${pair("counter", cell("pierce", "PIERCE", mon.stats.pierce + "%"), cell("block", "BLOCK", mon.stats.block + "%"))}
-            ${pair("counter", cell("hit", "HIT", mon.stats.hit + "%"), cell("dodge", "DODGE", mon.stats.dodge + "%"))}
+            <div style="text-align:center;font-size:11px;color:#c4b5fd;margin-bottom:6px;">ATK ${eff.atk}</div>
+            ${pair("", cell("spd", "SPD", eff.spd), cell("crit", "CRIT", eff.crit + "%"))}
+            ${pair("counter", cell("pierce", "PIERCE", eff.pierce + "%"), cell("block", "BLOCK", eff.block + "%"))}
+            ${pair("counter", cell("hit", "HIT", eff.hit + "%"), cell("dodge", "DODGE", eff.dodge + "%"))}
         </div>
     </div>`;
+}
+
+function renderGearRow(location, index, mon) {
+    if (!isEquipmentUnlocked()) return "";
+    return `<div class="gear-row">${GEAR_SLOTS.map(slot => {
+        const g = mon.equipment && mon.equipment[slot];
+        const filled = g ? " filled" : "";
+        const tierDot = g ? `<span class="gear-tier-dot" style="background:${GEAR_TIERS[g.tier].color}"></span>` : "";
+        const tip = g ? g.name + " — " + formatGearBonuses(g.bonuses) : "Equip " + GEAR_SLOT_LABELS[slot];
+        return `<button class="gear-slot${filled}" title="${tip}" onclick="openEquipModal('${location}',${index},'${slot}')">${GEAR_SLOT_ICONS[slot]}${tierDot}</button>`;
+    }).join("")}</div>`;
+}
+
+function renderAscendBtn(index, mon) {
+    const next = getNextRarity(mon.rarity);
+    if (!next) return "";
+    const cap = getLevelCap(mon);
+    if (Math.floor(mon.level) < cap) return "";
+    const cost = getAscendCost(mon.rarity);
+    const afford = monShards >= cost;
+    return `<button onclick="ascendMonRarity(${index})" class="ascend-btn" ${afford ? "" : "disabled style='opacity:0.65'"}>ASCEND \u2192 ${next.toUpperCase()} (${cost} \uD83D\uDD37)</button>`;
 }
 
 // Skill boxes: the normal RNG skills plus the fixed ultimate (gold box, marked with a star).
@@ -1088,20 +1204,21 @@ function generateSkills(name, rarity) {
 
 // Backfill any missing data (stats / skills / ultimate / hp) on existing or new monanimals.
 function ensureMonReady(mon) {
-    if (!mon.max_hp) mon.max_hp = getMaxHP(mon.level, mon.rarity);
-    if (mon.current_hp == null) mon.current_hp = mon.max_hp;
+    if (!mon.equipment) mon.equipment = { weapon: null, armor: null, helmet: null, boots: null };
     if (!mon.stats || mon.stats.spd == null) mon.stats = generateStats(mon.rarity);
     const expected = getSkillCount(mon.rarity);
     if (!mon.skills || mon.skills.length !== expected || !mon.skills[0] || !mon.skills[0].type) {
         mon.skills = generateSkills(mon.name, mon.rarity);
     }
     if (!mon.ultimate || !mon.ultimate.element) mon.ultimate = getSpeciesUltimate(mon.name);
+    refreshMonDerivedStats(mon);
+    if (mon.current_hp == null) mon.current_hp = mon.max_hp;
 }
 
 function levelUpMon(mon) {
     const oldMaxHP = mon.max_hp;
     mon.level = Math.floor(mon.level) + 1;
-    mon.max_hp = getMaxHP(mon.level, mon.rarity);
+    refreshMonDerivedStats(mon);
     const hpGain = mon.max_hp - oldMaxHP;
     mon.current_hp = Math.min(mon.max_hp, mon.current_hp + hpGain);
 }
@@ -1166,13 +1283,214 @@ function formatCost(cost) {
     if (cost.monShards) parts.push(cost.monShards + " Shards");
     return parts.join(" + ") || "Free";
 }
+
+// ===== Phase 3: Equipment & Ascension =====
+function getChapter(stage) {
+    return Math.min(5, Math.max(1, Math.ceil(stage / 8)));
+}
+function isEquipmentUnlocked() {
+    return highestStageCleared >= 8 || currentStage >= 9;
+}
+function nextGearId() {
+    return "gear_" + Date.now() + "_" + (++_gearIdSeq);
+}
+function getBaseAtk(level, rarity) {
+    let atk = Math.floor(level * 4.2) + 14;
+    if (rarity === "Legendary" || rarity === "Mythic") atk += 28;
+    else if (rarity === "Rare") atk += 15;
+    else if (rarity === "Uncommon") atk += 8;
+    return atk;
+}
+function getGearBonuses(mon) {
+    const b = { atk: 0, hp: 0, spd: 0, crit: 0, dodge: 0, block: 0, hit: 0, pierce: 0 };
+    if (!mon.equipment) return b;
+    GEAR_SLOTS.forEach(slot => {
+        const g = mon.equipment[slot];
+        if (!g || !g.bonuses) return;
+        Object.keys(g.bonuses).forEach(k => { b[k] = (b[k] || 0) + g.bonuses[k]; });
+    });
+    return b;
+}
+function getEffectiveStats(mon) {
+    ensureMonReady(mon);
+    const gb = getGearBonuses(mon);
+    return {
+        atk: getBaseAtk(Math.floor(mon.level), mon.rarity) + (gb.atk || 0),
+        spd: mon.stats.spd + (gb.spd || 0),
+        crit: Math.round((mon.stats.crit + (gb.crit || 0)) * 10) / 10,
+        dodge: Math.round((mon.stats.dodge + (gb.dodge || 0)) * 10) / 10,
+        block: Math.round((mon.stats.block + (gb.block || 0)) * 10) / 10,
+        hit: Math.round((mon.stats.hit + (gb.hit || 0)) * 10) / 10,
+        pierce: Math.round((mon.stats.pierce + (gb.pierce || 0)) * 10) / 10,
+        specialty: mon.stats.specialty
+    };
+}
+function refreshMonDerivedStats(mon) {
+    const hpBonus = getGearBonuses(mon).hp || 0;
+    const baseHp = getMaxHP(mon.level, mon.rarity);
+    const oldMax = mon.max_hp || baseHp;
+    mon.max_hp = baseHp + hpBonus;
+    if (mon.current_hp != null && oldMax > 0) {
+        mon.current_hp = Math.min(mon.max_hp, Math.ceil(mon.current_hp * (mon.max_hp / oldMax)));
+    }
+}
+function formatGearBonuses(b) {
+    const parts = [];
+    if (b.atk) parts.push("ATK+" + b.atk);
+    if (b.hp) parts.push("HP+" + b.hp);
+    if (b.spd) parts.push("SPD+" + b.spd);
+    if (b.crit) parts.push("CRIT+" + b.crit + "%");
+    if (b.dodge) parts.push("DODGE+" + b.dodge + "%");
+    if (b.block) parts.push("BLOCK+" + b.block + "%");
+    if (b.hit) parts.push("HIT+" + b.hit + "%");
+    return parts.join(", ") || "No bonus";
+}
+function generateGear(tier, slot) {
+    const t = GEAR_TIERS[tier];
+    const scale = 4 + tier * 5;
+    const bonuses = {};
+    if (slot === "weapon") { bonuses.atk = scale + randInt(0, tier * 3); bonuses.crit = 1 + tier; }
+    else if (slot === "armor") { bonuses.hp = scale * 10 + tier * 15; bonuses.block = 1 + tier; }
+    else if (slot === "helmet") { bonuses.hp = scale * 6 + tier * 10; bonuses.dodge = 1 + tier; }
+    else if (slot === "boots") { bonuses.spd = scale + tier * 4; bonuses.hit = 1 + tier; }
+    return {
+        id: nextGearId(),
+        slot,
+        tier,
+        tierName: t.name,
+        name: t.name + " " + GEAR_SLOT_LABELS[slot],
+        bonuses
+    };
+}
+function rollGearDrop(stage, isBoss) {
+    const chapter = getChapter(stage);
+    if (chapter < 2) return null;
+    let tier = chapter;
+    if (isBoss && Math.random() < 0.35 && tier < 5) tier += 1;
+    const slot = GEAR_SLOTS[randInt(0, GEAR_SLOTS.length - 1)];
+    return generateGear(tier, slot);
+}
+function getMonList(location) {
+    return location === "box" ? box : party;
+}
+function unequipToInventory(mon, slot) {
+    const g = mon.equipment[slot];
+    if (g) {
+        gearInventory.push(g);
+        mon.equipment[slot] = null;
+        refreshMonDerivedStats(mon);
+    }
+}
+function equipGearOnMon(location, monIndex, gearId) {
+    const list = getMonList(location);
+    const mon = list[monIndex];
+    if (!mon) return;
+    const gi = gearInventory.findIndex(g => g.id === gearId);
+    if (gi < 0) return;
+    const gear = gearInventory.splice(gi, 1)[0];
+    const old = mon.equipment[gear.slot];
+    if (old) gearInventory.push(old);
+    mon.equipment[gear.slot] = gear;
+    refreshMonDerivedStats(mon);
+    mon.current_hp = Math.min(mon.max_hp, mon.current_hp);
+    saveData();
+    updateUI();
+    if (location === "box") renderBox();
+}
+function unequipGear(location, monIndex, slot) {
+    const mon = getMonList(location)[monIndex];
+    if (!mon) return;
+    unequipToInventory(mon, slot);
+    saveData();
+    updateUI();
+    if (location === "box") renderBox();
+}
+function openEquipModal(location, monIndex, slot) {
+    if (!isEquipmentUnlocked()) {
+        alert("Equipment unlocks at Chapter 2 (Stage 9+). Keep progressing!");
+        return;
+    }
+    const mon = getMonList(location)[monIndex];
+    const equipped = mon.equipment[slot];
+    const options = gearInventory.filter(g => g.slot === slot);
+    const bg = document.createElement("div");
+    bg.className = "equip-modal-bg";
+    bg.innerHTML = `
+        <div class="equip-modal">
+            <h3 style="margin:0 0 12px;color:#6B21A8;text-align:center;">${GEAR_SLOT_LABELS[slot]} — ${mon.name}</h3>
+            ${equipped ? `<div class="equip-option" onclick="unequipGear('${location}',${monIndex},'${slot}'); this.closest('.equip-modal-bg').remove();">
+                <span><b style="color:${GEAR_TIERS[equipped.tier].color}">${equipped.name}</b><br><small>${formatGearBonuses(equipped.bonuses)}</small></span>
+                <span style="color:#ef4444;font-weight:bold;">UNEQUIP</span>
+            </div>` : `<p style="font-size:12px;color:#666;text-align:center;">Nothing equipped</p>`}
+            <hr style="border:none;border-top:1px solid #ddd;margin:12px 0;">
+            <p style="font-size:11px;color:#666;margin:0 0 8px;">Inventory (${options.length})</p>
+            ${options.length ? options.map(g => `
+                <div class="equip-option" data-gid="${g.id}">
+                    <span><b style="color:${GEAR_TIERS[g.tier].color}">${g.name}</b><br><small>${formatGearBonuses(g.bonuses)}</small></span>
+                    <span style="color:#6B21A8;font-weight:bold;">EQUIP</span>
+                </div>`).join("") : `<p style="font-size:12px;color:#888;text-align:center;">No ${GEAR_SLOT_LABELS[slot]} in inventory.<br>Win adventure battles to find gear!</p>`}
+            <button style="margin-top:14px;width:100%;padding:10px;border:2px solid #6B21A8;background:white;cursor:pointer;" id="equip-close">CLOSE</button>
+        </div>`;
+    document.body.appendChild(bg);
+    bg.querySelector("#equip-close").onclick = () => bg.remove();
+    bg.querySelectorAll(".equip-option[data-gid]").forEach(el => {
+        el.onclick = () => {
+            equipGearOnMon(location, monIndex, el.dataset.gid);
+            bg.remove();
+        };
+    });
+    bg.onclick = (e) => { if (e.target === bg) bg.remove(); };
+}
+function getNextRarity(rarity) {
+    const i = RARITY_ORDER.indexOf(rarity);
+    return i >= 0 && i < RARITY_ORDER.length - 1 ? RARITY_ORDER[i + 1] : null;
+}
+function getAscendCost(rarity) {
+    return ASCEND_SHARD_COST[rarity] || 99;
+}
+function ascendMonRarity(index) {
+    const mon = party[index];
+    if (!mon) return;
+    ensureMonReady(mon);
+    const cap = getLevelCap(mon);
+    if (Math.floor(mon.level) < cap) {
+        alert(mon.name + " must reach max level (" + cap + ") before ascending.");
+        return;
+    }
+    const next = getNextRarity(mon.rarity);
+    if (!next) { alert(mon.name + " is already Mythic!"); return; }
+    const cost = getAscendCost(mon.rarity);
+    if (monShards < cost) {
+        alert("Need " + cost + " Mon Shards to ascend.\nYou have: " + monShards);
+        return;
+    }
+    if (!confirm("Ascend " + mon.name + " from " + mon.rarity + " to " + next + "?\nCost: " + cost + " Mon Shards")) return;
+    monShards -= cost;
+    mon.rarity = next;
+    refreshMonDerivedStats(mon);
+    mon.current_hp = mon.max_hp;
+    saveData();
+    updateUI();
+    alert(mon.name + " ascended to " + next + "! New level cap: " + getLevelCap(mon));
+}
+function returnAllGearToInventory(mon) {
+    if (!mon.equipment) return;
+    GEAR_SLOTS.forEach(slot => {
+        if (mon.equipment[slot]) {
+            gearInventory.push(mon.equipment[slot]);
+            mon.equipment[slot] = null;
+        }
+    });
+}
 function passiveBonus(fighter, key) {
     const p = (fighter.skills || []).find(s => s[key] != null);
     return p ? p[key] : 0;
 }
 
 function calculateDamage(attacker, defender, skill) {
-    let dmg = getAttackDamage(attacker.level, attacker.rarity);
+    let dmg = attacker.atkPower != null
+        ? attacker.atkPower
+        : getAttackDamage(attacker.level, attacker.rarity);
     dmg = Math.floor(dmg * (skill.power || 1));
 
     const dealt = (attacker.skills || []).find(s => s.dmgDealt);
@@ -1199,7 +1517,7 @@ function checkDailyReset() {
 function saveData() {
     if (!currentUser) return;
     localStorage.setItem("monex_" + currentUser, JSON.stringify({
-        party, box, monballs, money, essence, monShards, trainerXp, highestStageCleared, lastResetDate
+        party, box, monballs, money, essence, monShards, trainerXp, highestStageCleared, gearInventory, lastResetDate
     }));
 }
 
@@ -1216,6 +1534,7 @@ function loadData() {
         monShards = data.monShards || 0;
         trainerXp = data.trainerXp || 0;
         highestStageCleared = data.highestStageCleared || 0;
+        gearInventory = data.gearInventory || [];
         lastResetDate = data.lastResetDate || null;
 
         [...party, ...box].forEach(ensureMonReady);
@@ -1228,6 +1547,7 @@ function loadData() {
         monShards = 0;
         trainerXp = 0;
         highestStageCleared = 0;
+        gearInventory = [];
         lastResetDate = null;
         saveData();
     }
@@ -1282,6 +1602,7 @@ if (party.length === 0) {
         <span class="type-tag ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
     </div>
     ${renderSkillsGrid(mon)}
+    ${renderGearRow("party", index, mon)}
     <div class="mon-stats">
         <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
         <div class="stat-row"><span><strong>HP</strong></span><span>${Math.ceil(mon.current_hp)} / ${mon.max_hp}</span></div>
@@ -1292,6 +1613,7 @@ if (party.length === 0) {
         <button onclick="releaseMon(${index})" class="red">RELEASE</button>
     </div>
     ${levelBtn}
+    ${renderAscendBtn(index, mon)}
 `;
         grid.appendChild(card);
     });
@@ -1332,6 +1654,7 @@ function renderBox() {
         <span class="type-tag ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
     </div>
     ${renderSkillsGrid(mon)}
+    ${renderGearRow("box", i, mon)}
     <div class="mon-stats">
         <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
         <div class="stat-row"><span><strong>HP</strong></span><span>${Math.ceil(mon.current_hp)} / ${mon.max_hp}</span></div>
@@ -1418,6 +1741,7 @@ function toBox(index) {
 
 function releaseMon(index) {
     showConfirmModal("Are you sure you want to release this monanimal?", () => {
+        returnAllGearToInventory(party[index]);
         party.splice(index, 1);
         saveData();
         updateUI();
@@ -1493,6 +1817,7 @@ function showConfirmModal(message, onConfirm) {
 }
 function releaseFromBox(index) {
     showConfirmModal("Are you sure you want to release this monanimal?", () => {
+        returnAllGearToInventory(box[index]);
         box.splice(index, 1);
         saveData();
         updateUI();
@@ -1809,12 +2134,18 @@ function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 // their HP can be written back (it persists after the battle).
 function makeFighter(mon, isPlayer) {
     ensureMonReady(mon);
+    const eff = isPlayer ? getEffectiveStats(mon) : null;
+    const stats = isPlayer ? {
+        spd: eff.spd, crit: eff.crit, dodge: eff.dodge, block: eff.block,
+        hit: eff.hit, pierce: eff.pierce, specialty: eff.specialty
+    } : { ...mon.stats };
     return {
         ref: isPlayer ? mon : null,
         name: mon.name, rarity: mon.rarity, level: Math.floor(mon.level),
         maxHp: mon.max_hp,
         hp: isPlayer ? Math.max(0, mon.current_hp) : mon.max_hp,
-        stats: { ...mon.stats },
+        atkPower: isPlayer ? eff.atk : getBaseAtk(Math.floor(mon.level), mon.rarity),
+        stats,
         skills: mon.skills.map(s => ({ ...s })),
         ultimate: { ...mon.ultimate },
         sprite: getSpritePath(mon.name),
@@ -1878,7 +2209,7 @@ function renderBattleScene() {
                     <img class="vs-portrait" id="portrait-enemy" onerror="this.style.visibility='hidden'">
                 </div>
             </div>
-            <div class="stage-label${boss ? ' boss-label' : ''}">${boss ? 'BOSS — ' : ''}CHAPTER 1 - STAGE ${currentStage}</div>
+            <div class="stage-label${boss ? ' boss-label' : ''}">${boss ? 'BOSS — ' : ''}CH.${getChapter(currentStage)} STAGE ${currentStage}</div>
             <div class="fighter-wrap enemy" id="wrap-enemy">
                 <img class="bsprite mirrored" id="sprite-enemy" onerror="this.style.visibility='hidden'">
             </div>
@@ -2134,15 +2465,22 @@ function endBattle(win, player) {
     isInAdventureBattle = false;
     player.forEach(f => { if (f.ref) f.ref.current_hp = Math.max(0, Math.round(f.hp)); });
 
-    let reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0 };
+    let reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null };
     if (win) {
         const boss = isBossStage(currentStage);
         const mult = boss ? 2 : 1;
         reward.gold = (80 + currentStage * 12) * mult;
         reward.essence = (10 + currentStage * 4) * mult;
         reward.trainerXp = Math.floor((50 + currentStage * 25) * (boss ? 1.5 : 1));
-        if (boss) {
+        if (boss && isEquipmentUnlocked()) {
+            const gear = rollGearDrop(currentStage, true);
+            if (gear) { gearInventory.push(gear); reward.gear = gear; }
+            reward.shards = 1 + Math.floor(currentStage / 15);
+        } else if (boss) {
             reward.shards = 2 + Math.floor(currentStage / 10);
+        } else if (isEquipmentUnlocked() && Math.random() < 0.12) {
+            const gear = rollGearDrop(currentStage, false);
+            if (gear) { gearInventory.push(gear); reward.gear = gear; }
         } else if (currentStage >= 3 && Math.random() < 0.25) {
             reward.shards = 1;
         }
@@ -2168,6 +2506,7 @@ function showBattleResult(win, reward) {
                <div>&#129689; Gold <b>+${reward.gold}</b></div>
                <div>&#10024; Essence <b>+${reward.essence}</b></div>
                ${reward.shards > 0 ? `<div>&#128311; Mon Shards <b>+${reward.shards}</b></div>` : ''}
+               ${reward.gear ? `<div>&#9876;&#65039; Gear: <b style="color:${GEAR_TIERS[reward.gear.tier].color}">${reward.gear.name}</b></div>` : ''}
                <div>&#11088; Trainer XP <b>+${reward.trainerXp}</b></div>
                <div style="margin-top:8px; color:#666; font-size:13px;">Materials added to your Inventory.</div>
            </div>`
@@ -2187,7 +2526,6 @@ function renderInventory() {
     const grid = document.getElementById("inventory-grid");
     grid.innerHTML = "";
 
-    // Materials occupy the first slots; the rest stay as empty storage.
     const materials = [
         { icon: "\uD83E\uDE99", name: "Gold",       count: money },
         { icon: "\u2728",       name: "Essence",    count: essence },
@@ -2196,12 +2534,14 @@ function renderInventory() {
 
     for (let i = 0; i < 40; i++) {
         const slot = document.createElement("div");
+        slot.className = "gear-inv-slot";
         slot.style.cssText = `
             width: 70px; 
             height: 70px; 
             border: 3px solid #6B21A8; 
             background: white; 
             display: flex; 
+            flex-direction: column;
             align-items: center; 
             justify-content: center; 
             font-size: 10px; 
@@ -2215,6 +2555,14 @@ function renderInventory() {
             slot.innerHTML = `
                 <span style="font-size: 30px;">${m.icon}</span>
                 <span style="position:absolute; bottom:2px; right:4px; font-size:12px; font-weight:bold; color:#111; background:rgba(255,255,255,0.85); padding:0 2px; border-radius:3px;">${m.count}</span>
+            `;
+        } else if (i - 3 < gearInventory.length) {
+            const g = gearInventory[i - 3];
+            slot.style.borderColor = GEAR_TIERS[g.tier].color;
+            slot.title = g.name + "\n" + formatGearBonuses(g.bonuses) + "\nEquip via mon card gear slots.";
+            slot.innerHTML = `
+                <span style="font-size: 22px;">${GEAR_SLOT_ICONS[g.slot]}</span>
+                <span style="font-size:8px;font-weight:bold;color:${GEAR_TIERS[g.tier].color};margin-top:2px;">${g.tierName}</span>
             `;
         } else {
             slot.innerHTML = `<span style="font-size: 22px; opacity: 0.3;">\uD83D\uDCE6</span>`;
