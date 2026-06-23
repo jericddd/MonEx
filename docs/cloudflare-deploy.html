@@ -37,9 +37,16 @@ npx wrangler kv namespace create MONEX_KV</pre>
         <p>GitHub repo → <b>Settings</b> → <b>Secrets and variables</b> → <b>Actions</b> → <b>New repository secret</b></p>
         <table style="width:100%; font-size:14px; border-collapse:collapse;">
             <tr><th style="text-align:left; padding:6px;">Secret name</th><th style="text-align:left; padding:6px;">Where to get it</th></tr>
-            <tr><td><code>CLOUDFLARE_API_TOKEN</code></td><td>Cloudflare → My Profile → API Tokens → Create Token → <b>Edit Cloudflare Workers</b> template → Create</td></tr>
+            <tr><td><code>CLOUDFLARE_API_TOKEN</code></td><td>Custom token — see permissions below</td></tr>
             <tr><td><code>CLOUDFLARE_ACCOUNT_ID</code></td><td>Cloudflare dashboard → Workers &amp; Pages → right sidebar <b>Account ID</b></td></tr>
         </table>
+        <p>Create a <b>Custom Token</b> with these permissions (all required):</p>
+        <ul>
+            <li>Account → <b>Workers Scripts</b> → Edit</li>
+            <li>Account → <b>Workers KV Storage</b> → Edit</li>
+            <li>Account → <b>Account Settings</b> → Read</li>
+        </ul>
+        <p>Account Resources: <b>Include</b> → your account. Zone Resources: <b>Include</b> → All zones.</p>
         <p>After secrets are set, every push to <code>main</code> that touches <code>cloudflare/monex-api/</code> auto-runs <code>wrangler deploy</code>. No manual deploy needed.</p>
         <p>Check runs: GitHub → <b>Actions</b> tab → <b>Deploy Cloudflare API</b>.</p>
     </div>

@@ -3,6 +3,9 @@ main = "src/index.js"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
+# Optional but helps CI: paste Account ID from Cloudflare → Workers & Pages sidebar
+# account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+
 [[kv_namespaces]]
 binding = "MONEX_KV"
 id = "0f9974ccc16143aa825372bd3bed7f1b"
