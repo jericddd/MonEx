@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { listActivities } from "./activity-log.js";
 import { processMentionTweet } from "./process-mention.js";
+import { parseMention } from "./parse-mention.js";
 import {
   loadState,
   saveState,
@@ -11,6 +12,7 @@ import {
   markProcessed,
   getPendingForUsername,
   claimPendingForUsername,
+  getUser,
 } from "./store.js";
 import {
   createXClient,
@@ -66,6 +68,13 @@ app.post("/api/simulate-mention", (req, res) => {
   const tweetId = `sim_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
   const state = loadState();
+  const parsed = parseMention(text, BOT_USERNAME);
+  if (parsed.type === "catch") {
+    const user = getUser(state, authorId, username, STARTING_MONBALLS);
+    if (user.monballs < parsed.spend) {
+      user.monballs = STARTING_MONBALLS;
+    }
+  }
   const result = processMentionTweet(
     { id: tweetId, text, authorId, username },
     BOT_USERNAME,
