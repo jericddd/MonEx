@@ -1053,12 +1053,12 @@ button,
     <div id="content-profile" class="tab-content">
         <div class="profile-panel">
             <h2 style="color:#6B21A8; text-align:center; margin-top:0;">TRAINER PROFILE</h2>
-            <p style="text-align:center; color:#666; font-size:13px;">Link your X handle to see your wild catch log from @MonEx on X.</p>
+            <p style="text-align:center; color:#666; font-size:13px;">Link your X handle to see your wild catch log from @monexmonad on X.</p>
             <div class="profile-x-row">
                 <input id="x-handle-input" type="text" placeholder="X username (e.g. jeric)" maxlength="40">
                 <button type="button" onclick="saveXHandle()">SAVE</button>
             </div>
-            <p style="font-size:11px; color:#888; margin:0 0 12px;">On X post: <b>@MonEx catch 10 monanimals</b> (10–50 Monballs)</p>
+            <p style="font-size:11px; color:#888; margin:0 0 12px;">On X post: <b>@monexmonad catch 10 monanimals</b> (10–50 Monballs)</p>
             <h3 style="color:#6B21A8; font-size:12px; margin-bottom:8px;">YOUR X CATCH LOG</h3>
             <div id="profile-activity-feed" class="activity-feed">
                 <p style="color:#888;">Save your X @handle above.</p>
@@ -2025,7 +2025,7 @@ async function refreshProfileActivity() {
     try {
         const items = await MonExActivity.fetchMine(xHandle);
         MonExActivity.renderFeed(el, items, {
-            emptyText: "No successful @MonEx catches yet. Tweet @MonEx catch 10 monanimals on X!",
+            emptyText: "No successful @monexmonad catches yet. Tweet @monexmonad catch 10 monanimals on X!",
             showUser: false,
         });
     } catch (e) {

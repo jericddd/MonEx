@@ -19,7 +19,7 @@ import {
 const env = process.env;
 const POLL_MS = parseInt(env.POLL_MS || "45000", 10);
 const STARTING_MONBALLS = parseInt(env.STARTING_MONBALLS || "50", 10);
-const BOT_USERNAME = env.BOT_USERNAME || "MonEx";
+const BOT_USERNAME = env.BOT_USERNAME || "monexmonad";
 
 let sinceId = null;
 

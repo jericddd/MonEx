@@ -244,7 +244,7 @@
             <h2 style="margin-top:0; font-size:11px;">
                 <span class="activity-live"></span>X WILD LOG
             </h2>
-            <p style="font-size:10px; color:#666; margin:0 0 8px;">Tag <b>@MonEx catch 10</b> on X (no bot reply yet)</p>
+            <p style="font-size:10px; color:#666; margin:0 0 8px;">Tag <b>@monexmonad catch 10</b> on X (no bot reply yet)</p>
             <div id="x-activity-feed" class="activity-feed">
                 <p style="color:#888;">Start server: <code style="font-size:9px;">cd x-bot && npm run server</code></p>
             </div>
@@ -402,7 +402,7 @@ async function refreshHomeActivity() {
     if (!el) return;
     try {
         const data = await fetchGlobalActivity(20);
-        renderActivityFeedElement(el, data.entries, "No X catches yet. Try: @MonEx catch 10 monanimals");
+        renderActivityFeedElement(el, data.entries, "No X catches yet. Try: @monexmonad catch 10 monanimals");
     } catch (e) {
         el.innerHTML = `<p style="color:#b91c1c;font-size:10px;">Activity server offline.<br>Run: <code>cd x-bot && npm install && npm run server</code></p>`;
     }

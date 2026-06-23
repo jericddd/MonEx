@@ -18,7 +18,7 @@ export function normalizeTweetText(text) {
  */
 export function parseMention(text, botUsername) {
   const clean = normalizeTweetText(text).toLowerCase();
-  const bot = (botUsername || "monex").toLowerCase().replace("@", "");
+  const bot = (botUsername || "monexmonad").toLowerCase().replace("@", "");
 
   // Must mention the bot account
   if (!clean.includes(`@${bot}`)) {
@@ -48,16 +48,16 @@ export function parseMention(text, botUsername) {
 export function helpReply(username) {
   return (
     `@${username} MonEx Wild — tag me with a catch command:\n` +
-    `@MonEx catch 10  (10–50 Monballs, steps of 10)\n` +
+    `@monexmonad catch 10  (10–50 Monballs, steps of 10)\n` +
     `Min balance: 10 Monballs. Each 10 = 1 throw.\n` +
-    `Example: "@MonEx catch 20" → 2 catches`
+    `Example: "@monexmonad catch 20" → 2 catches`
   );
 }
 
 export function invalidDenomReply(username) {
   return (
     `@${username} Invalid amount. Use 10, 20, 30, 40, or 50 Monballs.\n` +
-    `Example: @MonEx catch 30`
+    `Example: @monexmonad catch 30`
   );
 }
 

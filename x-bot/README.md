@@ -1,6 +1,6 @@
 # MonEx X Activity (POC)
 
-Catch on **X** via `@MonEx catch 10 monanimals` — **no replies for now**. Successful catches are logged to a real-time activity feed on the home page and a personal log in the game **Profile** tab.
+Catch on **X** via `@monexmonad catch 10 monanimals` — **no replies for now**. Successful catches are logged to a real-time activity feed on the home page and a personal log in the game **Profile** tab.
 
 Uses [twitter-api-v2](https://github.com/PLhery/node-twitter-api-v2) (Node.js), not Tweepy.
 
@@ -18,9 +18,9 @@ Uses [twitter-api-v2](https://github.com/PLhery/node-twitter-api-v2) (Node.js), 
 | No valid catch | Skipped (not shown in activity log) |
 
 **Examples:**
-- `@MonEx catch` → spends **10** Monballs, 1 throw
-- `@MonEx catch 10 monanimals` → same as above
-- `@MonEx catch 20` → 2 throws
+- `@monexmonad catch` → spends **10** Monballs, 1 throw
+- `@monexmonad catch 10 monanimals` → same as above
+- `@monexmonad catch 20` → 2 throws
 
 New X users get **50** Monballs (POC default, change in `.env`).
 
@@ -41,7 +41,7 @@ Simulate a mention:
 ```bash
 curl -X POST http://localhost:3001/api/simulate-mention \
   -H "Content-Type: application/json" \
-  -d '{"text":"@MonEx catch 10 monanimals","username":"jeric"}'
+  -d '{"text":"@monexmonad catch 10 monanimals","username":"jeric"}'
 ```
 
 In the game, open **Profile**, save your X handle (`jeric`), and your personal log appears.

@@ -1,22 +1,22 @@
 import { parseMention } from "./parse-mention.js";
 
+const BOT = "monexmonad";
+
 const cases = [
-  ["@MonEx catch", "catch", 10],
-  ["@monex catch 20", "catch", 20],
-  ["@MonEx catch 50 please", "catch", 50],
-  ["@MonEx catch 10 monanimals", "catch", 10],
-  ["@monex catch 20 monanimal", "catch", 20],
-  ["@MonEx catch 25", "invalid_denom"],
-  ["@MonEx hello", "ignore"],
-  ["just @MonEx", "ignore"],
+  ["@monexmonad catch", "catch", 10],
+  ["@monexmonad catch 20", "catch", 20],
+  ["@monexmonad catch 50 please", "catch", 50],
+  ["@monexmonad catch 10 monanimals", "catch", 10],
+  ["@monexmonad catch 20 monanimal", "catch", 20],
+  ["@monexmonad catch 25", "invalid_denom"],
+  ["@monexmonad hello", "ignore"],
+  ["just @monexmonad", "ignore"],
+  ["@MonEx catch 10", "ignore"],
 ];
 
-let ok = true;
-for (const [text, expectedType, expectedSpend] of cases) {
-  const r = parseMention(text, "MonEx");
-  const pass = r.type === expectedType && (expectedSpend == null || r.spend === expectedSpend);
-  console.log(pass ? "✓" : "✗", JSON.stringify(text), "→", r);
-  if (!pass) ok = false;
+for (const [text, type, spend] of cases) {
+  const r = parseMention(text, BOT);
+  const ok = r.type === type && (spend === undefined || r.spend === spend);
+  console.log(`${ok ? "✓" : "✗"} "${text}" →`, r);
+  if (!ok) process.exit(1);
 }
-
-process.exit(ok ? 0 : 1);
