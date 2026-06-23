@@ -67,7 +67,7 @@ export function getPendingForUsername(state, username) {
   };
 }
 
-export function syncPendingToSlots(state, username, partyCount, boxCount, partyMax = 3, boxMax = 6) {
+export function syncPendingToSlots(state, username, partyCount, boxCount, partyMax = 3, boxMax = 100) {
   const user = findUserByUsername(state, username);
   if (!user || !user.pendingMons?.length) {
     return { party: [], box: [], remaining: 0 };
