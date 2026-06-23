@@ -1741,8 +1741,8 @@ if (party.length === 0) {
         const canAfford = money >= cost.gold && essence >= cost.essence;
         const xpState = getMonXpState(mon, canAfford, atCap);
         const levelBtn = atCap
-            ? `<button class="green" style="width:100%; margin-top:8px; border-radius:0px; opacity:0.6; cursor:not-allowed;" disabled>MAX LEVEL (${cap})</button>`
-            : `<button onclick="levelUpMonManual(${index})" class="green" style="width:100%; margin-top:8px; border-radius:0px; box-shadow:2px 2px 3px #16a34a; ${canAfford ? '' : 'opacity:0.7;'}">LEVEL UP &#129689;${cost.gold} &#10024;${cost.essence}</button>`;
+            ? `<button class="green" disabled style="opacity:0.6; cursor:not-allowed;">MAX LEVEL (${cap})</button>`
+            : `<button onclick="levelUpMonManual(${index})" class="green" ${canAfford ? "" : 'style="opacity:0.7;"'}>LEVEL UP &#129689;${cost.gold} &#10024;${cost.essence}</button>`;
 
         const card = document.createElement("div");
         card.className = "mon-card";
@@ -1768,10 +1768,9 @@ if (party.length === 0) {
     </div>
     <div class="currently-text">Currently: ready for battle</div>
     <div class="mon-actions">
-        <button onclick="toBox(${index})">TO BOX</button>
-        <button onclick="releaseMon(${index})" class="red">RELEASE</button>
+        <button onclick="toBox(${index})">SWITCH</button>
+        ${levelBtn}
     </div>
-    ${levelBtn}
     ${renderAscendBtn(index, mon)}
 `;
         grid.appendChild(card);
@@ -1905,16 +1904,6 @@ function toBox(index) {
     updateUI();
 }
 
-
-function releaseMon(index) {
-    showConfirmModal("Are you sure you want to release this monanimal?", () => {
-        returnAllGearToInventory(party[index]);
-        party.splice(index, 1);
-        saveData();
-        updateUI();
-    });
-}
-
 function withdrawFromBox(index) {
     if (party.length >= 3) { alert("Party is full!"); return; }
     const mon = box.splice(index, 1)[0];
@@ -1923,6 +1912,7 @@ function withdrawFromBox(index) {
     updateUI();
     renderBox();
 }
+
 function showConfirmModal(message, onConfirm) {
     const modal = document.createElement("div");
     modal.style.cssText = `
