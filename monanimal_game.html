@@ -1060,7 +1060,8 @@ button,
         <div class="party-grid" id="party-grid"></div>
     </div>
     <div id="content-box" class="tab-content">
-        <div id="box-content" style="min-height:200px;"></div>
+        <p id="box-capacity-label" style="text-align:center; color:#666; font-size:12px; margin:0 0 10px;"></p>
+        <div id="box-content" style="min-height:200px; max-height:70vh; overflow-y:auto;"></div>
     </div>
     <div id="content-battle" class="tab-content">
         <div id="battle-content"></div>
@@ -1245,6 +1246,9 @@ let isInAdventureBattle = false;
 let xHandle = "";
 let currentStage = 1;
 let profileActivityTimer = null;
+
+const PARTY_MAX = 3;
+const BOX_MAX = 100;
 
 const SHOP_ITEMS = [
     { id: "monball5",   name: "Monball Pack",   desc: "5 Monballs for catching.",     cost: { gold: 2000 },              grant: { monballs: 5 } },
@@ -1955,6 +1959,8 @@ function renderParty() {
 
 function renderBox() {
     const content = document.getElementById("box-content");
+    const capLabel = document.getElementById("box-capacity-label");
+    if (capLabel) capLabel.textContent = `Box: ${box.length} / ${BOX_MAX}`;
     content.innerHTML = "";
     content.style.display = "grid";
     content.style.gridTemplateColumns = "repeat(5, 1fr)";
@@ -2176,7 +2182,7 @@ async function refreshProfileActivity() {
 }
 
 function toBox(index) {
-    if (box.length >= 6) { alert("Box is full!"); return; }
+    if (box.length >= BOX_MAX) { alert("Box is full!"); return; }
     const mon = party.splice(index, 1)[0];
     box.push(mon);
     saveData();
@@ -2184,7 +2190,7 @@ function toBox(index) {
 }
 
 function withdrawFromBox(index) {
-    if (party.length >= 3) { alert("Party is full!"); return; }
+    if (party.length >= PARTY_MAX) { alert("Party is full!"); return; }
     const mon = box.splice(index, 1)[0];
     party.push(mon);
     saveData();
@@ -2285,8 +2291,8 @@ function attemptCatch() {
             ultimate: { ...skills[0] }
         };
 
-        if (party.length >= 3) {
-            if (box.length >= 6) {
+        if (party.length >= PARTY_MAX) {
+            if (box.length >= BOX_MAX) {
                 result.innerHTML = `<span style="color:red">Box is full! Cannot catch.</span>`;
                 monballs++;
                 saveData();

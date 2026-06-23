@@ -95,7 +95,7 @@ export function claimPendingForUsername(state, username) {
 }
 
 /** Auto-sync: fill party slots first, then box; leave overflow on server */
-export function syncPendingToSlots(state, username, partyCount, boxCount, partyMax = 3, boxMax = 6) {
+export function syncPendingToSlots(state, username, partyCount, boxCount, partyMax = 3, boxMax = 100) {
   const user = findUserByUsername(state, username);
   if (!user || !user.pendingMons?.length) {
     return { party: [], box: [], remaining: 0 };
