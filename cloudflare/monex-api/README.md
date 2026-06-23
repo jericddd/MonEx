@@ -43,18 +43,19 @@ with your real id.
 
 ---
 
-## Step 3 — Auto-deploy from GitHub (recommended)
+## Auto-deploy from GitHub (manual only)
 
-After KV id is in `wrangler.toml`, set **GitHub repository secrets**:
+After KV id is in `wrangler.toml`, set **GitHub repository secrets** (see deploy guide).
 
-| Secret | Value |
-|--------|-------|
-| `CLOUDFLARE_API_TOKEN` | Cloudflare → API Tokens → **Edit Cloudflare Workers** template |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare dashboard → Workers & Pages → **Account ID** |
+Deploy when ready:
 
-Every push to `main` that changes `cloudflare/monex-api/` auto-deploys. Check **Actions** tab on GitHub.
+1. GitHub → **Actions** → **Deploy Cloudflare API** → **Run workflow**
 
-Manual deploy still works if needed: `npx wrangler deploy`
+Or locally: `npx wrangler deploy` in `cloudflare/monex-api/`
+
+**Game-only changes** do not need a Cloudflare deploy. **API changes** (`cloudflare/monex-api/`) — deploy when you batch updates.
+
+Local testing: [docs/local-test-workflow.html](../docs/local-test-workflow.html)
 
 ---
 

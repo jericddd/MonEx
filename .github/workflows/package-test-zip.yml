@@ -1,0 +1,28 @@
+name: Package test ZIP
+
+# Creates a downloadable zip of the repo for local testing
+on:
+  workflow_dispatch:
+
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    name: Build MonEx test zip
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create zip
+        run: |
+          zip -r monex-test.zip . \
+            -x ".git/*" \
+            -x "*/node_modules/*" \
+            -x "x-bot/data/*" \
+            -x "cloudflare/monex-api/node_modules/*"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: monex-test-zip
+          path: monex-test.zip
+          retention-days: 14
