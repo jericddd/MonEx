@@ -12,17 +12,17 @@ Uses [twitter-api-v2](https://github.com/PLhery/node-twitter-api-v2) (Node.js), 
 |------|--------|
 | Trigger | Mention bot + word **`catch`** |
 | Min balance | **10** Monballs |
-| Spend options | **10, 20, 30, 40, 50** only |
-| Per throw | **10** Monballs = 1 catch roll |
+| Spend options | **10, 20, 30, 40, 50** (= that many catches) |
+| Ratio | **1 Monball = 1 catch** |
 | Catch rate | 95% (same as browser game) |
 | No valid catch | Skipped (not shown in activity log) |
 
 **Examples:**
-- `@monexmonad catch` → spends **10** Monballs, 1 throw
-- `@monexmonad catch 10 monanimals` → same as above
-- `@monexmonad catch 20` → 2 throws
+- `@monexmonad catch` → spends **10** Monballs, **10** catches
+- `@monexmonad catch 10 monanimals` → **10** catches
+- `@monexmonad catch 20` → **20** catches
 
-New X users get **10** Monballs (POC default — exactly 1 catch; change in `.env`).
+New X users get **10** Monballs (10 catches; change in `.env`).
 
 ---
 

@@ -49,8 +49,8 @@ export function helpReply(username) {
   return (
     `@${username} MonEx Wild — tag me with a catch command:\n` +
     `@monexmonad catch 10  (10–50 Monballs, steps of 10)\n` +
-    `Min balance: 10 Monballs. Each 10 = 1 throw.\n` +
-    `Example: "@monexmonad catch 20" → 2 catches`
+    `Min balance: 10 Monballs. 1 Monball = 1 catch.\n` +
+    `Example: "@monexmonad catch 20" → 20 catches`
   );
 }
 

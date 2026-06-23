@@ -57,7 +57,7 @@ const SPECIES_ULTIMATE = {
 
 export const CATCH_DENOMINATIONS = [10, 20, 30, 40, 50];
 export const MIN_MONBALLS = 10;
-export const MONBALLS_PER_THROW = 10;
+export const MONBALLS_PER_THROW = 1;
 export const CATCH_RATE = 0.95;
 
 function randInt(min, max) {
@@ -125,7 +125,7 @@ export function attemptSingleCatch() {
   };
 }
 
-/** Spend `monballSpend` (10–50). Returns { throws, results } */
+/** Spend `monballSpend` (10–50). 1 Monball = 1 catch. Returns { throws, results } */
 export function runCatchSession(monballSpend) {
   const throws = monballSpend / MONBALLS_PER_THROW;
   const results = [];
