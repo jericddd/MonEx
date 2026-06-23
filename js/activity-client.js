@@ -10,8 +10,6 @@ function getMonexApiBase() {
         if (location.port === "3001") return "";
         return `http://${host}:3001`;
     }
-    // Game served from same Railway deploy — API is same origin
-    if (host.endsWith(".up.railway.app")) return "";
     return MONEX_API_PRODUCTION;
 }
 
