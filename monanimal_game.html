@@ -270,33 +270,6 @@ body {
     color: #181010;
 }
 
-/* XP Bar */
-.xp-bar {
-    position: relative;
-    height: 20px;
-    background: #2a2a2a;
-    border-radius: 0;
-    overflow: hidden;
-    margin: 10px 2px 8px;
-    border: 1px solid #3a3a3a;
-}
-.xp-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #6B21A8, #C084FC);
-    transition: width 0.3s ease;
-}
-.xp-text {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10.5px;
-    font-weight: 600;
-    color: white;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
-}
-
 .currently-text {
     font-size: 12px;
     color: #666;
@@ -344,6 +317,8 @@ body {
 .mon-actions button:hover {
     filter: brightness(1.1);
 }
+.cost-lack { color: #ef4444; font-weight: 700; }
+.mon-actions button:disabled { cursor: not-allowed; filter: none; }
 
 /* FEED button */
 button.green {
@@ -1151,10 +1126,6 @@ function getAttackDamage(level, rarity) {
     return baseDamage;
 }
 
-function getXPForNextLevel(level) {
-    return Math.floor(100 * Math.pow(1.15, level - 1));
-}
-
 function getCatchRate(rarity) {
     return 0.95;   // 95% Catch Rate for all rarities
 }
@@ -1628,12 +1599,19 @@ function returnAllGearToInventory(mon) {
         }
     });
 }
-function getMonXpState(mon, canAffordLevel, atCap) {
-    const xpNeeded = getXPForNextLevel(Math.floor(mon.level));
-    // XP bar fills when ready for manual level-up (has Gold + Essence); no battle XP.
-    const currentXP = (!atCap && canAffordLevel) ? xpNeeded : 0;
-    const progress = Math.min(100, Math.floor((currentXP / xpNeeded) * 100));
-    return { currentXP, xpNeeded, progress };
+function renderLevelUpBtn(index, mon, cost, atCap, cap) {
+    if (atCap) {
+        return `<button class="green" disabled style="opacity:0.6;">MAX LEVEL (${cap})</button>`;
+    }
+    const hasGold = money >= cost.gold;
+    const hasEssence = essence >= cost.essence;
+    const goldClass = hasGold ? "" : "cost-lack";
+    const essenceClass = hasEssence ? "" : "cost-lack";
+    const costLabel = `&#129689;<span class="${goldClass}">${cost.gold}</span> &#10024;<span class="${essenceClass}">${cost.essence}</span>`;
+    if (hasGold && hasEssence) {
+        return `<button onclick="levelUpMonManual(${index})" class="green">LEVEL UP ${costLabel}</button>`;
+    }
+    return `<button class="green" disabled>LEVEL UP ${costLabel}</button>`;
 }
 
 function passiveBonus(fighter, key) {
@@ -1738,11 +1716,7 @@ if (party.length === 0) {
         const cap = getLevelCap(mon);
         const atCap = Math.floor(mon.level) >= cap;
         const cost = getLevelCost(mon);
-        const canAfford = money >= cost.gold && essence >= cost.essence;
-        const xpState = getMonXpState(mon, canAfford, atCap);
-        const levelBtn = atCap
-            ? `<button class="green" disabled style="opacity:0.6; cursor:not-allowed;">MAX LEVEL (${cap})</button>`
-            : `<button onclick="levelUpMonManual(${index})" class="green" ${canAfford ? "" : 'style="opacity:0.7;"'}>LEVEL UP &#129689;${cost.gold} &#10024;${cost.essence}</button>`;
+        const levelBtn = renderLevelUpBtn(index, mon, cost, atCap, cap);
 
         const card = document.createElement("div");
         card.className = "mon-card";
@@ -1759,10 +1733,6 @@ if (party.length === 0) {
     ${renderSkillsGrid(mon)}
     ${renderGearRow("party", index, mon)}
     <div class="mon-stats">
-        <div class="xp-bar">
-            <div class="xp-fill" style="width: ${xpState.progress}%;"></div>
-            <div class="xp-text">${xpState.currentXP} / ${xpState.xpNeeded} XP</div>
-        </div>
         <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
         <div class="stat-row"><span><strong>HP</strong></span><span>${Math.ceil(mon.current_hp)} / ${mon.max_hp}</span></div>
     </div>
@@ -1799,10 +1769,6 @@ function renderBox() {
     box.forEach((mon, i) => {
         ensureMonReady(mon);
         const cap = getLevelCap(mon);
-        const cost = getLevelCost(mon);
-        const canAfford = money >= cost.gold && essence >= cost.essence;
-        const atCap = Math.floor(mon.level) >= cap;
-        const xpState = getMonXpState(mon, canAfford, atCap);
 
         const card = document.createElement("div");
         card.className = "mon-card";
@@ -1818,10 +1784,6 @@ function renderBox() {
     ${renderSkillsGrid(mon)}
     ${renderGearRow("box", i, mon)}
     <div class="mon-stats">
-        <div class="xp-bar">
-            <div class="xp-fill" style="width: ${xpState.progress}%;"></div>
-            <div class="xp-text">${xpState.currentXP} / ${xpState.xpNeeded} XP</div>
-        </div>
         <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
         <div class="stat-row"><span><strong>HP</strong></span><span>${Math.ceil(mon.current_hp)} / ${mon.max_hp}</span></div>
     </div>
