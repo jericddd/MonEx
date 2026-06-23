@@ -1,5 +1,8 @@
 /** Shared X activity feed client for home + game profile */
 
+/** Live activity API (Railway). Override with window.MONEX_API if needed. */
+const MONEX_API_PRODUCTION = "https://monex-production-fe34.up.railway.app";
+
 function getMonexApiBase() {
     if (window.MONEX_API) return window.MONEX_API.replace(/\/$/, "");
     const host = location.hostname;
@@ -7,7 +10,9 @@ function getMonexApiBase() {
         if (location.port === "3001") return "";
         return `http://${host}:3001`;
     }
-    return "";
+    // Game served from same Railway deploy — API is same origin
+    if (host.endsWith(".up.railway.app")) return "";
+    return MONEX_API_PRODUCTION;
 }
 
 function formatActivityEntryHtml(entry, opts = {}) {
