@@ -1,0 +1,12 @@
+{
+  "name": "monex",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MonEx game + X activity server",
+  "scripts": {
+    "start": "npm install --prefix x-bot && npm run server --prefix x-bot"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

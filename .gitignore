@@ -5,7 +5,5 @@ saved OAth/
 *.env
 .env
 
-# Local dev / tooling (root only — x-bot/package.json is required for Railway deploy)
+# Local dev / tooling
 /node_modules/
-/package.json
-/package-lock.json
