@@ -15,7 +15,7 @@
 </head>
 <body>
     <h1>Cloudflare Deploy (Free)</h1>
-    <p>Replace Railway with Cloudflare Workers ($0). Push to <code>main</code> auto-deploys the API via GitHub Actions.</p>
+    <p>Replace Railway with Cloudflare Workers ($0). <b>API deploy is manual</b> — see <a href="local-test-workflow.html">local test workflow</a>.</p>
 
     <div class="step">
         <h2>1. One-time: Cloudflare account</h2>
@@ -47,7 +47,8 @@ npx wrangler kv namespace create MONEX_KV</pre>
             <li>Account → <b>Account Settings</b> → Read</li>
         </ul>
         <p>Account Resources: <b>Include</b> → your account. Zone Resources: <b>Include</b> → All zones.</p>
-        <p>After secrets are set, every push to <code>main</code> that touches <code>cloudflare/monex-api/</code> auto-runs <code>wrangler deploy</code>. No manual deploy needed.</p>
+        <p>After secrets are set, deploy manually: GitHub → <b>Actions</b> → <b>Deploy Cloudflare API</b> → <b>Run workflow</b>.</p>
+        <p>API does <b>not</b> auto-deploy on every push — batch changes, then deploy once when you are ready.</p>
         <p>Check runs: GitHub → <b>Actions</b> tab → <b>Deploy Cloudflare API</b>.</p>
     </div>
 

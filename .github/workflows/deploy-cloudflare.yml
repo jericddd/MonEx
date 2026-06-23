@@ -1,11 +1,7 @@
 name: Deploy Cloudflare API
 
+# Manual only — deploy when YOU choose (not on every push to main)
 on:
-  push:
-    branches: [main]
-    paths:
-      - "cloudflare/monex-api/**"
-      - ".github/workflows/deploy-cloudflare.yml"
   workflow_dispatch:
 
 jobs:
