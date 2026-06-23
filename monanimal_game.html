@@ -433,6 +433,47 @@ button.green:hover {
     font-family: "Press Start 2P", sans-serif;
     font-size: 8px;
 }
+.profile-pending {
+    margin: 16px 0;
+    padding: 14px;
+    border: 3px solid #6B21A8;
+    background: #faf5ff;
+    text-align: center;
+}
+.profile-pending h3 {
+    margin: 0 0 8px;
+    font-size: 11px;
+    color: #6B21A8;
+}
+.profile-pending p {
+    margin: 0 0 12px;
+    font-size: 12px;
+    color: #444;
+}
+.profile-claim-btn {
+    padding: 12px 24px;
+    border: 3px solid #6B21A8;
+    background: linear-gradient(145deg, #c084fc, #7c3aed);
+    color: white;
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 9px;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 #6B21A8;
+}
+.profile-claim-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: #ccc;
+    box-shadow: none;
+}
+.profile-pending-list {
+    font-size: 11px;
+    color: #555;
+    text-align: left;
+    margin: 0 0 12px;
+    max-height: 100px;
+    overflow-y: auto;
+}
 
 /* ===== Equipment (Phase 3) ===== */
 .gear-row {
@@ -1059,6 +1100,12 @@ button,
                 <button type="button" onclick="saveXHandle()">SAVE</button>
             </div>
             <p style="font-size:11px; color:#888; margin:0 0 12px;">On X post: <b>@monexmonad catch 10 monanimals</b> (10–50 Monballs)</p>
+            <div class="profile-pending" id="profile-pending-panel">
+                <h3>X WILD MONS WAITING</h3>
+                <p id="profile-pending-text">Save your X @handle to check for catches.</p>
+                <div id="profile-pending-list" class="profile-pending-list"></div>
+                <button type="button" id="profile-claim-btn" class="profile-claim-btn" onclick="claimXWildMons()" disabled>CLAIM TO GAME</button>
+            </div>
             <h3 style="color:#6B21A8; font-size:12px; margin-bottom:8px;">YOUR X CATCH LOG</h3>
             <div id="profile-activity-feed" class="activity-feed">
                 <p style="color:#888;">Save your X @handle above.</p>
@@ -1988,6 +2035,17 @@ function renderShop() {
     `).join("");
 }
 
+function importWildMon(raw) {
+    const mon = {
+        name: raw.name,
+        rarity: raw.rarity,
+        level: raw.level || 1,
+        skills: raw.skills ? JSON.parse(JSON.stringify(raw.skills)) : [],
+    };
+    ensureMonReady(mon);
+    return mon;
+}
+
 function saveXHandle() {
     const input = document.getElementById("x-handle-input");
     if (!input) return;
@@ -1999,16 +2057,100 @@ function saveXHandle() {
     xHandle = raw;
     saveData();
     alert("@" + xHandle + " linked for activity log");
+    refreshProfilePending();
     refreshProfileActivity();
+}
+
+async function refreshProfilePending() {
+    const textEl = document.getElementById("profile-pending-text");
+    const listEl = document.getElementById("profile-pending-list");
+    const btn = document.getElementById("profile-claim-btn");
+    if (!textEl || typeof MonExActivity === "undefined") return;
+    if (!xHandle) {
+        textEl.textContent = "Save your X @handle to check for catches.";
+        if (listEl) listEl.innerHTML = "";
+        if (btn) btn.disabled = true;
+        return;
+    }
+    try {
+        const data = await MonExActivity.fetchPending(xHandle);
+        const pending = data.pendingMons || [];
+        const count = pending.length;
+        if (count === 0) {
+            textEl.textContent = "No mons waiting. Tweet @monexmonad catch 10 monanimals on X!";
+            if (listEl) listEl.innerHTML = "";
+            if (btn) btn.disabled = true;
+            return;
+        }
+        textEl.textContent = count + " mon" + (count === 1 ? "" : "s") + " ready to claim!";
+        if (listEl) {
+            listEl.innerHTML = pending.map((m) =>
+                "• " + m.rarity + " " + m.name
+            ).join("<br>");
+        }
+        if (btn) btn.disabled = false;
+    } catch (e) {
+        textEl.textContent = "Could not reach server. Try again later.";
+        if (listEl) listEl.innerHTML = "";
+        if (btn) btn.disabled = true;
+    }
+}
+
+async function claimXWildMons() {
+    if (!xHandle) {
+        alert("Save your X @handle first.");
+        return;
+    }
+    const btn = document.getElementById("profile-claim-btn");
+    if (btn) btn.disabled = true;
+    try {
+        const data = await MonExActivity.claimPending(xHandle);
+        const rawMons = data.claimed || [];
+        if (!rawMons.length) {
+            alert("Nothing to claim right now.");
+            refreshProfilePending();
+            return;
+        }
+        let added = 0;
+        let skipped = 0;
+        for (const raw of rawMons) {
+            const mon = importWildMon(raw);
+            if (party.length < 3) {
+                party.push(mon);
+                added++;
+            } else if (box.length < 6) {
+                box.push(mon);
+                added++;
+            } else {
+                skipped++;
+            }
+        }
+        saveData();
+        updateUI();
+        renderParty();
+        renderBox();
+        refreshProfilePending();
+        refreshProfileActivity();
+        if (skipped > 0) {
+            alert("Claimed " + added + " mon(s)! " + skipped + " could not fit — party (3) and box (6) are full.");
+        } else {
+            alert("Claimed " + added + " mon(s) from X! Check Party or Box.");
+        }
+    } catch (e) {
+        alert("Claim failed. Is the server online?");
+        refreshProfilePending();
+    }
 }
 
 function renderProfile() {
     const input = document.getElementById("x-handle-input");
     if (input) input.value = xHandle ? "@" + xHandle : "";
+    refreshProfilePending();
     refreshProfileActivity();
     if (profileActivityTimer) clearInterval(profileActivityTimer);
     profileActivityTimer = setInterval(() => {
         if (document.getElementById("content-profile")?.classList.contains("active")) {
+            refreshProfilePending();
             refreshProfileActivity();
         }
     }, 8000);

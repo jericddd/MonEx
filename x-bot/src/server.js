@@ -9,6 +9,8 @@ import {
   saveState,
   wasProcessed,
   markProcessed,
+  getPendingForUsername,
+  claimPendingForUsername,
 } from "./store.js";
 import {
   createXClient,
@@ -81,7 +83,64 @@ app.post("/api/simulate-mention", (req, res) => {
 });
 
 app.get("/api/health", (req, res) => {
-  res.json({ ok: true, service: "monex-x-activity", xPoll: ENABLE_X_POLL });
+  const hasXKeys = !!(
+    process.env.X_API_KEY &&
+    process.env.X_API_SECRET &&
+    process.env.X_ACCESS_TOKEN &&
+    process.env.X_ACCESS_TOKEN_SECRET
+  );
+  res.json({
+    ok: true,
+    service: "monex-x-activity",
+    xPoll: ENABLE_X_POLL,
+    xKeys: hasXKeys,
+    bot: BOT_USERNAME,
+  });
+});
+
+/** Pending wild mons waiting to claim in game */
+app.get("/api/pending", (req, res) => {
+  const username = (req.query.username || "").trim();
+  if (!username) {
+    return res.status(400).json({ ok: false, error: "username query required" });
+  }
+  const state = loadState();
+  const result = getPendingForUsername(state, username);
+  res.json({
+    ok: true,
+    username: username.replace("@", ""),
+    found: result.found,
+    monballs: result.monballs,
+    pendingMons: result.pendingMons,
+    count: result.pendingMons.length,
+  });
+});
+
+/** Claim all pending mons for an X @username */
+app.post("/api/claim", (req, res) => {
+  const username = (req.body?.username || "").trim();
+  if (!username) {
+    return res.status(400).json({ ok: false, error: "username required" });
+  }
+  const state = loadState();
+  const before = getPendingForUsername(state, username);
+  if (!before.found) {
+    return res.json({
+      ok: true,
+      username: username.replace("@", ""),
+      claimed: [],
+      count: 0,
+      message: "no_x_catches_for_this_handle",
+    });
+  }
+  const { claimed, count } = claimPendingForUsername(state, username);
+  saveState(state);
+  res.json({
+    ok: true,
+    username: username.replace("@", ""),
+    claimed,
+    count,
+  });
 });
 
 app.use(express.static(WORKSPACE_ROOT));
@@ -90,7 +149,7 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`MonEx server http://localhost:${PORT}`);
   console.log(`  Home:  http://localhost:${PORT}/home.html`);
   console.log(`  Game:  http://localhost:${PORT}/monanimal_game.html`);
-  console.log(`  API:   GET /api/activity  GET /api/activity/mine?username=you`);
+  console.log(`  API:   GET /api/activity  GET /api/pending?username=you  POST /api/claim`);
   console.log(`  Test:  POST /api/simulate-mention { "text": "@monexmonad catch 10 monanimals", "username": "jeric" }`);
 });
 

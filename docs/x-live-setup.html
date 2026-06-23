@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MonEx — Connect X Live</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #222; }
+        h1 { font-family: "Press Start 2P", sans-serif; font-size: 18px; color: #6B21A8; }
+        h2 { font-family: "Press Start 2P", sans-serif; font-size: 11px; color: #6B21A8; margin-top: 28px; }
+        code, pre { background: #f3e8ff; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+        pre { padding: 12px; overflow-x: auto; }
+        .step { background: white; border: 3px solid #6B21A8; padding: 16px; margin: 16px 0; box-shadow: 4px 4px 0 #6B21A8; }
+        a { color: #6B21A8; }
+    </style>
+</head>
+<body>
+    <h1>Connect @monexmonad Live</h1>
+    <p>Follow these steps so real X tweets become catches players can <b>claim in the game</b>.</p>
+
+    <div class="step">
+        <h2>Step 1 — X Developer Portal</h2>
+        <ol>
+            <li>Go to <a href="https://developer.x.com" target="_blank">developer.x.com</a></li>
+            <li>Sign in as <b>@monexmonad</b> (the bot account)</li>
+            <li>Create a <b>Project</b> + <b>App</b></li>
+            <li>Choose a paid API tier if required (X API is mostly paid in 2026)</li>
+            <li>App permissions: <b>Read</b> is enough for now (no replies yet)</li>
+        </ol>
+    </div>
+
+    <div class="step">
+        <h2>Step 2 — Get 4 keys</h2>
+        <p>In your app → <b>Keys and tokens</b> → generate OAuth 1.0a:</p>
+        <ul>
+            <li>API Key</li>
+            <li>API Secret</li>
+            <li>Access Token</li>
+            <li>Access Token Secret</li>
+        </ul>
+        <p><b>Important:</b> Generate tokens while logged in as <b>@monexmonad</b>.</p>
+    </div>
+
+    <div class="step">
+        <h2>Step 3 — Railway Variables</h2>
+        <p>Open Railway → MonEx → <b>Variables</b> → add:</p>
+        <pre>X_API_KEY=your_key
+X_API_SECRET=your_secret
+X_ACCESS_TOKEN=your_token
+X_ACCESS_TOKEN_SECRET=your_token_secret
+BOT_USERNAME=monexmonad
+ENABLE_X_POLL=1
+STARTING_MONBALLS=10</pre>
+        <p>Do <b>not</b> set <code>PORT</code> — Railway handles that.</p>
+    </div>
+
+    <div class="step">
+        <h2>Step 4 — Test on X</h2>
+        <p>From your <b>personal</b> X account, tweet:</p>
+        <pre>@monexmonad catch 10 monanimals</pre>
+        <p>Wait ~1 minute → check <a href="../home.html">home page X Wild Log</a>.</p>
+    </div>
+
+    <div class="step">
+        <h2>Step 5 — Claim in game</h2>
+        <ol>
+            <li>Open the game → <b>Profile</b> tab</li>
+            <li>Save your real X @handle (same account you tweeted from)</li>
+            <li>Click <b>CLAIM TO GAME</b></li>
+            <li>Mons appear in Party or Box</li>
+        </ol>
+    </div>
+
+    <p><a href="../home.html">← Back to Home</a></p>
+</body>
+</html>

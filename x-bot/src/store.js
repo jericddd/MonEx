@@ -61,3 +61,35 @@ export function addPendingMons(user, mons) {
   user.pendingMons.push(...mons.map((m) => ({ ...m, caughtAt: new Date().toISOString() })));
   user.updatedAt = new Date().toISOString();
 }
+
+export function findUserByUsername(state, username) {
+  const u = (username || "").toLowerCase().replace("@", "");
+  if (!u) return null;
+  for (const user of Object.values(state.users)) {
+    if (user.username?.toLowerCase() === u) return user;
+  }
+  return null;
+}
+
+export function getPendingForUsername(state, username) {
+  const user = findUserByUsername(state, username);
+  if (!user) {
+    return { found: false, monballs: null, pendingMons: [] };
+  }
+  return {
+    found: true,
+    monballs: user.monballs,
+    pendingMons: user.pendingMons || [],
+  };
+}
+
+export function claimPendingForUsername(state, username) {
+  const user = findUserByUsername(state, username);
+  if (!user || !user.pendingMons?.length) {
+    return { claimed: [], count: 0 };
+  }
+  const claimed = [...user.pendingMons];
+  user.pendingMons = [];
+  user.updatedAt = new Date().toISOString();
+  return { claimed, count: claimed.length };
+}

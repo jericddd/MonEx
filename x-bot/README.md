@@ -72,6 +72,8 @@ npm run poll
 |----------|-------------|
 | `GET /api/activity?limit=30` | Global feed (successful catches only) |
 | `GET /api/activity/mine?username=you` | Personal feed by X @handle |
+| `GET /api/pending?username=you` | Mons waiting to claim in game |
+| `POST /api/claim` | Claim body: `{ "username": "you" }` |
 | `POST /api/simulate-mention` | Test body: `{ "text", "username" }` |
 | `GET /api/health` | Server status |
 

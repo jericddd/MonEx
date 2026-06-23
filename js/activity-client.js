@@ -46,6 +46,25 @@ async function fetchPersonalActivity(username, limit, page) {
     return res.json();
 }
 
+async function fetchPendingMons(username) {
+    const base = getMonexApiBase();
+    const u = encodeURIComponent(username.replace("@", ""));
+    const res = await fetch(`${base}/api/pending?username=${u}`);
+    if (!res.ok) throw new Error("pending fetch failed");
+    return res.json();
+}
+
+async function claimPendingMons(username) {
+    const base = getMonexApiBase();
+    const res = await fetch(`${base}/api/claim`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.replace("@", "") }),
+    });
+    if (!res.ok) throw new Error("claim failed");
+    return res.json();
+}
+
 function formatActivityTableRow(entry, rowNum) {
     const time = new Date(entry.at).toLocaleString();
     const caught = entry.highlights && entry.highlights.length
@@ -171,5 +190,7 @@ window.MonExActivity = {
     },
     renderTable: renderActivityTable,
     renderPagination,
+    fetchPending: fetchPendingMons,
+    claimPending: claimPendingMons,
     PAGE_SIZE: 50,
 };
