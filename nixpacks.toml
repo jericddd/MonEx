@@ -5,4 +5,4 @@ nixPkgs = ["nodejs_20"]
 cmds = ["npm install --prefix x-bot"]
 
 [start]
-cmd = "npm run server --prefix x-bot"
+cmd = "node x-bot/src/server.js"

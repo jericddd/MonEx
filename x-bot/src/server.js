@@ -19,6 +19,7 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WORKSPACE_ROOT = path.join(__dirname, "..", "..");
 const PORT = parseInt(process.env.PORT || "3001", 10);
+console.log(`[boot] MonEx starting on 0.0.0.0:${PORT}`);
 const STARTING_MONBALLS = parseInt(process.env.STARTING_MONBALLS || "10", 10);
 const BOT_USERNAME = process.env.BOT_USERNAME || "monexmonad";
 const POLL_MS = parseInt(process.env.POLL_MS || "45000", 10);
