@@ -527,9 +527,36 @@ button,
     display: flex; align-items: center; gap: 6px;
     background: #f3e8ff; border: 2px solid #6B21A8;
     padding: 6px 10px; font-size: 13px; white-space: nowrap;
+    position: relative; cursor: help;
 }
-.cur-ico { font-size: 18px; }
-.currency-pill b { color: #6B21A8; }
+.cur-ico-img {
+    width: 22px;
+    height: 22px;
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    flex-shrink: 0;
+}
+.currency-pill .cur-qty { color: #6B21A8; font-weight: 700; font-size: 14px; }
+.currency-pill .currency-tip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a2e;
+    color: #e0e0ff;
+    padding: 5px 9px;
+    font-size: 9px;
+    font-family: 'Press Start 2P', monospace;
+    white-space: nowrap;
+    border: 2px solid #6B21A8;
+    box-shadow: 2px 2px 0 #6B21A8;
+    z-index: 30;
+    pointer-events: none;
+}
+.currency-pill:hover .currency-tip { display: block; }
+.inline-currency { display: inline-flex; align-items: center; gap: 3px; vertical-align: middle; }
 
 /* ===== Card stat extras ===== */
 .mon-card { position: relative; }
@@ -883,10 +910,26 @@ button,
 <div class="balls-card">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div class="currency-row">
-            <div class="currency-pill" title="Monballs"><span class="cur-ico">&#127944;</span><span><strong>MONBALL</strong> <b id="monball-count">12</b></span></div>
-            <div class="currency-pill" title="Gold"><span class="cur-ico">&#129689;</span><span><strong>GOLD</strong> <b id="gold-count">0</b></span></div>
-            <div class="currency-pill" title="Essence"><span class="cur-ico">&#10024;</span><span><strong>ESSENCE</strong> <b id="essence-count">0</b></span></div>
-            <div class="currency-pill" title="Mon Shards"><span class="cur-ico">&#128311;</span><span><strong>SHARDS</strong> <b id="shard-count">0</b></span></div>
+            <div class="currency-pill">
+                <img class="cur-ico-img" src="game_icons/monball.png" alt="">
+                <span class="cur-qty" id="monball-count">12</span>
+                <span class="currency-tip">Monball</span>
+            </div>
+            <div class="currency-pill">
+                <img class="cur-ico-img" src="game_icons/gold.png" alt="">
+                <span class="cur-qty" id="gold-count">0</span>
+                <span class="currency-tip">Gold</span>
+            </div>
+            <div class="currency-pill">
+                <img class="cur-ico-img" src="game_icons/xp_essence.png" alt="">
+                <span class="cur-qty" id="essence-count">0</span>
+                <span class="currency-tip">Essence</span>
+            </div>
+            <div class="currency-pill">
+                <img class="cur-ico-img" src="game_icons/shard.png" alt="">
+                <span class="cur-qty" id="shard-count">0</span>
+                <span class="currency-tip">Mon Shards</span>
+            </div>
         </div>
         <div style="display:flex; gap:8px;">
             <button onclick="buyMonball()" style="padding:8px 16px; border:2px solid #6B21A8; background:white; cursor:pointer;">Buy (500)</button>
@@ -966,6 +1009,23 @@ button,
 // =====================================================
 
 // ==================== CONSTANTS ====================
+const GAME_ICONS = {
+    monball: { src: "game_icons/monball.png", name: "Monball" },
+    gold:    { src: "game_icons/gold.png", name: "Gold" },
+    essence: { src: "game_icons/xp_essence.png", name: "Essence" },
+    shards:  { src: "game_icons/shard.png", name: "Mon Shards" },
+};
+
+function currencyIcon(key, size = 16) {
+    const c = GAME_ICONS[key];
+    return `<img class="cur-ico-img" src="${c.src}" alt="" width="${size}" height="${size}" title="${c.name}">`;
+}
+
+function currencyQty(key, amount, size = 16, amountClass = "") {
+    const cls = amountClass ? ` class="${amountClass}"` : "";
+    return `<span class="inline-currency">${currencyIcon(key, size)}<span${cls}>${amount}</span></span>`;
+}
+
 const MONANIMAL_NAMES = ["Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal", "Monavara", "Moncock", "Mondigrade", "Montiger", "Mopo", "Mosferatu", "Moxy", "Shramp", "Spidermon", "Moyaki"];
 
 const SPRITE_MAP = {
@@ -1289,7 +1349,7 @@ function renderAscendBtn(index, mon) {
     if (Math.floor(mon.level) < cap) return "";
     const cost = getAscendCost(mon.rarity);
     const afford = monShards >= cost;
-    return `<button onclick="ascendMonRarity(${index})" class="ascend-btn" ${afford ? "" : "disabled style='opacity:0.65'"}>ASCEND \u2192 ${next.toUpperCase()} (${cost} \uD83D\uDD37)</button>`;
+    return `<button onclick="ascendMonRarity(${index})" class="ascend-btn" ${afford ? "" : "disabled style='opacity:0.65'"}>ASCEND \u2192 ${next.toUpperCase()} (${currencyQty("shards", cost, 14)})</button>`;
 }
 
 // Skill slots: 1st = ultimate (species-fixed), 2nd = passive (RNG), 3rd+ = actives (RNG).
@@ -1393,10 +1453,10 @@ function spendCost(cost) {
 }
 function formatCost(cost) {
     const parts = [];
-    if (cost.gold) parts.push(cost.gold + " Gold");
-    if (cost.essence) parts.push(cost.essence + " Essence");
-    if (cost.monShards) parts.push(cost.monShards + " Shards");
-    return parts.join(" + ") || "Free";
+    if (cost.gold) parts.push(currencyQty("gold", cost.gold, 14));
+    if (cost.essence) parts.push(currencyQty("essence", cost.essence, 14));
+    if (cost.monShards) parts.push(currencyQty("shards", cost.monShards, 14));
+    return parts.join(" ") || "Free";
 }
 
 // ===== Phase 3: Equipment & Ascension =====
@@ -1607,7 +1667,7 @@ function renderLevelUpBtn(index, mon, cost, atCap, cap) {
     const hasEssence = essence >= cost.essence;
     const goldClass = hasGold ? "" : "cost-lack";
     const essenceClass = hasEssence ? "" : "cost-lack";
-    const costLabel = `&#129689;<span class="${goldClass}">${cost.gold}</span> &#10024;<span class="${essenceClass}">${cost.essence}</span>`;
+    const costLabel = `${currencyIcon("gold", 14)}<span class="${goldClass}">${cost.gold}</span> ${currencyIcon("essence", 14)}<span class="${essenceClass}">${cost.essence}</span>`;
     if (hasGold && hasEssence) {
         return `<button onclick="levelUpMonManual(${index})" class="green">LEVEL UP ${costLabel}</button>`;
     }
@@ -2623,9 +2683,9 @@ function showBattleResult(win, reward) {
     const content = document.getElementById("battle-content");
     const drops = win
         ? `<div style="margin:18px 0; font-size:15px;">
-               <div>&#129689; Gold <b>+${reward.gold}</b></div>
-               <div>&#10024; Essence <b>+${reward.essence}</b></div>
-               ${reward.shards > 0 ? `<div>&#128311; Mon Shards <b>+${reward.shards}</b></div>` : ''}
+               <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("gold", 20)} <b>+${reward.gold}</b></div>
+               <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("essence", 20)} <b>+${reward.essence}</b></div>
+               ${reward.shards > 0 ? `<div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("shards", 20)} <b>+${reward.shards}</b></div>` : ""}
                ${reward.gear ? `<div>&#9876;&#65039; Gear: <b style="color:${GEAR_TIERS[reward.gear.tier].color}">${reward.gear.name}</b></div>` : ''}
                <div>&#11088; Trainer XP <b>+${reward.trainerXp}</b></div>
                <div style="margin-top:8px; color:#666; font-size:13px;">Materials added to your Inventory.</div>
@@ -2647,9 +2707,9 @@ function renderInventory() {
     grid.innerHTML = "";
 
     const materials = [
-        { icon: "\uD83E\uDE99", name: "Gold",       count: money },
-        { icon: "\u2728",       name: "Essence",    count: essence },
-        { icon: "\uD83D\uDD37", name: "Mon Shards", count: monShards },
+        { key: "gold", count: money },
+        { key: "essence", count: essence },
+        { key: "shards", count: monShards },
     ];
 
     for (let i = 0; i < 40; i++) {
@@ -2671,9 +2731,10 @@ function renderInventory() {
         `;
         if (i < materials.length) {
             const m = materials[i];
-            slot.title = m.name + ": " + m.count;
+            const info = GAME_ICONS[m.key];
+            slot.title = info.name + ": " + m.count;
             slot.innerHTML = `
-                <span style="font-size: 30px;">${m.icon}</span>
+                <img src="${info.src}" alt="" style="width:30px;height:30px;image-rendering:pixelated;">
                 <span style="position:absolute; bottom:2px; right:4px; font-size:12px; font-weight:bold; color:#111; background:rgba(255,255,255,0.85); padding:0 2px; border-radius:3px;">${m.count}</span>
             `;
         } else if (i - 3 < gearInventory.length) {
