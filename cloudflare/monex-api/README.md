@@ -43,17 +43,18 @@ with your real id.
 
 ---
 
-## Step 3 — Deploy
+## Step 3 — Auto-deploy from GitHub (recommended)
 
-```bash
-npx wrangler deploy
-```
+After KV id is in `wrangler.toml`, set **GitHub repository secrets**:
 
-Copy the URL from the output, e.g.:
+| Secret | Value |
+|--------|-------|
+| `CLOUDFLARE_API_TOKEN` | Cloudflare → API Tokens → **Edit Cloudflare Workers** template |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare dashboard → Workers & Pages → **Account ID** |
 
-```
-https://monex-api.YOURNAME.workers.dev
-```
+Every push to `main` that changes `cloudflare/monex-api/` auto-deploys. Check **Actions** tab on GitHub.
+
+Manual deploy still works if needed: `npx wrangler deploy`
 
 ---
 
