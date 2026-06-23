@@ -1,7 +1,7 @@
 /** Shared X activity feed client for home + game profile */
 
-/** Live activity API (Railway). Override with window.MONEX_API if needed. */
-const MONEX_API_PRODUCTION = "https://monex-production-fe34.up.railway.app";
+/** Live activity API — Cloudflare Workers (free). Set js/monex-config.js after deploy. */
+const MONEX_API_PRODUCTION = "https://monex-api.monexmonad.workers.dev";
 
 function getMonexApiBase() {
     if (window.MONEX_API) return window.MONEX_API.replace(/\/$/, "");
@@ -54,14 +54,18 @@ async function fetchPendingMons(username) {
     return res.json();
 }
 
-async function claimPendingMons(username) {
+async function syncWildMons(username, partyCount, boxCount) {
     const base = getMonexApiBase();
-    const res = await fetch(`${base}/api/claim`, {
+    const res = await fetch(`${base}/api/sync`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: username.replace("@", "") }),
+        body: JSON.stringify({
+            username: username.replace("@", ""),
+            partyCount: partyCount || 0,
+            boxCount: boxCount || 0,
+        }),
     });
-    if (!res.ok) throw new Error("claim failed");
+    if (!res.ok) throw new Error("sync failed");
     return res.json();
 }
 
@@ -191,6 +195,6 @@ window.MonExActivity = {
     renderTable: renderActivityTable,
     renderPagination,
     fetchPending: fetchPendingMons,
-    claimPending: claimPendingMons,
+    syncWild: syncWildMons,
     PAGE_SIZE: 50,
 };

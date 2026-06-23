@@ -93,3 +93,19 @@ export function claimPendingForUsername(state, username) {
   user.updatedAt = new Date().toISOString();
   return { claimed, count: claimed.length };
 }
+
+/** Auto-sync: fill party slots first, then box; leave overflow on server */
+export function syncPendingToSlots(state, username, partyCount, boxCount, partyMax = 3, boxMax = 6) {
+  const user = findUserByUsername(state, username);
+  if (!user || !user.pendingMons?.length) {
+    return { party: [], box: [], remaining: 0 };
+  }
+  const partySlots = Math.max(0, partyMax - partyCount);
+  const boxSlots = Math.max(0, boxMax - boxCount);
+  const pending = [...user.pendingMons];
+  const party = pending.splice(0, partySlots);
+  const box = pending.splice(0, boxSlots);
+  user.pendingMons = pending;
+  user.updatedAt = new Date().toISOString();
+  return { party, box, remaining: pending.length };
+}

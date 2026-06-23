@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { listActivities } from "./activity-log.js";
 import { processMentionTweet } from "./process-mention.js";
+import { appendActivity } from "./activity-log.js";
 import { parseMention } from "./parse-mention.js";
 import {
   loadState,
@@ -11,7 +12,7 @@ import {
   wasProcessed,
   markProcessed,
   getPendingForUsername,
-  claimPendingForUsername,
+  syncPendingToSlots,
   getUser,
 } from "./store.js";
 import {
@@ -81,6 +82,7 @@ app.post("/api/simulate-mention", (req, res) => {
     state,
     STARTING_MONBALLS
   );
+  if (result.activity) appendActivity(result.activity);
   saveState(state);
 
   res.json({
@@ -125,31 +127,26 @@ app.get("/api/pending", (req, res) => {
   });
 });
 
-/** Claim all pending mons for an X @username */
-app.post("/api/claim", (req, res) => {
+/** Auto-sync pending mons → party/box slots (no claim button) */
+app.post("/api/sync", (req, res) => {
   const username = (req.body?.username || "").trim();
   if (!username) {
     return res.status(400).json({ ok: false, error: "username required" });
   }
+  const partyCount = Math.max(0, parseInt(req.body?.partyCount ?? 0, 10));
+  const boxCount = Math.max(0, parseInt(req.body?.boxCount ?? 0, 10));
   const state = loadState();
-  const before = getPendingForUsername(state, username);
-  if (!before.found) {
-    return res.json({
-      ok: true,
-      username: username.replace("@", ""),
-      claimed: [],
-      count: 0,
-      message: "no_x_catches_for_this_handle",
-    });
-  }
-  const { claimed, count } = claimPendingForUsername(state, username);
+  const { party, box, remaining } = syncPendingToSlots(state, username, partyCount, boxCount);
   saveState(state);
   res.json({
     ok: true,
     username: username.replace("@", ""),
-    claimed,
-    count,
+    party,
+    box,
+    added: party.length + box.length,
+    remaining,
   });
+});
 });
 
 app.use(express.static(WORKSPACE_ROOT));
@@ -158,7 +155,7 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`MonEx server http://localhost:${PORT}`);
   console.log(`  Home:  http://localhost:${PORT}/home.html`);
   console.log(`  Game:  http://localhost:${PORT}/monanimal_game.html`);
-  console.log(`  API:   GET /api/activity  GET /api/pending?username=you  POST /api/claim`);
+  console.log(`  API:   GET /api/activity  POST /api/sync  GET /api/pending?username=you`);
   console.log(`  Test:  POST /api/simulate-mention { "text": "@monexmonad catch 10 monanimals", "username": "jeric" }`);
 });
 
@@ -189,6 +186,7 @@ async function pollXMentions() {
         saveState(state);
 
         if (result.activity) {
+          appendActivity(result.activity);
           console.log(`[log] @${tweet.username} catch ${result.activity.spend} → ${result.activity.caughtCount} caught`);
         } else if (result.skipReason) {
           console.log(`[skip] @${tweet.username} ${result.skipReason}`);

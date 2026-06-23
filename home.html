@@ -352,7 +352,7 @@
         <div class="side-box">
             <h2 style="margin-top:0;">NEWBIE GUIDE</h2>
             <p>How to start playing MonEx</p>
-            <p style="font-size:11px; margin-top:10px;"><a href="docs/x-live-setup.html" style="color:#6B21A8; font-weight:bold;">Connect X live →</a></p>
+            <p style="font-size:11px; margin-top:10px;"><a href="docs/cloudflare-deploy.html" style="color:#6B21A8; font-weight:bold;">Deploy on Cloudflare (free) →</a></p>
         </div>
         <div class="side-box">
             <h2 style="margin-top:0;">SERVER STATUS</h2>
@@ -524,6 +524,7 @@ function logout() {
 // Initialize
 updateHeader();
 </script>
+<script src="js/monex-config.js"></script>
 <script src="js/activity-client.js"></script>
 <script>
 let wildLogPage = 1;
@@ -544,7 +545,7 @@ async function refreshHomeActivity(page) {
                 : "Waiting for first catch…";
         }
     } catch (e) {
-        el.innerHTML = `<p class="wild-log-empty">Activity server offline. Check Railway deploy.</p>`;
+        el.innerHTML = `<p class="wild-log-empty">Activity API offline. Deploy Cloudflare Worker (see cloudflare/monex-api/README.md).</p>`;
         if (pager) pager.innerHTML = "";
         if (status) status.textContent = "Offline";
     }

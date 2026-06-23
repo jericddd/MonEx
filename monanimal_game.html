@@ -1101,10 +1101,8 @@ button,
             </div>
             <p style="font-size:11px; color:#888; margin:0 0 12px;">On X post: <b>@monexmonad catch 10 monanimals</b> (1 Monball = 1 catch)</p>
             <div class="profile-pending" id="profile-pending-panel">
-                <h3>X WILD MONS WAITING</h3>
-                <p id="profile-pending-text">Save your X @handle to check for catches.</p>
-                <div id="profile-pending-list" class="profile-pending-list"></div>
-                <button type="button" id="profile-claim-btn" class="profile-claim-btn" onclick="claimXWildMons()" disabled>CLAIM TO GAME</button>
+                <h3>X WILD SYNC</h3>
+                <p id="profile-pending-text">Save your X @handle — catches auto-go to Party, then Box.</p>
             </div>
             <h3 style="color:#6B21A8; font-size:12px; margin-bottom:8px;">YOUR X CATCH LOG</h3>
             <div id="profile-activity-feed" class="activity-feed">
@@ -1114,6 +1112,7 @@ button,
     </div>
 </div>
 
+<script src="js/monex-config.js"></script>
 <script src="js/activity-client.js"></script>
 <script>
 // =====================================================
@@ -2056,101 +2055,59 @@ function saveXHandle() {
     }
     xHandle = raw;
     saveData();
-    alert("@" + xHandle + " linked for activity log");
-    refreshProfilePending();
+    alert("@" + xHandle + " linked — X catches will auto-sync to Party/Box");
+    syncXWildMons(true);
     refreshProfileActivity();
 }
 
-async function refreshProfilePending() {
-    const textEl = document.getElementById("profile-pending-text");
-    const listEl = document.getElementById("profile-pending-list");
-    const btn = document.getElementById("profile-claim-btn");
-    if (!textEl || typeof MonExActivity === "undefined") return;
-    if (!xHandle) {
-        textEl.textContent = "Save your X @handle to check for catches.";
-        if (listEl) listEl.innerHTML = "";
-        if (btn) btn.disabled = true;
-        return;
-    }
+async function syncXWildMons(silent) {
+    if (!xHandle || typeof MonExActivity === "undefined") return 0;
+    const statusEl = document.getElementById("profile-pending-text");
     try {
-        const data = await MonExActivity.fetchPending(xHandle);
-        const pending = data.pendingMons || [];
-        const count = pending.length;
-        if (count === 0) {
-            textEl.textContent = "No mons waiting. Tweet @monexmonad catch 10 monanimals on X!";
-            if (listEl) listEl.innerHTML = "";
-            if (btn) btn.disabled = true;
-            return;
-        }
-        textEl.textContent = count + " mon" + (count === 1 ? "" : "s") + " ready to claim!";
-        if (listEl) {
-            listEl.innerHTML = pending.map((m) =>
-                "• " + m.rarity + " " + m.name
-            ).join("<br>");
-        }
-        if (btn) btn.disabled = false;
-    } catch (e) {
-        textEl.textContent = "Could not reach server. Try again later.";
-        if (listEl) listEl.innerHTML = "";
-        if (btn) btn.disabled = true;
-    }
-}
-
-async function claimXWildMons() {
-    if (!xHandle) {
-        alert("Save your X @handle first.");
-        return;
-    }
-    const btn = document.getElementById("profile-claim-btn");
-    if (btn) btn.disabled = true;
-    try {
-        const data = await MonExActivity.claimPending(xHandle);
-        const rawMons = data.claimed || [];
-        if (!rawMons.length) {
-            alert("Nothing to claim right now.");
-            refreshProfilePending();
-            return;
-        }
+        const data = await MonExActivity.syncWild(xHandle, party.length, box.length);
         let added = 0;
-        let skipped = 0;
-        for (const raw of rawMons) {
-            const mon = importWildMon(raw);
-            if (party.length < 3) {
-                party.push(mon);
-                added++;
-            } else if (box.length < 6) {
-                box.push(mon);
-                added++;
+        for (const raw of data.party || []) {
+            party.push(importWildMon(raw));
+            added++;
+        }
+        for (const raw of data.box || []) {
+            box.push(importWildMon(raw));
+            added++;
+        }
+        if (added > 0) {
+            saveData();
+            updateUI();
+            renderParty();
+            renderBox();
+            if (!silent) alert("Synced " + added + " mon(s) from X to Party/Box!");
+        }
+        if (statusEl) {
+            if (data.remaining > 0) {
+                statusEl.textContent = added
+                    ? "Synced " + added + " mon(s). " + data.remaining + " still waiting (Party/Box full)."
+                    : data.remaining + " mon(s) waiting — free a Party or Box slot.";
+            } else if (added > 0) {
+                statusEl.textContent = "All X catches synced to Party/Box.";
             } else {
-                skipped++;
+                statusEl.textContent = "Linked as @" + xHandle + " — new X catches appear automatically.";
             }
         }
-        saveData();
-        updateUI();
-        renderParty();
-        renderBox();
-        refreshProfilePending();
-        refreshProfileActivity();
-        if (skipped > 0) {
-            alert("Claimed " + added + " mon(s)! " + skipped + " could not fit — party (3) and box (6) are full.");
-        } else {
-            alert("Claimed " + added + " mon(s) from X! Check Party or Box.");
-        }
+        return added;
     } catch (e) {
-        alert("Claim failed. Is the server online?");
-        refreshProfilePending();
+        if (statusEl) statusEl.textContent = "Could not reach Cloudflare API. Check js/monex-config.js URL.";
+        return 0;
     }
 }
 
 function renderProfile() {
     const input = document.getElementById("x-handle-input");
     if (input) input.value = xHandle ? "@" + xHandle : "";
-    refreshProfilePending();
+    syncXWildMons(true);
     refreshProfileActivity();
     if (profileActivityTimer) clearInterval(profileActivityTimer);
     profileActivityTimer = setInterval(() => {
         if (document.getElementById("content-profile")?.classList.contains("active")) {
-            refreshProfilePending();
+            syncXWildMons(true);
             refreshProfileActivity();
         }
     }, 8000);
@@ -2320,6 +2277,7 @@ function checkLogin() {
     if (savedUser) {
         currentUser = savedUser;
         loadData();
+        syncXWildMons(true);
         switchTab('party');
     } else {
         // If no user, redirect to home page instead of showing modal
@@ -2349,7 +2307,8 @@ function switchTab(tab) {
     }
 
     // Call render functions
-    if (tab === 'box') renderBox();
+    if (tab === 'party') { syncXWildMons(true); renderParty(); }
+    if (tab === 'box') { syncXWildMons(true); renderBox(); }
     if (tab === 'inventory') renderInventory();
     if (tab === 'shop') renderShop();
     if (tab === 'profile') renderProfile();

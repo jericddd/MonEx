@@ -4,6 +4,7 @@
  */
 import "dotenv/config";
 import { processMentionTweet } from "./process-mention.js";
+import { appendActivity } from "./activity-log.js";
 import {
   loadState,
   saveState,
@@ -28,6 +29,7 @@ async function handleMention(client, tweet, botUsername) {
   if (wasProcessed(state, tweet.id)) return;
 
   const result = processMentionTweet(tweet, botUsername, state, STARTING_MONBALLS);
+  if (result.activity) appendActivity(result.activity);
   markProcessed(state, tweet.id);
   saveState(state);
 
