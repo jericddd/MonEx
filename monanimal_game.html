@@ -1211,6 +1211,7 @@ function ensureMonReady(mon) {
         mon.skills = generateSkills(mon.name, mon.rarity);
     }
     if (!mon.ultimate || !mon.ultimate.element) mon.ultimate = getSpeciesUltimate(mon.name);
+    if (mon.xp == null) mon.xp = 0;
     refreshMonDerivedStats(mon);
     if (mon.current_hp == null) mon.current_hp = mon.max_hp;
 }
@@ -1585,6 +1586,9 @@ if (party.length === 0) {
         const atCap = Math.floor(mon.level) >= cap;
         const cost = getLevelCost(mon);
         const canAfford = money >= cost.gold && essence >= cost.essence;
+        const xpNeeded = getXPForNextLevel(Math.floor(mon.level));
+        const currentXP = mon.xp || 0;
+        const xpProgress = Math.min(100, Math.floor((currentXP / xpNeeded) * 100));
         const levelBtn = atCap
             ? `<button class="green" style="width:100%; margin-top:8px; border-radius:0px; opacity:0.6; cursor:not-allowed;" disabled>MAX LEVEL (${cap})</button>`
             : `<button onclick="levelUpMonManual(${index})" class="green" style="width:100%; margin-top:8px; border-radius:0px; box-shadow:2px 2px 3px #16a34a; ${canAfford ? '' : 'opacity:0.7;'}">LEVEL UP &#129689;${cost.gold} &#10024;${cost.essence}</button>`;
@@ -1604,6 +1608,10 @@ if (party.length === 0) {
     ${renderSkillsGrid(mon)}
     ${renderGearRow("party", index, mon)}
     <div class="mon-stats">
+        <div class="xp-bar">
+            <div class="xp-fill" style="width: ${xpProgress}%;"></div>
+            <div class="xp-text">${currentXP} / ${xpNeeded} XP</div>
+        </div>
         <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
         <div class="stat-row"><span><strong>HP</strong></span><span>${Math.ceil(mon.current_hp)} / ${mon.max_hp}</span></div>
     </div>
@@ -1641,6 +1649,9 @@ function renderBox() {
     box.forEach((mon, i) => {
         ensureMonReady(mon);
         const cap = getLevelCap(mon);
+        const xpNeeded = getXPForNextLevel(Math.floor(mon.level));
+        const currentXP = mon.xp || 0;
+        const xpProgress = Math.min(100, Math.floor((currentXP / xpNeeded) * 100));
 
         const card = document.createElement("div");
         card.className = "mon-card";
@@ -1656,6 +1667,10 @@ function renderBox() {
     ${renderSkillsGrid(mon)}
     ${renderGearRow("box", i, mon)}
     <div class="mon-stats">
+        <div class="xp-bar">
+            <div class="xp-fill" style="width: ${xpProgress}%;"></div>
+            <div class="xp-text">${currentXP} / ${xpNeeded} XP</div>
+        </div>
         <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
         <div class="stat-row"><span><strong>HP</strong></span><span>${Math.ceil(mon.current_hp)} / ${mon.max_hp}</span></div>
     </div>
@@ -1695,6 +1710,7 @@ function levelUpMonManual(index) {
     money -= cost.gold;
     essence -= cost.essence;
     levelUpMon(mon);
+    mon.xp = 0;
     mon.current_hp = mon.max_hp; // leveling up fully heals
     saveData();
     updateUI();
@@ -1842,7 +1858,7 @@ function attemptCatch() {
     if (caught) {
         const maxHP = getMaxHP(1, rarity);
         const newMon = { 
-            name, rarity, level: 1, max_hp: maxHP, current_hp: maxHP,
+            name, rarity, level: 1, xp: 0, max_hp: maxHP, current_hp: maxHP,
             stats: generateStats(rarity),
             skills: generateSkills(name, rarity),
             ultimate: getSpeciesUltimate(name)
@@ -2465,13 +2481,18 @@ function endBattle(win, player) {
     isInAdventureBattle = false;
     player.forEach(f => { if (f.ref) f.ref.current_hp = Math.max(0, Math.round(f.hp)); });
 
-    let reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null };
+    let reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null, monXp: 0 };
     if (win) {
         const boss = isBossStage(currentStage);
         const mult = boss ? 2 : 1;
         reward.gold = (80 + currentStage * 12) * mult;
         reward.essence = (10 + currentStage * 4) * mult;
         reward.trainerXp = Math.floor((50 + currentStage * 25) * (boss ? 1.5 : 1));
+        party.slice(0, 3).forEach(m => {
+            const xp = getXPFromBattle(Math.floor(m.level), Math.floor(m.level));
+            m.xp = (m.xp || 0) + xp;
+            reward.monXp += xp;
+        });
         if (boss && isEquipmentUnlocked()) {
             const gear = rollGearDrop(currentStage, true);
             if (gear) { gearInventory.push(gear); reward.gear = gear; }
@@ -2508,6 +2529,7 @@ function showBattleResult(win, reward) {
                ${reward.shards > 0 ? `<div>&#128311; Mon Shards <b>+${reward.shards}</b></div>` : ''}
                ${reward.gear ? `<div>&#9876;&#65039; Gear: <b style="color:${GEAR_TIERS[reward.gear.tier].color}">${reward.gear.name}</b></div>` : ''}
                <div>&#11088; Trainer XP <b>+${reward.trainerXp}</b></div>
+               ${reward.monXp > 0 ? `<div style="color:#a855f7;">Mon XP <b>+${reward.monXp}</b> (party)</div>` : ''}
                <div style="margin-top:8px; color:#666; font-size:13px;">Materials added to your Inventory.</div>
            </div>`
         : `<p style="font-size:15px; margin:20px 0;">Your team was defeated, but they recovered to full HP. Level them up and try again!</p>`;
