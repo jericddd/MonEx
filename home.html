@@ -53,18 +53,27 @@
     .main-container {
         max-width: 1200px;
         margin: 20px auto 0;
-        padding: 20px 15px;
+        padding: 20px 15px 15px;
         display: flex;
+        flex-direction: column;
         gap: 15px;
         background: rgba(0, 0, 0, 0.45);
-        border-radius: 8px 8px 0 0;
+        border-radius: 8px;
+        box-sizing: border-box;
+    }
+
+    .main-columns {
+        display: flex;
+        gap: 15px;
         flex-wrap: wrap;
+        width: 100%;
     }
 
     .home-wrap {
-        max-width: 1200px;
+        max-width: 1230px;
         margin: 0 auto;
         padding: 0 15px 24px;
+        box-sizing: border-box;
     }
 
     /* Left Sidebar */
@@ -131,7 +140,7 @@
 
     /* Mobile Responsive */
     @media (max-width: 900px) {
-        .main-container {
+        .main-columns {
             flex-direction: column;
             align-items: center;
         }
@@ -153,16 +162,15 @@
         margin-right: 6px;
     }
 
-    /* Full-width X Wild Log — spans all 3 columns */
+    /* X Wild Log — same width as 3 columns above (inside main-container) */
     .wild-log-section {
-        max-width: 1200px;
-        margin: 0 auto;
+        width: 100%;
+        box-sizing: border-box;
         background: rgba(255, 255, 255, 0.96);
         border: 4px solid #6B21A8;
-        border-top: none;
         box-shadow: 4px 4px 0px #6B21A8;
         padding: 16px 18px 14px;
-        border-radius: 0 0 8px 8px;
+        border-radius: 4px;
     }
     .wild-log-header {
         display: flex;
@@ -295,7 +303,8 @@
 <div class="home-wrap">
 
 <div class="main-container">
-    
+
+<div class="main-columns">
 <!-- Left Sidebar -->
 <div class="left-sidebar">
     <div class="sidebar-btn" onclick="handleGameStart()" 
@@ -358,7 +367,7 @@
     </div>
 </div>
 
-<!-- X Wild Log — full width under all 3 columns -->
+<!-- X Wild Log — aligned with columns above -->
 <div class="wild-log-section">
     <div class="wild-log-header">
         <div>
