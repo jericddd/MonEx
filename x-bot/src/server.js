@@ -213,6 +213,9 @@ app.post("/api/sync", (req, res) => {
 });
 
 app.post("/api/admin/reset", (req, res) => {
+  if (process.env.ENABLE_ADMIN_RESET !== "1") {
+    return res.status(404).json({ ok: false, error: "admin reset disabled" });
+  }
   const adminSecret = process.env.ADMIN_RESET_SECRET;
   if (!adminSecret) {
     return res.status(503).json({ ok: false, error: "ADMIN_RESET_SECRET not configured" });
