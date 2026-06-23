@@ -1949,6 +1949,10 @@ if (party.length === 0) {
     renderBox();
 }
 
+function renderParty() {
+    updateUI();
+}
+
 function renderBox() {
     const content = document.getElementById("box-content");
     content.innerHTML = "";
@@ -2326,12 +2330,33 @@ async function checkLogin() {
     }
     try {
         const user = await MonExAuth.ensureUser();
-        currentUser = user?.username || MonExAuth.getDisplayName();
+        if (!user) {
+            window.location.href = 'home.html';
+            return;
+        }
+        currentUser = user.username || MonExAuth.getDisplayName();
         await loadData();
-        syncXWildMons(true);
+        try { await syncXWildMons(true); } catch (_) {}
         switchTab('party');
-    } catch (_) {
+    } catch (e) {
+        console.error("checkLogin failed:", e);
+        const cached = readCachedUserFallback();
+        if (cached?.username && MonExAuth.isLoggedIn()) {
+            currentUser = cached.username;
+            await loadData();
+            switchTab('party');
+            return;
+        }
         window.location.href = 'home.html';
+    }
+}
+
+function readCachedUserFallback() {
+    try {
+        const raw = localStorage.getItem("monex_user");
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
     }
 }
 
