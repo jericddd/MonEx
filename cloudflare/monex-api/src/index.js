@@ -12,6 +12,7 @@ import {
   syncPendingToSlots,
   getPollSinceId,
   setPollSinceId,
+  resetAllData,
 } from "./kv-store.js";
 import { createXClient, resolveBotUser, fetchMentions } from "./lib/x-client.js";
 import {
@@ -32,7 +33,7 @@ import { loadCloudSave, writeCloudSave, buildSavePayload } from "./lib/save.js";
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Admin-Secret",
 };
 
 function json(data, status = 200) {
@@ -284,6 +285,25 @@ async function handleRequest(request, env) {
     if (path === "/api/simulate-mention" && request.method === "POST") {
       const body = await request.json();
       return handleSimulate(body, env);
+    }
+
+    if (path === "/api/admin/reset" && request.method === "POST") {
+      const adminSecret = env.ADMIN_RESET_SECRET;
+      if (!adminSecret) {
+        return json({ ok: false, error: "ADMIN_RESET_SECRET not configured" }, 503);
+      }
+      const body = await request.json().catch(() => ({}));
+      const provided =
+        request.headers.get("X-Admin-Secret") || body?.secret || "";
+      if (provided !== adminSecret) {
+        return json({ ok: false, error: "unauthorized" }, 401);
+      }
+      const result = await resetAllData(env.MONEX_KV);
+      return json({
+        ok: true,
+        message: "All user progress and X wild log cleared",
+        ...result,
+      });
     }
 
     return json({ ok: false, error: "not found" }, 404);
