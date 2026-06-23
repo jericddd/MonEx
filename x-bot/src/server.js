@@ -19,7 +19,7 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WORKSPACE_ROOT = path.join(__dirname, "..", "..");
 const PORT = parseInt(process.env.PORT || "3001", 10);
-const STARTING_MONBALLS = parseInt(process.env.STARTING_MONBALLS || "50", 10);
+const STARTING_MONBALLS = parseInt(process.env.STARTING_MONBALLS || "10", 10);
 const BOT_USERNAME = process.env.BOT_USERNAME || "monexmonad";
 const POLL_MS = parseInt(process.env.POLL_MS || "45000", 10);
 const ENABLE_X_POLL = process.env.ENABLE_X_POLL === "1";
