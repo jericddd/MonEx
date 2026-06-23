@@ -22,7 +22,7 @@ Uses [twitter-api-v2](https://github.com/PLhery/node-twitter-api-v2) (Node.js), 
 - `@monexmonad catch 10 monanimals` → same as above
 - `@monexmonad catch 20` → 2 throws
 
-New X users get **50** Monballs (POC default, change in `.env`).
+New X users get **10** Monballs (POC default — exactly 1 catch; change in `.env`).
 
 ---
 
