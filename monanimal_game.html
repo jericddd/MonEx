@@ -196,28 +196,53 @@ body {
     box-shadow: 3px 3px 0px #6b21a8;
     z-index: 10;
 }
-.skill-square:hover::after {
-    content: attr(data-name) " — " attr(data-desc);
+.skill-square .skill-tip {
+    display: none;
     position: absolute;
     bottom: calc(100% + 8px);
     left: 50%;
     transform: translateX(-50%);
     background: #1a1a2e;
     color: #e0e0ff;
-    padding: 7px 11px;
+    padding: 8px 11px;
     border-radius: 0;
-    font-size: 10px;
     font-family: 'Lato', system-ui, sans-serif;
     font-weight: 400;
     white-space: normal;
     width: max-content;
-    max-width: 240px;
+    max-width: 260px;
     text-align: left;
-    line-height: 1.35;
+    line-height: 1.4;
     box-shadow: 3px 3px 0px #6b21a8;
     border: 2px solid #6b21a8;
     z-index: 999;
     pointer-events: none;
+}
+.skill-square:hover .skill-tip { display: block; }
+.skill-tip-name {
+    font-weight: 700;
+    font-size: 11px;
+    color: #f5f3ff;
+    margin-bottom: 2px;
+}
+.skill-tip-type {
+    font-size: 9px;
+    color: #c4b5fd;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+}
+.skill-tip-desc {
+    font-size: 10px;
+    color: #d8d4f0;
+    margin-bottom: 4px;
+}
+.skill-tip-stats {
+    font-size: 10px;
+    color: #fde68a;
+    border-top: 1px solid rgba(196, 181, 253, 0.35);
+    padding-top: 4px;
+    margin-top: 2px;
 }
 .mon-stats {
     font-size: 13px;
@@ -632,10 +657,33 @@ button,
     background: rgba(250, 204, 21, 0.22);
 }
 .skill-square.skill-ult {
+    width: 28px;
+    height: 28px;
     background: linear-gradient(145deg, #fde68a, #f59e0b);
-    border-color: #b45309;
+    border: 3px solid #b45309;
     color: #7c2d12;
-    box-shadow: 0 0 6px rgba(245,158,11,0.7);
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.75), 2px 2px 0px #92400e;
+    font-size: 11px;
+}
+.skill-square.skill-ult .skill-tip {
+    border-color: #b45309;
+    box-shadow: 3px 3px 0px #92400e;
+}
+.skill-square.skill-passive {
+    background: linear-gradient(145deg, #94a3b8, #64748b);
+    border: 2px dashed #475569;
+    color: #f8fafc;
+    box-shadow: 2px 2px 0px #334155;
+    font-size: 8px;
+}
+.skill-square.skill-passive .skill-tip {
+    border-color: #475569;
+    box-shadow: 3px 3px 0px #334155;
+}
+.skill-square.skill-passive .skill-tip-stats { color: #a5f3fc; }
+.skill-square.skill-active {
+    background: linear-gradient(145deg, #c084fc, #7c3aed);
+    border: 2px solid #6b21a8;
 }
 
 /* ===== Battle stage ===== */
@@ -1123,7 +1171,89 @@ function generateStats(rarity) {
 }
 
 function getSpeciesUltimate(name) {
-    return { ...(SPECIES_ULTIMATE[name] || { name: "Power Surge", element: "physical", power: 2.0, desc: "A powerful signature move." }) };
+    return {
+        ...(SPECIES_ULTIMATE[name] || { name: "Power Surge", element: "physical", power: 2.0, desc: "A powerful signature move." }),
+        type: "ultimate"
+    };
+}
+
+function needsSkillMigration(mon) {
+    const expected = getSkillCount(mon.rarity);
+    if (!mon.skills || mon.skills.length !== expected) return true;
+    if (mon.skills[0]?.type !== "ultimate") return true;
+    if (mon.skills[1]?.type !== "passive") return true;
+    for (let i = 2; i < mon.skills.length; i++) {
+        const t = mon.skills[i]?.type;
+        if (t !== "active" && t !== "heal") return true;
+    }
+    return false;
+}
+
+function syncUltimateFromSkills(mon) {
+    if (mon.skills && mon.skills[0]?.type === "ultimate") {
+        mon.ultimate = { ...mon.skills[0] };
+    } else if (!mon.ultimate || !mon.ultimate.element) {
+        mon.ultimate = getSpeciesUltimate(mon.name);
+    }
+}
+
+function expandSkillsForRarity(mon) {
+    const expected = getSkillCount(mon.rarity);
+    while (mon.skills.length < expected) {
+        mon.skills.push({ ...ACTIVE_SKILL_POOL[randInt(0, ACTIVE_SKILL_POOL.length - 1)] });
+    }
+    if (mon.skills.length > expected) mon.skills = mon.skills.slice(0, expected);
+}
+
+function formatPassiveDetail(skill) {
+    const parts = [];
+    if (skill.dmgTaken != null) parts.push("-" + Math.round((1 - skill.dmgTaken) * 100) + "% dmg taken");
+    if (skill.dmgDealt != null) parts.push("+" + Math.round((skill.dmgDealt - 1) * 100) + "% dmg dealt");
+    if (skill.critBonus != null) parts.push("+" + skill.critBonus + "% crit");
+    if (skill.dodgeBonus != null) parts.push("+" + skill.dodgeBonus + "% dodge");
+    if (skill.blockBonus != null) parts.push("+" + skill.blockBonus + "% block");
+    if (skill.regen != null) parts.push("Regen " + Math.round(skill.regen * 100) + "% HP/turn");
+    return parts.join(" · ");
+}
+
+function getSkillStatsLine(mon, skill) {
+    if (skill.type === "passive") return formatPassiveDetail(skill);
+    if (skill.type === "heal") {
+        const pct = Math.round((skill.heal || 0.35) * 100);
+        const heal = Math.ceil(mon.max_hp * (skill.heal || 0.35));
+        return "Heal: " + heal + " HP (" + pct + "% max HP)";
+    }
+    if (skill.type === "ultimate" || skill.type === "active") {
+        const atk = getEffectiveStats(mon).atk;
+        const dmg = Math.floor(atk * (skill.power || 1));
+        return "DMG: " + dmg + " (ATK " + atk + " × " + skill.power + ")";
+    }
+    return "";
+}
+
+function getSkillSquareClass(skill, index) {
+    if (skill.type === "ultimate" || index === 0) return "skill-ult";
+    if (skill.type === "passive" || index === 1) return "skill-passive";
+    return "skill-active";
+}
+
+function getSkillIcon(skill) {
+    if (skill.type === "ultimate") return "\u2605";
+    if (skill.type === "passive") return "P";
+    return skill.name.substring(0, 2).toUpperCase();
+}
+
+function renderSkillTip(mon, skill) {
+    const typeLabel = skill.type === "heal" ? "HEAL"
+        : (skill.type || "active").toUpperCase();
+    const elem = skill.element && skill.element !== "passive" ? skill.element.toUpperCase() : "";
+    const stats = getSkillStatsLine(mon, skill);
+    return `<div class="skill-tip">
+        <div class="skill-tip-name">${skill.name}</div>
+        <div class="skill-tip-type">${typeLabel}${elem ? " · " + elem : ""}</div>
+        <div class="skill-tip-desc">${skill.desc || ""}</div>
+        ${stats ? `<div class="skill-tip-stats">${stats}</div>` : ""}
+    </div>`;
 }
 
 // Card "i" info icon: hover to reveal paired combat stats (includes gear bonuses).
@@ -1168,29 +1298,26 @@ function renderAscendBtn(index, mon) {
     return `<button onclick="ascendMonRarity(${index})" class="ascend-btn" ${afford ? "" : "disabled style='opacity:0.65'"}>ASCEND \u2192 ${next.toUpperCase()} (${cost} \uD83D\uDD37)</button>`;
 }
 
-// Skill boxes: the normal RNG skills plus the fixed ultimate (gold box, marked with a star).
+// Skill slots: 1st = ultimate (species-fixed), 2nd = passive (RNG), 3rd+ = actives (RNG).
 function renderSkillsGrid(mon) {
-    const normal = mon.skills.map(skill => `
-        <div class="skill-square" data-type="${skill.type}" title="${skill.type.toUpperCase()}: ${skill.name} \u2014 ${skill.desc || skill.element}">
-            <span>${skill.name.substring(0, 2).toUpperCase()}</span>
-        </div>`).join('');
-    const ult = `
-        <div class="skill-square skill-ult" title="ULTIMATE: ${mon.ultimate.name} \u2014 ${mon.ultimate.desc || 'A powerful signature move.'}">
-            <span>\u2605</span>
+    ensureMonReady(mon);
+    const squares = mon.skills.map((skill, i) => {
+        const cls = getSkillSquareClass(skill, i);
+        return `<div class="skill-square ${cls}" data-type="${skill.type}" data-slot="${i + 1}">
+            <span>${getSkillIcon(skill)}</span>
+            ${renderSkillTip(mon, skill)}
         </div>`;
-    return `<div class="skills-grid">${normal}${ult}</div>`;
+    }).join("");
+    return `<div class="skills-grid">${squares}</div>`;
 }
 
-// Normal skills (active + passive) are RNG per individual: one passive + the rest actives.
+// Slot 1 ultimate, slot 2 passive, remaining slots active/heal — count by rarity.
 function generateSkills(name, rarity) {
     const count = getSkillCount(rarity);
-    const skills = [ { ...PASSIVE_SKILL_POOL[randInt(0, PASSIVE_SKILL_POOL.length - 1)] } ];
+    const skills = [{ ...getSpeciesUltimate(name) }];
+    skills.push({ ...PASSIVE_SKILL_POOL[randInt(0, PASSIVE_SKILL_POOL.length - 1)] });
     while (skills.length < count) {
         skills.push({ ...ACTIVE_SKILL_POOL[randInt(0, ACTIVE_SKILL_POOL.length - 1)] });
-    }
-    for (let i = skills.length - 1; i > 0; i--) {
-        const j = randInt(0, i);
-        [skills[i], skills[j]] = [skills[j], skills[i]];
     }
     return skills;
 }
@@ -1199,11 +1326,12 @@ function generateSkills(name, rarity) {
 function ensureMonReady(mon) {
     if (!mon.equipment) mon.equipment = { weapon: null, armor: null, helmet: null, boots: null };
     if (!mon.stats || mon.stats.spd == null) mon.stats = generateStats(mon.rarity);
-    const expected = getSkillCount(mon.rarity);
-    if (!mon.skills || mon.skills.length !== expected || !mon.skills[0] || !mon.skills[0].type) {
+    if (needsSkillMigration(mon)) {
         mon.skills = generateSkills(mon.name, mon.rarity);
+    } else {
+        expandSkillsForRarity(mon);
     }
-    if (!mon.ultimate || !mon.ultimate.element) mon.ultimate = getSpeciesUltimate(mon.name);
+    syncUltimateFromSkills(mon);
     refreshMonDerivedStats(mon);
     if (mon.current_hp == null) mon.current_hp = mon.max_hp;
 }
@@ -1460,6 +1588,8 @@ function ascendMonRarity(index) {
     if (!confirm("Ascend " + mon.name + " from " + mon.rarity + " to " + next + "?\nCost: " + cost + " Mon Shards")) return;
     monShards -= cost;
     mon.rarity = next;
+    expandSkillsForRarity(mon);
+    syncUltimateFromSkills(mon);
     refreshMonDerivedStats(mon);
     mon.current_hp = mon.max_hp;
     saveData();
@@ -1855,11 +1985,12 @@ function attemptCatch() {
 
     if (caught) {
         const maxHP = getMaxHP(1, rarity);
+        const skills = generateSkills(name, rarity);
         const newMon = { 
             name, rarity, level: 1, max_hp: maxHP, current_hp: maxHP,
             stats: generateStats(rarity),
-            skills: generateSkills(name, rarity),
-            ultimate: getSpeciesUltimate(name)
+            skills,
+            ultimate: { ...skills[0] }
         };
 
         if (party.length >= 3) {
@@ -2183,7 +2314,7 @@ function makeEnemyTeam(playerParty, stage) {
             mon.stats.spd += 10;
         }
         mon.skills = generateSkills(name, rarity);
-        mon.ultimate = getSpeciesUltimate(name);
+        mon.ultimate = { ...mon.skills[0] };
         team.push(makeFighter(mon, false));
     }
     return team;
