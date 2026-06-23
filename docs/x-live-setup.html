@@ -42,16 +42,14 @@
     </div>
 
     <div class="step">
-        <h2>Step 3 — Railway Variables</h2>
-        <p>Open Railway → MonEx → <b>Variables</b> → add:</p>
+        <h2>Step 3 — Cloudflare Worker secrets</h2>
+        <p>Cloudflare dashboard → <b>Workers &amp; Pages</b> → <b>monex-api</b> → <b>Settings</b> → <b>Variables</b> → add secrets:</p>
         <pre>X_API_KEY=your_key
 X_API_SECRET=your_secret
 X_ACCESS_TOKEN=your_token
-X_ACCESS_TOKEN_SECRET=your_token_secret
-BOT_USERNAME=monexmonad
-ENABLE_X_POLL=1
-STARTING_MONBALLS=10</pre>
-        <p>After deploy, set <code>js/monex-config.js</code> with your Worker URL. Use <a href="cloudflare-deploy.html">Cloudflare deploy guide</a> (free) instead of Railway.</p>
+X_ACCESS_TOKEN_SECRET=your_token_secret</pre>
+        <p>Set variable <code>ENABLE_X_POLL</code> = <code>1</code> in <code>wrangler.toml</code> and push (cron polls every 2 min).</p>
+        <p>Game API URL: <code>js/monex-config.js</code> — see <a href="cloudflare-deploy.html">Cloudflare deploy guide</a>.</p>
     </div>
 
     <div class="step">
@@ -62,12 +60,11 @@ STARTING_MONBALLS=10</pre>
     </div>
 
     <div class="step">
-        <h2>Step 5 — Claim in game</h2>
+        <h2>Step 5 — Sync in game</h2>
         <ol>
-            <li>Open the game → <b>Profile</b> tab</li>
-            <li>Save your real X @handle (same account you tweeted from)</li>
-            <li>Click <b>CLAIM TO GAME</b></li>
-            <li>Mons appear in Party or Box</li>
+            <li>Open the game → login with your X @handle</li>
+            <li>Catches auto-sync to <b>Party</b> then <b>Box</b></li>
+            <li>Check <b>Profile</b> for your X catch log</li>
         </ol>
     </div>
 

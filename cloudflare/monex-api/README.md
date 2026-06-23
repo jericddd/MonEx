@@ -80,9 +80,10 @@ Your site: `https://jericddd.github.io/MonEx/home.html`
 
 ---
 
-## Step 6 — Shut down Railway (save $5/mo)
+## Done — hosting is Cloudflare + GitHub Pages
 
-Railway dashboard → MonEx service → **Settings** → delete or pause the service.
+Game: GitHub Pages. API: Cloudflare Worker (auto-deploy from GitHub Actions).
+If you still have an old MonEx project on railway.app, delete it in the Railway dashboard to stop billing.
 
 ---
 
