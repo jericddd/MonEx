@@ -88,7 +88,7 @@ app.get("/api/health", (req, res) => {
 
 app.use(express.static(WORKSPACE_ROOT));
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`MonEx server http://localhost:${PORT}`);
   console.log(`  Home:  http://localhost:${PORT}/home.html`);
   console.log(`  Game:  http://localhost:${PORT}/monanimal_game.html`);
