@@ -422,16 +422,29 @@ function startAutoPlay() {
 updateShowcase();
 startAutoPlay();
 </script>
+<script src="js/monex-config.js"></script>
+<script src="js/activity-client.js"></script>
+<script src="js/auth-client.js"></script>
 <script>
 // Dynamic Header Logic
-function updateHeader() {
+async function updateHeader() {
     const nav = document.getElementById("nav-buttons");
-    const currentUser = localStorage.getItem("monex_current_user");
+    let loggedIn = false;
+    let displayName = "";
 
-    if (!currentUser) {
-        // Logged Out - Show Login with X
+    try {
+        if (typeof MonExAuth !== "undefined") {
+            const user = await MonExAuth.ensureUser();
+            loggedIn = !!user;
+            displayName = user ? `@${user.username}` : "";
+        }
+    } catch (_) {
+        loggedIn = false;
+    }
+
+    if (!loggedIn) {
         nav.innerHTML = `
-            <button onclick="mockXLogin()" style="
+            <button onclick="startLogin()" style="
                 padding: 12px 28px;
                 background: linear-gradient(145deg, #1DA1F2, #0A7CC2);
                 color: white;
@@ -446,49 +459,37 @@ function updateHeader() {
             </button>
         `;
     } else {
-        // Logged In - Show normal nav
         nav.innerHTML = `
+            <span style="font-size:12px; color:#6B21A8; margin-right:10px;">${displayName}</span>
             <button class="nav-btn" onclick="goToProfile()">PROFILE</button>
             <button class="nav-btn" onclick="logout()">LOGOUT</button>
         `;
     }
 }
 
-// Mock X Login Flow - Stay on Home after login
-function mockXLogin() {
-    const modal = document.createElement("div");
-    modal.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.7); display: flex; align-items: center;
-        justify-content: center; z-index: 300;
-    `;
-    modal.innerHTML = `
-        <div style="background:white; padding:30px; border:4px solid #6B21A8; text-align:center; min-width:300px;">
-            <p style="font-size:16px;">Connecting to X...</p>
-            <p style="margin-top:15px; color:#666;">Please wait</p>
-        </div>
-    `;
-    document.body.appendChild(modal);
+async function startLogin() {
+    try {
+        const health = await fetch(`${getMonexApiBase()}/api/health`).then((r) => r.json());
+        if (health.xOAuth) {
+            MonExAuth.startXLogin("/home.html");
+            return;
+        }
+    } catch (_) {}
 
-    setTimeout(() => {
-        const username = "Player" + Math.floor(Math.random() * 9999);
-        localStorage.setItem("monex_current_user", username);
-        modal.remove();
-        
-        // Stay on homepage after login
-        updateHeader();   // Refresh header to show logged-in state
-    }, 1800);
+    const handle = prompt("Enter your X @handle (dev login until OAuth is configured):");
+    if (!handle) return;
+    try {
+        await MonExAuth.devLogin(handle);
+        updateHeader();
+    } catch (e) {
+        showCustomModal(e.message || "Login failed");
+    }
 }
-function handleGameStart() {
-    const currentUser = localStorage.getItem("monex_current_user");
-
-    if (!currentUser) {
-        // Not logged in
-        showCustomModal("Please login first");
+async function handleGameStart() {
+    if (!MonExAuth.isLoggedIn()) {
+        showCustomModal("Please login with X first");
         return;
     }
-
-    // Always go to game (Party tab) regardless of party status
     window.location.href = 'monanimal_game.html';
 }
 
@@ -516,16 +517,23 @@ function goToProfile() {
     window.location.href = 'monanimal_game.html#profile';
 }
 
-function logout() {
-    localStorage.removeItem("monex_current_user");
-    window.location.href = 'home.html';   // Force go to home page
+async function logout() {
+    await MonExAuth.logout();
+    window.location.href = 'home.html';
 }
 
 // Initialize
-updateHeader();
+(async function initHome() {
+    const params = new URLSearchParams(location.search);
+    const authErr = params.get("auth_error");
+    if (authErr) {
+        showCustomModal("X login failed: " + authErr);
+        params.delete("auth_error");
+        history.replaceState({}, "", location.pathname + (params.toString() ? "?" + params : ""));
+    }
+    await updateHeader();
+})();
 </script>
-<script src="js/monex-config.js"></script>
-<script src="js/activity-client.js"></script>
 <script>
 let wildLogPage = 1;
 

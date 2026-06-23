@@ -14,11 +14,25 @@ import {
   setPollSinceId,
 } from "./kv-store.js";
 import { createXClient, resolveBotUser, fetchMentions } from "./lib/x-client.js";
+import {
+  oauthConfigured,
+  devAuthAllowed,
+  buildXAuthorizeUrl,
+  consumeOAuthState,
+  exchangeXCode,
+  fetchXUser,
+  createSession,
+  createDevSession,
+  deleteSession,
+  requireSession,
+  getBearerToken,
+} from "./lib/auth.js";
+import { loadCloudSave, writeCloudSave, buildSavePayload } from "./lib/save.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
 function json(data, status = 200) {
@@ -109,8 +123,105 @@ async function handleRequest(request, env) {
         service: "monex-cloudflare",
         xPoll: env.ENABLE_X_POLL === "1",
         xKeys: hasXKeys,
+        xOAuth: oauthConfigured(env),
+        devAuth: devAuthAllowed(env),
         bot: env.BOT_USERNAME || "monexmonad",
       });
+    }
+
+    if (path === "/api/auth/x" && request.method === "GET") {
+      if (!oauthConfigured(env)) {
+        return json({ ok: false, error: "X OAuth not configured on server" }, 503);
+      }
+      const returnTo = url.searchParams.get("returnTo") || env.FRONTEND_ORIGIN || "/home.html";
+      const authorizeUrl = await buildXAuthorizeUrl(env, env.MONEX_KV, returnTo);
+      return Response.redirect(authorizeUrl, 302);
+    }
+
+    if (path === "/api/auth/callback" && request.method === "GET") {
+      const code = url.searchParams.get("code");
+      const state = url.searchParams.get("state");
+      const oauthErr = url.searchParams.get("error");
+      const frontend = env.FRONTEND_ORIGIN || "https://jericddd.github.io/MonEx";
+
+      if (oauthErr || !code || !state) {
+        const dest = `${frontend}/home.html?auth_error=${encodeURIComponent(oauthErr || "denied")}`;
+        return Response.redirect(dest, 302);
+      }
+
+      const pending = await consumeOAuthState(env.MONEX_KV, state);
+      if (!pending) {
+        const dest = `${frontend}/home.html?auth_error=expired_state`;
+        return Response.redirect(dest, 302);
+      }
+
+      const tokenData = await exchangeXCode(env, code, pending.codeVerifier);
+      const xUser = await fetchXUser(tokenData.access_token);
+      const { token, session } = await createSession(env.MONEX_KV, {
+        xUserId: xUser.id,
+        username: xUser.username,
+        name: xUser.name,
+        profileImageUrl: xUser.profile_image_url,
+      });
+
+      const returnTo = pending.returnTo || "/home.html";
+      const dest = `${frontend}${returnTo}${returnTo.includes("?") ? "&" : "?"}session=${token}`;
+      return Response.redirect(dest, 302);
+    }
+
+    if (path === "/api/auth/me" && request.method === "GET") {
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status);
+      return json({
+        ok: true,
+        user: {
+          xUserId: auth.session.xUserId,
+          username: auth.session.username,
+          name: auth.session.name,
+          profileImageUrl: auth.session.profileImageUrl,
+        },
+      });
+    }
+
+    if (path === "/api/auth/logout" && request.method === "POST") {
+      const token = getBearerToken(request);
+      await deleteSession(env.MONEX_KV, token);
+      return json({ ok: true });
+    }
+
+    if (path === "/api/auth/dev" && request.method === "POST") {
+      if (!devAuthAllowed(env)) {
+        return json({ ok: false, error: "dev auth disabled" }, 403);
+      }
+      const body = await request.json();
+      const username = (body?.username || "").trim();
+      if (!username) return json({ ok: false, error: "username required" }, 400);
+      const { token, session } = await createDevSession(env.MONEX_KV, username);
+      return json({
+        ok: true,
+        token,
+        user: {
+          xUserId: session.xUserId,
+          username: session.username,
+          name: session.name,
+        },
+      });
+    }
+
+    if (path === "/api/save" && request.method === "GET") {
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status);
+      const { found, save } = await loadCloudSave(env.MONEX_KV, auth.session.xUserId);
+      return json({ ok: true, found, save, user: { username: auth.session.username, xUserId: auth.session.xUserId } });
+    }
+
+    if (path === "/api/save" && request.method === "PUT") {
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status);
+      const body = await request.json();
+      const payload = buildSavePayload(body?.save || body, auth.session);
+      await writeCloudSave(env.MONEX_KV, auth.session.xUserId, payload);
+      return json({ ok: true, savedAt: payload.updatedAt });
     }
 
     if (path === "/api/activity" && request.method === "GET") {
@@ -146,7 +257,9 @@ async function handleRequest(request, env) {
 
     if (path === "/api/sync" && request.method === "POST") {
       const body = await request.json();
-      const username = (body?.username || "").trim();
+      let username = (body?.username || "").trim();
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (auth.ok) username = auth.session.username;
       if (!username) return json({ ok: false, error: "username required" }, 400);
       const partyCount = Math.max(0, parseInt(body?.partyCount ?? 0, 10));
       const boxCount = Math.max(0, parseInt(body?.boxCount ?? 0, 10));

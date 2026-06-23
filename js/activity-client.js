@@ -54,16 +54,25 @@ async function fetchPendingMons(username) {
     return res.json();
 }
 
+function getAuthHeaders() {
+  if (window.MonExAuth?.authHeaders) return MonExAuth.authHeaders();
+  const token = localStorage.getItem("monex_session_token");
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
 async function syncWildMons(username, partyCount, boxCount) {
     const base = getMonexApiBase();
+    const body = {
+        partyCount: partyCount || 0,
+        boxCount: boxCount || 0,
+    };
+    if (username) body.username = username.replace("@", "");
     const res = await fetch(`${base}/api/sync`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            username: username.replace("@", ""),
-            partyCount: partyCount || 0,
-            boxCount: boxCount || 0,
-        }),
+        headers: getAuthHeaders(),
+        body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error("sync failed");
     return res.json();
