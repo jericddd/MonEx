@@ -685,6 +685,16 @@ button,
     background: linear-gradient(145deg, #c084fc, #7c3aed);
     border: 2px solid #6b21a8;
 }
+.skill-square.skill-heal {
+    background: linear-gradient(145deg, #6ee7b7, #059669);
+    border: 2px solid #047857;
+    box-shadow: 2px 2px 0px #065f46;
+}
+.skill-square.skill-heal .skill-tip {
+    border-color: #047857;
+    box-shadow: 3px 3px 0px #065f46;
+}
+.skill-square.skill-heal .skill-tip-stats { color: #6ee7b7; }
 
 /* ===== Battle stage ===== */
 .battle-stage {
@@ -992,9 +1002,9 @@ const SPRITE_MAP = {
     "Shramp": "128x128/shramp.png", "Spidermon": "128x128/spidermon.png", "Moyaki": "128x128/moyaki.png"
 };
 
-// Normal active skills are RNG-rolled per individual. Each carries a clear
-// element so its battle animation always matches its name.
-const ACTIVE_SKILL_POOL = [
+// Damage actives and heal actives are separate RNG pools — neither is guaranteed per mon.
+// Each active slot (3rd+) rolls once from the combined pool.
+const DAMAGE_ACTIVE_POOL = [
     {name: "Slash",         element: "physical", type: "active", power: 1.0,  desc: "A swift physical slash."},
     {name: "Flame Burst",   element: "fire",     type: "active", power: 1.15, desc: "Bursts the target in flames."},
     {name: "Aqua Jet",      element: "water",    type: "active", power: 0.95, desc: "A fast jet of water."},
@@ -1005,8 +1015,20 @@ const ACTIVE_SKILL_POOL = [
     {name: "Gale Slash",    element: "wind",     type: "active", power: 1.0,  desc: "A crescent of wind."},
     {name: "Shadow Strike", element: "dark",     type: "active", power: 1.1,  desc: "A strike from the shadows."},
     {name: "Psy Beam",      element: "psychic",  type: "active", power: 1.1,  desc: "A focused psychic beam."},
-    {name: "Mend",          element: "heal",     type: "heal",   power: 0,    heal: 0.35, desc: "Restores 35% of max HP."},
 ];
+
+const HEAL_SKILL_POOL = [
+    {name: "Mend",       element: "heal", type: "heal", power: 0, heal: 0.35, desc: "Restores 35% of max HP."},
+    {name: "Renew",      element: "heal", type: "heal", power: 0, heal: 0.25, desc: "Restores 25% of max HP."},
+    {name: "Life Bloom", element: "heal", type: "heal", power: 0, heal: 0.45, desc: "Restores 45% of max HP."},
+];
+
+function rollActiveSkill() {
+    const total = DAMAGE_ACTIVE_POOL.length + HEAL_SKILL_POOL.length;
+    const roll = randInt(0, total - 1);
+    if (roll < DAMAGE_ACTIVE_POOL.length) return { ...DAMAGE_ACTIVE_POOL[roll] };
+    return { ...HEAL_SKILL_POOL[roll - DAMAGE_ACTIVE_POOL.length] };
+}
 
 // Passive skills are also RNG-rolled. They apply continuously in battle.
 const PASSIVE_SKILL_POOL = [
@@ -1200,7 +1222,7 @@ function syncUltimateFromSkills(mon) {
 function expandSkillsForRarity(mon) {
     const expected = getSkillCount(mon.rarity);
     while (mon.skills.length < expected) {
-        mon.skills.push({ ...ACTIVE_SKILL_POOL[randInt(0, ACTIVE_SKILL_POOL.length - 1)] });
+        mon.skills.push(rollActiveSkill());
     }
     if (mon.skills.length > expected) mon.skills = mon.skills.slice(0, expected);
 }
@@ -1234,6 +1256,7 @@ function getSkillStatsLine(mon, skill) {
 function getSkillSquareClass(skill, index) {
     if (skill.type === "ultimate" || index === 0) return "skill-ult";
     if (skill.type === "passive" || index === 1) return "skill-passive";
+    if (skill.type === "heal") return "skill-active skill-heal";
     return "skill-active";
 }
 
@@ -1311,13 +1334,13 @@ function renderSkillsGrid(mon) {
     return `<div class="skills-grid">${squares}</div>`;
 }
 
-// Slot 1 ultimate, slot 2 passive, remaining slots active/heal — count by rarity.
+// Slot 1 ultimate (fixed), slot 2 passive (RNG), slots 3+ damage/heal actives (RNG — heal not guaranteed).
 function generateSkills(name, rarity) {
     const count = getSkillCount(rarity);
     const skills = [{ ...getSpeciesUltimate(name) }];
     skills.push({ ...PASSIVE_SKILL_POOL[randInt(0, PASSIVE_SKILL_POOL.length - 1)] });
     while (skills.length < count) {
-        skills.push({ ...ACTIVE_SKILL_POOL[randInt(0, ACTIVE_SKILL_POOL.length - 1)] });
+        skills.push(rollActiveSkill());
     }
     return skills;
 }
