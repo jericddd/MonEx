@@ -288,6 +288,9 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/admin/reset" && request.method === "POST") {
+      if (env.ENABLE_ADMIN_RESET !== "1") {
+        return json({ ok: false, error: "admin reset disabled" }, 404);
+      }
       const adminSecret = env.ADMIN_RESET_SECRET;
       if (!adminSecret) {
         return json({ ok: false, error: "ADMIN_RESET_SECRET not configured" }, 503);

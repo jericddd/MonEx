@@ -94,13 +94,11 @@ npx wrangler kv namespace create MONEX_KV</pre>
     </div>
 
     <div class="step">
-        <h2>Reset all progress + X log</h2>
-        <p>One-time: set Worker secret <code>ADMIN_RESET_SECRET</code> (any long random string you choose).</p>
-        <p>Cloudflare → Workers → monex-api → Settings → Variables → Add secret.</p>
-        <p>Then run (PowerShell):</p>
+        <h2>Reset all progress + X log (test phase only)</h2>
+        <p><b>Not for go-live.</b> Before launch: set <code>ENABLE_ADMIN_RESET=0</code> in <code>wrangler.toml</code>, delete <code>ADMIN_RESET_SECRET</code>, and push — reset becomes permanently off.</p>
+        <p>During testing, set Worker secret <code>ADMIN_RESET_SECRET</code> and keep <code>ENABLE_ADMIN_RESET = "1"</code> in <code>wrangler.toml</code>.</p>
         <pre>Invoke-RestMethod -Uri "https://monex-api.0xjericd.workers.dev/api/admin/reset" -Method POST -ContentType "application/json" -Headers @{ "X-Admin-Secret" = "YOUR_SECRET" }</pre>
-        <p>Clears: X wild log, all catches/pending mons, cloud saves, login sessions.</p>
-        <p>Players should log out and log in again. Clear browser site data on GitHub Pages if needed.</p>
+        <p>Clears: X wild log, catches, cloud saves, sessions. You log in again after.</p>
     </div>
 
     <p><a href="../home.html">← Back to Home</a></p>
