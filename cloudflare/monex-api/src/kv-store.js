@@ -134,3 +134,32 @@ export async function getPollSinceId(kv) {
 export async function setPollSinceId(kv, id) {
   if (id) await kv.put(POLL_KEY, id);
 }
+
+/** Wipe X log, all users/pending catches, cloud saves, and login sessions */
+export async function resetAllData(kv) {
+  await kv.put(STATE_KEY, JSON.stringify(structuredClone(DEFAULT_STATE)));
+  await kv.put(ACTIVITY_KEY, JSON.stringify(structuredClone(DEFAULT_ACTIVITY)));
+  await kv.delete(POLL_KEY);
+
+  let deletedSaves = 0;
+  let deletedSessions = 0;
+  let deletedOAuth = 0;
+
+  for (const [prefix, counter] of [
+    ["monex:save:", "saves"],
+    ["monex:session:", "sessions"],
+    ["monex:oauth:", "oauth"],
+  ]) {
+    let cursor;
+    do {
+      const listed = await kv.list({ prefix, cursor });
+      await Promise.all(listed.keys.map((k) => kv.delete(k.name)));
+      if (counter === "saves") deletedSaves += listed.keys.length;
+      if (counter === "sessions") deletedSessions += listed.keys.length;
+      if (counter === "oauth") deletedOAuth += listed.keys.length;
+      cursor = listed.list_complete ? undefined : listed.cursor;
+    } while (cursor);
+  }
+
+  return { deletedSaves, deletedSessions, deletedOAuth };
+}

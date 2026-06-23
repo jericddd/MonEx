@@ -27,6 +27,7 @@ import {
   requireSession,
 } from "./local-auth.js";
 import { loadCloudSave, writeCloudSave, buildSavePayload } from "./local-save.js";
+import { resetAllLocalData } from "./local-reset.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WORKSPACE_ROOT = path.join(__dirname, "..", "..");
@@ -43,7 +44,7 @@ app.use(express.json());
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Admin-Secret");
   if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
@@ -209,6 +210,19 @@ app.post("/api/sync", (req, res) => {
     added: party.length + box.length,
     remaining,
   });
+});
+
+app.post("/api/admin/reset", (req, res) => {
+  const adminSecret = process.env.ADMIN_RESET_SECRET;
+  if (!adminSecret) {
+    return res.status(503).json({ ok: false, error: "ADMIN_RESET_SECRET not configured" });
+  }
+  const provided = req.headers["x-admin-secret"] || req.body?.secret || "";
+  if (provided !== adminSecret) {
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+  const result = resetAllLocalData();
+  res.json({ ok: true, message: "All user progress and X wild log cleared", ...result });
 });
 
 app.use(express.static(WORKSPACE_ROOT));
