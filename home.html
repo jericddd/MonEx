@@ -52,13 +52,19 @@
 
     .main-container {
         max-width: 1200px;
-        margin: 20px auto;
+        margin: 20px auto 0;
         padding: 20px 15px;
         display: flex;
         gap: 15px;
         background: rgba(0, 0, 0, 0.45);
-        border-radius: 8px;
+        border-radius: 8px 8px 0 0;
         flex-wrap: wrap;
+    }
+
+    .home-wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 15px 24px;
     }
 
     /* Left Sidebar */
@@ -138,21 +144,6 @@
         }
     }
 
-    .activity-feed {
-        max-height: 320px;
-        overflow-y: auto;
-        font-size: 11px;
-        line-height: 1.45;
-        text-align: left;
-    }
-    .activity-item {
-        border-bottom: 1px solid #e9d5ff;
-        padding: 8px 0;
-    }
-    .activity-item:last-child { border-bottom: none; }
-    .activity-meta { color: #666; font-size: 9px; margin-top: 3px; }
-    .activity-user { color: #6B21A8; font-weight: 700; }
-    .activity-rare { color: #2563eb; font-weight: 700; }
     .activity-live {
         display: inline-block;
         width: 8px; height: 8px;
@@ -160,6 +151,124 @@
         border-radius: 50%;
         animation: blink 1.5s infinite;
         margin-right: 6px;
+    }
+
+    /* Full-width X Wild Log — spans all 3 columns */
+    .wild-log-section {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.96);
+        border: 4px solid #6B21A8;
+        border-top: none;
+        box-shadow: 4px 4px 0px #6B21A8;
+        padding: 16px 18px 14px;
+        border-radius: 0 0 8px 8px;
+    }
+    .wild-log-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 12px;
+        border-bottom: 2px solid #e9d5ff;
+        padding-bottom: 10px;
+    }
+    .wild-log-header h2 {
+        margin: 0;
+        font-size: 13px;
+    }
+    .wild-log-sub {
+        font-size: 11px;
+        color: #666;
+        margin: 0;
+    }
+    .wild-log-table-wrap {
+        overflow-x: auto;
+        min-height: 120px;
+    }
+    .wild-log-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+        text-align: left;
+    }
+    .wild-log-table th {
+        font-family: "Press Start 2P", monospace;
+        font-size: 8px;
+        color: #6B21A8;
+        padding: 8px 10px;
+        border-bottom: 2px solid #6B21A8;
+        white-space: nowrap;
+        background: #faf5ff;
+    }
+    .wild-log-table td {
+        padding: 9px 10px;
+        border-bottom: 1px solid #ede9fe;
+        vertical-align: top;
+    }
+    .wild-log-table tr:hover td {
+        background: #faf5ff;
+    }
+    .col-num { width: 36px; color: #888; font-size: 10px; }
+    .col-time { white-space: nowrap; font-size: 10px; color: #444; }
+    .col-user { white-space: nowrap; }
+    .col-spend, .col-throws, .col-left { text-align: center; white-space: nowrap; }
+    .col-mons { min-width: 140px; line-height: 1.4; }
+    .activity-user { color: #6B21A8; font-weight: 700; }
+    .activity-rare { color: #2563eb; font-weight: 700; }
+    .wild-log-empty {
+        color: #888;
+        font-size: 12px;
+        text-align: center;
+        padding: 24px 12px;
+        margin: 0;
+    }
+    .wild-log-pagination {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 2px solid #e9d5ff;
+    }
+    .page-btn, .page-nav {
+        font-family: "Press Start 2P", monospace;
+        font-size: 9px;
+        padding: 6px 10px;
+        border: 2px solid #6B21A8;
+        background: white;
+        color: #6B21A8;
+        cursor: pointer;
+    }
+    .page-btn:hover, .page-nav:hover:not(:disabled) {
+        background: #6B21A8;
+        color: white;
+    }
+    .page-btn.active {
+        background: #6B21A8;
+        color: white;
+    }
+    .page-nav:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+    }
+    .page-ellipsis {
+        font-size: 12px;
+        color: #888;
+        padding: 0 4px;
+    }
+    .page-info {
+        font-size: 10px;
+        color: #666;
+        margin-left: 8px;
+        width: 100%;
+        text-align: center;
+    }
+    @media (min-width: 901px) {
+        .page-info { width: auto; text-align: left; }
     }
     @media (max-width: 600px) {
         .header-inner {
@@ -182,6 +291,8 @@
     <div id="nav-buttons" class="nav-buttons"></div>
 </div>
 </div>
+
+<div class="home-wrap">
 
 <div class="main-container">
     
@@ -234,19 +345,10 @@
             <p>How to start playing MonEx</p>
         </div>
         <div class="side-box">
-    <h2 style="margin-top:0;">SERVER STATUS</h2>
-    <div id="server-status" style="font-weight: bold; font-size: 16px; display: flex; align-items: center; gap: 10px;">
-        <span id="status-dot" style="display: inline-block; width: 12px; height: 12px; background: #22c55e; border-radius: 50%; animation: blink 1.5s infinite;"></span>
-        <span id="status-text" style="color: #22c55e;">Online</span>
-    </div>
-</div>
-        <div class="side-box">
-            <h2 style="margin-top:0; font-size:11px;">
-                <span class="activity-live"></span>X WILD LOG
-            </h2>
-            <p style="font-size:10px; color:#666; margin:0 0 8px;">Tag <b>@monexmonad catch 10</b> on X (no bot reply yet)</p>
-            <div id="x-activity-feed" class="activity-feed">
-                <p style="color:#888;">Start server: <code style="font-size:9px;">cd x-bot && npm run server</code></p>
+            <h2 style="margin-top:0;">SERVER STATUS</h2>
+            <div id="server-status" style="font-weight: bold; font-size: 16px; display: flex; align-items: center; gap: 10px;">
+                <span id="status-dot" style="display: inline-block; width: 12px; height: 12px; background: #22c55e; border-radius: 50%; animation: blink 1.5s infinite;"></span>
+                <span id="status-text" style="color: #22c55e;">Online</span>
             </div>
         </div>
         <div class="side-box">
@@ -254,6 +356,23 @@
             <p>Claim your daily reward!</p>
         </div>
     </div>
+</div>
+
+<!-- X Wild Log — full width under all 3 columns -->
+<div class="wild-log-section">
+    <div class="wild-log-header">
+        <div>
+            <h2><span class="activity-live"></span>X WILD LOG</h2>
+            <p class="wild-log-sub">Live catches from X — tweet <b>@monexmonad catch 10 monanimals</b></p>
+        </div>
+        <p class="wild-log-sub" id="wild-log-status">Loading…</p>
+    </div>
+    <div class="wild-log-table-wrap" id="x-activity-feed">
+        <p class="wild-log-empty">Loading activity…</p>
+    </div>
+    <div class="wild-log-pagination" id="wild-log-pagination"></div>
+</div>
+
 </div>
 
 <script>
@@ -397,19 +516,32 @@ updateHeader();
 </script>
 <script src="js/activity-client.js"></script>
 <script>
-async function refreshHomeActivity() {
+let wildLogPage = 1;
+
+async function refreshHomeActivity(page) {
+    if (page) wildLogPage = page;
     const el = document.getElementById("x-activity-feed");
+    const pager = document.getElementById("wild-log-pagination");
+    const status = document.getElementById("wild-log-status");
     if (!el) return;
     try {
-        const data = await fetchGlobalActivity(20);
-        renderActivityFeedElement(el, data.entries, "No X catches yet. Try: @monexmonad catch 10 monanimals");
+        const data = await fetchGlobalActivity(MonExActivity.PAGE_SIZE, wildLogPage);
+        MonExActivity.renderTable(el, data, "No X catches yet. Try: @monexmonad catch 10 monanimals");
+        MonExActivity.renderPagination(pager, data, (p) => refreshHomeActivity(p));
+        if (status) {
+            status.textContent = data.total
+                ? `${data.total} total catches · showing ${data.entries.length} on this page`
+                : "Waiting for first catch…";
+        }
     } catch (e) {
-        el.innerHTML = `<p style="color:#b91c1c;font-size:10px;">Activity server offline.<br>Run: <code>cd x-bot && npm install && npm run server</code></p>`;
+        el.innerHTML = `<p class="wild-log-empty">Activity server offline. Check Railway deploy.</p>`;
+        if (pager) pager.innerHTML = "";
+        if (status) status.textContent = "Offline";
     }
 }
 
-refreshHomeActivity();
-setInterval(refreshHomeActivity, 8000);
+refreshHomeActivity(1);
+setInterval(() => refreshHomeActivity(wildLogPage), 8000);
 
 fetch((getMonexApiBase() || "") + "/api/health").then(r => r.ok && r.json()).then(d => {
     if (!d?.ok) return;

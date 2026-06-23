@@ -38,11 +38,10 @@ app.use((req, res, next) => {
 
 /** Global activity feed — successful X catch sessions only */
 app.get("/api/activity", (req, res) => {
-  const limit = Math.min(100, parseInt(req.query.limit || "30", 10));
-  res.json({
-    ok: true,
-    entries: listActivities({ limit, successOnly: true }),
-  });
+  const limit = Math.min(50, parseInt(req.query.limit || "50", 10));
+  const page = Math.max(1, parseInt(req.query.page || "1", 10));
+  const result = listActivities({ limit, page, successOnly: true });
+  res.json({ ok: true, ...result });
 });
 
 /** Personal log by X @username (until X OAuth links accounts) */
@@ -51,12 +50,10 @@ app.get("/api/activity/mine", (req, res) => {
   if (!username) {
     return res.status(400).json({ ok: false, error: "username query required" });
   }
-  const limit = Math.min(100, parseInt(req.query.limit || "30", 10));
-  res.json({
-    ok: true,
-    username: username.replace("@", ""),
-    entries: listActivities({ limit, username, successOnly: true }),
-  });
+  const limit = Math.min(50, parseInt(req.query.limit || "30", 10));
+  const page = Math.max(1, parseInt(req.query.page || "1", 10));
+  const result = listActivities({ limit, page, username, successOnly: true });
+  res.json({ ok: true, username: username.replace("@", ""), ...result });
 });
 
 /** Test without X API: POST { text, username, authorId? } */

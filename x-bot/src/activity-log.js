@@ -36,7 +36,7 @@ export function appendActivity(entry) {
   return entry;
 }
 
-export function listActivities({ limit = 40, username = null, successOnly = true } = {}) {
+export function listActivities({ limit = 40, page = 1, username = null, successOnly = true } = {}) {
   const log = loadActivityLog();
   let rows = log.entries;
   if (successOnly) rows = rows.filter((e) => e.status === "success");
@@ -44,7 +44,17 @@ export function listActivities({ limit = 40, username = null, successOnly = true
     const u = username.toLowerCase().replace("@", "");
     rows = rows.filter((e) => e.xUsername?.toLowerCase() === u);
   }
-  return rows.slice(0, limit);
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const offset = (safePage - 1) * limit;
+  return {
+    entries: rows.slice(offset, offset + limit),
+    total,
+    page: safePage,
+    limit,
+    totalPages,
+  };
 }
 
 export function makeActivityId() {
