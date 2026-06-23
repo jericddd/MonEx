@@ -4,6 +4,8 @@ const cases = [
   ["@MonEx catch", "catch", 10],
   ["@monex catch 20", "catch", 20],
   ["@MonEx catch 50 please", "catch", 50],
+  ["@MonEx catch 10 monanimals", "catch", 10],
+  ["@monex catch 20 monanimal", "catch", 20],
   ["@MonEx catch 25", "invalid_denom"],
   ["@MonEx hello", "ignore"],
   ["just @MonEx", "ignore"],

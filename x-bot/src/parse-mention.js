@@ -29,7 +29,8 @@ export function parseMention(text, botUsername) {
     return { type: "ignore" };
   }
 
-  const denomMatch = clean.match(/\bcatch\b\s*(\d+)?/i);
+  // catch 10 | catch 10 monanimals | catch 20 monanimal
+  const denomMatch = clean.match(/\bcatch\b\s*(\d+)?(?:\s+monanimals?)?/i);
   const raw = denomMatch?.[1];
 
   if (!raw) {

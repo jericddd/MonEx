@@ -387,6 +387,53 @@ button.green:hover {
     font-size: 10px !important;
 }
 
+/* X activity feed (profile + shared) */
+.activity-feed {
+    max-height: 360px;
+    overflow-y: auto;
+    font-size: 12px;
+    line-height: 1.45;
+}
+.activity-item {
+    border-bottom: 1px solid #e9d5ff;
+    padding: 10px 0;
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-meta { color: #666; font-size: 10px; margin-top: 4px; }
+.activity-user { color: #6B21A8; font-weight: 700; }
+.activity-rare { color: #2563eb; font-weight: 700; }
+.activity-empty { color: #888; font-size: 11px; padding: 8px 0; }
+.profile-panel {
+    background: white;
+    border: 4px solid #6B21A8;
+    box-shadow: 4px 4px 0px #6B21A8;
+    padding: 20px;
+    max-width: 640px;
+    margin: 0 auto;
+}
+.profile-x-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 12px 0 20px;
+}
+.profile-x-row input {
+    flex: 1;
+    min-width: 160px;
+    padding: 10px;
+    border: 2px solid #6B21A8;
+    font-size: 14px;
+}
+.profile-x-row button {
+    padding: 10px 16px;
+    border: 2px solid #6B21A8;
+    background: #6B21A8;
+    color: white;
+    cursor: pointer;
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 8px;
+}
+
 /* ===== Equipment (Phase 3) ===== */
 .gear-row {
     display: flex;
@@ -962,6 +1009,9 @@ button,
     <button class="tab-btn" id="tab-shop" onclick="switchTab('shop')" style="display: inline-flex; align-items: center; gap: 4px;">
         <span style="margin-top: 5%;">SHOP</span>
     </button>
+    <button class="tab-btn" id="tab-profile" onclick="switchTab('profile')" style="display: inline-flex; align-items: center; gap: 4px;">
+        <span style="margin-top: 5%;">PROFILE</span>
+    </button>
 </div>
 
     <!-- Content -->
@@ -1000,8 +1050,24 @@ button,
             <div id="shop-grid" class="shop-grid"></div>
         </div>
     </div>
+    <div id="content-profile" class="tab-content">
+        <div class="profile-panel">
+            <h2 style="color:#6B21A8; text-align:center; margin-top:0;">TRAINER PROFILE</h2>
+            <p style="text-align:center; color:#666; font-size:13px;">Link your X handle to see your wild catch log from @MonEx on X.</p>
+            <div class="profile-x-row">
+                <input id="x-handle-input" type="text" placeholder="X username (e.g. jeric)" maxlength="40">
+                <button type="button" onclick="saveXHandle()">SAVE</button>
+            </div>
+            <p style="font-size:11px; color:#888; margin:0 0 12px;">On X post: <b>@MonEx catch 10 monanimals</b> (10–50 Monballs)</p>
+            <h3 style="color:#6B21A8; font-size:12px; margin-bottom:8px;">YOUR X CATCH LOG</h3>
+            <div id="profile-activity-feed" class="activity-feed">
+                <p style="color:#888;">Save your X @handle above.</p>
+            </div>
+        </div>
+    </div>
 </div>
 
+<script src="js/activity-client.js"></script>
 <script>
 // =====================================================
 // MONEX - CLEAN ORGANIZED STRUCTURE
@@ -1126,6 +1192,8 @@ let trainerXp = 0;
 let highestStageCleared = 0;
 let lastResetDate = null;
 let isInAdventureBattle = false;
+let xHandle = "";
+let profileActivityTimer = null;
 
 const SHOP_ITEMS = [
     { id: "monball5",   name: "Monball Pack",   desc: "5 Monballs for catching.",     cost: { gold: 2000 },              grant: { monballs: 5 } },
@@ -1709,7 +1777,7 @@ function checkDailyReset() {
 function saveData() {
     if (!currentUser) return;
     localStorage.setItem("monex_" + currentUser, JSON.stringify({
-        party, box, monballs, money, essence, monShards, trainerXp, highestStageCleared, gearInventory, lastResetDate
+        party, box, monballs, money, essence, monShards, trainerXp, highestStageCleared, gearInventory, lastResetDate, xHandle
     }));
 }
 
@@ -1728,6 +1796,7 @@ function loadData() {
         highestStageCleared = data.highestStageCleared || 0;
         gearInventory = data.gearInventory || [];
         lastResetDate = data.lastResetDate || null;
+        xHandle = data.xHandle || "";
 
         [...party, ...box].forEach(ensureMonReady);
     } else {
@@ -1741,6 +1810,7 @@ function loadData() {
         highestStageCleared = 0;
         gearInventory = [];
         lastResetDate = null;
+        xHandle = "";
         saveData();
     }
     checkDailyReset();
@@ -1916,6 +1986,51 @@ function renderShop() {
             <button onclick="buyShopItem('${item.id}')" ${canAffordCost(item.cost) ? "" : "disabled"}>BUY</button>
         </div>
     `).join("");
+}
+
+function saveXHandle() {
+    const input = document.getElementById("x-handle-input");
+    if (!input) return;
+    const raw = input.value.trim().replace(/^@/, "").toLowerCase();
+    if (!raw) {
+        alert("Enter your X @handle");
+        return;
+    }
+    xHandle = raw;
+    saveData();
+    alert("@" + xHandle + " linked for activity log");
+    refreshProfileActivity();
+}
+
+function renderProfile() {
+    const input = document.getElementById("x-handle-input");
+    if (input) input.value = xHandle ? "@" + xHandle : "";
+    refreshProfileActivity();
+    if (profileActivityTimer) clearInterval(profileActivityTimer);
+    profileActivityTimer = setInterval(() => {
+        if (document.getElementById("content-profile")?.classList.contains("active")) {
+            refreshProfileActivity();
+        }
+    }, 8000);
+}
+
+async function refreshProfileActivity() {
+    const el = document.getElementById("profile-activity-feed");
+    if (!el || typeof MonExActivity === "undefined") return;
+    if (!xHandle) {
+        el.innerHTML = '<div class="activity-empty">Link your X @handle above to see your catch history.</div>';
+        return;
+    }
+    el.innerHTML = '<div class="activity-empty">Loading your log…</div>';
+    try {
+        const items = await MonExActivity.fetchMine(xHandle);
+        MonExActivity.renderFeed(el, items, {
+            emptyText: "No successful @MonEx catches yet. Tweet @MonEx catch 10 monanimals on X!",
+            showUser: false,
+        });
+    } catch (e) {
+        el.innerHTML = '<div class="activity-empty">Could not reach activity server. Run <code>npm run server</code> in x-bot/</div>';
+    }
 }
 
 function toBox(index) {
@@ -2095,6 +2210,7 @@ function switchTab(tab) {
     if (tab === 'box') renderBox();
     if (tab === 'inventory') renderInventory();
     if (tab === 'shop') renderShop();
+    if (tab === 'profile') renderProfile();
 
     // Battle tab content
     if (tab === 'battle') {
@@ -2149,7 +2265,8 @@ function switchTab(tab) {
     }
 }
 function goToProfile() {
-    switchTab('party');
+    switchTab("profile");
+    location.hash = "profile";
 }
 
 // ==================== BOOT ==================== 
@@ -2162,6 +2279,7 @@ document.addEventListener("keydown", function(e) {
 
 window.onload = function() {
     checkLogin();
+    if (location.hash === "#profile") switchTab("profile");
 };
 // ==================== ADVENTURE MODE ====================
 let currentStage = 1;

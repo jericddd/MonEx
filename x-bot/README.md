@@ -1,13 +1,8 @@
-# MonEx X Bot (POC)
+# MonEx X Activity (POC)
 
-Test **@mentions → catch reply** on X **before** adding a database.
+Catch on **X** via `@MonEx catch 10 monanimals` — **no replies for now**. Successful catches are logged to a real-time activity feed on the home page and a personal log in the game **Profile** tab.
 
-Uses a **JSON file** (`data/state.json`) for:
-- Monball balance per X user
-- Pending caught mons (for future website claim)
-- Processed tweet IDs (no double replies)
-
-**Not** Tweepy — uses [twitter-api-v2](https://github.com/PLhery/node-twitter-api-v2) (Node.js).
+Uses [twitter-api-v2](https://github.com/PLhery/node-twitter-api-v2) (Node.js), not Tweepy.
 
 ---
 
@@ -20,89 +15,78 @@ Uses a **JSON file** (`data/state.json`) for:
 | Spend options | **10, 20, 30, 40, 50** only |
 | Per throw | **10** Monballs = 1 catch roll |
 | Catch rate | 95% (same as browser game) |
-| No `catch` word | Bot sends **help** reply |
+| No valid catch | Skipped (not shown in activity log) |
 
 **Examples:**
 - `@MonEx catch` → spends **10** Monballs, 1 throw
+- `@MonEx catch 10 monanimals` → same as above
 - `@MonEx catch 20` → 2 throws
-- `@MonEx catch 50` → 5 throws
 
 New X users get **50** Monballs (POC default, change in `.env`).
 
 ---
 
-## Setup (one time)
-
-### 1. X Developer Portal
-
-1. Go to [developer.x.com](https://developer.x.com) → create a **Project + App**
-2. App permissions: **Read and write**
-3. Generate **OAuth 1.0a** keys for the **bot account**
-4. Copy: API Key, API Secret, Access Token, Access Token Secret
-
-### 2. Install & configure
+## Quick test (no X API)
 
 ```bash
 cd x-bot
-cp .env.example .env
-# Edit .env with your keys and BOT_USERNAME
 npm install
+npm run server
 ```
 
-### 3. Dry run (no posts to X)
+Open **http://localhost:3001/home.html** — the **X WILD LOG** sidebar polls `/api/activity`.
+
+Simulate a mention:
 
 ```bash
-npm run dry-run
+curl -X POST http://localhost:3001/api/simulate-mention \
+  -H "Content-Type: application/json" \
+  -d '{"text":"@MonEx catch 10 monanimals","username":"jeric"}'
 ```
 
-Post a test mention from another account, watch the terminal for the reply text.
-
-### 4. Go live
-
-```bash
-npm start
-```
-
-Keep this terminal open (or deploy to Railway/Fly.io later).
+In the game, open **Profile**, save your X handle (`jeric`), and your personal log appears.
 
 ---
 
-## Test on X
+## Live X ingest (optional)
 
-From a **different** account, post:
+1. [developer.x.com](https://developer.x.com) → Project + App with **Read** (write not required while replies are off)
+2. Copy OAuth 1.0a keys into `.env`
+3. Start server with polling:
 
-```
-@YourBotUsername catch
-```
-
-or
-
-```
-@YourBotUsername catch 20
+```bash
+ENABLE_X_POLL=1 npm run server
 ```
 
-Within ~45 seconds the bot should **reply** with catch results.
+Or run the standalone poller:
+
+```bash
+npm run poll
+```
 
 ---
 
-## What gets stored (JSON, not DB)
+## API
 
-`data/state.json` example:
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/activity?limit=30` | Global feed (successful catches only) |
+| `GET /api/activity/mine?username=you` | Personal feed by X @handle |
+| `POST /api/simulate-mention` | Test body: `{ "text", "username" }` |
+| `GET /api/health` | Server status |
 
-```json
-{
-  "processedTweetIds": ["123..."],
-  "users": {
-    "987654321": {
-      "username": "player1",
-      "monballs": 40,
-      "pendingMons": [{ "name": "Mouch", "rarity": "Rare", "skills": [...] }]
-    }
-  }
-}
-```
+The server also serves `home.html` and `monanimal_game.html` from the repo root.
 
-Later: **X login** on the website reads `pendingMons` by X user id.
+---
+
+## Storage
+
+| File | Purpose |
+|------|---------|
+| `data/state.json` | Monball balances, pending mons, processed tweet IDs |
+| `data/activity.json` | Activity log entries (global + personal feeds) |
+
+Later: **X OAuth** on the website links accounts and claims `pendingMons`.
 
 ---
 
@@ -110,18 +94,9 @@ Later: **X login** on the website reads `pendingMons` by X user id.
 
 | Command | Description |
 |---------|-------------|
-| `npm start` | Poll mentions & reply |
-| `npm run dry-run` | Log replies only |
+| `npm run server` | HTTP server + static files + optional X poll |
+| `npm run poll` | Standalone X mention poller (log only) |
 | `npm run test-parse` | Test message parsing |
-
----
-
-## Limits & next steps
-
-- **POC only** — JSON file is not safe for thousands of users
-- **Polling** every 45s (upgrade to filtered stream on paid tier)
-- **No X OAuth on website yet** — pending mons sit in JSON
-- **Phase 2:** Postgres + X login + claim flow
 
 ---
 
@@ -129,7 +104,7 @@ Later: **X login** on the website reads `pendingMons` by X user id.
 
 | Issue | Fix |
 |-------|-----|
-| 403 on tweet | App needs **Read+Write**; regenerate tokens after permission change |
-| No mentions | Confirm you @mentioned the **bot** account, not your personal one |
-| 429 rate limit | Increase `POLL_MS` or reduce test volume |
-| Wrong username | Set `BOT_USERNAME` in `.env` |
+| Home feed says "server offline" | Run `npm run server` in `x-bot/` |
+| Personal log empty | Save matching X @handle in game Profile tab |
+| No live mentions | Set `ENABLE_X_POLL=1` and valid `.env` keys |
+| 429 rate limit | Increase `POLL_MS` in `.env` |

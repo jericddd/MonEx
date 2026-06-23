@@ -138,6 +138,29 @@
         }
     }
 
+    .activity-feed {
+        max-height: 320px;
+        overflow-y: auto;
+        font-size: 11px;
+        line-height: 1.45;
+        text-align: left;
+    }
+    .activity-item {
+        border-bottom: 1px solid #e9d5ff;
+        padding: 8px 0;
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-meta { color: #666; font-size: 9px; margin-top: 3px; }
+    .activity-user { color: #6B21A8; font-weight: 700; }
+    .activity-rare { color: #2563eb; font-weight: 700; }
+    .activity-live {
+        display: inline-block;
+        width: 8px; height: 8px;
+        background: #22c55e;
+        border-radius: 50%;
+        animation: blink 1.5s infinite;
+        margin-right: 6px;
+    }
     @media (max-width: 600px) {
         .header-inner {
             flex-direction: column;
@@ -218,17 +241,21 @@
     </div>
 </div>
         <div class="side-box">
+            <h2 style="margin-top:0; font-size:11px;">
+                <span class="activity-live"></span>X WILD LOG
+            </h2>
+            <p style="font-size:10px; color:#666; margin:0 0 8px;">Tag <b>@MonEx catch 10</b> on X (no bot reply yet)</p>
+            <div id="x-activity-feed" class="activity-feed">
+                <p style="color:#888;">Start server: <code style="font-size:9px;">cd x-bot && npm run server</code></p>
+            </div>
+        </div>
+        <div class="side-box">
             <h2>DAILY LOGIN</h2>
             <p>Claim your daily reward!</p>
         </div>
     </div>
 </div>
 
-<script>
-    function goToProfile() {
-        window.location.href = 'monanimal_game.html';
-    }
-</script>
 <script>
 // Monanimal Showcase
 const monanimals = [
@@ -357,7 +384,7 @@ function showCustomModal(message) {
 }
 
 function goToProfile() {
-    window.location.href = 'monanimal_game.html';
+    window.location.href = 'monanimal_game.html#profile';
 }
 
 function logout() {
@@ -367,6 +394,35 @@ function logout() {
 
 // Initialize
 updateHeader();
+</script>
+<script src="js/activity-client.js"></script>
+<script>
+async function refreshHomeActivity() {
+    const el = document.getElementById("x-activity-feed");
+    if (!el) return;
+    try {
+        const data = await fetchGlobalActivity(20);
+        renderActivityFeedElement(el, data.entries, "No X catches yet. Try: @MonEx catch 10 monanimals");
+    } catch (e) {
+        el.innerHTML = `<p style="color:#b91c1c;font-size:10px;">Activity server offline.<br>Run: <code>cd x-bot && npm install && npm run server</code></p>`;
+    }
+}
+
+refreshHomeActivity();
+setInterval(refreshHomeActivity, 8000);
+
+fetch((getMonexApiBase() || "") + "/api/health").then(r => r.ok && r.json()).then(d => {
+    if (!d?.ok) return;
+    const dot = document.getElementById("status-dot");
+    const txt = document.getElementById("status-text");
+    if (dot) dot.style.background = "#22c55e";
+    if (txt) { txt.textContent = "Online"; txt.style.color = "#22c55e"; }
+}).catch(() => {
+    const dot = document.getElementById("status-dot");
+    const txt = document.getElementById("status-text");
+    if (dot) dot.style.background = "#eab308";
+    if (txt) { txt.textContent = "Game only"; txt.style.color = "#ca8a04"; }
+});
 </script>
 </body>
 </html>
