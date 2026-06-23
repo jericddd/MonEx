@@ -196,28 +196,53 @@ body {
     box-shadow: 3px 3px 0px #6b21a8;
     z-index: 10;
 }
-.skill-square:hover::after {
-    content: attr(data-name) " — " attr(data-desc);
+.skill-square .skill-tip {
+    display: none;
     position: absolute;
     bottom: calc(100% + 8px);
     left: 50%;
     transform: translateX(-50%);
     background: #1a1a2e;
     color: #e0e0ff;
-    padding: 7px 11px;
+    padding: 8px 11px;
     border-radius: 0;
-    font-size: 10px;
     font-family: 'Lato', system-ui, sans-serif;
     font-weight: 400;
     white-space: normal;
     width: max-content;
-    max-width: 240px;
+    max-width: 260px;
     text-align: left;
-    line-height: 1.35;
+    line-height: 1.4;
     box-shadow: 3px 3px 0px #6b21a8;
     border: 2px solid #6b21a8;
     z-index: 999;
     pointer-events: none;
+}
+.skill-square:hover .skill-tip { display: block; }
+.skill-tip-name {
+    font-weight: 700;
+    font-size: 11px;
+    color: #f5f3ff;
+    margin-bottom: 2px;
+}
+.skill-tip-type {
+    font-size: 9px;
+    color: #c4b5fd;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+}
+.skill-tip-desc {
+    font-size: 10px;
+    color: #d8d4f0;
+    margin-bottom: 4px;
+}
+.skill-tip-stats {
+    font-size: 10px;
+    color: #fde68a;
+    border-top: 1px solid rgba(196, 181, 253, 0.35);
+    padding-top: 4px;
+    margin-top: 2px;
 }
 .mon-stats {
     font-size: 13px;
@@ -243,33 +268,6 @@ body {
     text-transform: uppercase;
     font-size: 13px;
     color: #181010;
-}
-
-/* XP Bar */
-.xp-bar {
-    position: relative;
-    height: 20px;
-    background: #2a2a2a;
-    border-radius: 0;
-    overflow: hidden;
-    margin: 10px 2px 8px;
-    border: 1px solid #3a3a3a;
-}
-.xp-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #6B21A8, #C084FC);
-    transition: width 0.3s ease;
-}
-.xp-text {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10.5px;
-    font-weight: 600;
-    color: white;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
 
 .currently-text {
@@ -319,6 +317,8 @@ body {
 .mon-actions button:hover {
     filter: brightness(1.1);
 }
+.cost-lack { color: #ef4444; font-weight: 700; }
+.mon-actions button:disabled { cursor: not-allowed; filter: none; }
 
 /* FEED button */
 button.green {
@@ -527,9 +527,36 @@ button,
     display: flex; align-items: center; gap: 6px;
     background: #f3e8ff; border: 2px solid #6B21A8;
     padding: 6px 10px; font-size: 13px; white-space: nowrap;
+    position: relative; cursor: help;
 }
-.cur-ico { font-size: 18px; }
-.currency-pill b { color: #6B21A8; }
+.cur-ico-img {
+    width: 22px;
+    height: 22px;
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    flex-shrink: 0;
+}
+.currency-pill .cur-qty { color: #6B21A8; font-weight: 700; font-size: 14px; }
+.currency-pill .currency-tip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a2e;
+    color: #e0e0ff;
+    padding: 5px 9px;
+    font-size: 9px;
+    font-family: 'Press Start 2P', monospace;
+    white-space: nowrap;
+    border: 2px solid #6B21A8;
+    box-shadow: 2px 2px 0 #6B21A8;
+    z-index: 30;
+    pointer-events: none;
+}
+.currency-pill:hover .currency-tip { display: block; }
+.inline-currency { display: inline-flex; align-items: center; gap: 3px; vertical-align: middle; }
 
 /* ===== Card stat extras ===== */
 .mon-card { position: relative; }
@@ -632,11 +659,44 @@ button,
     background: rgba(250, 204, 21, 0.22);
 }
 .skill-square.skill-ult {
+    width: 28px;
+    height: 28px;
     background: linear-gradient(145deg, #fde68a, #f59e0b);
-    border-color: #b45309;
+    border: 3px solid #b45309;
     color: #7c2d12;
-    box-shadow: 0 0 6px rgba(245,158,11,0.7);
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.75), 2px 2px 0px #92400e;
+    font-size: 11px;
 }
+.skill-square.skill-ult .skill-tip {
+    border-color: #b45309;
+    box-shadow: 3px 3px 0px #92400e;
+}
+.skill-square.skill-passive {
+    background: linear-gradient(145deg, #94a3b8, #64748b);
+    border: 2px dashed #475569;
+    color: #f8fafc;
+    box-shadow: 2px 2px 0px #334155;
+    font-size: 8px;
+}
+.skill-square.skill-passive .skill-tip {
+    border-color: #475569;
+    box-shadow: 3px 3px 0px #334155;
+}
+.skill-square.skill-passive .skill-tip-stats { color: #a5f3fc; }
+.skill-square.skill-active {
+    background: linear-gradient(145deg, #c084fc, #7c3aed);
+    border: 2px solid #6b21a8;
+}
+.skill-square.skill-heal {
+    background: linear-gradient(145deg, #6ee7b7, #059669);
+    border: 2px solid #047857;
+    box-shadow: 2px 2px 0px #065f46;
+}
+.skill-square.skill-heal .skill-tip {
+    border-color: #047857;
+    box-shadow: 3px 3px 0px #065f46;
+}
+.skill-square.skill-heal .skill-tip-stats { color: #6ee7b7; }
 
 /* ===== Battle stage ===== */
 .battle-stage {
@@ -850,10 +910,26 @@ button,
 <div class="balls-card">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div class="currency-row">
-            <div class="currency-pill" title="Monballs"><span class="cur-ico">&#127944;</span><span><strong>MONBALL</strong> <b id="monball-count">12</b></span></div>
-            <div class="currency-pill" title="Gold"><span class="cur-ico">&#129689;</span><span><strong>GOLD</strong> <b id="gold-count">0</b></span></div>
-            <div class="currency-pill" title="Essence"><span class="cur-ico">&#10024;</span><span><strong>ESSENCE</strong> <b id="essence-count">0</b></span></div>
-            <div class="currency-pill" title="Mon Shards"><span class="cur-ico">&#128311;</span><span><strong>SHARDS</strong> <b id="shard-count">0</b></span></div>
+            <div class="currency-pill">
+                <img class="cur-ico-img" src="game_icons/monball.png" alt="">
+                <span class="cur-qty" id="monball-count">12</span>
+                <span class="currency-tip">Monball</span>
+            </div>
+            <div class="currency-pill">
+                <img class="cur-ico-img" src="game_icons/gold.png" alt="">
+                <span class="cur-qty" id="gold-count">0</span>
+                <span class="currency-tip">Gold</span>
+            </div>
+            <div class="currency-pill">
+                <img class="cur-ico-img" src="game_icons/xp_essence.png" alt="">
+                <span class="cur-qty" id="essence-count">0</span>
+                <span class="currency-tip">Essence</span>
+            </div>
+            <div class="currency-pill">
+                <img class="cur-ico-img" src="game_icons/shard.png" alt="">
+                <span class="cur-qty" id="shard-count">0</span>
+                <span class="currency-tip">Mon Shards</span>
+            </div>
         </div>
         <div style="display:flex; gap:8px;">
             <button onclick="buyMonball()" style="padding:8px 16px; border:2px solid #6B21A8; background:white; cursor:pointer;">Buy (500)</button>
@@ -933,6 +1009,23 @@ button,
 // =====================================================
 
 // ==================== CONSTANTS ====================
+const GAME_ICONS = {
+    monball: { src: "game_icons/monball.png", name: "Monball" },
+    gold:    { src: "game_icons/gold.png", name: "Gold" },
+    essence: { src: "game_icons/xp_essence.png", name: "Essence" },
+    shards:  { src: "game_icons/shard.png", name: "Mon Shards" },
+};
+
+function currencyIcon(key, size = 16) {
+    const c = GAME_ICONS[key];
+    return `<img class="cur-ico-img" src="${c.src}" alt="" width="${size}" height="${size}" title="${c.name}">`;
+}
+
+function currencyQty(key, amount, size = 16, amountClass = "") {
+    const cls = amountClass ? ` class="${amountClass}"` : "";
+    return `<span class="inline-currency">${currencyIcon(key, size)}<span${cls}>${amount}</span></span>`;
+}
+
 const MONANIMAL_NAMES = ["Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal", "Monavara", "Moncock", "Mondigrade", "Montiger", "Mopo", "Mosferatu", "Moxy", "Shramp", "Spidermon", "Moyaki"];
 
 const SPRITE_MAP = {
@@ -944,9 +1037,9 @@ const SPRITE_MAP = {
     "Shramp": "128x128/shramp.png", "Spidermon": "128x128/spidermon.png", "Moyaki": "128x128/moyaki.png"
 };
 
-// Normal active skills are RNG-rolled per individual. Each carries a clear
-// element so its battle animation always matches its name.
-const ACTIVE_SKILL_POOL = [
+// Damage actives and heal actives are separate RNG pools — neither is guaranteed per mon.
+// Each active slot (3rd+) rolls once from the combined pool.
+const DAMAGE_ACTIVE_POOL = [
     {name: "Slash",         element: "physical", type: "active", power: 1.0,  desc: "A swift physical slash."},
     {name: "Flame Burst",   element: "fire",     type: "active", power: 1.15, desc: "Bursts the target in flames."},
     {name: "Aqua Jet",      element: "water",    type: "active", power: 0.95, desc: "A fast jet of water."},
@@ -957,8 +1050,20 @@ const ACTIVE_SKILL_POOL = [
     {name: "Gale Slash",    element: "wind",     type: "active", power: 1.0,  desc: "A crescent of wind."},
     {name: "Shadow Strike", element: "dark",     type: "active", power: 1.1,  desc: "A strike from the shadows."},
     {name: "Psy Beam",      element: "psychic",  type: "active", power: 1.1,  desc: "A focused psychic beam."},
-    {name: "Mend",          element: "heal",     type: "heal",   power: 0,    heal: 0.35, desc: "Restores 35% of max HP."},
 ];
+
+const HEAL_SKILL_POOL = [
+    {name: "Mend",       element: "heal", type: "heal", power: 0, heal: 0.35, desc: "Restores 35% of max HP."},
+    {name: "Renew",      element: "heal", type: "heal", power: 0, heal: 0.25, desc: "Restores 25% of max HP."},
+    {name: "Life Bloom", element: "heal", type: "heal", power: 0, heal: 0.45, desc: "Restores 45% of max HP."},
+];
+
+function rollActiveSkill() {
+    const total = DAMAGE_ACTIVE_POOL.length + HEAL_SKILL_POOL.length;
+    const roll = randInt(0, total - 1);
+    if (roll < DAMAGE_ACTIVE_POOL.length) return { ...DAMAGE_ACTIVE_POOL[roll] };
+    return { ...HEAL_SKILL_POOL[roll - DAMAGE_ACTIVE_POOL.length] };
+}
 
 // Passive skills are also RNG-rolled. They apply continuously in battle.
 const PASSIVE_SKILL_POOL = [
@@ -1081,10 +1186,6 @@ function getAttackDamage(level, rarity) {
     return baseDamage;
 }
 
-function getXPForNextLevel(level) {
-    return Math.floor(100 * Math.pow(1.15, level - 1));
-}
-
 function getCatchRate(rarity) {
     return 0.95;   // 95% Catch Rate for all rarities
 }
@@ -1123,7 +1224,90 @@ function generateStats(rarity) {
 }
 
 function getSpeciesUltimate(name) {
-    return { ...(SPECIES_ULTIMATE[name] || { name: "Power Surge", element: "physical", power: 2.0, desc: "A powerful signature move." }) };
+    return {
+        ...(SPECIES_ULTIMATE[name] || { name: "Power Surge", element: "physical", power: 2.0, desc: "A powerful signature move." }),
+        type: "ultimate"
+    };
+}
+
+function needsSkillMigration(mon) {
+    const expected = getSkillCount(mon.rarity);
+    if (!mon.skills || mon.skills.length !== expected) return true;
+    if (mon.skills[0]?.type !== "ultimate") return true;
+    if (mon.skills[1]?.type !== "passive") return true;
+    for (let i = 2; i < mon.skills.length; i++) {
+        const t = mon.skills[i]?.type;
+        if (t !== "active" && t !== "heal") return true;
+    }
+    return false;
+}
+
+function syncUltimateFromSkills(mon) {
+    if (mon.skills && mon.skills[0]?.type === "ultimate") {
+        mon.ultimate = { ...mon.skills[0] };
+    } else if (!mon.ultimate || !mon.ultimate.element) {
+        mon.ultimate = getSpeciesUltimate(mon.name);
+    }
+}
+
+function expandSkillsForRarity(mon) {
+    const expected = getSkillCount(mon.rarity);
+    while (mon.skills.length < expected) {
+        mon.skills.push(rollActiveSkill());
+    }
+    if (mon.skills.length > expected) mon.skills = mon.skills.slice(0, expected);
+}
+
+function formatPassiveDetail(skill) {
+    const parts = [];
+    if (skill.dmgTaken != null) parts.push("-" + Math.round((1 - skill.dmgTaken) * 100) + "% dmg taken");
+    if (skill.dmgDealt != null) parts.push("+" + Math.round((skill.dmgDealt - 1) * 100) + "% dmg dealt");
+    if (skill.critBonus != null) parts.push("+" + skill.critBonus + "% crit");
+    if (skill.dodgeBonus != null) parts.push("+" + skill.dodgeBonus + "% dodge");
+    if (skill.blockBonus != null) parts.push("+" + skill.blockBonus + "% block");
+    if (skill.regen != null) parts.push("Regen " + Math.round(skill.regen * 100) + "% HP/turn");
+    return parts.join(" · ");
+}
+
+function getSkillStatsLine(mon, skill) {
+    if (skill.type === "passive") return formatPassiveDetail(skill);
+    if (skill.type === "heal") {
+        const pct = Math.round((skill.heal || 0.35) * 100);
+        const heal = Math.ceil(mon.max_hp * (skill.heal || 0.35));
+        return "Heal: " + heal + " HP (" + pct + "% max HP)";
+    }
+    if (skill.type === "ultimate" || skill.type === "active") {
+        const atk = getEffectiveStats(mon).atk;
+        const dmg = Math.floor(atk * (skill.power || 1));
+        return "DMG: " + dmg + " (ATK " + atk + " × " + skill.power + ")";
+    }
+    return "";
+}
+
+function getSkillSquareClass(skill, index) {
+    if (skill.type === "ultimate" || index === 0) return "skill-ult";
+    if (skill.type === "passive" || index === 1) return "skill-passive";
+    if (skill.type === "heal") return "skill-active skill-heal";
+    return "skill-active";
+}
+
+function getSkillIcon(skill) {
+    if (skill.type === "ultimate") return "\u2605";
+    if (skill.type === "passive") return "P";
+    return skill.name.substring(0, 2).toUpperCase();
+}
+
+function renderSkillTip(mon, skill) {
+    const typeLabel = skill.type === "heal" ? "HEAL"
+        : (skill.type || "active").toUpperCase();
+    const elem = skill.element && skill.element !== "passive" ? skill.element.toUpperCase() : "";
+    const stats = getSkillStatsLine(mon, skill);
+    return `<div class="skill-tip">
+        <div class="skill-tip-name">${skill.name}</div>
+        <div class="skill-tip-type">${typeLabel}${elem ? " · " + elem : ""}</div>
+        <div class="skill-tip-desc">${skill.desc || ""}</div>
+        ${stats ? `<div class="skill-tip-stats">${stats}</div>` : ""}
+    </div>`;
 }
 
 // Card "i" info icon: hover to reveal paired combat stats (includes gear bonuses).
@@ -1165,32 +1349,29 @@ function renderAscendBtn(index, mon) {
     if (Math.floor(mon.level) < cap) return "";
     const cost = getAscendCost(mon.rarity);
     const afford = monShards >= cost;
-    return `<button onclick="ascendMonRarity(${index})" class="ascend-btn" ${afford ? "" : "disabled style='opacity:0.65'"}>ASCEND \u2192 ${next.toUpperCase()} (${cost} \uD83D\uDD37)</button>`;
+    return `<button onclick="ascendMonRarity(${index})" class="ascend-btn" ${afford ? "" : "disabled style='opacity:0.65'"}>ASCEND \u2192 ${next.toUpperCase()} (${currencyQty("shards", cost, 14)})</button>`;
 }
 
-// Skill boxes: the normal RNG skills plus the fixed ultimate (gold box, marked with a star).
+// Skill slots: 1st = ultimate (species-fixed), 2nd = passive (RNG), 3rd+ = actives (RNG).
 function renderSkillsGrid(mon) {
-    const normal = mon.skills.map(skill => `
-        <div class="skill-square" data-type="${skill.type}" title="${skill.type.toUpperCase()}: ${skill.name} \u2014 ${skill.desc || skill.element}">
-            <span>${skill.name.substring(0, 2).toUpperCase()}</span>
-        </div>`).join('');
-    const ult = `
-        <div class="skill-square skill-ult" title="ULTIMATE: ${mon.ultimate.name} \u2014 ${mon.ultimate.desc || 'A powerful signature move.'}">
-            <span>\u2605</span>
+    ensureMonReady(mon);
+    const squares = mon.skills.map((skill, i) => {
+        const cls = getSkillSquareClass(skill, i);
+        return `<div class="skill-square ${cls}" data-type="${skill.type}" data-slot="${i + 1}">
+            <span>${getSkillIcon(skill)}</span>
+            ${renderSkillTip(mon, skill)}
         </div>`;
-    return `<div class="skills-grid">${normal}${ult}</div>`;
+    }).join("");
+    return `<div class="skills-grid">${squares}</div>`;
 }
 
-// Normal skills (active + passive) are RNG per individual: one passive + the rest actives.
+// Slot 1 ultimate (fixed), slot 2 passive (RNG), slots 3+ damage/heal actives (RNG — heal not guaranteed).
 function generateSkills(name, rarity) {
     const count = getSkillCount(rarity);
-    const skills = [ { ...PASSIVE_SKILL_POOL[randInt(0, PASSIVE_SKILL_POOL.length - 1)] } ];
+    const skills = [{ ...getSpeciesUltimate(name) }];
+    skills.push({ ...PASSIVE_SKILL_POOL[randInt(0, PASSIVE_SKILL_POOL.length - 1)] });
     while (skills.length < count) {
-        skills.push({ ...ACTIVE_SKILL_POOL[randInt(0, ACTIVE_SKILL_POOL.length - 1)] });
-    }
-    for (let i = skills.length - 1; i > 0; i--) {
-        const j = randInt(0, i);
-        [skills[i], skills[j]] = [skills[j], skills[i]];
+        skills.push(rollActiveSkill());
     }
     return skills;
 }
@@ -1199,11 +1380,12 @@ function generateSkills(name, rarity) {
 function ensureMonReady(mon) {
     if (!mon.equipment) mon.equipment = { weapon: null, armor: null, helmet: null, boots: null };
     if (!mon.stats || mon.stats.spd == null) mon.stats = generateStats(mon.rarity);
-    const expected = getSkillCount(mon.rarity);
-    if (!mon.skills || mon.skills.length !== expected || !mon.skills[0] || !mon.skills[0].type) {
+    if (needsSkillMigration(mon)) {
         mon.skills = generateSkills(mon.name, mon.rarity);
+    } else {
+        expandSkillsForRarity(mon);
     }
-    if (!mon.ultimate || !mon.ultimate.element) mon.ultimate = getSpeciesUltimate(mon.name);
+    syncUltimateFromSkills(mon);
     refreshMonDerivedStats(mon);
     if (mon.current_hp == null) mon.current_hp = mon.max_hp;
 }
@@ -1271,10 +1453,10 @@ function spendCost(cost) {
 }
 function formatCost(cost) {
     const parts = [];
-    if (cost.gold) parts.push(cost.gold + " Gold");
-    if (cost.essence) parts.push(cost.essence + " Essence");
-    if (cost.monShards) parts.push(cost.monShards + " Shards");
-    return parts.join(" + ") || "Free";
+    if (cost.gold) parts.push(currencyQty("gold", cost.gold, 14));
+    if (cost.essence) parts.push(currencyQty("essence", cost.essence, 14));
+    if (cost.monShards) parts.push(currencyQty("shards", cost.monShards, 14));
+    return parts.join(" ") || "Free";
 }
 
 // ===== Phase 3: Equipment & Ascension =====
@@ -1460,6 +1642,8 @@ function ascendMonRarity(index) {
     if (!confirm("Ascend " + mon.name + " from " + mon.rarity + " to " + next + "?\nCost: " + cost + " Mon Shards")) return;
     monShards -= cost;
     mon.rarity = next;
+    expandSkillsForRarity(mon);
+    syncUltimateFromSkills(mon);
     refreshMonDerivedStats(mon);
     mon.current_hp = mon.max_hp;
     saveData();
@@ -1475,12 +1659,19 @@ function returnAllGearToInventory(mon) {
         }
     });
 }
-function getMonXpState(mon, canAffordLevel, atCap) {
-    const xpNeeded = getXPForNextLevel(Math.floor(mon.level));
-    // XP bar fills when ready for manual level-up (has Gold + Essence); no battle XP.
-    const currentXP = (!atCap && canAffordLevel) ? xpNeeded : 0;
-    const progress = Math.min(100, Math.floor((currentXP / xpNeeded) * 100));
-    return { currentXP, xpNeeded, progress };
+function renderLevelUpBtn(index, mon, cost, atCap, cap) {
+    if (atCap) {
+        return `<button class="green" disabled style="opacity:0.6;">MAX LEVEL (${cap})</button>`;
+    }
+    const hasGold = money >= cost.gold;
+    const hasEssence = essence >= cost.essence;
+    const goldClass = hasGold ? "" : "cost-lack";
+    const essenceClass = hasEssence ? "" : "cost-lack";
+    const costLabel = `${currencyIcon("gold", 14)}<span class="${goldClass}">${cost.gold}</span> ${currencyIcon("essence", 14)}<span class="${essenceClass}">${cost.essence}</span>`;
+    if (hasGold && hasEssence) {
+        return `<button onclick="levelUpMonManual(${index})" class="green">LEVEL UP ${costLabel}</button>`;
+    }
+    return `<button class="green" disabled>LEVEL UP ${costLabel}</button>`;
 }
 
 function passiveBonus(fighter, key) {
@@ -1585,11 +1776,7 @@ if (party.length === 0) {
         const cap = getLevelCap(mon);
         const atCap = Math.floor(mon.level) >= cap;
         const cost = getLevelCost(mon);
-        const canAfford = money >= cost.gold && essence >= cost.essence;
-        const xpState = getMonXpState(mon, canAfford, atCap);
-        const levelBtn = atCap
-            ? `<button class="green" style="width:100%; margin-top:8px; border-radius:0px; opacity:0.6; cursor:not-allowed;" disabled>MAX LEVEL (${cap})</button>`
-            : `<button onclick="levelUpMonManual(${index})" class="green" style="width:100%; margin-top:8px; border-radius:0px; box-shadow:2px 2px 3px #16a34a; ${canAfford ? '' : 'opacity:0.7;'}">LEVEL UP &#129689;${cost.gold} &#10024;${cost.essence}</button>`;
+        const levelBtn = renderLevelUpBtn(index, mon, cost, atCap, cap);
 
         const card = document.createElement("div");
         card.className = "mon-card";
@@ -1606,19 +1793,14 @@ if (party.length === 0) {
     ${renderSkillsGrid(mon)}
     ${renderGearRow("party", index, mon)}
     <div class="mon-stats">
-        <div class="xp-bar">
-            <div class="xp-fill" style="width: ${xpState.progress}%;"></div>
-            <div class="xp-text">${xpState.currentXP} / ${xpState.xpNeeded} XP</div>
-        </div>
         <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
         <div class="stat-row"><span><strong>HP</strong></span><span>${Math.ceil(mon.current_hp)} / ${mon.max_hp}</span></div>
     </div>
     <div class="currently-text">Currently: ready for battle</div>
     <div class="mon-actions">
-        <button onclick="toBox(${index})">TO BOX</button>
-        <button onclick="releaseMon(${index})" class="red">RELEASE</button>
+        <button onclick="toBox(${index})">SWITCH</button>
+        ${levelBtn}
     </div>
-    ${levelBtn}
     ${renderAscendBtn(index, mon)}
 `;
         grid.appendChild(card);
@@ -1647,10 +1829,6 @@ function renderBox() {
     box.forEach((mon, i) => {
         ensureMonReady(mon);
         const cap = getLevelCap(mon);
-        const cost = getLevelCost(mon);
-        const canAfford = money >= cost.gold && essence >= cost.essence;
-        const atCap = Math.floor(mon.level) >= cap;
-        const xpState = getMonXpState(mon, canAfford, atCap);
 
         const card = document.createElement("div");
         card.className = "mon-card";
@@ -1666,10 +1844,6 @@ function renderBox() {
     ${renderSkillsGrid(mon)}
     ${renderGearRow("box", i, mon)}
     <div class="mon-stats">
-        <div class="xp-bar">
-            <div class="xp-fill" style="width: ${xpState.progress}%;"></div>
-            <div class="xp-text">${xpState.currentXP} / ${xpState.xpNeeded} XP</div>
-        </div>
         <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
         <div class="stat-row"><span><strong>HP</strong></span><span>${Math.ceil(mon.current_hp)} / ${mon.max_hp}</span></div>
     </div>
@@ -1752,16 +1926,6 @@ function toBox(index) {
     updateUI();
 }
 
-
-function releaseMon(index) {
-    showConfirmModal("Are you sure you want to release this monanimal?", () => {
-        returnAllGearToInventory(party[index]);
-        party.splice(index, 1);
-        saveData();
-        updateUI();
-    });
-}
-
 function withdrawFromBox(index) {
     if (party.length >= 3) { alert("Party is full!"); return; }
     const mon = box.splice(index, 1)[0];
@@ -1770,6 +1934,7 @@ function withdrawFromBox(index) {
     updateUI();
     renderBox();
 }
+
 function showConfirmModal(message, onConfirm) {
     const modal = document.createElement("div");
     modal.style.cssText = `
@@ -1855,11 +2020,12 @@ function attemptCatch() {
 
     if (caught) {
         const maxHP = getMaxHP(1, rarity);
+        const skills = generateSkills(name, rarity);
         const newMon = { 
             name, rarity, level: 1, max_hp: maxHP, current_hp: maxHP,
             stats: generateStats(rarity),
-            skills: generateSkills(name, rarity),
-            ultimate: getSpeciesUltimate(name)
+            skills,
+            ultimate: { ...skills[0] }
         };
 
         if (party.length >= 3) {
@@ -2183,7 +2349,7 @@ function makeEnemyTeam(playerParty, stage) {
             mon.stats.spd += 10;
         }
         mon.skills = generateSkills(name, rarity);
-        mon.ultimate = getSpeciesUltimate(name);
+        mon.ultimate = { ...mon.skills[0] };
         team.push(makeFighter(mon, false));
     }
     return team;
@@ -2517,9 +2683,9 @@ function showBattleResult(win, reward) {
     const content = document.getElementById("battle-content");
     const drops = win
         ? `<div style="margin:18px 0; font-size:15px;">
-               <div>&#129689; Gold <b>+${reward.gold}</b></div>
-               <div>&#10024; Essence <b>+${reward.essence}</b></div>
-               ${reward.shards > 0 ? `<div>&#128311; Mon Shards <b>+${reward.shards}</b></div>` : ''}
+               <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("gold", 20)} <b>+${reward.gold}</b></div>
+               <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("essence", 20)} <b>+${reward.essence}</b></div>
+               ${reward.shards > 0 ? `<div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("shards", 20)} <b>+${reward.shards}</b></div>` : ""}
                ${reward.gear ? `<div>&#9876;&#65039; Gear: <b style="color:${GEAR_TIERS[reward.gear.tier].color}">${reward.gear.name}</b></div>` : ''}
                <div>&#11088; Trainer XP <b>+${reward.trainerXp}</b></div>
                <div style="margin-top:8px; color:#666; font-size:13px;">Materials added to your Inventory.</div>
@@ -2541,9 +2707,9 @@ function renderInventory() {
     grid.innerHTML = "";
 
     const materials = [
-        { icon: "\uD83E\uDE99", name: "Gold",       count: money },
-        { icon: "\u2728",       name: "Essence",    count: essence },
-        { icon: "\uD83D\uDD37", name: "Mon Shards", count: monShards },
+        { key: "gold", count: money },
+        { key: "essence", count: essence },
+        { key: "shards", count: monShards },
     ];
 
     for (let i = 0; i < 40; i++) {
@@ -2565,9 +2731,10 @@ function renderInventory() {
         `;
         if (i < materials.length) {
             const m = materials[i];
-            slot.title = m.name + ": " + m.count;
+            const info = GAME_ICONS[m.key];
+            slot.title = info.name + ": " + m.count;
             slot.innerHTML = `
-                <span style="font-size: 30px;">${m.icon}</span>
+                <img src="${info.src}" alt="" style="width:30px;height:30px;image-rendering:pixelated;">
                 <span style="position:absolute; bottom:2px; right:4px; font-size:12px; font-weight:bold; color:#111; background:rgba(255,255,255,0.85); padding:0 2px; border-radius:3px;">${m.count}</span>
             `;
         } else if (i - 3 < gearInventory.length) {
