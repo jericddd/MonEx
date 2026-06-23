@@ -1281,6 +1281,15 @@ function getSpritePath(name) {
     return `128x128/${name.toLowerCase()}.png`;
 }
 
+function getRarityRank(rarity) {
+    const i = RARITY_ORDER.indexOf(rarity);
+    return i >= 0 ? i : -1;
+}
+
+function sortBoxByRarity() {
+    box.sort((a, b) => getRarityRank(b.rarity) - getRarityRank(a.rarity));
+}
+
 function getRarityRoll() {
     const roll = Math.random() * 100;
     if (roll < 0.1) return "Mythic";
@@ -1872,6 +1881,7 @@ async function loadData() {
         xHandle = data.xHandle || xHandle || "";
 
         [...party, ...box].forEach(ensureMonReady);
+        sortBoxByRarity();
     } else {
         party = [];
         box = [];
@@ -1961,6 +1971,7 @@ function renderBox() {
     const content = document.getElementById("box-content");
     const capLabel = document.getElementById("box-capacity-label");
     if (capLabel) capLabel.textContent = `Box: ${box.length} / ${BOX_MAX}`;
+    sortBoxByRarity();
     content.innerHTML = "";
     content.style.display = "grid";
     content.style.gridTemplateColumns = "repeat(5, 1fr)";
