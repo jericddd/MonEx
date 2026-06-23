@@ -2,3 +2,5 @@ node_modules/
 .env
 data/state.json
 data/activity.json
+data/saves.json
+data/sessions.json

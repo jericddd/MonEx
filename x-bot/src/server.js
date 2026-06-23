@@ -20,6 +20,13 @@ import {
   resolveBotUser,
   fetchMentions,
 } from "./x-client.js";
+import {
+  devAuthAllowed,
+  createDevSession,
+  deleteSession,
+  requireSession,
+} from "./local-auth.js";
+import { loadCloudSave, writeCloudSave, buildSavePayload } from "./local-save.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WORKSPACE_ROOT = path.join(__dirname, "..", "..");
@@ -35,8 +42,8 @@ app.use(express.json());
 
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
@@ -105,8 +112,62 @@ app.get("/api/health", (req, res) => {
     service: "monex-x-activity",
     xPoll: ENABLE_X_POLL,
     xKeys: hasXKeys,
+    devAuth: devAuthAllowed(),
     bot: BOT_USERNAME,
   });
+});
+
+app.post("/api/auth/dev", (req, res) => {
+  if (!devAuthAllowed()) {
+    return res.status(403).json({ ok: false, error: "dev auth disabled" });
+  }
+  const username = (req.body?.username || "").trim();
+  if (!username) return res.status(400).json({ ok: false, error: "username required" });
+  const { token, session } = createDevSession(username);
+  res.json({
+    ok: true,
+    token,
+    user: { xUserId: session.xUserId, username: session.username, name: session.name },
+  });
+});
+
+app.get("/api/auth/me", (req, res) => {
+  const auth = requireSession(req);
+  if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error });
+  res.json({
+    ok: true,
+    user: {
+      xUserId: auth.session.xUserId,
+      username: auth.session.username,
+      name: auth.session.name,
+    },
+  });
+});
+
+app.post("/api/auth/logout", (req, res) => {
+  const auth = requireSession(req);
+  if (auth.ok) deleteSession(auth.token);
+  res.json({ ok: true });
+});
+
+app.get("/api/save", (req, res) => {
+  const auth = requireSession(req);
+  if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error });
+  const { found, save } = loadCloudSave(auth.session.xUserId);
+  res.json({
+    ok: true,
+    found,
+    save,
+    user: { username: auth.session.username, xUserId: auth.session.xUserId },
+  });
+});
+
+app.put("/api/save", (req, res) => {
+  const auth = requireSession(req);
+  if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error });
+  const payload = buildSavePayload(req.body?.save || req.body, auth.session);
+  writeCloudSave(auth.session.xUserId, payload);
+  res.json({ ok: true, savedAt: payload.updatedAt });
 });
 
 /** Pending wild mons waiting to claim in game */
@@ -129,7 +190,9 @@ app.get("/api/pending", (req, res) => {
 
 /** Auto-sync pending mons → party/box slots (no claim button) */
 app.post("/api/sync", (req, res) => {
-  const username = (req.body?.username || "").trim();
+  let username = (req.body?.username || "").trim();
+  const auth = requireSession(req);
+  if (auth.ok) username = auth.session.username;
   if (!username) {
     return res.status(400).json({ ok: false, error: "username required" });
   }
@@ -146,7 +209,6 @@ app.post("/api/sync", (req, res) => {
     added: party.length + box.length,
     remaining,
   });
-});
 });
 
 app.use(express.static(WORKSPACE_ROOT));

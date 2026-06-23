@@ -1094,8 +1094,11 @@ button,
     <div id="content-profile" class="tab-content">
         <div class="profile-panel">
             <h2 style="color:#6B21A8; text-align:center; margin-top:0;">TRAINER PROFILE</h2>
-            <p style="text-align:center; color:#666; font-size:13px;">Link your X handle to see your wild catch log from @monexmonad on X.</p>
-            <div class="profile-x-row">
+            <p style="text-align:center; color:#666; font-size:13px;">Your X account is linked on login. Wild catches from @monexmonad auto-sync to Party/Box.</p>
+            <div class="profile-x-row" id="profile-x-linked" style="display:none;">
+                <span id="x-handle-display" style="font-weight:bold; color:#6B21A8;"></span>
+            </div>
+            <div class="profile-x-row" id="profile-x-manual">
                 <input id="x-handle-input" type="text" placeholder="X username (e.g. jeric)" maxlength="40">
                 <button type="button" onclick="saveXHandle()">SAVE</button>
             </div>
@@ -1114,6 +1117,7 @@ button,
 
 <script src="js/monex-config.js"></script>
 <script src="js/activity-client.js"></script>
+<script src="js/auth-client.js"></script>
 <script>
 // =====================================================
 // MONEX - CLEAN ORGANIZED STRUCTURE
@@ -1239,6 +1243,7 @@ let highestStageCleared = 0;
 let lastResetDate = null;
 let isInAdventureBattle = false;
 let xHandle = "";
+let currentStage = 1;
 let profileActivityTimer = null;
 
 const SHOP_ITEMS = [
@@ -1822,27 +1827,45 @@ function checkDailyReset() {
 
 function saveData() {
     if (!currentUser) return;
-    localStorage.setItem("monex_" + currentUser, JSON.stringify({
-        party, box, monballs, money, essence, monShards, trainerXp, highestStageCleared, gearInventory, lastResetDate, xHandle
-    }));
+    const payload = {
+        party, box, monballs, money, essence, monShards, trainerXp, highestStageCleared, currentStage, gearInventory, lastResetDate, xHandle
+    };
+    localStorage.setItem("monex_" + currentUser, JSON.stringify(payload));
+    if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+        MonExAuth.scheduleCloudSave(payload);
+    }
 }
 
-function loadData() {
+async function loadData() {
     if (!currentUser) return;
-    const saved = localStorage.getItem("monex_" + currentUser);
-    if (saved) {
-        const data = JSON.parse(saved);
+    let data = null;
+
+    if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+        try {
+            const cloud = await MonExAuth.loadCloudSave();
+            if (cloud?.save) data = cloud.save;
+            if (MonExAuth.getUsername()) xHandle = MonExAuth.getUsername();
+        } catch (_) {}
+    }
+
+    if (!data) {
+        const saved = localStorage.getItem("monex_" + currentUser);
+        if (saved) data = JSON.parse(saved);
+    }
+
+    if (data) {
         party = data.party || [];
         box = data.box || [];
-        monballs = data.monballs || 15;
-        money = data.money || 5000;
-        essence = data.essence || 0;
-        monShards = data.monShards || 0;
-        trainerXp = data.trainerXp || 0;
-        highestStageCleared = data.highestStageCleared || 0;
+        monballs = data.monballs ?? 15;
+        money = data.money ?? 5000;
+        essence = data.essence ?? 0;
+        monShards = data.monShards ?? 0;
+        trainerXp = data.trainerXp ?? 0;
+        highestStageCleared = data.highestStageCleared ?? 0;
+        currentStage = data.currentStage ?? 1;
         gearInventory = data.gearInventory || [];
         lastResetDate = data.lastResetDate || null;
-        xHandle = data.xHandle || "";
+        xHandle = data.xHandle || xHandle || "";
 
         [...party, ...box].forEach(ensureMonReady);
     } else {
@@ -1854,9 +1877,10 @@ function loadData() {
         monShards = 0;
         trainerXp = 0;
         highestStageCleared = 0;
+        currentStage = 1;
         gearInventory = [];
         lastResetDate = null;
-        xHandle = "";
+        if (!xHandle && MonExAuth?.getUsername()) xHandle = MonExAuth.getUsername();
         saveData();
     }
     checkDailyReset();
@@ -1865,7 +1889,7 @@ function loadData() {
 
 // ==================== UI RENDER ====================
 function updateUI() {
-    document.getElementById("trainer-name").innerText = currentUser || "Trainer";
+    document.getElementById("trainer-name").innerText = currentUser ? "@" + currentUser.replace(/^@/, "") : "Trainer";
     document.getElementById("monball-count").innerText = monballs;
     document.getElementById("gold-count").innerText = money;
     document.getElementById("essence-count").innerText = essence;
@@ -2100,8 +2124,23 @@ async function syncXWildMons(silent) {
 }
 
 function renderProfile() {
-    const input = document.getElementById("x-handle-input");
-    if (input) input.value = xHandle ? "@" + xHandle : "";
+    const linked = document.getElementById("profile-x-linked");
+    const manual = document.getElementById("profile-x-manual");
+    const display = document.getElementById("x-handle-display");
+    const sessionHandle = (typeof MonExAuth !== "undefined" && MonExAuth.getUsername()) || xHandle;
+
+    if (sessionHandle && MonExAuth?.isLoggedIn()) {
+        xHandle = sessionHandle;
+        if (linked) linked.style.display = "flex";
+        if (manual) manual.style.display = "none";
+        if (display) display.textContent = "@" + sessionHandle;
+    } else {
+        if (linked) linked.style.display = "none";
+        if (manual) manual.style.display = "flex";
+        const input = document.getElementById("x-handle-input");
+        if (input) input.value = xHandle ? "@" + xHandle : "";
+    }
+
     syncXWildMons(true);
     refreshProfileActivity();
     if (profileActivityTimer) clearInterval(profileActivityTimer);
@@ -2267,20 +2306,31 @@ function attemptCatch() {
 
 // ==================== AUTH & INIT ====================
 
-function logout() {
-    localStorage.removeItem("monex_current_user");
-    window.location.href = 'home.html';     // Force stay on home page
+async function logout() {
+    if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+        try {
+            await MonExAuth.flushCloudSave({
+                party, box, monballs, money, essence, monShards, trainerXp,
+                highestStageCleared, currentStage, gearInventory, lastResetDate, xHandle
+            });
+        } catch (_) {}
+        await MonExAuth.logout();
+    }
+    window.location.href = 'home.html';
 }
 
-function checkLogin() {
-    const savedUser = localStorage.getItem("monex_current_user");
-    if (savedUser) {
-        currentUser = savedUser;
-        loadData();
+async function checkLogin() {
+    if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
+        window.location.href = 'home.html';
+        return;
+    }
+    try {
+        const user = await MonExAuth.ensureUser();
+        currentUser = user?.username || MonExAuth.getDisplayName();
+        await loadData();
         syncXWildMons(true);
         switchTab('party');
-    } else {
-        // If no user, redirect to home page instead of showing modal
+    } catch (_) {
         window.location.href = 'home.html';
     }
 }
@@ -2378,21 +2428,20 @@ document.addEventListener("keydown", function(e) {
     }
 });
 
-window.onload = function() {
-    checkLogin();
+window.onload = async function() {
+    await checkLogin();
     if (location.hash === "#profile") switchTab("profile");
 };
 // ==================== ADVENTURE MODE ====================
-let currentStage = 1;
 
 function loadAdventureProgress() {
-    const saved = localStorage.getItem("monex_current_stage");
-    if (saved) currentStage = parseInt(saved);
-    if (highestStageCleared < currentStage - 1) highestStageCleared = Math.max(0, currentStage - 1);
+    if (highestStageCleared < currentStage - 1) {
+        highestStageCleared = Math.max(0, currentStage - 1);
+    }
 }
 
 function saveAdventureProgress() {
-    localStorage.setItem("monex_current_stage", currentStage);
+    saveData();
 }
 
 function enterAdventureMode() {

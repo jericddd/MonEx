@@ -11,6 +11,10 @@ id = "REPLACE_WITH_KV_ID"
 BOT_USERNAME = "monexmonad"
 STARTING_MONBALLS = "10"
 ENABLE_X_POLL = "0"
+ENABLE_DEV_AUTH = "1"
+# After deploy, set secrets: X_CLIENT_ID, X_CLIENT_SECRET
+# Optional vars: FRONTEND_ORIGIN, X_REDIRECT_URI, WORKER_ORIGIN
+# FRONTEND_ORIGIN = "https://jericddd.github.io/MonEx"
 
 # Optional: live X mentions every 2 minutes (set ENABLE_X_POLL=1 + API secrets)
 [triggers]

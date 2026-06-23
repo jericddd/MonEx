@@ -33,26 +33,42 @@ npx wrangler kv namespace create MONEX_KV</pre>
     </div>
 
     <div class="step">
-        <h2>3. Set API URL in game</h2>
+        <h2>3. X login + cloud save (optional)</h2>
+        <p>For real X login on any device, set Worker secrets:</p>
+        <pre>npx wrangler secret put X_CLIENT_ID
+npx wrangler secret put X_CLIENT_SECRET</pre>
+        <p>In X Developer Portal → your app → OAuth 2.0:</p>
+        <ul>
+            <li>Callback URL: <code>https://monex-api.YOURNAME.workers.dev/api/auth/callback</code></li>
+            <li>Website URL: your GitHub Pages site</li>
+        </ul>
+        <p>Set in <code>wrangler.toml</code> vars:</p>
+        <pre>FRONTEND_ORIGIN = "https://jericddd.github.io/MonEx"</pre>
+        <p>Until OAuth is set up, dev login works: enter your @handle on the login button.</p>
+    </div>
+
+    <div class="step">
+        <h2>4. Set API URL in game</h2>
         <p>Edit <code>js/monex-config.js</code>:</p>
         <pre>window.MONEX_API = "https://monex-api.YOURNAME.workers.dev";</pre>
     </div>
 
     <div class="step">
-        <h2>4. GitHub Pages (free site)</h2>
+        <h2>5. GitHub Pages (free site)</h2>
         <p>Repo → Settings → Pages → branch <code>main</code> → folder <code>/ (root)</code></p>
         <p>Site: <code>https://jericddd.github.io/MonEx/home.html</code></p>
     </div>
 
     <div class="step">
-        <h2>5. Delete Railway</h2>
+        <h2>6. Delete Railway</h2>
         <p>Save ~$5/month — pause or delete the MonEx service on Railway.</p>
     </div>
 
     <div class="step">
         <h2>Test (PowerShell)</h2>
         <pre>Invoke-RestMethod -Uri "https://monex-api.YOURNAME.workers.dev/api/simulate-mention" -Method POST -ContentType "application/json" -Body '{"text":"@monexmonad catch 10 monanimals","username":"jeric"}'</pre>
-        <p>Game → Profile → save <code>jeric</code> → check Party/Box.</p>
+        <p>Home → Login with X (or dev @handle) → Play. Progress saves to Cloudflare automatically.</p>
+        <p>Test catch: simulate mention, then open game — mons auto-sync to Party/Box.</p>
     </div>
 
     <p><a href="../home.html">← Back to Home</a></p>
