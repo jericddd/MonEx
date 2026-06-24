@@ -11,6 +11,7 @@
     --purple-light: #A855F7;
     --game-max-width: 1400px;
     --game-side-pad: 30px;
+    --monad-purple: #200052;
 }
 
 body {
@@ -555,7 +556,7 @@ button.green:hover {
 }
 
 /* Hover symbol */
-button:hover::before,
+button:not(.side-icon-btn):hover::before,
 .tab-btn:hover::before,
 .mon-actions button:hover::before {
     content: "▸";
@@ -1245,33 +1246,57 @@ body.afk-layout .currency-pill .currency-tip {
     pointer-events: auto;
 }
 .side-icon-btn {
-    width: 52px;
-    height: 52px;
+    width: 56px;
+    height: 56px;
     border: none;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.82);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
     position: relative;
-    transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+    transition: transform 0.15s ease;
+}
+.side-icon-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='translate(32 32) rotate(45) translate(-32 -32)'%3E%3Cpath fill='rgba(255%2C255%2C255%2C0.94)' fill-rule='evenodd' d='M12 4h40a8 8 0 0 1 8 8v40a8 8 0 0 1-8 8H12a8 8 0 0 1-8-8V12a8 8 0 0 1 8-8zm10 14h20a6 6 0 0 1 6 6v20a6 6 0 0 1-6 6H22a6 6 0 0 1-6-6V24a6 6 0 0 1 6-6z'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    filter: drop-shadow(0 4px 14px rgba(32, 0, 82, 0.32));
+    transition: filter 0.15s ease, transform 0.15s ease;
+    z-index: 0;
+    pointer-events: none;
 }
 .side-icon-btn:hover {
-    background: rgba(255, 255, 255, 0.96);
-    transform: scale(1.07) translateY(-2px);
-    box-shadow: 0 8px 22px rgba(107, 33, 168, 0.28), inset 0 1px 0 rgba(255, 255, 255, 1);
+    transform: scale(1.06) translateY(-2px);
+    background: transparent;
+    box-shadow: none;
+}
+.side-icon-btn:hover::after {
+    filter: drop-shadow(0 6px 18px rgba(124, 58, 237, 0.48));
+    transform: scale(1.04);
 }
 .side-icon-btn:hover::before { display: none !important; }
 .side-icon-btn img {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     image-rendering: pixelated;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
+    position: relative;
+    z-index: 1;
+}
+.side-icon-btn > span:not(.rail-tip) {
+    position: relative;
+    z-index: 1;
+    line-height: 1;
+}
+.side-icon-emoji {
+    font-size: 22px;
 }
 .side-icon-btn .rail-tip {
     display: none;
@@ -1298,9 +1323,13 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .side-icon-btn:hover .rail-tip { display: block; }
 .side-icon-btn.active {
-    background: rgba(255, 255, 255, 0.98);
-    box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.75), 0 8px 20px rgba(107, 33, 168, 0.3);
     transform: scale(1.04);
+    background: transparent;
+    box-shadow: none;
+}
+.side-icon-btn.active::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='translate(32 32) rotate(45) translate(-32 -32)'%3E%3Cpath fill='rgba(255%2C255%2C255%2C0.98)' fill-rule='evenodd' d='M12 4h40a8 8 0 0 1 8 8v40a8 8 0 0 1-8 8H12a8 8 0 0 1-8-8V12a8 8 0 0 1 8-8zm10 14h20a6 6 0 0 1 6 6v20a6 6 0 0 1-6 6H22a6 6 0 0 1-6-6V24a6 6 0 0 1 6-6z'/%3E%3C/g%3E%3C/svg%3E");
+    filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.75)) drop-shadow(0 4px 14px rgba(32, 0, 82, 0.4));
 }
 
 .battle-scene {
@@ -1553,7 +1582,7 @@ body.afk-layout .currency-pill .currency-tip {
             <span class="rail-tip">SHOP</span>
         </button>
         <button type="button" class="side-icon-btn" onclick="goToProfile()">
-            <span style="font-size:22px; line-height:1;">👤</span>
+            <span class="side-icon-emoji">👤</span>
             <span class="rail-tip">PROFILE</span>
         </button>
     </nav>
@@ -1568,7 +1597,7 @@ body.afk-layout .currency-pill .currency-tip {
             <span class="rail-tip">BOX</span>
         </button>
         <button type="button" class="side-icon-btn" id="rail-inventory" onclick="openGameModal('inventory')">
-            <span style="font-size:20px;">🎒</span>
+            <span class="side-icon-emoji">🎒</span>
             <span class="rail-tip">INVENTORY</span>
         </button>
         <button type="button" class="side-icon-btn" id="rail-battle" onclick="openBattleScene()">
