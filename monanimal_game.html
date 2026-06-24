@@ -1391,6 +1391,70 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .battle-back-btn:hover { background: #fff; color: #6b21a8; }
 .battle-back-btn:hover::before { display: none !important; }
+.battle-pause-btn {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    z-index: 3;
+    display: none;
+    margin: 0;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #4c1d95;
+    box-shadow: 0 4px 14px rgba(32, 0, 82, 0.28);
+    cursor: pointer;
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 8px;
+}
+.battle-pause-btn:hover { background: #fff; color: #6b21a8; }
+.battle-pause-btn:hover::before { display: none !important; }
+.battle-pause-menu {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 12;
+    background: rgba(15, 6, 24, 0.62);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+.battle-pause-menu.open { display: flex; }
+.battle-pause-panel {
+    background: rgba(255, 255, 255, 0.96);
+    border: 4px solid #6B21A8;
+    box-shadow: 6px 6px 0 #6B21A8;
+    padding: 28px 32px;
+    text-align: center;
+    min-width: 260px;
+}
+.battle-pause-panel h3 {
+    margin: 0 0 20px;
+    color: #6B21A8;
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 11px;
+}
+.battle-pause-panel button {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 14px 20px;
+    border: none;
+    cursor: pointer;
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 8px;
+}
+.battle-pause-continue {
+    background: #6B21A8;
+    color: #fff;
+}
+.battle-pause-leave {
+    background: #ef4444;
+    color: #fff;
+}
+.battle-pause-panel button:hover::before { display: none !important; }
 .battle-scene-ui {
     position: relative;
     z-index: 1;
@@ -1642,7 +1706,15 @@ body.afk-layout .currency-pill .currency-tip {
     <div id="battle-scene" class="battle-scene">
         <div class="battle-scene-frame">
             <img id="battle-scene-bg" class="battle-scene-bg" alt="">
-            <button type="button" class="battle-back-btn" onclick="requestLeaveBattle()">← BACK</button>
+            <button type="button" class="battle-back-btn" id="battle-back-btn" onclick="requestLeaveBattle()">← BACK</button>
+            <button type="button" class="battle-pause-btn" id="battle-pause-btn" onclick="openBattlePauseMenu()">⏸ PAUSE</button>
+            <div id="battle-pause-menu" class="battle-pause-menu">
+                <div class="battle-pause-panel">
+                    <h3>PAUSED</h3>
+                    <button type="button" class="battle-pause-leave" onclick="pauseMenuLeave()">LEAVE NOW</button>
+                    <button type="button" class="battle-pause-continue" onclick="continueFromPause()">CONTINUE</button>
+                </div>
+            </div>
             <div id="battle-content" class="battle-scene-ui"></div>
         </div>
     </div>
@@ -1910,6 +1982,11 @@ let lastResetDate = null;
 let isInAdventureBattle = false;
 let adventureBattleToken = 0;
 let adventureForfeitNotice = false;
+let battlePaused = false;
+let pendingBattleLeaveTab = "main";
+let battleScreen = "main";
+const BATTLE_BG_MENU = "for%20result%20banner/battlebackground.jpg";
+const BATTLE_BG_MAP = "for%20result%20banner/map1.gif";
 let sceneEnemySeed = 0;
 const WILD_SCENE_MOBS = ["Chog", "Moyaki", "Spidermon", "Shramp", "Salmonad", "Mouch", "Larvanad", "Anago"];
 let xHandle = "";
@@ -2532,6 +2609,7 @@ function applyAdventureForfeit() {
     adventureBattleToken++;
     isInAdventureBattle = false;
     clearAdventureBattleSession();
+    setBattleFightingUI(false);
     restorePartyFullHp();
     saveData();
     updateUI();
@@ -3168,6 +3246,9 @@ function readCachedUserFallback() {
 // ==================== AFK NAVIGATION ====================
 function showMainScene() {
     closeAllModals();
+    setAdventureMode(false);
+    setBattleSceneBackground("");
+    battleScreen = "main";
     document.getElementById("main-scene").style.display = "flex";
     document.getElementById("battle-scene").classList.remove("open");
     document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
@@ -3180,7 +3261,8 @@ function closeAllModals() {
 
 function openGameModal(name) {
     if (isInAdventureBattle) {
-        showBattleLeaveWarning(name);
+        pendingBattleLeaveTab = name;
+        openBattlePauseMenu();
         return;
     }
     closeAllModals();
@@ -3232,45 +3314,30 @@ function enterAdventureFullMode(bgUrl) {
 function renderBattleMenu() {
     const content = document.getElementById("battle-content");
     if (!content) return;
+    battleScreen = "menu";
+    content.className = "battle-scene-ui";
     content.innerHTML = `
-        <div style="
-            width: 100%;
-            min-height: 480px;
-            background-image: url('for%20result%20banner/battlebackground.jpg');
-            background-size: cover;
-            background-position: center;
-            position: relative;
-            border: 4px solid #6B21A8;
-            box-shadow: 4px 4px 0px #6B21A8;
-        ">
-            <div style="
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                display: flex;
-                flex-direction: column;
-                gap: 18px;
-                align-items: center;
-            ">
+        <div class="adventure-panel">
+            <h2>BATTLE</h2>
+            <div style="display:flex; flex-direction:column; gap:18px; align-items:center; width:100%;">
                 <button onclick="enterAdventureMode()"
                     style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
-                           background: white; color: #6B21A8; border: 4px solid #6B21A8;">
+                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
                     ADVENTURE
                 </button>
                 <button onclick="alert('Arena coming soon!')"
                     style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
-                           background: white; color: #6B21A8; border: 4px solid #6B21A8;">
+                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
                     ARENA
                 </button>
                 <button onclick="alert('PVP Wager coming soon!')"
                     style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
-                           background: white; color: #6B21A8; border: 4px solid #6B21A8;">
+                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
                     PVP WAGER
                 </button>
                 <button onclick="alert('Training coming soon!')"
                     style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
-                           background: white; color: #6B21A8; border: 4px solid #6B21A8;">
+                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
                     TRAINING
                 </button>
             </div>
@@ -3281,8 +3348,7 @@ function renderBattleMenu() {
 function openBattleScene() {
     if (isInAdventureBattle) return;
     closeAllModals();
-    setAdventureMode(false);
-    setBattleSceneBackground("");
+    enterAdventureFullMode(BATTLE_BG_MENU);
     document.getElementById("main-scene").style.display = "none";
     document.getElementById("battle-scene").classList.add("open");
     document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
@@ -3292,15 +3358,71 @@ function openBattleScene() {
 
 function requestLeaveBattle() {
     if (isInAdventureBattle) {
-        showBattleLeaveWarning("main");
+        pendingBattleLeaveTab = "main";
+        openBattlePauseMenu();
+        return;
+    }
+    if (battleScreen === "chapter") {
+        enterAdventureMode();
+        return;
+    }
+    if (battleScreen === "adventure") {
+        enterAdventureFullMode(BATTLE_BG_MENU);
+        renderBattleMenu();
+        return;
+    }
+    if (battleScreen === "result") {
+        enterAdventureMode();
         return;
     }
     closeBattleScene();
 }
 
+function setBattleFightingUI(fighting) {
+    const backBtn = document.getElementById("battle-back-btn");
+    const pauseBtn = document.getElementById("battle-pause-btn");
+    if (backBtn) backBtn.style.display = fighting ? "none" : "";
+    if (pauseBtn) pauseBtn.style.display = fighting ? "" : "none";
+    if (!fighting) closeBattlePauseMenu();
+}
+
+function openBattlePauseMenu() {
+    if (!isInAdventureBattle) return;
+    battlePaused = true;
+    document.getElementById("battle-pause-menu")?.classList.add("open");
+}
+
+function closeBattlePauseMenu() {
+    battlePaused = false;
+    document.getElementById("battle-pause-menu")?.classList.remove("open");
+}
+
+function continueFromPause() {
+    closeBattlePauseMenu();
+}
+
+function pauseMenuLeave() {
+    document.getElementById("battle-pause-menu")?.classList.remove("open");
+    battlePaused = true;
+    showBattleLeaveWarning(pendingBattleLeaveTab || "main");
+}
+
+function stayInBattleFromWarning() {
+    document.querySelectorAll('div[style*="z-index: 500"]').forEach(m => m.remove());
+    openBattlePauseMenu();
+}
+
+async function waitWhilePaused(battleToken) {
+    while (battlePaused && battleToken === adventureBattleToken && isInAdventureBattle) {
+        await delay(100);
+    }
+}
+
 function closeBattleScene() {
+    setBattleFightingUI(false);
     setAdventureMode(false);
     setBattleSceneBackground("");
+    battleScreen = "main";
     document.getElementById("battle-scene").classList.remove("open");
     document.getElementById("main-scene").style.display = "flex";
     document.getElementById("rail-battle")?.classList.remove("active");
@@ -3350,7 +3472,8 @@ function saveAdventureProgress() {
 
 function enterAdventureMode() {
     loadAdventureProgress();
-    enterAdventureFullMode("for%20result%20banner/map1.gif");
+    battleScreen = "adventure";
+    enterAdventureFullMode(BATTLE_BG_MAP);
 
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui";
@@ -3367,6 +3490,8 @@ function enterAdventureMode() {
 
 function startStageSelection() {
     const boss = isBossStage(currentStage);
+    battleScreen = "chapter";
+    setBattleSceneBackground(BATTLE_BG_MAP);
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui";
     content.innerHTML = `
@@ -3519,13 +3644,15 @@ function makeEnemyTeam(playerParty, stage) {
 function start3v3Battle(playerParty) {
     adventureBattleToken++;
     isInAdventureBattle = true;
+    battleScreen = "fight";
     markAdventureBattleSession();
     saveData();
     setAdventureMode(true);
-    setBattleSceneBackground("for%20result%20banner/battlebackground.jpg");
+    setBattleSceneBackground(BATTLE_BG_MENU);
     const playerTeam = playerParty.slice(0, 3).map(m => makeFighter(m, true));
     const enemyTeam = makeEnemyTeam(playerParty, currentStage);
     renderBattleScene();
+    setBattleFightingUI(true);
     runBattle(playerTeam, enemyTeam, adventureBattleToken);
 }
 
@@ -3679,7 +3806,9 @@ async function slideIn(side) {
 
 function clearStatuses(f) { f.status = []; }
 
-async function takeTurn(atk, def, atkSide, defSide) {
+async function takeTurn(atk, def, atkSide, defSide, battleToken) {
+    await waitWhilePaused(battleToken);
+
     // Start-of-turn regeneration passive
     const regenP = atk.skills.find(s => s.regen);
     if (regenP && atk.hp > 0) {
@@ -3770,6 +3899,8 @@ async function runBattle(player, enemy, battleToken) {
     let guard = 0;
     while (guard++ < 500) {
         if (battleToken !== adventureBattleToken || !isInAdventureBattle) return;
+        await waitWhilePaused(battleToken);
+        if (battleToken !== adventureBattleToken || !isInAdventureBattle) return;
 
         const P = player[pi], E = enemy[ei];
         const seq = P.stats.spd >= E.stats.spd
@@ -3781,7 +3912,7 @@ async function runBattle(player, enemy, battleToken) {
             const atk = atkSide === "player" ? P : E;
             const def = defSide === "player" ? P : E;
             if (atk.hp <= 0 || def.hp <= 0) continue;
-            await takeTurn(atk, def, atkSide, defSide);
+            await takeTurn(atk, def, atkSide, defSide, battleToken);
             if (battleToken !== adventureBattleToken || !isInAdventureBattle) return;
             if (def.hp <= 0) break;
         }
@@ -3815,6 +3946,7 @@ async function runBattle(player, enemy, battleToken) {
 }
 
 function endBattle(win, player) {
+    setBattleFightingUI(false);
     isInAdventureBattle = false;
     clearAdventureBattleSession();
 
@@ -3852,6 +3984,8 @@ function endBattle(win, player) {
 }
 
 function showBattleResult(win, reward) {
+    battleScreen = "result";
+    setBattleSceneBackground(BATTLE_BG_MAP);
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui";
     const drops = win
@@ -3947,7 +4081,7 @@ function showBattleLeaveWarning(targetTab) {
                         style="padding:12px 28px; background:#ef4444; color:white; border:none; cursor:pointer;">
                     Yes, Leave (Lose)
                 </button>
-                <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+                <button onclick="stayInBattleFromWarning()" 
                         style="padding:12px 28px; background:#6B21A8; color:white; border:none; cursor:pointer;">
                     No, Stay in Battle
                 </button>
@@ -3959,6 +4093,7 @@ function showBattleLeaveWarning(targetTab) {
 
 function confirmLeaveBattle(targetTab) {
     document.querySelectorAll('div[style*="z-index: 500"]').forEach(m => m.remove());
+    closeBattlePauseMenu();
     const wasInBattle = isInAdventureBattle;
     forfeitAdventureBattle({ showResult: wasInBattle });
 
