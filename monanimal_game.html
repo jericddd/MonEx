@@ -1395,7 +1395,7 @@ body.afk-layout .currency-pill .currency-tip {
     position: absolute;
     top: 14px;
     left: 14px;
-    z-index: 3;
+    z-index: 20;
     display: none;
     margin: 0;
     padding: 10px 16px;
@@ -1491,6 +1491,19 @@ body.afk-layout .currency-pill .currency-tip {
 #battle-content .battle-stage {
     width: 100%;
     min-height: calc(100vh - 220px);
+}
+.game-container.adventure-mode .battle-scene-ui--fight {
+    padding: 52px 0 0;
+    align-items: stretch;
+    justify-content: stretch;
+}
+.game-container.adventure-mode .battle-scene-ui--fight .battle-stage {
+    flex: 1;
+    min-height: calc(100vh - 130px);
+    height: auto;
+    border: none;
+    box-shadow: none;
+    background: transparent;
 }
 
 .game-modal {
@@ -3381,8 +3394,8 @@ function requestLeaveBattle() {
 function setBattleFightingUI(fighting) {
     const backBtn = document.getElementById("battle-back-btn");
     const pauseBtn = document.getElementById("battle-pause-btn");
-    if (backBtn) backBtn.style.display = fighting ? "none" : "";
-    if (pauseBtn) pauseBtn.style.display = fighting ? "" : "none";
+    if (backBtn) backBtn.style.display = fighting ? "none" : "block";
+    if (pauseBtn) pauseBtn.style.display = fighting ? "block" : "none";
     if (!fighting) closeBattlePauseMenu();
 }
 
@@ -3470,9 +3483,15 @@ function saveAdventureProgress() {
     saveData();
 }
 
+function ensureBattleSceneOpen() {
+    document.getElementById("main-scene").style.display = "none";
+    document.getElementById("battle-scene").classList.add("open");
+}
+
 function enterAdventureMode() {
     loadAdventureProgress();
     battleScreen = "adventure";
+    ensureBattleSceneOpen();
     enterAdventureFullMode(BATTLE_BG_MAP);
 
     const content = document.getElementById("battle-content");
@@ -3491,6 +3510,8 @@ function enterAdventureMode() {
 function startStageSelection() {
     const boss = isBossStage(currentStage);
     battleScreen = "chapter";
+    ensureBattleSceneOpen();
+    setAdventureMode(true);
     setBattleSceneBackground(BATTLE_BG_MAP);
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui";
@@ -3647,6 +3668,7 @@ function start3v3Battle(playerParty) {
     battleScreen = "fight";
     markAdventureBattleSession();
     saveData();
+    ensureBattleSceneOpen();
     setAdventureMode(true);
     setBattleSceneBackground(BATTLE_BG_MENU);
     const playerTeam = playerParty.slice(0, 3).map(m => makeFighter(m, true));
