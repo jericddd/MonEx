@@ -1967,6 +1967,16 @@ function rollActiveSkill() {
     return { ...HEAL_SKILL_POOL[roll - DAMAGE_ACTIVE_POOL.length] };
 }
 
+const ACTIVE_SKILL_POOL = [...DAMAGE_ACTIVE_POOL, ...HEAL_SKILL_POOL];
+
+function pickUniqueSkill(pool, usedNames) {
+    const available = pool.filter(skill => !usedNames.has(skill.name));
+    if (!available.length) return null;
+    const skill = available[randInt(0, available.length - 1)];
+    usedNames.add(skill.name);
+    return { ...skill };
+}
+
 // Passive skills are also RNG-rolled. They apply continuously in battle.
 const PASSIVE_SKILL_POOL = [
     {name: "Tough Hide",        element: "passive", type: "passive", dmgTaken: 0.85, desc: "Takes 15% less damage."},
@@ -2252,6 +2262,8 @@ function needsSkillMigration(mon) {
         const t = mon.skills[i]?.type;
         if (t !== "active" && t !== "heal") return true;
     }
+    const rngNames = mon.skills.slice(1).map(skill => skill.name);
+    if (new Set(rngNames).size !== rngNames.length) return true;
     return false;
 }
 
@@ -2265,8 +2277,11 @@ function syncUltimateFromSkills(mon) {
 
 function expandSkillsForRarity(mon) {
     const expected = getSkillCount(mon.rarity);
+    const usedNames = new Set(mon.skills.map(skill => skill.name));
     while (mon.skills.length < expected) {
-        mon.skills.push(rollActiveSkill());
+        const skill = pickUniqueSkill(ACTIVE_SKILL_POOL, usedNames);
+        if (!skill) break;
+        mon.skills.push(skill);
     }
     if (mon.skills.length > expected) mon.skills = mon.skills.slice(0, expected);
 }
@@ -2388,10 +2403,14 @@ function renderSkillsGrid(mon) {
 // Slot 1 ultimate (fixed), slot 2 passive (RNG), slots 3+ damage/heal actives (RNG — heal not guaranteed).
 function generateSkills(name, rarity) {
     const count = getSkillCount(rarity);
+    const usedNames = new Set();
     const skills = [{ ...getSpeciesUltimate(name) }];
-    skills.push({ ...PASSIVE_SKILL_POOL[randInt(0, PASSIVE_SKILL_POOL.length - 1)] });
+    const passive = pickUniqueSkill(PASSIVE_SKILL_POOL, usedNames);
+    if (passive) skills.push(passive);
     while (skills.length < count) {
-        skills.push(rollActiveSkill());
+        const active = pickUniqueSkill(ACTIVE_SKILL_POOL, usedNames);
+        if (!active) break;
+        skills.push(active);
     }
     return skills;
 }
