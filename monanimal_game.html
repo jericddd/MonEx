@@ -3724,7 +3724,6 @@ async function runBattle(player, enemy, battleToken) {
 function endBattle(win, player) {
     isInAdventureBattle = false;
     clearAdventureBattleSession();
-    player.forEach(f => { if (f.ref) f.ref.current_hp = Math.max(0, Math.round(f.hp)); });
 
     let reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null };
     if (win) {
@@ -3752,10 +3751,9 @@ function endBattle(win, player) {
         highestStageCleared = Math.max(highestStageCleared, currentStage);
         currentStage = Math.min(40, currentStage + 1);
         saveAdventureProgress();
-    } else {
-        // On defeat, fully restore the team so the stage can be retried fairly.
-        party.forEach(m => { ensureMonReady(m); m.current_hp = m.max_hp; });
     }
+
+    restorePartyFullHp();
     saveData();
     showBattleResult(win, reward);
 }
@@ -3769,9 +3767,9 @@ function showBattleResult(win, reward) {
                ${reward.shards > 0 ? `<div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("shards", 20)} <b>+${reward.shards}</b></div>` : ""}
                ${reward.gear ? `<div>&#9876;&#65039; Gear: <b style="color:${GEAR_TIERS[reward.gear.tier].color}">${reward.gear.name}</b></div>` : ''}
                <div>&#11088; Trainer XP <b>+${reward.trainerXp}</b></div>
-               <div style="margin-top:8px; color:#666; font-size:13px;">Materials added to your Inventory.</div>
+               <div style="margin-top:8px; color:#666; font-size:13px;">Materials added to your Inventory. Team restored to full HP.</div>
            </div>`
-        : `<p style="font-size:15px; margin:20px 0;">Your team was defeated, but they recovered to full HP. Level them up and try again!</p>`;
+        : `<p style="font-size:15px; margin:20px 0;">Your team was defeated. Everyone was restored to full HP — level up and try again!</p>`;
     content.innerHTML = `
         <div style="padding:40px; text-align:center; background:white; border:4px solid #6B21A8; box-shadow:4px 4px 0px #6B21A8;">
             <h2 style="color:${win ? '#16a34a' : '#ef4444'}; font-family:'Press Start 2P', monospace;">${win ? 'VICTORY!' : 'DEFEAT'}</h2>
