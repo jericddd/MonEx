@@ -1984,6 +1984,9 @@ let adventureBattleToken = 0;
 let adventureForfeitNotice = false;
 let battlePaused = false;
 let pendingBattleLeaveTab = "main";
+let battleScreen = "main";
+const BATTLE_BG_MENU = "for%20result%20banner/battlebackground.jpg";
+const BATTLE_BG_MAP = "for%20result%20banner/map1.gif";
 let sceneEnemySeed = 0;
 const WILD_SCENE_MOBS = ["Chog", "Moyaki", "Spidermon", "Shramp", "Salmonad", "Mouch", "Larvanad", "Anago"];
 let xHandle = "";
@@ -3243,6 +3246,9 @@ function readCachedUserFallback() {
 // ==================== AFK NAVIGATION ====================
 function showMainScene() {
     closeAllModals();
+    setAdventureMode(false);
+    setBattleSceneBackground("");
+    battleScreen = "main";
     document.getElementById("main-scene").style.display = "flex";
     document.getElementById("battle-scene").classList.remove("open");
     document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
@@ -3308,45 +3314,30 @@ function enterAdventureFullMode(bgUrl) {
 function renderBattleMenu() {
     const content = document.getElementById("battle-content");
     if (!content) return;
+    battleScreen = "menu";
+    content.className = "battle-scene-ui";
     content.innerHTML = `
-        <div style="
-            width: 100%;
-            min-height: 480px;
-            background-image: url('for%20result%20banner/battlebackground.jpg');
-            background-size: cover;
-            background-position: center;
-            position: relative;
-            border: 4px solid #6B21A8;
-            box-shadow: 4px 4px 0px #6B21A8;
-        ">
-            <div style="
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                display: flex;
-                flex-direction: column;
-                gap: 18px;
-                align-items: center;
-            ">
+        <div class="adventure-panel">
+            <h2>BATTLE</h2>
+            <div style="display:flex; flex-direction:column; gap:18px; align-items:center; width:100%;">
                 <button onclick="enterAdventureMode()"
                     style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
-                           background: white; color: #6B21A8; border: 4px solid #6B21A8;">
+                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
                     ADVENTURE
                 </button>
                 <button onclick="alert('Arena coming soon!')"
                     style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
-                           background: white; color: #6B21A8; border: 4px solid #6B21A8;">
+                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
                     ARENA
                 </button>
                 <button onclick="alert('PVP Wager coming soon!')"
                     style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
-                           background: white; color: #6B21A8; border: 4px solid #6B21A8;">
+                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
                     PVP WAGER
                 </button>
                 <button onclick="alert('Training coming soon!')"
                     style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
-                           background: white; color: #6B21A8; border: 4px solid #6B21A8;">
+                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
                     TRAINING
                 </button>
             </div>
@@ -3357,8 +3348,7 @@ function renderBattleMenu() {
 function openBattleScene() {
     if (isInAdventureBattle) return;
     closeAllModals();
-    setAdventureMode(false);
-    setBattleSceneBackground("");
+    enterAdventureFullMode(BATTLE_BG_MENU);
     document.getElementById("main-scene").style.display = "none";
     document.getElementById("battle-scene").classList.add("open");
     document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
@@ -3370,6 +3360,19 @@ function requestLeaveBattle() {
     if (isInAdventureBattle) {
         pendingBattleLeaveTab = "main";
         openBattlePauseMenu();
+        return;
+    }
+    if (battleScreen === "chapter") {
+        enterAdventureMode();
+        return;
+    }
+    if (battleScreen === "adventure") {
+        enterAdventureFullMode(BATTLE_BG_MENU);
+        renderBattleMenu();
+        return;
+    }
+    if (battleScreen === "result") {
+        enterAdventureMode();
         return;
     }
     closeBattleScene();
@@ -3419,6 +3422,7 @@ function closeBattleScene() {
     setBattleFightingUI(false);
     setAdventureMode(false);
     setBattleSceneBackground("");
+    battleScreen = "main";
     document.getElementById("battle-scene").classList.remove("open");
     document.getElementById("main-scene").style.display = "flex";
     document.getElementById("rail-battle")?.classList.remove("active");
@@ -3468,7 +3472,8 @@ function saveAdventureProgress() {
 
 function enterAdventureMode() {
     loadAdventureProgress();
-    enterAdventureFullMode("for%20result%20banner/map1.gif");
+    battleScreen = "adventure";
+    enterAdventureFullMode(BATTLE_BG_MAP);
 
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui";
@@ -3485,6 +3490,8 @@ function enterAdventureMode() {
 
 function startStageSelection() {
     const boss = isBossStage(currentStage);
+    battleScreen = "chapter";
+    setBattleSceneBackground(BATTLE_BG_MAP);
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui";
     content.innerHTML = `
@@ -3637,10 +3644,11 @@ function makeEnemyTeam(playerParty, stage) {
 function start3v3Battle(playerParty) {
     adventureBattleToken++;
     isInAdventureBattle = true;
+    battleScreen = "fight";
     markAdventureBattleSession();
     saveData();
     setAdventureMode(true);
-    setBattleSceneBackground("for%20result%20banner/battlebackground.jpg");
+    setBattleSceneBackground(BATTLE_BG_MENU);
     const playerTeam = playerParty.slice(0, 3).map(m => makeFighter(m, true));
     const enemyTeam = makeEnemyTeam(playerParty, currentStage);
     renderBattleScene();
@@ -3976,6 +3984,8 @@ function endBattle(win, player) {
 }
 
 function showBattleResult(win, reward) {
+    battleScreen = "result";
+    setBattleSceneBackground(BATTLE_BG_MAP);
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui";
     const drops = win
