@@ -825,12 +825,30 @@ button,
 .fighter-wrap.enemy { right: 8%; top: 28%; }
 
 /* ===== Pockie-style VS bar ===== */
+.battle-hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 .vs-bar {
-    position: absolute; top: 0; left: 0; right: 0;
+    position: relative;
+    width: 100%;
     display: flex; align-items: center; justify-content: space-between;
     gap: 10px; padding: 8px 14px;
     background: linear-gradient(180deg, rgba(20,10,40,0.88), rgba(20,10,40,0.5));
-    z-index: 6;
+    box-sizing: border-box;
+}
+.battle-pause-wrap {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    padding: 2px 0 8px;
+    background: linear-gradient(180deg, rgba(20,10,40,0.45), rgba(20,10,40,0));
 }
 .vs-side { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
 .vs-side.right { justify-content: flex-end; }
@@ -1392,9 +1410,7 @@ body.afk-layout .currency-pill .currency-tip {
 .battle-back-btn:hover { background: #fff; color: #6b21a8; }
 .battle-back-btn:hover::before { display: none !important; }
 .battle-pause-btn {
-    position: absolute;
-    top: 14px;
-    left: 14px;
+    position: static;
     z-index: 20;
     display: none;
     margin: 0;
@@ -1720,7 +1736,6 @@ body.afk-layout .currency-pill .currency-tip {
         <div class="battle-scene-frame">
             <img id="battle-scene-bg" class="battle-scene-bg" alt="">
             <button type="button" class="battle-back-btn" id="battle-back-btn" onclick="requestLeaveBattle()">← BACK</button>
-            <button type="button" class="battle-pause-btn" id="battle-pause-btn" onclick="openBattlePauseMenu()">⏸ PAUSE</button>
             <div id="battle-pause-menu" class="battle-pause-menu">
                 <div class="battle-pause-panel">
                     <h3>PAUSED</h3>
@@ -3722,25 +3737,30 @@ function renderBattleScene() {
     content.className = "battle-scene-ui battle-scene-ui--fight";
     content.innerHTML = `
         <div class="battle-stage" id="battle-stage">
-            <div class="vs-bar">
-                <div class="vs-side left">
-                    <img class="vs-portrait" id="portrait-player" onerror="this.style.visibility='hidden'">
-                    <div class="team-col" id="team-player"></div>
-                    <div class="vs-bars">
-                        <div class="vs-name"><span id="np-name-player"></span> <span class="vs-lv" id="np-lv-player"></span></div>
-                        <div class="hpbar big"><div class="hpfill" id="hp-player"></div><span class="hptext" id="hptext-player"></span></div>
-                        <div class="enbar big"><div class="enfill" id="en-player"></div></div>
+            <div class="battle-hud">
+                <div class="vs-bar">
+                    <div class="vs-side left">
+                        <img class="vs-portrait" id="portrait-player" onerror="this.style.visibility='hidden'">
+                        <div class="team-col" id="team-player"></div>
+                        <div class="vs-bars">
+                            <div class="vs-name"><span id="np-name-player"></span> <span class="vs-lv" id="np-lv-player"></span></div>
+                            <div class="hpbar big"><div class="hpfill" id="hp-player"></div><span class="hptext" id="hptext-player"></span></div>
+                            <div class="enbar big"><div class="enfill" id="en-player"></div></div>
+                        </div>
+                    </div>
+                    <div class="vs-badge">VS</div>
+                    <div class="vs-side right">
+                        <div class="vs-bars">
+                            <div class="vs-name"><span class="vs-lv" id="np-lv-enemy"></span> <span id="np-name-enemy"></span></div>
+                            <div class="hpbar big"><div class="hpfill" id="hp-enemy"></div><span class="hptext" id="hptext-enemy"></span></div>
+                            <div class="enbar big"><div class="enfill" id="en-enemy"></div></div>
+                        </div>
+                        <div class="team-col" id="team-enemy"></div>
+                        <img class="vs-portrait" id="portrait-enemy" onerror="this.style.visibility='hidden'">
                     </div>
                 </div>
-                <div class="vs-badge">VS</div>
-                <div class="vs-side right">
-                    <div class="vs-bars">
-                        <div class="vs-name"><span class="vs-lv" id="np-lv-enemy"></span> <span id="np-name-enemy"></span></div>
-                        <div class="hpbar big"><div class="hpfill" id="hp-enemy"></div><span class="hptext" id="hptext-enemy"></span></div>
-                        <div class="enbar big"><div class="enfill" id="en-enemy"></div></div>
-                    </div>
-                    <div class="team-col" id="team-enemy"></div>
-                    <img class="vs-portrait" id="portrait-enemy" onerror="this.style.visibility='hidden'">
+                <div class="battle-pause-wrap">
+                    <button type="button" class="battle-pause-btn" id="battle-pause-btn" onclick="openBattlePauseMenu()">⏸ PAUSE</button>
                 </div>
             </div>
             <div class="stage-label${boss ? ' boss-label' : ''}">${boss ? 'BOSS — ' : ''}CH.${getChapter(currentStage)} STAGE ${currentStage}</div>
