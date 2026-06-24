@@ -2016,48 +2016,48 @@ const ELEMENT_GLYPH = {
     psychic: "\uD83D\uDD2E", heal: "\u2728"
 };
 
-const SKILL_ICON_DIR = "game_icons/skills/";
+const SKILL_ICON_DIR = "game_icons/skill/";
 
-// Active / passive / heal icons (ultimates intentionally omitted for now).
-// Save each attached icon using the filename shown — see game_icons/skills/ICON_ASSIGNMENT.md
+// Upload PNGs as icon1.png … icon19.png into game_icons/skill/
+// (ultimates still use ★ — not assigned yet)
 const SKILL_ICON_MAP = {
-  // --- Active damage ---
-  "Slash":         "slash.png",         // sword / blade slash
-  "Flame Burst":   "flame-burst.png",   // golden rising burst on red
-  "Aqua Jet":      "aqua-jet.png",      // water jet / splash
-  "Shock Bolt":    "shock-bolt.png",    // lightning bolt / zigzag
-  "Rock Throw":    "rock-throw.png",    // hammer / rock smash
-  "Venom Bite":    "venom-bite.png",    // skull / poison glow
-  "Frost Shard":   "frost-shard.png",   // ice crystal / shard
-  "Gale Slash":    "gale-slash.png",    // fist + wind streaks
-  "Shadow Strike": "shadow-strike.png", // dark slash / shadow
-  "Psy Beam":      "psy-beam.png",      // psychic beam / magic sigil
-  // --- Heal ---
-  "Mend":          "mend.png",          // open hand + holy sparkles
-  "Renew":         "renew.png",         // green light beam / holy tablet
-  "Life Bloom":    "life-bloom.png",    // pink floral bloom / nature rain
-  // --- Passive ---
-  "Tough Hide":        "tough-hide.png",        // red defense badge / hide
-  "Sharp Claws":       "sharp-claws.png",       // claw marks / strike
-  "Critical Instinct": "critical-instinct.png", // target / crit sigil
-  "Evasive":           "evasive.png",           // dodge / speed blur
-  "Bulwark":           "bulwark.png",           // stacked golden shields
-  "Regenerator":       "regenerator.png"          // holy aura / regen glow
+  // Active (icon1–icon10)
+  "Slash":         "icon1.png",
+  "Flame Burst":   "icon2.png",
+  "Aqua Jet":      "icon3.png",
+  "Shock Bolt":    "icon4.png",
+  "Rock Throw":    "icon5.png",
+  "Venom Bite":    "icon6.png",
+  "Frost Shard":   "icon7.png",
+  "Gale Slash":    "icon8.png",
+  "Shadow Strike": "icon9.png",
+  "Psy Beam":      "icon10.png",
+  // Heal (icon11–icon13)
+  "Mend":          "icon11.png",
+  "Renew":         "icon12.png",
+  "Life Bloom":    "icon13.png",
+  // Passive (icon14–icon19)
+  "Tough Hide":        "icon14.png",
+  "Sharp Claws":       "icon15.png",
+  "Critical Instinct": "icon16.png",
+  "Evasive":           "icon17.png",
+  "Bulwark":           "icon18.png",
+  "Regenerator":       "icon19.png"
 };
 
 const SKILL_ELEMENT_ICON_FALLBACK = {
-    physical: "slash.png",
-    fire: "flame-burst.png",
-    water: "aqua-jet.png",
-    electric: "shock-bolt.png",
-    earth: "rock-throw.png",
-    poison: "venom-bite.png",
-    ice: "frost-shard.png",
-    wind: "gale-slash.png",
-    dark: "shadow-strike.png",
-    psychic: "psy-beam.png",
-    heal: "mend.png",
-    passive: "tough-hide.png"
+    physical: "icon1.png",
+    fire: "icon2.png",
+    water: "icon3.png",
+    electric: "icon4.png",
+    earth: "icon5.png",
+    poison: "icon6.png",
+    ice: "icon7.png",
+    wind: "icon8.png",
+    dark: "icon9.png",
+    psychic: "icon10.png",
+    heal: "icon11.png",
+    passive: "icon14.png"
 };
 
 function getSkillIconPath(skill) {
