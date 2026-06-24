@@ -838,7 +838,7 @@ button,
     width: 50px; height: 50px; object-fit: cover; object-position: top;
     border: 3px solid #facc15; background: #fff; border-radius: 6px; flex-shrink: 0;
 }
-.vs-side.right .vs-portrait { transform: scaleX(-1); }
+.vs-portrait.mirrored { transform: scaleX(-1); }
 .team-col { display: flex; gap: 4px; flex-shrink: 0; }
 .team-dot {
     width: 26px; height: 26px; border: 2px solid #fff;
@@ -2038,6 +2038,44 @@ function getSpritePath(name) {
         return `128x128/${name.toLowerCase()}.gif`;
     }
     return `128x128/${name.toLowerCase()}.png`;
+}
+
+// Natural facing of each sprite asset (scan of 128x128 png/gif art).
+// Player sprites should face right; enemy sprites should face left.
+const SPRITE_NATURAL_FACING = {
+    Molandak: "right",
+    Chog: "right",
+    Mouch: "left",
+    Salmonad: "right",
+    Anago: "right",
+    Larvanad: "left",
+    Lyraffe: "right",
+    Mokadal: "left",
+    Monavara: "right",
+    Moncock: "left",
+    Mondigrade: "right",
+    Montiger: "right",
+    Mopo: "right",
+    Mosferatu: "right",
+    Moxy: "right",
+    Shramp: "left",
+    Spidermon: "left",
+    Moyaki: "left"
+};
+
+function getSpriteNaturalFacing(name) {
+    return SPRITE_NATURAL_FACING[name] || "right";
+}
+
+function shouldMirrorBattleSprite(side, name) {
+    const natural = getSpriteNaturalFacing(name);
+    const wanted = side === "player" ? "right" : "left";
+    return natural !== wanted;
+}
+
+function applyBattleSpriteFacing(spriteEl, side, name) {
+    if (!spriteEl) return;
+    spriteEl.classList.toggle("mirrored", shouldMirrorBattleSprite(side, name));
 }
 
 function getRarityRank(rarity) {
@@ -3707,7 +3745,7 @@ function renderBattleScene() {
             </div>
             <div class="stage-label${boss ? ' boss-label' : ''}">${boss ? 'BOSS — ' : ''}CH.${getChapter(currentStage)} STAGE ${currentStage}</div>
             <div class="fighter-wrap enemy" id="wrap-enemy">
-                <img class="bsprite mirrored" id="sprite-enemy" onerror="this.style.visibility='hidden'">
+                <img class="bsprite" id="sprite-enemy" onerror="this.style.visibility='hidden'">
             </div>
             <div class="fighter-wrap player" id="wrap-player">
                 <img class="bsprite" id="sprite-player" onerror="this.style.visibility='hidden'">
@@ -3723,9 +3761,11 @@ function setFighter(side, f) {
     const sprite = document.getElementById("sprite-" + side);
     sprite.style.visibility = "visible";
     sprite.src = f.sprite;
+    applyBattleSpriteFacing(sprite, side, f.name);
     const portrait = document.getElementById("portrait-" + side);
     portrait.style.visibility = "visible";
     portrait.src = f.sprite;
+    applyBattleSpriteFacing(portrait, side, f.name);
     document.getElementById("np-name-" + side).textContent = f.name;
     document.getElementById("np-lv-" + side).textContent = "Lv." + f.level;
     updateBars(side, f);
