@@ -966,38 +966,356 @@ button,
     transform: translateY(45px) scale(0.7) !important;
     filter: grayscale(1);
 }
+
+/* ===== AFK LAYOUT ===== */
+body.afk-layout {
+    background: #0f0618;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+body.afk-layout .header {
+    background: linear-gradient(180deg, #1a0a2e 0%, #12061f 100%);
+    border-bottom: 3px solid #6B21A8;
+    padding: 10px 0;
+    flex-shrink: 0;
+}
+body.afk-layout .header-inner {
+    max-width: 1400px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.header-trainer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 180px;
+}
+.header-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #a855f7, #6b21a8);
+    border: 2px solid #facc15;
+    flex-shrink: 0;
+}
+.header-trainer #trainer-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: #f3e8ff;
+}
+body.afk-layout .trainer-meta {
+    color: #c4b5fd;
+    font-size: 11px;
+}
+.header-currencies {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: 1;
+    justify-content: center;
+}
+body.afk-layout .currency-pill {
+    background: rgba(107, 33, 168, 0.35);
+    border-color: #a855f7;
+    color: #f3e8ff;
+}
+body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
+.header-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.header-actions .nav-btn,
+.header-actions .hdr-btn {
+    padding: 7px 12px;
+    border: 2px solid #a855f7;
+    background: rgba(107, 33, 168, 0.4);
+    color: #f3e8ff;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 10px;
+    font-family: "Press Start 2P", sans-serif;
+}
+.header-actions .nav-btn:hover,
+.header-actions .hdr-btn:hover {
+    background: #6B21A8;
+}
+
+.game-container {
+    flex: 1;
+    display: flex;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    min-height: calc(100vh - 80px);
+    position: relative;
+    overflow: hidden;
+}
+
+.main-scene {
+    flex: 1;
+    position: relative;
+    background: url('for%20result%20banner/battlebackground.jpg') center/cover no-repeat;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: 520px;
+}
+.main-scene::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(15,6,24,0.15) 0%, rgba(15,6,24,0.55) 100%);
+    pointer-events: none;
+}
+.scene-stage-label {
+    position: absolute;
+    top: 16px;
+    left: 20px;
+    background: rgba(0,0,0,0.55);
+    border: 2px solid #facc15;
+    color: #fde68a;
+    padding: 8px 14px;
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 9px;
+    z-index: 2;
+}
+.scene-battle-row {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: flex-end;
+    position: relative;
+    z-index: 1;
+}
+.scene-fighters {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    padding: 0 24px 28px;
+    position: relative;
+    z-index: 1;
+}
+.scene-heroes { justify-content: flex-start; flex: 1; min-height: 160px; }
+.scene-enemies { justify-content: flex-end; flex: 1; min-height: 160px; }
+.scene-fighter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+.scene-fighter img {
+    width: 72px;
+    height: 72px;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+}
+.scene-fighter.hero { animation: scene-hero-attack 1.4s ease-in-out infinite; }
+.scene-fighter.enemy { animation: scene-enemy-idle 1.4s ease-in-out infinite; }
+.scene-fighter.hero:nth-child(2) { animation-delay: 0.25s; }
+.scene-fighter.hero:nth-child(3) { animation-delay: 0.5s; }
+.scene-fighter.enemy:nth-child(2) { animation-delay: 0.2s; }
+.scene-fighter.enemy:nth-child(3) { animation-delay: 0.4s; }
+@keyframes scene-hero-attack {
+    0%, 100% { transform: translateX(0) translateY(0); }
+    35% { transform: translateX(18px) translateY(-6px); }
+    50% { transform: translateX(22px) translateY(0); }
+}
+@keyframes scene-enemy-idle {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-8px); }
+}
+.scene-hp-bar {
+    width: 56px;
+    height: 6px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid #111;
+}
+.scene-hp-bar div {
+    height: 100%;
+    background: linear-gradient(90deg, #22c55e, #86efac);
+}
+.scene-empty {
+    color: #e9d5ff;
+    font-size: 13px;
+    padding: 20px;
+    background: rgba(0,0,0,0.45);
+    border: 2px dashed #a855f7;
+}
+
+.side-rail {
+    width: 64px;
+    background: linear-gradient(180deg, #1a0a2e, #0f0618);
+    border-left: 3px solid #6B21A8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 0;
+    gap: 8px;
+    flex-shrink: 0;
+    z-index: 5;
+}
+.side-icon-btn {
+    width: 48px;
+    height: 48px;
+    border: 2px solid #a855f7;
+    background: rgba(107, 33, 168, 0.35);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    position: relative;
+    transition: background 0.15s, transform 0.15s;
+}
+.side-icon-btn:hover {
+    background: #6B21A8;
+    transform: scale(1.08);
+}
+.side-icon-btn:hover::before { display: none !important; }
+.side-icon-btn img {
+    width: 28px;
+    height: 28px;
+    image-rendering: pixelated;
+}
+.side-icon-btn .rail-tip {
+    display: none;
+    position: absolute;
+    right: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: #1a0a2e;
+    color: #f3e8ff;
+    border: 2px solid #a855f7;
+    padding: 6px 10px;
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 7px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 20;
+}
+.side-icon-btn:hover .rail-tip { display: block; }
+.side-icon-btn.active {
+    border-color: #facc15;
+    background: #6B21A8;
+    box-shadow: 0 0 12px rgba(250, 204, 21, 0.4);
+}
+
+.battle-scene {
+    position: absolute;
+    inset: 0;
+    right: 64px;
+    background: #0f0618;
+    display: none;
+    flex-direction: column;
+    z-index: 4;
+    overflow-y: auto;
+}
+.battle-scene.open { display: flex; }
+.battle-back-btn {
+    align-self: flex-start;
+    margin: 12px 16px 0;
+    padding: 10px 16px;
+    border: 2px solid #a855f7;
+    background: rgba(107, 33, 168, 0.5);
+    color: #f3e8ff;
+    cursor: pointer;
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 8px;
+}
+.battle-back-btn:hover { background: #6B21A8; }
+.battle-back-btn:hover::before { display: none !important; }
+#battle-content { flex: 1; padding: 0 16px 16px; }
+
+.game-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.72);
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 20px;
+}
+.game-modal.open { display: flex; }
+.game-modal-panel {
+    background: white;
+    border: 4px solid #6B21A8;
+    box-shadow: 6px 6px 0 #6B21A8;
+    max-height: 88vh;
+    overflow-y: auto;
+    width: 92%;
+    max-width: 480px;
+}
+.game-modal-wide { max-width: 960px; }
+.game-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 3px solid #6B21A8;
+    background: #faf5ff;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+.game-modal-header h2 {
+    margin: 0;
+    color: #6B21A8;
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 11px;
+}
+.game-modal-close {
+    width: 36px;
+    height: 36px;
+    border: 2px solid #6B21A8;
+    background: white;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+}
+.game-modal-close:hover { background: #f3e8ff; }
+.game-modal-close:hover::before { display: none !important; }
+.game-modal-body { padding: 18px; }
+
+@media (max-width: 720px) {
+    .game-container { flex-direction: column; min-height: auto; }
+    .side-rail {
+        width: 100%;
+        flex-direction: row;
+        border-left: none;
+        border-top: 3px solid #6B21A8;
+        justify-content: center;
+        padding: 8px;
+    }
+    .battle-scene { right: 0; bottom: 64px; }
+    .side-icon-btn .rail-tip {
+        right: auto;
+        top: auto;
+        bottom: calc(100% + 6px);
+        left: 50%;
+        transform: translateX(-50%);
+    }
+}
 </style>
 </head>
-<body>
+<body class="afk-layout">
 
 <div class="header">
     <div class="header-inner">
-        <img src="logo.png" alt="MonEx Logo" style="height: 45px; margin-top: 5px;">
-    </div>
-</div>
-
-<div class="container">
-<!-- Trainer -->
-<div class="trainer-card">
-    <div style="display:flex; align-items:center; justify-content:space-between;">
-        <div style="display:flex; align-items:center; gap:12px;">
-            <div style="width:60px;height:60px;background:#ddd;border-radius:50%;"></div>
+        <img src="logo.png" alt="MonEx Logo" style="height: 42px;">
+        <div class="header-trainer">
+            <div class="header-avatar"></div>
             <div>
-                <div id="trainer-name" style="font-weight:700;font-size:18px;"></div>
+                <div id="trainer-name" style="font-weight:700;font-size:15px;"></div>
                 <div class="trainer-meta" id="trainer-meta">Trainer Lv.1 • Highest Stage: 0</div>
             </div>
         </div>
-        <div style="display:flex; gap:8px;">
-            <button class="nav-btn" onclick="goToProfile()">PROFILE</button>
-            <button class="nav-btn" onclick="logout()">LOGOUT</button>
-        </div>
-    </div>
-</div>
-
-<!-- Balls & currencies -->
-<div class="balls-card">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-        <div class="currency-row">
+        <div class="header-currencies currency-row">
             <div class="currency-pill">
                 <img class="cur-ico-img" src="game_icons/monball.png" alt="">
                 <span class="cur-qty" id="monball-count">12</span>
@@ -1019,98 +1337,140 @@ button,
                 <span class="currency-tip">Mon Shards</span>
             </div>
         </div>
-        <div style="display:flex; gap:8px;">
-            <button onclick="buyMonball()" style="padding:8px 16px; border:2px solid #6B21A8; background:white; cursor:pointer;">Buy (500)</button>
-            <button onclick="switchTab('shop')" style="padding:8px 16px; border:2px solid #6B21A8; background:white; cursor:pointer;">SHOP</button>
+        <div class="header-actions">
+            <button class="hdr-btn" onclick="buyMonball()">+ BALL</button>
+            <button class="hdr-btn" onclick="openGameModal('shop')">SHOP</button>
+            <button class="nav-btn" onclick="goToProfile()">PROFILE</button>
+            <button class="nav-btn" onclick="logout()">LOGOUT</button>
         </div>
     </div>
 </div>
 
-<!-- Tabs -->
-<div style="margin-bottom:20px;">
-    <button class="tab-btn" id="tab-party" onclick="switchTab('party')" style="display: inline-flex; align-items: center; gap: 4px;">
-        <img src="animated gif/header tab/party.gif" style="width:15px; height:15px;">
-        <span style="margin-top: 5%;">PARTY</span>
-    </button>
-    <button class="tab-btn" id="tab-box" onclick="switchTab('box')" style="display: inline-flex; align-items: center; gap: 4px;">
-        <img src="animated gif/header tab/box.gif" style="width:15px; height:15px;">
-        <span style="margin-top: 5%;">BOX</span>
-    </button>
-    <button class="tab-btn" id="tab-battle" onclick="switchTab('battle')" style="display: inline-flex; align-items: center; gap: 4px;">
-        <img src="animated gif/header tab/battle.gif" style="width:15px; height:15px;">
-        <span style="margin-top: 4%;">BATTLE</span>
-    </button>
-    <button class="tab-btn" id="tab-catch" onclick="switchTab('catch')" style="display: inline-flex; align-items: center; gap: 4px;">
-        <img src="animated gif/header tab/catch.gif" style="width:15px; height:15px;">
-        <span style="margin-top: 3%;">CATCH</span>
-    </button>
-    <button class="tab-btn" id="tab-inventory" onclick="switchTab('inventory')" style="display: inline-flex; align-items: center; gap: 4px;">
-        <span style="margin-top: 5%;">INVENTORY</span>
-    </button>
-    <button class="tab-btn" id="tab-shop" onclick="switchTab('shop')" style="display: inline-flex; align-items: center; gap: 4px;">
-        <span style="margin-top: 5%;">SHOP</span>
-    </button>
-    <button class="tab-btn" id="tab-profile" onclick="switchTab('profile')" style="display: inline-flex; align-items: center; gap: 4px;">
-        <span style="margin-top: 5%;">PROFILE</span>
-    </button>
-</div>
+<div class="game-container">
+    <div id="main-scene" class="main-scene">
+        <div class="scene-stage-label" id="scene-stage-label">Chapter 1-1</div>
+        <div class="scene-battle-row">
+            <div class="scene-fighters scene-heroes" id="scene-heroes"></div>
+            <div class="scene-fighters scene-enemies" id="scene-enemies"></div>
+        </div>
+    </div>
 
-    <!-- Content -->
-    <div id="content-party" class="tab-content active">
-        <div class="party-grid" id="party-grid"></div>
-    </div>
-    <div id="content-box" class="tab-content">
-        <p id="box-capacity-label" style="text-align:center; color:#666; font-size:12px; margin:0 0 10px;"></p>
-        <div id="box-content" style="min-height:200px; max-height:70vh; overflow-y:auto;"></div>
-    </div>
-    <div id="content-battle" class="tab-content">
+    <div id="battle-scene" class="battle-scene">
+        <button type="button" class="battle-back-btn" onclick="requestLeaveBattle()">← BACK</button>
         <div id="battle-content"></div>
     </div>
-    <div id="content-catch" class="tab-content">
-        <div id="catch-result" style="margin:15px 0;height:60px;"></div>
-        <button onclick="attemptCatch()" style="width:100%;padding:12px;background:#22c55e;color:white;border:1px solid #111;">Throw Monball</button>
-    </div>
-    <div id="content-inventory" class="tab-content">
-    <div style="background: white; border: 4px solid #6B21A8; box-shadow: 4px 4px 0px #6B21A8; padding: 20px;">
-        <h2 style="color: #6B21A8; margin-bottom: 20px; text-align: center;">INVENTORY STORAGE</h2>
-        
-        <div id="inventory-grid" style="
-            display: grid; 
-            grid-template-columns: repeat(8, 1fr); 
-            gap: 8px; 
-            padding: 15px; 
-            background: #f8f8f8; 
-            border: 3px solid #6B21A8;">
-            <!-- Inventory slots will be generated by JS -->
+
+    <nav class="side-rail" aria-label="Game menu">
+        <button type="button" class="side-icon-btn" id="rail-party" onclick="openGameModal('party')">
+            <img src="animated gif/header tab/party.gif" alt="">
+            <span class="rail-tip">PARTY</span>
+        </button>
+        <button type="button" class="side-icon-btn" id="rail-box" onclick="openGameModal('box')">
+            <img src="animated gif/header tab/box.gif" alt="">
+            <span class="rail-tip">BOX</span>
+        </button>
+        <button type="button" class="side-icon-btn" id="rail-inventory" onclick="openGameModal('inventory')">
+            <span style="font-size:20px;">🎒</span>
+            <span class="rail-tip">INVENTORY</span>
+        </button>
+        <button type="button" class="side-icon-btn" id="rail-battle" onclick="openBattleScene()">
+            <img src="animated gif/header tab/battle.gif" alt="">
+            <span class="rail-tip">BATTLE</span>
+        </button>
+        <button type="button" class="side-icon-btn" id="rail-catch" onclick="openCatch()">
+            <img src="animated gif/header tab/catch.gif" alt="">
+            <span class="rail-tip">CATCH ON X</span>
+        </button>
+    </nav>
+</div>
+
+<!-- Party modal -->
+<div id="modal-party" class="game-modal" onclick="if(event.target===this)closeGameModal('party')">
+    <div class="game-modal-panel game-modal-wide">
+        <div class="game-modal-header">
+            <h2>PARTY</h2>
+            <button type="button" class="game-modal-close" onclick="closeGameModal('party')">×</button>
+        </div>
+        <div class="game-modal-body">
+            <div class="party-grid" id="party-grid"></div>
         </div>
     </div>
 </div>
-    <div id="content-shop" class="tab-content">
-        <div style="background: white; border: 4px solid #6B21A8; box-shadow: 4px 4px 0px #6B21A8; padding: 20px;">
-            <h2 style="color: #6B21A8; margin-bottom: 8px; text-align: center;">SHOP</h2>
-            <p style="text-align: center; color: #666; font-size: 13px; margin-bottom: 20px;">Spend Gold and Essence on supplies.</p>
+
+<!-- Box modal -->
+<div id="modal-box" class="game-modal" onclick="if(event.target===this)closeGameModal('box')">
+    <div class="game-modal-panel game-modal-wide">
+        <div class="game-modal-header">
+            <h2>BOX</h2>
+            <button type="button" class="game-modal-close" onclick="closeGameModal('box')">×</button>
+        </div>
+        <div class="game-modal-body">
+            <p id="box-capacity-label" style="text-align:center; color:#666; font-size:12px; margin:0 0 10px;"></p>
+            <div id="box-content" style="min-height:200px; max-height:60vh; overflow-y:auto;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Inventory modal -->
+<div id="modal-inventory" class="game-modal" onclick="if(event.target===this)closeGameModal('inventory')">
+    <div class="game-modal-panel game-modal-wide">
+        <div class="game-modal-header">
+            <h2>INVENTORY</h2>
+            <button type="button" class="game-modal-close" onclick="closeGameModal('inventory')">×</button>
+        </div>
+        <div class="game-modal-body">
+            <div id="inventory-grid" style="
+                display: grid;
+                grid-template-columns: repeat(8, 1fr);
+                gap: 8px;
+                padding: 15px;
+                background: #f8f8f8;
+                border: 3px solid #6B21A8;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Shop modal -->
+<div id="modal-shop" class="game-modal" onclick="if(event.target===this)closeGameModal('shop')">
+    <div class="game-modal-panel">
+        <div class="game-modal-header">
+            <h2>SHOP</h2>
+            <button type="button" class="game-modal-close" onclick="closeGameModal('shop')">×</button>
+        </div>
+        <div class="game-modal-body">
+            <p style="text-align: center; color: #666; font-size: 13px; margin: 0 0 16px;">Spend Gold and Essence on supplies.</p>
             <div id="shop-grid" class="shop-grid"></div>
         </div>
     </div>
-    <div id="content-profile" class="tab-content">
-        <div class="profile-panel">
-            <h2 style="color:#6B21A8; text-align:center; margin-top:0;">TRAINER PROFILE</h2>
-            <p style="text-align:center; color:#666; font-size:13px;">Your X account is linked on login. Wild catches from @monexmonad auto-sync to Party/Box.</p>
-            <div class="profile-x-row" id="profile-x-linked" style="display:none;">
-                <span id="x-handle-display" style="font-weight:bold; color:#6B21A8;"></span>
-            </div>
-            <div class="profile-x-row" id="profile-x-manual">
-                <input id="x-handle-input" type="text" placeholder="X username (e.g. jeric)" maxlength="40">
-                <button type="button" onclick="saveXHandle()">SAVE</button>
-            </div>
-            <p style="font-size:11px; color:#888; margin:0 0 12px;">On X post: <b>@monexmonad catch 10 monanimals</b> (1 Monball = 1 catch)</p>
-            <div class="profile-pending" id="profile-pending-panel">
-                <h3>X WILD SYNC</h3>
-                <p id="profile-pending-text">Save your X @handle — catches auto-go to Party, then Box.</p>
-            </div>
-            <h3 style="color:#6B21A8; font-size:12px; margin-bottom:8px;">YOUR X CATCH LOG</h3>
-            <div id="profile-activity-feed" class="activity-feed">
-                <p style="color:#888;">Save your X @handle above.</p>
+</div>
+
+<!-- Profile modal -->
+<div id="modal-profile" class="game-modal" onclick="if(event.target===this)closeGameModal('profile')">
+    <div class="game-modal-panel game-modal-wide">
+        <div class="game-modal-header">
+            <h2>TRAINER PROFILE</h2>
+            <button type="button" class="game-modal-close" onclick="closeGameModal('profile')">×</button>
+        </div>
+        <div class="game-modal-body">
+            <div class="profile-panel" style="border:none; box-shadow:none; padding:0; max-width:none;">
+                <p style="text-align:center; color:#666; font-size:13px;">Your X account is linked on login. Wild catches from @monexmonad auto-sync to Party/Box.</p>
+                <div class="profile-x-row" id="profile-x-linked" style="display:none;">
+                    <span id="x-handle-display" style="font-weight:bold; color:#6B21A8;"></span>
+                </div>
+                <div class="profile-x-row" id="profile-x-manual">
+                    <input id="x-handle-input" type="text" placeholder="X username (e.g. jeric)" maxlength="40">
+                    <button type="button" onclick="saveXHandle()">SAVE</button>
+                </div>
+                <p style="font-size:11px; color:#888; margin:0 0 12px;">On X post: <b>@monexmonad catch 10 monanimals</b> (1 Monball = 1 catch)</p>
+                <div class="profile-pending" id="profile-pending-panel">
+                    <h3>X WILD SYNC</h3>
+                    <p id="profile-pending-text">Save your X @handle — catches auto-go to Party, then Box.</p>
+                </div>
+                <h3 style="color:#6B21A8; font-size:12px; margin-bottom:8px;">YOUR X CATCH LOG</h3>
+                <div id="profile-activity-feed" class="activity-feed">
+                    <p style="color:#888;">Save your X @handle above.</p>
+                </div>
             </div>
         </div>
     </div>
@@ -1243,6 +1603,8 @@ let trainerXp = 0;
 let highestStageCleared = 0;
 let lastResetDate = null;
 let isInAdventureBattle = false;
+let sceneEnemySeed = 0;
+const WILD_SCENE_MOBS = ["Chog", "Moyaki", "Spidermon", "Shramp", "Salmonad", "Mouch", "Larvanad", "Anago"];
 let xHandle = "";
 let currentStage = 1;
 let profileActivityTimer = null;
@@ -1913,17 +2275,26 @@ function updateUI() {
     document.getElementById("trainer-meta").innerText =
         `Trainer Lv.${tInfo.level} (${tInfo.progress}/${tInfo.needed} XP) • Highest Stage: ${highestStageCleared}`;
 
-    const grid = document.getElementById("party-grid");
-grid.innerHTML = "";
+    renderMainScene();
+    renderPartyGrid();
+    renderBox();
+}
 
-if (party.length === 0) {
-    grid.innerHTML = `
-        <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #666;">
-            <p style="font-size: 18px; margin-bottom: 15px;">Your party is empty</p>
-            <p style="font-size: 15px;">Catch some Monanimals first!</p>
-        </div>
-    `;
-} else {
+function renderPartyGrid() {
+    const grid = document.getElementById("party-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+
+    if (party.length === 0) {
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #666;">
+                <p style="font-size: 18px; margin-bottom: 15px;">Your party is empty</p>
+                <p style="font-size: 15px;">Catch Monanimals on X via @monexmonad!</p>
+            </div>
+        `;
+        return;
+    }
+
     party.forEach((mon, index) => {
         ensureMonReady(mon);
 
@@ -1960,11 +2331,46 @@ if (party.length === 0) {
         grid.appendChild(card);
     });
 }
-    renderBox();
+
+function renderMainScene() {
+    const heroesEl = document.getElementById("scene-heroes");
+    const enemiesEl = document.getElementById("scene-enemies");
+    const label = document.getElementById("scene-stage-label");
+    if (!heroesEl || !enemiesEl) return;
+
+    if (label) label.textContent = `Chapter 1-${currentStage}`;
+
+    if (party.length === 0) {
+        heroesEl.innerHTML = '<div class="scene-empty">Deploy your party to fight!</div>';
+    } else {
+        heroesEl.innerHTML = party.map((mon, i) => {
+            const hpPct = Math.max(0, Math.min(100, (mon.current_hp / mon.max_hp) * 100));
+            return `
+                <div class="scene-fighter hero">
+                    <img src="${getSpritePath(mon.name)}" alt="${mon.name}" onerror="this.style.opacity='0.3'">
+                    <div class="scene-hp-bar"><div style="width:${hpPct}%"></div></div>
+                </div>`;
+        }).join("");
+    }
+
+    const enemyCount = Math.max(1, Math.min(3, party.length || 1));
+    enemiesEl.innerHTML = Array.from({ length: enemyCount }, (_, i) => {
+        const name = WILD_SCENE_MOBS[(sceneEnemySeed + i) % WILD_SCENE_MOBS.length];
+        return `
+            <div class="scene-fighter enemy">
+                <img src="${getSpritePath(name)}" alt="${name}" onerror="this.style.opacity='0.3'">
+            </div>`;
+    }).join("");
+}
+
+function refreshSceneEnemies() {
+    sceneEnemySeed = Math.floor(Math.random() * WILD_SCENE_MOBS.length);
+    renderMainScene();
 }
 
 function renderParty() {
-    updateUI();
+    renderPartyGrid();
+    renderMainScene();
 }
 
 function renderBox() {
@@ -2166,7 +2572,7 @@ function renderProfile() {
     refreshProfileActivity();
     if (profileActivityTimer) clearInterval(profileActivityTimer);
     profileActivityTimer = setInterval(() => {
-        if (document.getElementById("content-profile")?.classList.contains("active")) {
+        if (document.getElementById("modal-profile")?.classList.contains("open")) {
             syncXWildMons(true);
             refreshProfileActivity();
         }
@@ -2197,6 +2603,7 @@ function toBox(index) {
     const mon = party.splice(index, 1)[0];
     box.push(mon);
     saveData();
+    refreshSceneEnemies();
     updateUI();
 }
 
@@ -2205,6 +2612,7 @@ function withdrawFromBox(index) {
     const mon = box.splice(index, 1)[0];
     party.push(mon);
     saveData();
+    refreshSceneEnemies();
     updateUI();
     renderBox();
 }
@@ -2354,14 +2762,14 @@ async function checkLogin() {
         currentUser = user.username || MonExAuth.getDisplayName();
         await loadData();
         try { await syncXWildMons(true); } catch (_) {}
-        switchTab('party');
+        showMainScene();
     } catch (e) {
         console.error("checkLogin failed:", e);
         const cached = readCachedUserFallback();
         if (cached?.username && MonExAuth.isLoggedIn()) {
             currentUser = cached.username;
             await loadData();
-            switchTab('party');
+            showMainScene();
             return;
         }
         window.location.href = 'home.html';
@@ -2377,88 +2785,134 @@ function readCachedUserFallback() {
     }
 }
 
-function switchTab(tab) {
-    // Battle protection
-    if (isInAdventureBattle && tab !== 'battle') {
-        showBattleLeaveWarning(tab);
+// ==================== AFK NAVIGATION ====================
+function showMainScene() {
+    closeAllModals();
+    document.getElementById("main-scene").style.display = "flex";
+    document.getElementById("battle-scene").classList.remove("open");
+    document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
+    renderMainScene();
+}
+
+function closeAllModals() {
+    document.querySelectorAll(".game-modal").forEach(el => el.classList.remove("open"));
+}
+
+function openGameModal(name) {
+    if (isInAdventureBattle) {
+        showBattleLeaveWarning(name);
         return;
     }
+    closeAllModals();
+    const modal = document.getElementById("modal-" + name);
+    if (!modal) return;
+    modal.classList.add("open");
 
-    // Normal tab switching
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    if (name === "party") { syncXWildMons(true); renderPartyGrid(); }
+    if (name === "box") { syncXWildMons(true); renderBox(); }
+    if (name === "inventory") renderInventory();
+    if (name === "shop") renderShop();
+    if (name === "profile") renderProfile();
+}
 
-    const contentElement = document.getElementById('content-' + tab);
-    if (contentElement) {
-        contentElement.classList.add('active');
-    }
-
-    const tabElement = document.getElementById('tab-' + tab);
-    if (tabElement) {
-        tabElement.classList.add('active');
-    }
-
-    // Call render functions
-    if (tab === 'party') { syncXWildMons(true); renderParty(); }
-    if (tab === 'box') { syncXWildMons(true); renderBox(); }
-    if (tab === 'inventory') renderInventory();
-    if (tab === 'shop') renderShop();
-    if (tab === 'profile') renderProfile();
-
-    // Battle tab content
-    if (tab === 'battle') {
-        const content = document.getElementById("battle-content");
-        content.innerHTML = `
-            <div style="
-                width: 100%; 
-                height: 500px; 
-                background-image: url('for%20result%20banner/battlebackground.jpg'); 
-                background-size: cover; 
-                background-position: center;
-                position: relative;
-                border: 4px solid #6B21A8;
-                box-shadow: 4px 4px 0px #6B21A8;
-            ">
-                <div style="
-                    position: absolute; 
-                    top: 50%; 
-                    left: 50%; 
-                    transform: translate(-50%, -50%);
-                    display: flex;
-                    flex-direction: column;
-                    gap: 18px;
-                    align-items: center;
-                ">
-                    <button onclick="enterAdventureMode()" 
-                        style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer; 
-                               background: white; color: #6B21A8; border: 4px solid #6B21A8;">
-                        ADVENTURE
-                    </button>
-
-                    <button onclick="alert('Arena coming soon!')" 
-                        style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer; 
-                               background: white; color: #6B21A8; border: 4px solid #6B21A8;">
-                        ARENA
-                    </button>
-                    
-                    <button onclick="alert('PVP Wager coming soon!')" 
-                        style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer; 
-                               background: white; color: #6B21A8; border: 4px solid #6B21A8;">
-                        PVP WAGER
-                    </button>
-                    
-                    <button onclick="alert('Training coming soon!')" 
-                        style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer; 
-                               background: white; color: #6B21A8; border: 4px solid #6B21A8;">
-                        TRAINING
-                    </button>
-                </div>
-            </div>
-        `;
+function closeGameModal(name) {
+    const modal = document.getElementById("modal-" + name);
+    if (modal) modal.classList.remove("open");
+    if (name === "profile" && profileActivityTimer) {
+        clearInterval(profileActivityTimer);
+        profileActivityTimer = null;
     }
 }
+
+function openCatch() {
+    window.open("https://x.com/monexmonad", "_blank", "noopener,noreferrer");
+}
+
+function renderBattleMenu() {
+    const content = document.getElementById("battle-content");
+    if (!content) return;
+    content.innerHTML = `
+        <div style="
+            width: 100%;
+            min-height: 480px;
+            background-image: url('for%20result%20banner/battlebackground.jpg');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            border: 4px solid #6B21A8;
+            box-shadow: 4px 4px 0px #6B21A8;
+        ">
+            <div style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                display: flex;
+                flex-direction: column;
+                gap: 18px;
+                align-items: center;
+            ">
+                <button onclick="enterAdventureMode()"
+                    style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
+                           background: white; color: #6B21A8; border: 4px solid #6B21A8;">
+                    ADVENTURE
+                </button>
+                <button onclick="alert('Arena coming soon!')"
+                    style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
+                           background: white; color: #6B21A8; border: 4px solid #6B21A8;">
+                    ARENA
+                </button>
+                <button onclick="alert('PVP Wager coming soon!')"
+                    style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
+                           background: white; color: #6B21A8; border: 4px solid #6B21A8;">
+                    PVP WAGER
+                </button>
+                <button onclick="alert('Training coming soon!')"
+                    style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
+                           background: white; color: #6B21A8; border: 4px solid #6B21A8;">
+                    TRAINING
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function openBattleScene() {
+    if (isInAdventureBattle) return;
+    closeAllModals();
+    document.getElementById("main-scene").style.display = "none";
+    document.getElementById("battle-scene").classList.add("open");
+    document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
+    document.getElementById("rail-battle")?.classList.add("active");
+    renderBattleMenu();
+}
+
+function requestLeaveBattle() {
+    if (isInAdventureBattle) {
+        showBattleLeaveWarning("main");
+        return;
+    }
+    closeBattleScene();
+}
+
+function closeBattleScene() {
+    document.getElementById("battle-scene").classList.remove("open");
+    document.getElementById("main-scene").style.display = "flex";
+    document.getElementById("rail-battle")?.classList.remove("active");
+    const content = document.getElementById("battle-content");
+    if (content) content.innerHTML = "";
+    renderMainScene();
+}
+
+function switchTab(tab) {
+    if (tab === "battle") { openBattleScene(); return; }
+    if (tab === "catch") { openCatch(); return; }
+    if (tab === "main" || tab === "party") { showMainScene(); if (tab === "party") openGameModal("party"); return; }
+    openGameModal(tab);
+}
+
 function goToProfile() {
-    switchTab("profile");
+    openGameModal("profile");
     location.hash = "profile";
 }
 
@@ -2472,7 +2926,7 @@ document.addEventListener("keydown", function(e) {
 
 window.onload = async function() {
     await checkLogin();
-    if (location.hash === "#profile") switchTab("profile");
+    if (location.hash === "#profile") openGameModal("profile");
 };
 // ==================== ADVENTURE MODE ====================
 
@@ -3097,7 +3551,14 @@ function showBattleLeaveWarning(targetTab) {
 function confirmLeaveBattle(targetTab) {
     isInAdventureBattle = false;
     document.querySelectorAll('div[style*="z-index: 500"]').forEach(m => m.remove());
-    switchTab(targetTab);
+    if (targetTab === "main") {
+        closeBattleScene();
+    } else if (targetTab === "battle") {
+        openBattleScene();
+    } else {
+        closeBattleScene();
+        openGameModal(targetTab);
+    }
 }
 </script>
 
