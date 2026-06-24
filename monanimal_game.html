@@ -1067,7 +1067,8 @@ body.afk-layout .currency-pill .cur-qty { color: #6B21A8; }
     display: flex;
     align-items: stretch;
     border: 3px solid #6B21A8;
-    background: #fff;
+    background: #fff url('for%20result%20banner/battlebackground.jpg') no-repeat center;
+    background-size: 100% 100%;
     min-height: calc(100vh - 110px);
     position: relative;
     overflow: hidden;
@@ -1077,13 +1078,15 @@ body.afk-layout .currency-pill .cur-qty { color: #6B21A8; }
 .main-scene {
     flex: 1;
     position: relative;
-    background: url('for%20result%20banner/battlebackground.jpg') no-repeat center;
-    background-size: 100% 100%;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     min-height: 100%;
-    align-self: stretch;
+    min-width: 0;
+    width: 100%;
+    padding-right: 64px;
+    box-sizing: border-box;
+    z-index: 1;
 }
 .main-scene::before {
     content: "";
@@ -1168,18 +1171,20 @@ body.afk-layout .currency-pill .cur-qty { color: #6B21A8; }
 }
 
 .side-rail {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
     width: 64px;
-    background: #fff;
+    background: rgba(255, 255, 255, 0.92);
     border-left: 2px solid #6B21A8;
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: 12px 8px;
     gap: 8px;
-    flex-shrink: 0;
     z-index: 5;
     box-sizing: border-box;
-    align-self: stretch;
 }
 .side-icon-btn {
     width: 48px;
@@ -1307,8 +1312,15 @@ body.afk-layout .currency-pill .cur-qty { color: #6B21A8; }
 @media (max-width: 720px) {
     :root { --game-side-pad: 16px; }
     .game-container { flex-direction: column; min-height: auto; }
+    .main-scene { padding-right: 0; padding-bottom: 72px; }
     .side-rail {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: auto;
+        bottom: 0;
         width: 100%;
+        height: auto;
         flex-direction: row;
         border-left: none;
         border-top: 2px solid #6B21A8;
