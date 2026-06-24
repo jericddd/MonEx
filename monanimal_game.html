@@ -1450,7 +1450,7 @@ body.afk-layout .currency-pill .currency-tip {
     background: #6B21A8;
     color: #fff;
 }
-.battle-pause-back {
+.battle-pause-leave {
     background: #ef4444;
     color: #fff;
 }
@@ -1711,8 +1711,8 @@ body.afk-layout .currency-pill .currency-tip {
             <div id="battle-pause-menu" class="battle-pause-menu">
                 <div class="battle-pause-panel">
                     <h3>PAUSED</h3>
+                    <button type="button" class="battle-pause-leave" onclick="pauseMenuLeave()">LEAVE NOW</button>
                     <button type="button" class="battle-pause-continue" onclick="continueFromPause()">CONTINUE</button>
-                    <button type="button" class="battle-pause-back" onclick="pauseMenuBack()">BACK</button>
                 </div>
             </div>
             <div id="battle-content" class="battle-scene-ui"></div>
@@ -3398,7 +3398,7 @@ function continueFromPause() {
     closeBattlePauseMenu();
 }
 
-function pauseMenuBack() {
+function pauseMenuLeave() {
     document.getElementById("battle-pause-menu")?.classList.remove("open");
     battlePaused = true;
     showBattleLeaveWarning(pendingBattleLeaveTab || "main");
