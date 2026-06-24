@@ -113,6 +113,7 @@ body {
     box-sizing: border-box;
     transition: all 0.2s ease;
     position: relative;
+    overflow: visible;
 }
 .mon-card:hover {
     border-color: #A855F7;
@@ -1286,7 +1287,12 @@ body.afk-layout .currency-pill .cur-qty { color: #6B21A8; }
     z-index: 200;
     padding: 20px;
 }
-.game-modal.open { display: flex; }
+.game-modal.open {
+    display: flex;
+    overflow-y: auto;
+    align-items: flex-start;
+    padding: 32px 20px;
+}
 .game-modal-panel {
     background: white;
     border: 4px solid #6B21A8;
@@ -1297,6 +1303,63 @@ body.afk-layout .currency-pill .cur-qty { color: #6B21A8; }
     max-width: 480px;
 }
 .game-modal-wide { max-width: 960px; }
+/* Party / Box / Inventory — no header divider, tooltips float above */
+#modal-party .game-modal-panel,
+#modal-box .game-modal-panel,
+#modal-inventory .game-modal-panel {
+    overflow: visible;
+    max-height: none;
+}
+#modal-party .game-modal-header,
+#modal-box .game-modal-header,
+#modal-inventory .game-modal-header {
+    border-bottom: none;
+    padding-bottom: 6px;
+}
+#modal-party .game-modal-body,
+#modal-box .game-modal-body,
+#modal-inventory .game-modal-body {
+    padding-top: 0;
+    overflow: visible;
+}
+#modal-box .game-modal-panel {
+    max-width: min(1360px, 96vw);
+    width: max-content;
+    min-width: min(96vw, 360px);
+}
+.box-content-grid {
+    display: grid;
+    grid-template-rows: repeat(5, auto);
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(168px, 176px);
+    gap: 15px;
+    overflow: visible;
+    min-height: 200px;
+}
+.box-scroll-wrap {
+    overflow-x: auto;
+    overflow-y: visible;
+    max-width: 100%;
+    padding-bottom: 4px;
+}
+#modal-party .skill-tip,
+#modal-box .skill-tip,
+#modal-inventory .skill-tip,
+#modal-party .stats-tooltip,
+#modal-box .stats-tooltip,
+#modal-inventory .stats-tooltip {
+    z-index: 600;
+}
+#modal-party .info-icon,
+#modal-box .info-icon,
+#modal-inventory .info-icon {
+    z-index: 25;
+}
+#modal-party .skill-square:hover,
+#modal-box .skill-square:hover,
+#modal-inventory .skill-square:hover {
+    z-index: 30;
+}
 .game-modal-header {
     display: flex;
     justify-content: space-between;
@@ -1474,7 +1537,9 @@ body.afk-layout .currency-pill .cur-qty { color: #6B21A8; }
         </div>
         <div class="game-modal-body">
             <p id="box-capacity-label" style="text-align:center; color:#666; font-size:12px; margin:0 0 10px;"></p>
-            <div id="box-content" style="min-height:200px; max-height:60vh; overflow-y:auto;"></div>
+            <div class="box-scroll-wrap">
+                <div id="box-content" class="box-content-grid"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -2447,19 +2512,20 @@ function renderBox() {
     if (capLabel) capLabel.textContent = `Box: ${box.length} / ${BOX_MAX}`;
     sortBoxByRarity();
     content.innerHTML = "";
-    content.style.display = "grid";
-    content.style.gridTemplateColumns = "repeat(5, 1fr)";
-    content.style.gap = "15px";
 
     if (!box || box.length === 0) {
+        content.className = "";
         content.innerHTML = `
-            <div style="grid-column: 1 / -1; text-align: center; padding: 80px 20px; color: #666;">
+            <div style="text-align: center; padding: 80px 20px; color: #666; min-width: 280px;">
                 <p style="font-size: 18px; margin-bottom: 15px;">Your box is empty</p>
                 <p style="font-size: 15px;">You have no Monanimals stored yet.</p>
             </div>
         `;
         return;
     }
+
+    content.className = "box-content-grid";
+    content.style.gridColumn = "";
 
     box.forEach((mon, i) => {
         ensureMonReady(mon);
