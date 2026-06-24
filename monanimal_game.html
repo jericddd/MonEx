@@ -1323,23 +1323,33 @@ body.afk-layout .currency-pill .cur-qty { color: #6B21A8; }
     overflow: visible;
 }
 #modal-box .game-modal-panel {
-    max-width: min(1360px, 96vw);
-    width: max-content;
-    min-width: min(96vw, 360px);
+    width: min(1120px, 96vw);
+    max-width: min(1120px, 96vw);
 }
 .box-content-grid {
     display: grid;
-    grid-template-rows: repeat(5, auto);
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(168px, 176px);
-    gap: 15px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
     overflow: visible;
     min-height: 200px;
 }
+.box-content-grid .mon-card {
+    min-width: 0;
+    padding: 10px;
+}
+.box-content-grid .mon-sprite {
+    height: 110px;
+    margin-bottom: 8px;
+}
+.box-content-grid .mon-name {
+    font-size: 8px;
+    line-height: 1.4;
+}
 .box-scroll-wrap {
-    overflow-x: auto;
-    overflow-y: visible;
-    max-width: 100%;
+    overflow: visible;
+    width: 100%;
     padding-bottom: 4px;
 }
 #modal-party .skill-tip,
