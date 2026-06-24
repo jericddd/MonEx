@@ -71,6 +71,16 @@ function rollActiveSkill() {
   return { ...HEAL_SKILL_POOL[roll - DAMAGE_ACTIVE_POOL.length] };
 }
 
+const ACTIVE_SKILL_POOL = [...DAMAGE_ACTIVE_POOL, ...HEAL_SKILL_POOL];
+
+function pickUniqueSkill(pool, usedNames) {
+  const available = pool.filter((skill) => !usedNames.has(skill.name));
+  if (!available.length) return null;
+  const skill = available[randInt(0, available.length - 1)];
+  usedNames.add(skill.name);
+  return { ...skill };
+}
+
 function getSpeciesUltimate(name) {
   return {
     ...(SPECIES_ULTIMATE[name] || { name: "Power Surge", element: "physical" }),
@@ -86,9 +96,15 @@ function getSkillCount(rarity) {
 
 function generateSkills(name, rarity) {
   const count = getSkillCount(rarity);
+  const usedNames = new Set();
   const skills = [{ ...getSpeciesUltimate(name) }];
-  skills.push({ ...PASSIVE_SKILL_POOL[randInt(0, PASSIVE_SKILL_POOL.length - 1)] });
-  while (skills.length < count) skills.push(rollActiveSkill());
+  const passive = pickUniqueSkill(PASSIVE_SKILL_POOL, usedNames);
+  if (passive) skills.push(passive);
+  while (skills.length < count) {
+    const active = pickUniqueSkill(ACTIVE_SKILL_POOL, usedNames);
+    if (!active) break;
+    skills.push(active);
+  }
   return skills;
 }
 
