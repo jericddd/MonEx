@@ -9,6 +9,8 @@
 :root {
     --purple: #6B21A8;
     --purple-light: #A855F7;
+    --game-max-width: 1400px;
+    --game-side-pad: 30px;
 }
 
 body {
@@ -969,21 +971,30 @@ button,
 
 /* ===== AFK LAYOUT ===== */
 body.afk-layout {
-    background: #0f0618;
+    background: #fff;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
 }
+body.afk-layout .game-shell {
+    flex: 1;
+    background: #fff;
+}
 body.afk-layout .header {
-    background: linear-gradient(180deg, #1a0a2e 0%, #12061f 100%);
+    background: #fff;
     border-bottom: 3px solid #6B21A8;
     padding: 10px 0;
     flex-shrink: 0;
 }
 body.afk-layout .header-inner {
-    max-width: 1400px;
+    max-width: var(--game-max-width);
+    margin: 0 auto;
+    padding: 0 var(--game-side-pad);
+    width: 100%;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
 }
@@ -991,7 +1002,7 @@ body.afk-layout .header-inner {
     display: flex;
     align-items: center;
     gap: 10px;
-    min-width: 180px;
+    flex-shrink: 0;
 }
 .header-avatar {
     width: 48px;
@@ -1004,72 +1015,90 @@ body.afk-layout .header-inner {
 .header-trainer #trainer-name {
     font-weight: 700;
     font-size: 15px;
-    color: #f3e8ff;
+    color: #111;
 }
 body.afk-layout .trainer-meta {
-    color: #c4b5fd;
+    color: #555;
     font-size: 11px;
 }
 .header-currencies {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
-    flex: 1;
-    justify-content: center;
-}
-body.afk-layout .currency-pill {
-    background: rgba(107, 33, 168, 0.35);
-    border-color: #a855f7;
-    color: #f3e8ff;
-}
-body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
-.header-actions {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
+    justify-content: flex-end;
     align-items: center;
 }
-.header-actions .nav-btn,
-.header-actions .hdr-btn {
+body.afk-layout .currency-pill {
+    background: #f3e8ff;
+    border-color: #6B21A8;
+    color: #111;
+}
+body.afk-layout .currency-pill .cur-qty { color: #6B21A8; }
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-left: auto;
+}
+.header-logout-btn {
     padding: 7px 12px;
-    border: 2px solid #a855f7;
-    background: rgba(107, 33, 168, 0.4);
-    color: #f3e8ff;
+    border: 2px solid #6B21A8;
+    background: #fff;
+    color: #111;
     font-weight: 600;
     cursor: pointer;
     font-size: 10px;
     font-family: "Press Start 2P", sans-serif;
 }
-.header-actions .nav-btn:hover,
-.header-actions .hdr-btn:hover {
-    background: #6B21A8;
+.header-logout-btn:hover {
+    background: #f3e8ff;
+}
+
+.game-shell {
+    max-width: var(--game-max-width);
+    margin: 0 auto;
+    padding: 12px var(--game-side-pad) 20px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .game-container {
-    flex: 1;
-    display: flex;
-    max-width: 1400px;
-    width: 100%;
-    margin: 0 auto;
-    min-height: calc(100vh - 80px);
+    display: block;
+    border: 3px solid #6B21A8;
+    background: #fff;
+    min-height: calc(100vh - 110px);
     position: relative;
     overflow: hidden;
+    box-sizing: border-box;
+}
+
+.scene-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    z-index: 0;
+    pointer-events: none;
+    display: block;
 }
 
 .main-scene {
-    flex: 1;
     position: relative;
-    background: url('for%20result%20banner/battlebackground.jpg') center/cover no-repeat;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    min-height: 520px;
+    min-height: calc(100vh - 110px);
+    width: 100%;
+    box-sizing: border-box;
+    z-index: 1;
 }
 .main-scene::before {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(15,6,24,0.15) 0%, rgba(15,6,24,0.55) 100%);
+    background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.12) 100%);
     pointer-events: none;
 }
 .scene-stage-label {
@@ -1147,23 +1176,36 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
     border: 2px dashed #a855f7;
 }
 
-.side-rail {
+.side-rail,
+.left-rail {
+    position: absolute;
+    top: 0;
+    bottom: 0;
     width: 64px;
-    background: linear-gradient(180deg, #1a0a2e, #0f0618);
-    border-left: 3px solid #6B21A8;
+    background: transparent;
+    border: none;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 12px 0;
-    gap: 8px;
-    flex-shrink: 0;
-    z-index: 5;
+    justify-content: center;
+    padding: 12px 8px;
+    gap: 10px;
+    z-index: 10;
+    box-sizing: border-box;
+    pointer-events: none;
+}
+.left-rail { left: 0; }
+.side-rail { right: 0; }
+.side-rail .side-icon-btn,
+.left-rail .side-icon-btn {
+    pointer-events: auto;
 }
 .side-icon-btn {
     width: 48px;
     height: 48px;
-    border: 2px solid #a855f7;
-    background: rgba(107, 33, 168, 0.35);
+    border: 2px solid #6B21A8;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1198,6 +1240,10 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
     pointer-events: none;
     z-index: 20;
 }
+.left-rail .side-icon-btn .rail-tip {
+    right: auto;
+    left: calc(100% + 8px);
+}
 .side-icon-btn:hover .rail-tip { display: block; }
 .side-icon-btn.active {
     border-color: #facc15;
@@ -1208,8 +1254,7 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
 .battle-scene {
     position: absolute;
     inset: 0;
-    right: 64px;
-    background: #0f0618;
+    background: #fff;
     display: none;
     flex-direction: column;
     z-index: 4;
@@ -1283,16 +1328,25 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
 .game-modal-body { padding: 18px; }
 
 @media (max-width: 720px) {
+    :root { --game-side-pad: 16px; }
     .game-container { flex-direction: column; min-height: auto; }
-    .side-rail {
+    .main-scene { min-height: 420px; padding-bottom: 72px; }
+    .side-rail,
+    .left-rail {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: auto;
+        bottom: 0;
         width: 100%;
+        height: auto;
         flex-direction: row;
-        border-left: none;
-        border-top: 3px solid #6B21A8;
         justify-content: center;
+        flex-wrap: wrap;
         padding: 8px;
+        gap: 8px;
     }
-    .battle-scene { right: 0; bottom: 64px; }
+    .battle-scene { bottom: 0; }
     .side-icon-btn .rail-tip {
         right: auto;
         top: auto;
@@ -1307,7 +1361,6 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
 
 <div class="header">
     <div class="header-inner">
-        <img src="logo.png" alt="MonEx Logo" style="height: 42px;">
         <div class="header-trainer">
             <div class="header-avatar"></div>
             <div>
@@ -1315,38 +1368,37 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
                 <div class="trainer-meta" id="trainer-meta">Trainer Lv.1 • Highest Stage: 0</div>
             </div>
         </div>
-        <div class="header-currencies currency-row">
-            <div class="currency-pill">
-                <img class="cur-ico-img" src="game_icons/monball.png" alt="">
-                <span class="cur-qty" id="monball-count">12</span>
-                <span class="currency-tip">Monball</span>
+        <div class="header-right">
+            <div class="header-currencies currency-row">
+                <div class="currency-pill">
+                    <img class="cur-ico-img" src="game_icons/monball.png" alt="">
+                    <span class="cur-qty" id="monball-count">12</span>
+                    <span class="currency-tip">Monball</span>
+                </div>
+                <div class="currency-pill">
+                    <img class="cur-ico-img" src="game_icons/gold.png" alt="">
+                    <span class="cur-qty" id="gold-count">0</span>
+                    <span class="currency-tip">Gold</span>
+                </div>
+                <div class="currency-pill">
+                    <img class="cur-ico-img" src="game_icons/xp_essence.png" alt="">
+                    <span class="cur-qty" id="essence-count">0</span>
+                    <span class="currency-tip">Essence</span>
+                </div>
+                <div class="currency-pill">
+                    <img class="cur-ico-img" src="game_icons/shard.png" alt="">
+                    <span class="cur-qty" id="shard-count">0</span>
+                    <span class="currency-tip">Mon Shards</span>
+                </div>
             </div>
-            <div class="currency-pill">
-                <img class="cur-ico-img" src="game_icons/gold.png" alt="">
-                <span class="cur-qty" id="gold-count">0</span>
-                <span class="currency-tip">Gold</span>
-            </div>
-            <div class="currency-pill">
-                <img class="cur-ico-img" src="game_icons/xp_essence.png" alt="">
-                <span class="cur-qty" id="essence-count">0</span>
-                <span class="currency-tip">Essence</span>
-            </div>
-            <div class="currency-pill">
-                <img class="cur-ico-img" src="game_icons/shard.png" alt="">
-                <span class="cur-qty" id="shard-count">0</span>
-                <span class="currency-tip">Mon Shards</span>
-            </div>
-        </div>
-        <div class="header-actions">
-            <button class="hdr-btn" onclick="buyMonball()">+ BALL</button>
-            <button class="hdr-btn" onclick="openGameModal('shop')">SHOP</button>
-            <button class="nav-btn" onclick="goToProfile()">PROFILE</button>
-            <button class="nav-btn" onclick="logout()">LOGOUT</button>
+            <button type="button" class="header-logout-btn" onclick="logout()">LOGOUT</button>
         </div>
     </div>
 </div>
 
+<div class="game-shell">
 <div class="game-container">
+    <img class="scene-bg" src="for%20result%20banner/battlebackground.jpg" alt="">
     <div id="main-scene" class="main-scene">
         <div class="scene-stage-label" id="scene-stage-label">Chapter 1-1</div>
         <div class="scene-battle-row">
@@ -1359,6 +1411,21 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
         <button type="button" class="battle-back-btn" onclick="requestLeaveBattle()">← BACK</button>
         <div id="battle-content"></div>
     </div>
+
+    <nav class="left-rail" aria-label="Quick actions">
+        <button type="button" class="side-icon-btn" onclick="buyMonball()">
+            <img src="game_icons/monball.png" alt="">
+            <span class="rail-tip">BUY BALL (500G)</span>
+        </button>
+        <button type="button" class="side-icon-btn" onclick="openGameModal('shop')">
+            <img src="game_icons/gold.png" alt="">
+            <span class="rail-tip">SHOP</span>
+        </button>
+        <button type="button" class="side-icon-btn" onclick="goToProfile()">
+            <span style="font-size:22px; line-height:1;">👤</span>
+            <span class="rail-tip">PROFILE</span>
+        </button>
+    </nav>
 
     <nav class="side-rail" aria-label="Game menu">
         <button type="button" class="side-icon-btn" id="rail-party" onclick="openGameModal('party')">
@@ -1382,6 +1449,7 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
             <span class="rail-tip">CATCH ON X</span>
         </button>
     </nav>
+</div>
 </div>
 
 <!-- Party modal -->
