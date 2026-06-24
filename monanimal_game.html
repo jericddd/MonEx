@@ -9,6 +9,8 @@
 :root {
     --purple: #6B21A8;
     --purple-light: #A855F7;
+    --game-max-width: 1400px;
+    --game-side-pad: 30px;
 }
 
 body {
@@ -974,6 +976,9 @@ body.afk-layout {
     display: flex;
     flex-direction: column;
 }
+body.afk-layout .game-shell {
+    flex: 1;
+}
 body.afk-layout .header {
     background: linear-gradient(180deg, #1a0a2e 0%, #12061f 100%);
     border-bottom: 3px solid #6B21A8;
@@ -981,7 +986,11 @@ body.afk-layout .header {
     flex-shrink: 0;
 }
 body.afk-layout .header-inner {
-    max-width: 1400px;
+    max-width: var(--game-max-width);
+    margin: 0 auto;
+    padding: 0 var(--game-side-pad);
+    width: 100%;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     gap: 16px;
@@ -1045,15 +1054,23 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
     background: #6B21A8;
 }
 
-.game-container {
+.game-shell {
     flex: 1;
-    display: flex;
-    max-width: 1400px;
-    width: 100%;
+    max-width: var(--game-max-width);
     margin: 0 auto;
-    min-height: calc(100vh - 80px);
+    padding: 12px var(--game-side-pad) 20px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.game-container {
+    display: flex;
+    border: 3px solid #6B21A8;
+    background: #0f0618;
+    min-height: calc(100vh - 110px);
     position: relative;
     overflow: hidden;
+    box-sizing: border-box;
 }
 
 .main-scene {
@@ -1150,14 +1167,15 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
 .side-rail {
     width: 64px;
     background: linear-gradient(180deg, #1a0a2e, #0f0618);
-    border-left: 3px solid #6B21A8;
+    border-left: 2px solid rgba(168, 85, 247, 0.5);
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 12px 0;
+    padding: 12px 8px;
     gap: 8px;
     flex-shrink: 0;
     z-index: 5;
+    box-sizing: border-box;
 }
 .side-icon-btn {
     width: 48px;
@@ -1283,16 +1301,17 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
 .game-modal-body { padding: 18px; }
 
 @media (max-width: 720px) {
+    :root { --game-side-pad: 16px; }
     .game-container { flex-direction: column; min-height: auto; }
     .side-rail {
         width: 100%;
         flex-direction: row;
         border-left: none;
-        border-top: 3px solid #6B21A8;
+        border-top: 2px solid rgba(168, 85, 247, 0.5);
         justify-content: center;
         padding: 8px;
     }
-    .battle-scene { right: 0; bottom: 64px; }
+    .battle-scene { right: 0; bottom: 72px; }
     .side-icon-btn .rail-tip {
         right: auto;
         top: auto;
@@ -1346,6 +1365,7 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
     </div>
 </div>
 
+<div class="game-shell">
 <div class="game-container">
     <div id="main-scene" class="main-scene">
         <div class="scene-stage-label" id="scene-stage-label">Chapter 1-1</div>
@@ -1382,6 +1402,7 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
             <span class="rail-tip">CATCH ON X</span>
         </button>
     </nav>
+</div>
 </div>
 
 <!-- Party modal -->
