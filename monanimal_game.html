@@ -186,7 +186,7 @@ body {
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 9px;
+    font-size: 7px;
     font-weight: 700;
     font-family: 'Press Start 2P', monospace;
     box-shadow: 2px 2px 0px #4c1d95;
@@ -194,6 +194,26 @@ body {
     position: relative;
     transition: transform 0.1s ease, box-shadow 0.1s ease;
     flex-shrink: 0;
+    overflow: hidden;
+}
+.skill-square .skill-icon-img {
+    position: relative;
+    z-index: 1;
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+.skill-square .skill-icon-fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7px;
+    line-height: 1;
+    pointer-events: none;
 }
 .skill-square:hover {
     transform: scale(1.2);
@@ -1996,6 +2016,55 @@ const ELEMENT_GLYPH = {
     psychic: "\uD83D\uDD2E", heal: "\u2728"
 };
 
+const SKILL_ICON_DIR = "game_icons/skill/";
+
+const SKILL_ICON_MAP = {
+    "Slash": "slash.png",
+    "Flame Burst": "flame-burst.png",
+    "Aqua Jet": "aqua-jet.png",
+    "Shock Bolt": "shock-bolt.png",
+    "Rock Throw": "rock-throw.png",
+    "Venom Bite": "venom-bite.png",
+    "Frost Shard": "frost-shard.png",
+    "Gale Slash": "gale-slash.png",
+    "Shadow Strike": "shadow-strike.png",
+    "Psy Beam": "psy-beam.png",
+    "Mend": "mend.png",
+    "Renew": "renew.png",
+    "Life Bloom": "life-bloom.png",
+    "Tough Hide": "tough-hide.png",
+    "Sharp Claws": "sharp-claws.png",
+    "Critical Instinct": "critical-instinct.png",
+    "Evasive": "evasive.png",
+    "Bulwark": "bulwark.png",
+    "Regenerator": "regenerator.png"
+};
+
+const SKILL_ELEMENT_ICON_FALLBACK = {
+    physical: "slash.png",
+    fire: "flame-burst.png",
+    water: "aqua-jet.png",
+    electric: "shock-bolt.png",
+    earth: "rock-throw.png",
+    poison: "venom-bite.png",
+    ice: "frost-shard.png",
+    wind: "gale-slash.png",
+    dark: "shadow-strike.png",
+    psychic: "psy-beam.png",
+    heal: "mend.png",
+    passive: "tough-hide.png"
+};
+
+function getSkillIconPath(skill) {
+    if (!skill || skill.type === "ultimate") return null;
+    const mapped = SKILL_ICON_MAP[skill.name];
+    if (mapped) return SKILL_ICON_DIR + mapped;
+    const elem = skill.element && skill.element !== "passive" ? skill.element : null;
+    if (skill.type === "passive") return SKILL_ICON_DIR + SKILL_ELEMENT_ICON_FALLBACK.passive;
+    if (elem && SKILL_ELEMENT_ICON_FALLBACK[elem]) return SKILL_ICON_DIR + SKILL_ELEMENT_ICON_FALLBACK[elem];
+    return null;
+}
+
 // ==================== STATE ====================
 let currentUser = null;
 let party = [];
@@ -2235,10 +2304,17 @@ function getSkillSquareClass(skill, index) {
     return "skill-active";
 }
 
-function getSkillIcon(skill) {
-    if (skill.type === "ultimate") return "\u2605";
+function getSkillIconFallbackText(skill) {
     if (skill.type === "passive") return "P";
     return skill.name.substring(0, 2).toUpperCase();
+}
+
+function getSkillIcon(skill) {
+    if (skill.type === "ultimate") return '<span class="skill-icon-fallback">\u2605</span>';
+    const path = getSkillIconPath(skill);
+    const fb = getSkillIconFallbackText(skill);
+    if (!path) return `<span class="skill-icon-fallback">${fb}</span>`;
+    return `<span class="skill-icon-fallback">${fb}</span><img class="skill-icon-img" src="${path}" alt="" onerror="this.remove()">`;
 }
 
 function renderSkillTip(mon, skill) {
@@ -2302,7 +2378,7 @@ function renderSkillsGrid(mon) {
     const squares = mon.skills.map((skill, i) => {
         const cls = getSkillSquareClass(skill, i);
         return `<div class="skill-square ${cls}" data-type="${skill.type}" data-slot="${i + 1}">
-            <span>${getSkillIcon(skill)}</span>
+            ${getSkillIcon(skill)}
             ${renderSkillTip(mon, skill)}
         </div>`;
     }).join("");
