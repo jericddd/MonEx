@@ -982,9 +982,10 @@ body.afk-layout .game-shell {
     background: #fff;
 }
 body.afk-layout .header {
-    background: #fff;
-    border-bottom: 3px solid #6B21A8;
-    padding: 10px 0;
+    background: linear-gradient(180deg, #ffffff 0%, #f7f4ff 100%);
+    border-bottom: none;
+    box-shadow: 0 2px 18px rgba(107, 33, 168, 0.08);
+    padding: 12px 0;
     flex-shrink: 0;
 }
 body.afk-layout .header-inner {
@@ -999,6 +1000,23 @@ body.afk-layout .header-inner {
     gap: 16px;
     flex-wrap: wrap;
 }
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+.header-trainer-block {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.header-name-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
 .header-trainer {
     display: flex;
     align-items: center;
@@ -1006,54 +1024,79 @@ body.afk-layout .header-inner {
     flex-shrink: 0;
 }
 .header-avatar {
-    width: 48px;
-    height: 48px;
+    width: 46px;
+    height: 46px;
     border-radius: 50%;
-    background: linear-gradient(145deg, #a855f7, #6b21a8);
-    border: 2px solid #facc15;
+    background: linear-gradient(145deg, #c084fc, #7c3aed);
+    border: none;
+    box-shadow: 0 3px 12px rgba(124, 58, 237, 0.35), inset 0 -2px 0 rgba(0, 0, 0, 0.12);
     flex-shrink: 0;
 }
 .header-trainer #trainer-name {
     font-weight: 700;
     font-size: 15px;
-    color: #111;
+    color: #1f1235;
+    letter-spacing: -0.01em;
 }
 body.afk-layout .trainer-meta {
-    color: #555;
+    color: #6b7280;
     font-size: 11px;
 }
 .header-currencies {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
     justify-content: flex-end;
     align-items: center;
+    margin-left: auto;
+    padding: 6px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: 0 4px 18px rgba(107, 33, 168, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 body.afk-layout .currency-pill {
-    background: #f3e8ff;
-    border-color: #6B21A8;
-    color: #111;
+    border: none;
+    background: transparent;
+    color: #1f1235;
+    padding: 5px 10px;
+    border-radius: 999px;
+    transition: background 0.15s ease, transform 0.15s ease;
 }
-body.afk-layout .currency-pill .cur-qty { color: #6B21A8; }
-.header-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-left: auto;
+body.afk-layout .currency-pill:hover {
+    transform: translateY(-1px);
+}
+body.afk-layout .header-currencies .currency-pill:nth-child(1) { background: rgba(239, 68, 68, 0.14); }
+body.afk-layout .header-currencies .currency-pill:nth-child(2) { background: rgba(245, 158, 11, 0.16); }
+body.afk-layout .header-currencies .currency-pill:nth-child(3) { background: rgba(59, 130, 246, 0.14); }
+body.afk-layout .header-currencies .currency-pill:nth-child(4) { background: rgba(168, 85, 247, 0.14); }
+body.afk-layout .currency-pill .cur-qty {
+    color: #4c1d95;
+    font-weight: 800;
+    font-size: 13px;
+}
+body.afk-layout .currency-pill .currency-tip {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    background: rgba(31, 18, 53, 0.94);
 }
 .header-logout-btn {
-    padding: 7px 12px;
-    border: 2px solid #6B21A8;
-    background: #fff;
-    color: #111;
+    padding: 5px 12px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
     font-weight: 600;
     cursor: pointer;
-    font-size: 10px;
-    font-family: "Press Start 2P", sans-serif;
+    font-size: 11px;
+    font-family: system-ui, -apple-system, sans-serif;
+    line-height: 1.2;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 .header-logout-btn:hover {
-    background: #f3e8ff;
+    background: rgba(239, 68, 68, 0.18);
+    color: #991b1b;
+    transform: translateY(-1px);
 }
 
 .game-shell {
@@ -1202,28 +1245,33 @@ body.afk-layout .currency-pill .cur-qty { color: #6B21A8; }
     pointer-events: auto;
 }
 .side-icon-btn {
-    width: 48px;
-    height: 48px;
-    border: 2px solid #6B21A8;
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    width: 52px;
+    height: 52px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.95);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
     position: relative;
-    transition: background 0.15s, transform 0.15s;
+    transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 .side-icon-btn:hover {
-    background: #6B21A8;
-    transform: scale(1.08);
+    background: rgba(255, 255, 255, 0.96);
+    transform: scale(1.07) translateY(-2px);
+    box-shadow: 0 8px 22px rgba(107, 33, 168, 0.28), inset 0 1px 0 rgba(255, 255, 255, 1);
 }
 .side-icon-btn:hover::before { display: none !important; }
 .side-icon-btn img {
     width: 28px;
     height: 28px;
     image-rendering: pixelated;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
 }
 .side-icon-btn .rail-tip {
     display: none;
@@ -1231,15 +1279,18 @@ body.afk-layout .currency-pill .cur-qty { color: #6B21A8; }
     right: calc(100% + 8px);
     top: 50%;
     transform: translateY(-50%);
-    background: #1a0a2e;
-    color: #f3e8ff;
-    border: 2px solid #a855f7;
-    padding: 6px 10px;
-    font-family: "Press Start 2P", sans-serif;
-    font-size: 7px;
+    background: rgba(31, 18, 53, 0.92);
+    color: #f5f3ff;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 11px;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
     white-space: nowrap;
     pointer-events: none;
     z-index: 20;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 .left-rail .side-icon-btn .rail-tip {
     right: auto;
@@ -1247,9 +1298,9 @@ body.afk-layout .currency-pill .cur-qty { color: #6B21A8; }
 }
 .side-icon-btn:hover .rail-tip { display: block; }
 .side-icon-btn.active {
-    border-color: #facc15;
-    background: #6B21A8;
-    box-shadow: 0 0 12px rgba(250, 204, 21, 0.4);
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.75), 0 8px 20px rgba(107, 33, 168, 0.3);
+    transform: scale(1.04);
 }
 
 .battle-scene {
@@ -1402,6 +1453,13 @@ body.afk-layout .currency-pill .cur-qty { color: #6B21A8; }
 
 @media (max-width: 720px) {
     :root { --game-side-pad: 16px; }
+    .header-inner { gap: 10px; }
+    .header-name-row { gap: 8px; }
+    .header-currencies {
+        width: 100%;
+        margin-left: 0;
+        justify-content: center;
+    }
     .game-container { flex-direction: column; min-height: auto; }
     .main-scene { min-height: 420px; padding-bottom: 72px; }
     .side-rail,
@@ -1434,37 +1492,37 @@ body.afk-layout .currency-pill .cur-qty { color: #6B21A8; }
 
 <div class="header">
     <div class="header-inner">
-        <div class="header-trainer">
+        <div class="header-left">
             <div class="header-avatar"></div>
-            <div>
-                <div id="trainer-name" style="font-weight:700;font-size:15px;"></div>
+            <div class="header-trainer-block">
+                <div class="header-name-row">
+                    <div id="trainer-name" style="font-weight:700;font-size:15px;"></div>
+                    <button type="button" class="header-logout-btn" onclick="logout()">Logout</button>
+                </div>
                 <div class="trainer-meta" id="trainer-meta">Trainer Lv.1 • Highest Stage: 0</div>
             </div>
         </div>
-        <div class="header-right">
-            <div class="header-currencies currency-row">
-                <div class="currency-pill">
-                    <img class="cur-ico-img" src="game_icons/monball.png" alt="">
-                    <span class="cur-qty" id="monball-count">12</span>
-                    <span class="currency-tip">Monball</span>
-                </div>
-                <div class="currency-pill">
-                    <img class="cur-ico-img" src="game_icons/gold.png" alt="">
-                    <span class="cur-qty" id="gold-count">0</span>
-                    <span class="currency-tip">Gold</span>
-                </div>
-                <div class="currency-pill">
-                    <img class="cur-ico-img" src="game_icons/xp_essence.png" alt="">
-                    <span class="cur-qty" id="essence-count">0</span>
-                    <span class="currency-tip">Essence</span>
-                </div>
-                <div class="currency-pill">
-                    <img class="cur-ico-img" src="game_icons/shard.png" alt="">
-                    <span class="cur-qty" id="shard-count">0</span>
-                    <span class="currency-tip">Mon Shards</span>
-                </div>
+        <div class="header-currencies currency-row">
+            <div class="currency-pill">
+                <img class="cur-ico-img" src="game_icons/monball.png" alt="">
+                <span class="cur-qty" id="monball-count">12</span>
+                <span class="currency-tip">Monball</span>
             </div>
-            <button type="button" class="header-logout-btn" onclick="logout()">LOGOUT</button>
+            <div class="currency-pill">
+                <img class="cur-ico-img" src="game_icons/gold.png" alt="">
+                <span class="cur-qty" id="gold-count">0</span>
+                <span class="currency-tip">Gold</span>
+            </div>
+            <div class="currency-pill">
+                <img class="cur-ico-img" src="game_icons/xp_essence.png" alt="">
+                <span class="cur-qty" id="essence-count">0</span>
+                <span class="currency-tip">Essence</span>
+            </div>
+            <div class="currency-pill">
+                <img class="cur-ico-img" src="game_icons/shard.png" alt="">
+                <span class="cur-qty" id="shard-count">0</span>
+                <span class="currency-tip">Mon Shards</span>
+            </div>
         </div>
     </div>
 </div>
