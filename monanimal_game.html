@@ -2018,46 +2018,43 @@ const ELEMENT_GLYPH = {
 
 const SKILL_ICON_DIR = "game_icons/skill/";
 
-// Upload PNGs as icon1.png … icon19.png into game_icons/skill/
-// (ultimates still use ★ — not assigned yet)
+// Final filenames use skill slugs (not icon1/icon2). Upload as iconN temporarily,
+// then rename to these names once each icon is assigned. Ultimates omitted for now.
 const SKILL_ICON_MAP = {
-  // Active (icon1–icon10)
-  "Slash":         "icon1.png",
-  "Flame Burst":   "icon2.png",
-  "Aqua Jet":      "icon3.png",
-  "Shock Bolt":    "icon4.png",
-  "Rock Throw":    "icon5.png",
-  "Venom Bite":    "icon6.png",
-  "Frost Shard":   "icon7.png",
-  "Gale Slash":    "icon8.png",
-  "Shadow Strike": "icon9.png",
-  "Psy Beam":      "icon10.png",
-  // Heal (icon11–icon13)
-  "Mend":          "icon11.png",
-  "Renew":         "icon12.png",
-  "Life Bloom":    "icon13.png",
-  // Passive (icon14–icon19)
-  "Tough Hide":        "icon14.png",
-  "Sharp Claws":       "icon15.png",
-  "Critical Instinct": "icon16.png",
-  "Evasive":           "icon17.png",
-  "Bulwark":           "icon18.png",
-  "Regenerator":       "icon19.png"
+  "Slash":         "slash.png",
+  "Flame Burst":   "flame-burst.png",
+  "Aqua Jet":      "aqua-jet.png",
+  "Shock Bolt":    "shock-bolt.png",
+  "Rock Throw":    "rock-throw.png",
+  "Venom Bite":    "venom-bite.png",
+  "Frost Shard":   "frost-shard.png",
+  "Gale Slash":    "gale-slash.png",
+  "Shadow Strike": "shadow-strike.png",
+  "Psy Beam":      "psy-beam.png",
+  "Mend":          "mend.png",
+  "Renew":         "renew.png",
+  "Life Bloom":    "life-bloom.png",
+  "Tough Hide":        "tough-hide.png",
+  "Sharp Claws":       "sharp-claws.png",
+  "Critical Instinct": "critical-instinct.png",
+  "Evasive":           "evasive.png",
+  "Bulwark":           "bulwark.png",
+  "Regenerator":       "regenerator.png"
 };
 
 const SKILL_ELEMENT_ICON_FALLBACK = {
-    physical: "icon1.png",
-    fire: "icon2.png",
-    water: "icon3.png",
-    electric: "icon4.png",
-    earth: "icon5.png",
-    poison: "icon6.png",
-    ice: "icon7.png",
-    wind: "icon8.png",
-    dark: "icon9.png",
-    psychic: "icon10.png",
-    heal: "icon11.png",
-    passive: "icon14.png"
+    physical: "slash.png",
+    fire: "flame-burst.png",
+    water: "aqua-jet.png",
+    electric: "shock-bolt.png",
+    earth: "rock-throw.png",
+    poison: "venom-bite.png",
+    ice: "frost-shard.png",
+    wind: "gale-slash.png",
+    dark: "shadow-strike.png",
+    psychic: "psy-beam.png",
+    heal: "mend.png",
+    passive: "tough-hide.png"
 };
 
 function getSkillIconPath(skill) {
