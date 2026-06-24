@@ -971,16 +971,17 @@ button,
 
 /* ===== AFK LAYOUT ===== */
 body.afk-layout {
-    background: #0f0618;
+    background: #fff;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
 }
 body.afk-layout .game-shell {
     flex: 1;
+    background: #fff;
 }
 body.afk-layout .header {
-    background: linear-gradient(180deg, #1a0a2e 0%, #12061f 100%);
+    background: #fff;
     border-bottom: 3px solid #6B21A8;
     padding: 10px 0;
     flex-shrink: 0;
@@ -1013,10 +1014,10 @@ body.afk-layout .header-inner {
 .header-trainer #trainer-name {
     font-weight: 700;
     font-size: 15px;
-    color: #f3e8ff;
+    color: #111;
 }
 body.afk-layout .trainer-meta {
-    color: #c4b5fd;
+    color: #555;
     font-size: 11px;
 }
 .header-currencies {
@@ -1027,11 +1028,11 @@ body.afk-layout .trainer-meta {
     justify-content: center;
 }
 body.afk-layout .currency-pill {
-    background: rgba(107, 33, 168, 0.35);
-    border-color: #a855f7;
-    color: #f3e8ff;
+    background: #f3e8ff;
+    border-color: #6B21A8;
+    color: #111;
 }
-body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
+body.afk-layout .currency-pill .cur-qty { color: #6B21A8; }
 .header-actions {
     display: flex;
     gap: 6px;
@@ -1041,9 +1042,9 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
 .header-actions .nav-btn,
 .header-actions .hdr-btn {
     padding: 7px 12px;
-    border: 2px solid #a855f7;
-    background: rgba(107, 33, 168, 0.4);
-    color: #f3e8ff;
+    border: 2px solid #6B21A8;
+    background: #fff;
+    color: #111;
     font-weight: 600;
     cursor: pointer;
     font-size: 10px;
@@ -1051,11 +1052,10 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
 }
 .header-actions .nav-btn:hover,
 .header-actions .hdr-btn:hover {
-    background: #6B21A8;
+    background: #f3e8ff;
 }
 
 .game-shell {
-    flex: 1;
     max-width: var(--game-max-width);
     margin: 0 auto;
     padding: 12px var(--game-side-pad) 20px;
@@ -1065,8 +1065,9 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
 
 .game-container {
     display: flex;
+    align-items: stretch;
     border: 3px solid #6B21A8;
-    background: #0f0618;
+    background: #fff;
     min-height: calc(100vh - 110px);
     position: relative;
     overflow: hidden;
@@ -1076,17 +1077,19 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
 .main-scene {
     flex: 1;
     position: relative;
-    background: url('for%20result%20banner/battlebackground.jpg') center/cover no-repeat;
+    background: url('for%20result%20banner/battlebackground.jpg') no-repeat center;
+    background-size: 100% 100%;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    min-height: 520px;
+    min-height: 100%;
+    align-self: stretch;
 }
 .main-scene::before {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(15,6,24,0.15) 0%, rgba(15,6,24,0.55) 100%);
+    background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.12) 100%);
     pointer-events: none;
 }
 .scene-stage-label {
@@ -1166,8 +1169,8 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
 
 .side-rail {
     width: 64px;
-    background: linear-gradient(180deg, #1a0a2e, #0f0618);
-    border-left: 2px solid rgba(168, 85, 247, 0.5);
+    background: #fff;
+    border-left: 2px solid #6B21A8;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1176,12 +1179,13 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
     flex-shrink: 0;
     z-index: 5;
     box-sizing: border-box;
+    align-self: stretch;
 }
 .side-icon-btn {
     width: 48px;
     height: 48px;
-    border: 2px solid #a855f7;
-    background: rgba(107, 33, 168, 0.35);
+    border: 2px solid #6B21A8;
+    background: #fff;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1227,7 +1231,7 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
     position: absolute;
     inset: 0;
     right: 64px;
-    background: #0f0618;
+    background: #fff;
     display: none;
     flex-direction: column;
     z-index: 4;
@@ -1307,7 +1311,7 @@ body.afk-layout .currency-pill .cur-qty { color: #fde68a; }
         width: 100%;
         flex-direction: row;
         border-left: none;
-        border-top: 2px solid rgba(168, 85, 247, 0.5);
+        border-top: 2px solid #6B21A8;
         justify-content: center;
         padding: 8px;
     }
