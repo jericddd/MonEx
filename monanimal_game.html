@@ -1341,23 +1341,93 @@ body.afk-layout .currency-pill .currency-tip {
     display: none;
     flex-direction: column;
     z-index: 4;
-    overflow-y: auto;
+    overflow: hidden;
 }
 .battle-scene.open { display: flex; }
+.game-container.adventure-mode .battle-scene {
+    z-index: 25;
+}
+.game-container.adventure-mode .scene-bg,
+.game-container.adventure-mode .main-scene,
+.game-container.adventure-mode .left-rail,
+.game-container.adventure-mode .side-rail {
+    visibility: hidden;
+    pointer-events: none;
+}
+.battle-scene-frame {
+    position: relative;
+    flex: 1;
+    width: 100%;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+.battle-scene-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    z-index: 0;
+    pointer-events: none;
+    display: none;
+}
+.battle-scene-bg.visible { display: block; }
 .battle-back-btn {
-    align-self: flex-start;
-    margin: 12px 16px 0;
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    z-index: 3;
+    margin: 0;
     padding: 10px 16px;
-    border: 2px solid #a855f7;
-    background: rgba(107, 33, 168, 0.5);
-    color: #f3e8ff;
+    border: none;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #4c1d95;
+    box-shadow: 0 4px 14px rgba(32, 0, 82, 0.28);
     cursor: pointer;
     font-family: "Press Start 2P", sans-serif;
     font-size: 8px;
 }
-.battle-back-btn:hover { background: #6B21A8; }
+.battle-back-btn:hover { background: #fff; color: #6b21a8; }
 .battle-back-btn:hover::before { display: none !important; }
-#battle-content { flex: 1; padding: 0 16px 16px; }
+.battle-scene-ui {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    width: 100%;
+    min-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 56px 20px 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+.battle-scene-ui--fight {
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 48px 10px 10px;
+}
+.adventure-panel {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.93);
+    padding: 32px 40px;
+    border: 4px solid #6B21A8;
+    box-shadow: 4px 4px 0 #6B21A8;
+    max-width: min(920px, 96%);
+    width: 100%;
+    box-sizing: border-box;
+}
+.adventure-panel h2 {
+    margin: 0 0 20px;
+    color: #6B21A8;
+}
+#battle-content { flex: 1; width: 100%; min-height: 0; }
+#battle-content .battle-stage {
+    width: 100%;
+    min-height: calc(100vh - 220px);
+}
 
 .game-modal {
     display: none;
@@ -1570,8 +1640,11 @@ body.afk-layout .currency-pill .currency-tip {
     </div>
 
     <div id="battle-scene" class="battle-scene">
-        <button type="button" class="battle-back-btn" onclick="requestLeaveBattle()">← BACK</button>
-        <div id="battle-content"></div>
+        <div class="battle-scene-frame">
+            <img id="battle-scene-bg" class="battle-scene-bg" alt="">
+            <button type="button" class="battle-back-btn" onclick="requestLeaveBattle()">← BACK</button>
+            <div id="battle-content" class="battle-scene-ui"></div>
+        </div>
     </div>
 
     <nav class="left-rail" aria-label="Quick actions">
@@ -3135,6 +3208,27 @@ function openCatch() {
     window.open("https://x.com/monexmonad", "_blank", "noopener,noreferrer");
 }
 
+function setBattleSceneBackground(url) {
+    const bg = document.getElementById("battle-scene-bg");
+    if (!bg) return;
+    if (url) {
+        bg.src = url;
+        bg.classList.add("visible");
+    } else {
+        bg.src = "";
+        bg.classList.remove("visible");
+    }
+}
+
+function setAdventureMode(active) {
+    document.querySelector(".game-container")?.classList.toggle("adventure-mode", !!active);
+}
+
+function enterAdventureFullMode(bgUrl) {
+    setAdventureMode(true);
+    setBattleSceneBackground(bgUrl);
+}
+
 function renderBattleMenu() {
     const content = document.getElementById("battle-content");
     if (!content) return;
@@ -3187,6 +3281,8 @@ function renderBattleMenu() {
 function openBattleScene() {
     if (isInAdventureBattle) return;
     closeAllModals();
+    setAdventureMode(false);
+    setBattleSceneBackground("");
     document.getElementById("main-scene").style.display = "none";
     document.getElementById("battle-scene").classList.add("open");
     document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
@@ -3203,11 +3299,16 @@ function requestLeaveBattle() {
 }
 
 function closeBattleScene() {
+    setAdventureMode(false);
+    setBattleSceneBackground("");
     document.getElementById("battle-scene").classList.remove("open");
     document.getElementById("main-scene").style.display = "flex";
     document.getElementById("rail-battle")?.classList.remove("active");
     const content = document.getElementById("battle-content");
-    if (content) content.innerHTML = "";
+    if (content) {
+        content.innerHTML = "";
+        content.className = "battle-scene-ui";
+    }
     renderMainScene();
 }
 
@@ -3249,27 +3350,17 @@ function saveAdventureProgress() {
 
 function enterAdventureMode() {
     loadAdventureProgress();
-    
+    enterAdventureFullMode("for%20result%20banner/map1.gif");
+
     const content = document.getElementById("battle-content");
+    content.className = "battle-scene-ui";
     content.innerHTML = `
-        <div style="
-            width: 100%; 
-            height: 520px; 
-            background: url('for%20result%20banner/map1.gif') center/cover no-repeat;
-            border: 4px solid #6B21A8;
-            box-shadow: 4px 4px 0px #6B21A8;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        ">
-            <div style="text-align: center; background: rgba(255,255,255,0.95); padding: 40px 60px; border: 4px solid #6B21A8; box-shadow: 4px 4px 0px #6B21A8;">
-                <h2 style="margin: 0 0 25px 0; color: #6B21A8;">ADVENTURE</h2>
-                <button id="current-stage-btn" onclick="startStageSelection()" 
-                    style="font-size: 26px; padding: 22px 70px; background: #6B21A8; color: white; border: none; cursor: pointer; font-family: 'Press Start 2P', monospace;">
-                    CHAPTER 1-${currentStage}
-                </button>
-            </div>
+        <div class="adventure-panel">
+            <h2>ADVENTURE</h2>
+            <button id="current-stage-btn" onclick="startStageSelection()"
+                style="font-size: 22px; padding: 22px 70px; background: #6B21A8; color: white; border: none; cursor: pointer; font-family: 'Press Start 2P', monospace;">
+                CHAPTER 1-${currentStage}
+            </button>
         </div>
     `;
 }
@@ -3277,13 +3368,12 @@ function enterAdventureMode() {
 function startStageSelection() {
     const boss = isBossStage(currentStage);
     const content = document.getElementById("battle-content");
+    content.className = "battle-scene-ui";
     content.innerHTML = `
-        <div style="padding:30px; text-align:center; background:white; border:4px solid #6B21A8; box-shadow:4px 4px 0px #6B21A8;">
+        <div class="adventure-panel">
             <h2>CHAPTER 1 - STAGE ${currentStage}${boss ? ' <span class="boss-label">BOSS</span>' : ''}</h2>
             <p style="margin:20px 0 30px 0; font-size:15px; color:#444;">${boss ? 'Boss stage — tougher enemies and better rewards!' : 'Arrange sequence before battle start, drag and drop'}</p>
-            
             <div id="team-arrange" style="display:flex; gap:20px; justify-content:center; margin:30px 0; flex-wrap:wrap;"></div>
-            
             <button onclick="startAdventureBattle()" style="padding:18px 80px; font-size:20px; background:#6B21A8; color:white; border:none; cursor:pointer; font-family:'Press Start 2P';">
                 START BATTLE
             </button>
@@ -3431,6 +3521,8 @@ function start3v3Battle(playerParty) {
     isInAdventureBattle = true;
     markAdventureBattleSession();
     saveData();
+    setAdventureMode(true);
+    setBattleSceneBackground("for%20result%20banner/battlebackground.jpg");
     const playerTeam = playerParty.slice(0, 3).map(m => makeFighter(m, true));
     const enemyTeam = makeEnemyTeam(playerParty, currentStage);
     renderBattleScene();
@@ -3440,6 +3532,7 @@ function start3v3Battle(playerParty) {
 function renderBattleScene() {
     const boss = isBossStage(currentStage);
     const content = document.getElementById("battle-content");
+    content.className = "battle-scene-ui battle-scene-ui--fight";
     content.innerHTML = `
         <div class="battle-stage" id="battle-stage">
             <div class="vs-bar">
@@ -3760,6 +3853,7 @@ function endBattle(win, player) {
 
 function showBattleResult(win, reward) {
     const content = document.getElementById("battle-content");
+    content.className = "battle-scene-ui";
     const drops = win
         ? `<div style="margin:18px 0; font-size:15px;">
                <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("gold", 20)} <b>+${reward.gold}</b></div>
@@ -3771,7 +3865,7 @@ function showBattleResult(win, reward) {
            </div>`
         : `<p style="font-size:15px; margin:20px 0;">Your team was defeated. Everyone was restored to full HP — level up and try again!</p>`;
     content.innerHTML = `
-        <div style="padding:40px; text-align:center; background:white; border:4px solid #6B21A8; box-shadow:4px 4px 0px #6B21A8;">
+        <div class="adventure-panel">
             <h2 style="color:${win ? '#16a34a' : '#ef4444'}; font-family:'Press Start 2P', monospace;">${win ? 'VICTORY!' : 'DEFEAT'}</h2>
             ${drops}
             <button onclick="enterAdventureMode()" style="margin-top:10px; padding:14px 45px; background:#6B21A8; color:white; border:none; cursor:pointer; font-family:'Press Start 2P', monospace;">
