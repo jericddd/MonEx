@@ -1835,6 +1835,8 @@ let trainerXp = 0;
 let highestStageCleared = 0;
 let lastResetDate = null;
 let isInAdventureBattle = false;
+let adventureBattleToken = 0;
+let adventureForfeitNotice = false;
 let sceneEnemySeed = 0;
 const WILD_SCENE_MOBS = ["Chog", "Moyaki", "Spidermon", "Shramp", "Salmonad", "Mouch", "Larvanad", "Anago"];
 let xHandle = "";
@@ -2432,10 +2434,72 @@ function checkDailyReset() {
     }
 }
 
+function adventureBattleSessionKey() {
+    return currentUser ? "monex_adv_battle_" + currentUser : null;
+}
+
+function markAdventureBattleSession() {
+    const key = adventureBattleSessionKey();
+    if (key) sessionStorage.setItem(key, "1");
+}
+
+function clearAdventureBattleSession() {
+    const key = adventureBattleSessionKey();
+    if (key) sessionStorage.removeItem(key);
+}
+
+function restorePartyFullHp() {
+    party.forEach(m => {
+        ensureMonReady(m);
+        m.current_hp = m.max_hp;
+    });
+}
+
+function applyAdventureForfeit() {
+    adventureBattleToken++;
+    isInAdventureBattle = false;
+    clearAdventureBattleSession();
+    restorePartyFullHp();
+    saveData();
+    updateUI();
+}
+
+function forfeitAdventureBattle(options = {}) {
+    const { showResult = false } = options;
+    const inBattle = isInAdventureBattle;
+    const key = adventureBattleSessionKey();
+    const abandoned = key && sessionStorage.getItem(key);
+    if (!inBattle && !abandoned) return false;
+
+    applyAdventureForfeit();
+
+    if (showResult && inBattle) {
+        showBattleResult(false, { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null });
+    }
+    return true;
+}
+
+function resolveAbandonedAdventureBattle() {
+    const key = adventureBattleSessionKey();
+    const abandonedSession = key && sessionStorage.getItem(key);
+    let abandonedSave = false;
+    try {
+        const saved = localStorage.getItem("monex_" + currentUser);
+        if (saved) abandonedSave = !!JSON.parse(saved).adventureBattleActive;
+    } catch (_) {}
+
+    if (!abandonedSession && !abandonedSave) return false;
+
+    applyAdventureForfeit();
+    adventureForfeitNotice = true;
+    return true;
+}
+
 function saveData() {
     if (!currentUser) return;
     const payload = {
-        party, box, monballs, money, essence, monShards, trainerXp, highestStageCleared, currentStage, gearInventory, lastResetDate, xHandle
+        party, box, monballs, money, essence, monShards, trainerXp, highestStageCleared, currentStage, gearInventory, lastResetDate, xHandle,
+        adventureBattleActive: isInAdventureBattle
     };
     localStorage.setItem("monex_" + currentUser, JSON.stringify(payload));
     if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
@@ -2994,6 +3058,11 @@ async function checkLogin() {
         }
         currentUser = user.username || MonExAuth.getDisplayName();
         await loadData();
+        resolveAbandonedAdventureBattle();
+        if (adventureForfeitNotice) {
+            adventureForfeitNotice = false;
+            alert("Your adventure battle was abandoned. It counts as a defeat — your team was restored to full HP.");
+        }
         try { await syncXWildMons(true); } catch (_) {}
         showMainScene();
     } catch (e) {
@@ -3002,6 +3071,11 @@ async function checkLogin() {
         if (cached?.username && MonExAuth.isLoggedIn()) {
             currentUser = cached.username;
             await loadData();
+            resolveAbandonedAdventureBattle();
+            if (adventureForfeitNotice) {
+                adventureForfeitNotice = false;
+                alert("Your adventure battle was abandoned. It counts as a defeat — your team was restored to full HP.");
+            }
             showMainScene();
             return;
         }
@@ -3353,11 +3427,14 @@ function makeEnemyTeam(playerParty, stage) {
 }
 
 function start3v3Battle(playerParty) {
+    adventureBattleToken++;
     isInAdventureBattle = true;
+    markAdventureBattleSession();
+    saveData();
     const playerTeam = playerParty.slice(0, 3).map(m => makeFighter(m, true));
     const enemyTeam = makeEnemyTeam(playerParty, currentStage);
     renderBattleScene();
-    runBattle(playerTeam, enemyTeam);
+    runBattle(playerTeam, enemyTeam, adventureBattleToken);
 }
 
 function renderBattleScene() {
@@ -3589,7 +3666,7 @@ async function takeTurn(atk, def, atkSide, defSide) {
     await delay(120);
 }
 
-async function runBattle(player, enemy) {
+async function runBattle(player, enemy, battleToken) {
     let pi = 0, ei = 0;
     setFighter("player", player[pi]);
     setFighter("enemy", enemy[ei]);
@@ -3599,18 +3676,24 @@ async function runBattle(player, enemy) {
 
     let guard = 0;
     while (guard++ < 500) {
+        if (battleToken !== adventureBattleToken || !isInAdventureBattle) return;
+
         const P = player[pi], E = enemy[ei];
         const seq = P.stats.spd >= E.stats.spd
             ? [["player", "enemy"], ["enemy", "player"]]
             : [["enemy", "player"], ["player", "enemy"]];
 
         for (const [atkSide, defSide] of seq) {
+            if (battleToken !== adventureBattleToken || !isInAdventureBattle) return;
             const atk = atkSide === "player" ? P : E;
             const def = defSide === "player" ? P : E;
             if (atk.hp <= 0 || def.hp <= 0) continue;
             await takeTurn(atk, def, atkSide, defSide);
+            if (battleToken !== adventureBattleToken || !isInAdventureBattle) return;
             if (def.hp <= 0) break;
         }
+
+        if (battleToken !== adventureBattleToken || !isInAdventureBattle) return;
 
         if (E.hp <= 0) {
             await faintAnim("enemy");
@@ -3640,6 +3723,7 @@ async function runBattle(player, enemy) {
 
 function endBattle(win, player) {
     isInAdventureBattle = false;
+    clearAdventureBattleSession();
     player.forEach(f => { if (f.ref) f.ref.current_hp = Math.max(0, Math.round(f.hp)); });
 
     let reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null };
@@ -3782,8 +3866,12 @@ function showBattleLeaveWarning(targetTab) {
 }
 
 function confirmLeaveBattle(targetTab) {
-    isInAdventureBattle = false;
     document.querySelectorAll('div[style*="z-index: 500"]').forEach(m => m.remove());
+    const wasInBattle = isInAdventureBattle;
+    forfeitAdventureBattle({ showResult: wasInBattle });
+
+    if (wasInBattle) return;
+
     if (targetTab === "main") {
         closeBattleScene();
     } else if (targetTab === "battle") {
