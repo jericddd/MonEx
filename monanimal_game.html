@@ -925,6 +925,17 @@ button,
 .hpbar.big { height: 16px; }
 .manbar.big { height: 7px; margin-top: 3px; }
 .enbar.big { height: 7px; margin-top: 3px; }
+.status-row {
+    display: flex; flex-wrap: wrap; gap: 3px; min-height: 14px; margin-top: 3px;
+}
+.status-pill {
+    font-family: 'Press Start 2P', monospace; font-size: 6px; line-height: 1.2;
+    padding: 2px 4px; border-radius: 3px; color: #fff; text-shadow: 0 1px 0 #000;
+    border: 1px solid rgba(0,0,0,0.35);
+}
+.status-pill.stun { background: #d97706; }
+.status-pill.frozen { background: #2563eb; }
+.status-pill.poison { background: #15803d; }
 .vs-badge {
     flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%;
     background: radial-gradient(circle at 30% 30%, #fde68a, #f59e0b);
@@ -1005,6 +1016,7 @@ button,
 .dmgnum.block { color: #cbd5e1; }
 .dmgnum.miss  { color: #67e8f9; }
 .dmgnum.heal  { color: #22c55e; }
+.dmgnum.poison { color: #84cc16; }
 @keyframes floatup {
     0%   { opacity: 0; }
     20%  { opacity: 1; }
@@ -1980,10 +1992,10 @@ const DAMAGE_ACTIVE_POOL = [
     {name: "Slash",         element: "physical", type: "active", power: 1.0,  desc: "A swift physical slash."},
     {name: "Flame Burst",   element: "fire",     type: "active", power: 1.15, desc: "Bursts the target in flames."},
     {name: "Aqua Jet",      element: "water",    type: "active", power: 0.95, desc: "A fast jet of water."},
-    {name: "Shock Bolt",    element: "electric", type: "active", power: 1.05, desc: "A bolt of lightning."},
+    {name: "Shock Bolt",    element: "electric", type: "active", power: 0.55, desc: "A low-damage bolt that may stun the foe.", effect: { type: "stun", chance: 0.4 }},
     {name: "Rock Throw",    element: "earth",    type: "active", power: 1.2,  desc: "Hurls heavy rocks."},
-    {name: "Venom Bite",    element: "poison",   type: "active", power: 1.1,  desc: "A venomous bite."},
-    {name: "Frost Shard",   element: "ice",      type: "active", power: 1.0,  desc: "Shards of sharp ice."},
+    {name: "Venom Bite",    element: "poison",   type: "active", power: 0,    desc: "Injects venom — no direct damage, only poison over time.", effect: { type: "poison", chance: 0.55 }},
+    {name: "Frost Shard",   element: "ice",      type: "active", power: 0.4,  desc: "Weak icy shards that may freeze the foe.", effect: { type: "frozen", chance: 0.45 }},
     {name: "Gale Slash",    element: "wind",     type: "active", power: 1.0,  desc: "A crescent of wind."},
     {name: "Shadow Strike", element: "dark",     type: "active", power: 1.1,  desc: "A strike from the shadows."},
     {name: "Psy Beam",      element: "psychic",  type: "active", power: 1.1,  desc: "A focused psychic beam."},
@@ -2008,7 +2020,6 @@ const DAMAGE_ACTIVE_POOL = [
     {name: "Arc Lightning",   element: "electric", type: "active", power: 1.1,  desc: "Channels a jagged arc of lightning from a charged core."},
     {name: "Mending Rain",    element: "water",    type: "active", power: 1.0,  desc: "Showers the battlefield in green energy that harms enemies."},
     {name: "Spirit Beam",     element: "psychic",  type: "active", power: 1.05, desc: "A pillar of green spirit energy strikes from above."},
-    {name: "Sacred Word",     element: "psychic",  type: "active", power: 1.05, desc: "Recites holy scripture that blasts the foe with radiant force."},
     {name: "Arcane Blast",    element: "psychic",  type: "active", power: 1.15, desc: "Unleashes stored arcane power from an enchanted tome."},
 ];
 
@@ -2016,6 +2027,8 @@ const HEAL_SKILL_POOL = [
     {name: "Mend",       element: "heal", type: "heal", power: 0, heal: 0.35, desc: "Restores 35% of max HP."},
     {name: "Renew",      element: "heal", type: "heal", power: 0, heal: 0.25, desc: "Restores 25% of max HP."},
     {name: "Life Bloom", element: "heal", type: "heal", power: 0, heal: 0.45, desc: "Restores 45% of max HP."},
+    {name: "Cleanse",    element: "heal", type: "heal", power: 0, heal: 0, cleanse: true, mana: 28,
+        desc: "Removes soft ailments (Frozen, Poison). Does not remove Stun."},
 ];
 
 function rollActiveSkill() {
@@ -2049,6 +2062,9 @@ const PASSIVE_SKILL_POOL = [
     {name: "Emerald Ward",      element: "passive", type: "passive", dmgTaken: 0.9,  desc: "A verdant ward reduces damage taken by 10%."},
     {name: "Iron Will",         element: "passive", type: "passive", dmgTaken: 0.9,  desc: "A crimson sigil steels the body, reducing damage taken by 10%."},
     {name: "Mystic Sigil",      element: "passive", type: "passive", critBonus: 8,  desc: "+8% crit chance from an ancient golden sigil."},
+    {name: "Eagle Eye",         element: "passive", type: "passive", hitBonus: 8,   desc: "+8% hit chance."},
+    {name: "Piercing Gaze",     element: "passive", type: "passive", pierceBonus: 8, desc: "+8% pierce."},
+    {name: "Swift Feet",        element: "passive", type: "passive", spdBonus: 15,  desc: "+15 SPD."},
 ];
 
 // Per-rarity stat budget. %-stats roll within [pct], SPD within [spd].
@@ -2124,7 +2140,7 @@ const SKILL_ICON_MAP = {
     "Arc Lightning": "arc-lightning.png",
     "Mending Rain": "mending-rain.png",
     "Spirit Beam": "spirit-beam.png",
-    "Sacred Word": "sacred-word.png",
+    "Cleanse": "sacred-word.png",
     "Arcane Blast": "arcane-blast.png",
     "Mend": "mend.png",
     "Renew": "renew.png",
@@ -2140,7 +2156,10 @@ const SKILL_ICON_MAP = {
     "Storm Guard": "storm-guard.png",
     "Emerald Ward": "emerald-ward.png",
     "Iron Will": "iron-will.png",
-    "Mystic Sigil": "mystic-sigil.png"
+    "Mystic Sigil": "mystic-sigil.png",
+    "Eagle Eye": "eagle-eye.png",
+    "Piercing Gaze": "piercing-gaze.png",
+    "Swift Feet": "swift-feet.png"
 };
 
 const SKILL_ELEMENT_ICON_FALLBACK = {
@@ -2257,6 +2276,8 @@ const NORMAL_ATTACK_SKILL = {
     manaGain: NORMAL_ATTACK_MANA_GAIN,
     desc: "A basic strike. Damage scales with level and gear. Restores mana."
 };
+const POISON_TICK_PCT = 0.03;
+const FREEZE_DMG_BOOST = 1.3;
 const MELEE_DASH_FALLBACK_PX = 180;
 
 function getAttackSpritePath(name) {
@@ -2516,12 +2537,16 @@ function formatPassiveDetail(skill) {
     if (skill.critBonus != null) parts.push("+" + skill.critBonus + "% crit");
     if (skill.dodgeBonus != null) parts.push("+" + skill.dodgeBonus + "% dodge");
     if (skill.blockBonus != null) parts.push("+" + skill.blockBonus + "% block");
+    if (skill.hitBonus != null) parts.push("+" + skill.hitBonus + "% hit");
+    if (skill.pierceBonus != null) parts.push("+" + skill.pierceBonus + "% pierce");
+    if (skill.spdBonus != null) parts.push("+" + skill.spdBonus + " SPD");
     if (skill.regen != null) parts.push("Regen " + Math.round(skill.regen * 100) + "% HP/turn");
     return parts.join(" · ");
 }
 
 function getSkillManaCost(skill) {
     if (skill.mana != null) return skill.mana;
+    if (skill.cleanse) return 28;
     if (skill.type === "heal") return Math.round(20 + (skill.heal || 0.35) * 40);
     if (skill.type === "active") return Math.round(12 + (skill.power || 1) * 12);
     return 0;
@@ -2531,6 +2556,34 @@ function getSkillStatsLine(mon, skill) {
     if (skill.type === "passive") return formatPassiveDetail(skill);
     const manaPart = (skill.type === "active" || skill.type === "heal")
         ? "Mana: " + getSkillManaCost(skill) : "";
+    if (skill.cleanse) {
+        const cleansePart = "Removes Frozen & Poison (not Stun)";
+        return manaPart ? manaPart + " · " + cleansePart : cleansePart;
+    }
+    if (skill.effect?.type === "poison") {
+        const poisonPart = "Poison: " + Math.round(POISON_TICK_PCT * 100) + "% max HP/turn until faint";
+        return manaPart ? manaPart + " · " + poisonPart : poisonPart;
+    }
+    if (skill.effect) {
+        const fx = skill.effect.type === "stun" ? "May Stun (skip turn)"
+            : skill.effect.type === "frozen" ? "May Freeze (heal/cleanse only)"
+            : "";
+        const chancePart = fx ? fx + " · " + Math.round(skill.effect.chance * 100) + "% chance" : "";
+        if (skill.type === "heal") {
+            const pct = Math.round((skill.heal || 0.35) * 100);
+            const heal = Math.ceil(mon.max_hp * (skill.heal || 0.35));
+            const healPart = "Heal: " + heal + " HP (" + pct + "% max HP)";
+            return [manaPart, healPart, chancePart].filter(Boolean).join(" · ");
+        }
+        if (skill.type === "ultimate" || skill.type === "active") {
+            const atk = getEffectiveStats(mon).atk;
+            const dmg = Math.floor(atk * (skill.power || 1));
+            const dmgPart = skill.power > 0
+                ? "DMG: " + dmg + " (ATK " + atk + " × " + skill.power + ")"
+                : "No direct damage";
+            return [manaPart, dmgPart, chancePart].filter(Boolean).join(" · ");
+        }
+    }
     if (skill.type === "heal") {
         const pct = Math.round((skill.heal || 0.35) * 100);
         const heal = Math.ceil(mon.max_hp * (skill.heal || 0.35));
@@ -2650,14 +2703,32 @@ function generateSkills(name, rarity) {
 }
 
 // Backfill any missing data (stats / skills / ultimate / hp) on existing or new monanimals.
+function migrateSkillDefinitions(mon) {
+    if (!mon.skills) return;
+    mon.skills = mon.skills.map(skill => {
+        if (skill.name === "Sacred Word") {
+            return { ...HEAL_SKILL_POOL.find(s => s.name === "Cleanse") };
+        }
+        const fromDamage = DAMAGE_ACTIVE_POOL.find(s => s.name === skill.name);
+        if (fromDamage) return { ...fromDamage };
+        const fromHeal = HEAL_SKILL_POOL.find(s => s.name === skill.name);
+        if (fromHeal) return { ...fromHeal };
+        const fromPassive = PASSIVE_SKILL_POOL.find(s => s.name === skill.name);
+        if (fromPassive) return { ...fromPassive };
+        return skill;
+    });
+}
+
 function ensureMonReady(mon) {
     if (!mon.equipment) mon.equipment = { weapon: null, armor: null, helmet: null, boots: null };
     if (!mon.stats || mon.stats.spd == null) mon.stats = generateStats(mon.rarity);
+    migrateSkillDefinitions(mon);
     if (needsSkillMigration(mon)) {
         mon.skills = generateSkills(mon.name, mon.rarity);
     } else {
         expandSkillsForRarity(mon);
     }
+    migrateSkillDefinitions(mon);
     syncUltimateFromSkills(mon);
     refreshMonDerivedStats(mon);
     if (mon.current_hp == null) mon.current_hp = mon.max_hp;
@@ -2952,19 +3023,92 @@ function passiveBonus(fighter, key) {
     return p ? p[key] : 0;
 }
 
+function getBattleStat(fighter, stat) {
+    const bonusKey = {
+        crit: "critBonus", dodge: "dodgeBonus", block: "blockBonus",
+        hit: "hitBonus", pierce: "pierceBonus", spd: "spdBonus"
+    }[stat];
+    let val = fighter.stats?.[stat] ?? 0;
+    if (bonusKey) val += passiveBonus(fighter, bonusKey);
+    for (const st of fighter.status || []) {
+        if (st.statMods && st.statMods[stat] != null) val += st.statMods[stat];
+    }
+    return val;
+}
+
+function hasStatus(fighter, id) {
+    return (fighter.status || []).some(s => s.id === id);
+}
+
+function getStatus(fighter, id) {
+    return (fighter.status || []).find(s => s.id === id);
+}
+
+function addStatus(fighter, status) {
+    if (!fighter.status) fighter.status = [];
+    fighter.status = fighter.status.filter(s => s.id !== status.id);
+    fighter.status.push(status);
+}
+
+function removeStatus(fighter, id) {
+    if (!fighter.status) return;
+    fighter.status = fighter.status.filter(s => s.id !== id);
+}
+
+function cleanseSoftCC(fighter) {
+    if (!fighter.status?.length) return 0;
+    const before = fighter.status.length;
+    fighter.status = fighter.status.filter(s => s.id === "stun");
+    return before - fighter.status.length;
+}
+
+function isFrozen(fighter) {
+    return hasStatus(fighter, "frozen");
+}
+
+function tryApplySkillEffect(atk, def, skill) {
+    if (!skill.effect || def.hp <= 0) return;
+    if (Math.random() >= skill.effect.chance) return;
+    if (skill.effect.type === "stun") {
+        addStatus(def, { id: "stun" });
+    } else if (skill.effect.type === "frozen") {
+        addStatus(def, { id: "frozen", applierId: atk.battleId });
+    } else if (skill.effect.type === "poison") {
+        addStatus(def, { id: "poison" });
+    }
+}
+
+function breakFrozenOnHit(defender, damage) {
+    if (damage > 0 && hasStatus(defender, "frozen")) removeStatus(defender, "frozen");
+}
+
+function renderStatusRow(side, fighter) {
+    const el = document.getElementById("status-" + side);
+    if (!el) return;
+    const labels = { stun: "STUN", frozen: "FROZEN", poison: "POISON" };
+    el.innerHTML = (fighter.status || []).map(st =>
+        `<span class="status-pill ${st.id}">${labels[st.id] || st.id.toUpperCase()}</span>`
+    ).join("");
+}
+
 function calculateDamage(attacker, defender, skill) {
     let dmg = attacker.atkPower != null
         ? attacker.atkPower
         : getAttackDamage(attacker.level, attacker.rarity);
-    dmg = Math.floor(dmg * (skill.power || 1));
+    dmg = Math.floor(dmg * (skill.power != null ? skill.power : 1));
 
     const dealt = (attacker.skills || []).find(s => s.dmgDealt);
     if (dealt) dmg = Math.floor(dmg * dealt.dmgDealt);
 
+    const frozen = getStatus(defender, "frozen");
+    if (frozen && frozen.applierId === attacker.battleId && dmg > 0) {
+        dmg = Math.floor(dmg * FREEZE_DMG_BOOST);
+    }
+
     const taken = (defender.skills || []).find(s => s.dmgTaken);
     if (taken) dmg = Math.floor(dmg * taken.dmgTaken);
 
-    return Math.max(1, dmg);
+    return Math.max(0, dmg);
 }
 
 // ==================== STATE MANAGEMENT ====================
@@ -3544,6 +3688,42 @@ function createMonanimal(name, rarity, level) {
     return mon;
 }
 
+function grantTestBattleParty() {
+    if (!currentUser) return;
+    const flagKey = "monex_test_cc_party_v2_" + currentUser;
+    if (localStorage.getItem(flagKey)) return;
+
+    party = [
+        buildTestMon("Chog", "Rare", 15, "Eagle Eye", ["Mend", "Cleanse", "Shock Bolt"]),
+        buildTestMon("Molandak", "Rare", 15, "Swift Feet", ["Renew", "Frost Shard", "Slash"]),
+        buildTestMon("Larvanad", "Rare", 15, "Piercing Gaze", ["Life Bloom", "Venom Bite", "Cleanse"]),
+    ];
+    localStorage.setItem(flagKey, "1");
+    saveData();
+}
+
+function buildTestMon(name, rarity, level, passiveName, activeNames) {
+    const maxHp = getMaxHP(level, rarity);
+    const passive = PASSIVE_SKILL_POOL.find(s => s.name === passiveName) || PASSIVE_SKILL_POOL[0];
+    const actives = activeNames.map(n => {
+        const d = DAMAGE_ACTIVE_POOL.find(s => s.name === n);
+        if (d) return { ...d };
+        const h = HEAL_SKILL_POOL.find(s => s.name === n);
+        if (h) return { ...h };
+        return null;
+    }).filter(Boolean);
+    const mon = {
+        name, rarity, level,
+        max_hp: maxHp, current_hp: maxHp,
+        stats: generateStats(rarity),
+        equipment: { weapon: null, armor: null, helmet: null, boots: null },
+        skills: [getSpeciesUltimate(name), { ...passive }, ...actives],
+    };
+    mon.ultimate = { ...mon.skills[0] };
+    refreshMonDerivedStats(mon);
+    return mon;
+}
+
 function grantTestChogToBox() {
     if (!currentUser) return;
     const flagKey = "monex_test_chog_" + currentUser;
@@ -3627,6 +3807,7 @@ async function checkLogin() {
         }
         currentUser = user.username || MonExAuth.getDisplayName();
         await loadData();
+        grantTestBattleParty();
         grantTestChogToBox();
         resolveAbandonedAdventureBattle();
         if (adventureForfeitNotice) {
@@ -3641,7 +3822,8 @@ async function checkLogin() {
         if (cached?.username && MonExAuth.isLoggedIn()) {
             currentUser = cached.username;
             await loadData();
-            grantTestChogToBox();
+            grantTestBattleParty();
+        grantTestChogToBox();
             resolveAbandonedAdventureBattle();
             if (adventureForfeitNotice) {
                 adventureForfeitNotice = false;
@@ -4044,6 +4226,7 @@ function makeFighter(mon, isPlayer) {
         ultimate: { ...mon.ultimate },
         sprite: getSpritePath(mon.name),
         energy: 0, mana: BATTLE_MANA_MAX, maxMana: BATTLE_MANA_MAX,
+        battleId: (isPlayer ? "p" : "e") + "_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
         ultimateUsed: false, lastSkillName: null, status: [], isPlayer
     };
 }
@@ -4102,6 +4285,7 @@ function renderBattleScene() {
                             <div class="hpbar big"><div class="hpfill" id="hp-player"></div><span class="hptext" id="hptext-player"></span></div>
                             <div class="manbar big"><div class="manfill" id="mana-player"></div></div>
                             <div class="enbar big"><div class="enfill" id="en-player"></div></div>
+                            <div class="status-row" id="status-player"></div>
                         </div>
                     </div>
                     <div class="vs-badge">VS</div>
@@ -4111,6 +4295,7 @@ function renderBattleScene() {
                             <div class="hpbar big"><div class="hpfill" id="hp-enemy"></div><span class="hptext" id="hptext-enemy"></span></div>
                             <div class="manbar big"><div class="manfill" id="mana-enemy"></div></div>
                             <div class="enbar big"><div class="enfill" id="en-enemy"></div></div>
+                            <div class="status-row" id="status-enemy"></div>
                         </div>
                         <div class="team-col" id="team-enemy"></div>
                         <img class="vs-portrait" id="portrait-enemy" onerror="this.style.visibility='hidden'">
@@ -4143,6 +4328,7 @@ function setFighter(side, f) {
     document.getElementById("np-name-" + side).textContent = f.name;
     document.getElementById("np-lv-" + side).textContent = "Lv." + f.level;
     updateBars(side, f);
+    renderStatusRow(side, f);
 }
 
 function updateBars(side, f) {
@@ -4188,6 +4374,7 @@ function showDamage(side, amount, kind) {
     d.className = "dmgnum " + (kind || "");
     if (kind === "miss") d.textContent = "MISS";
     else if (kind === "heal") d.textContent = "+" + amount;
+    else if (kind === "poison") d.textContent = amount > 0 ? "-" + amount + " PSN" : "POISON";
     else d.textContent = "-" + amount + (kind === "crit" ? " CRIT" : kind === "block" ? " BLOCK" : "");
     d.style.left = (sR.left - stR.left + sR.width / 2) + "px";
     d.style.top = (sR.top - stR.top + sR.height / 3) + "px";
@@ -4239,7 +4426,7 @@ function clearStatuses(f) { f.status = []; }
 
 function canUseBattleSkill(atk, skill) {
     if (skill.type !== "active" && skill.type !== "heal") return false;
-    if (skill.type === "heal" && atk.hp >= atk.maxHp) return false;
+    if (skill.type === "heal" && !skill.cleanse && atk.hp >= atk.maxHp) return false;
     return getSkillManaCost(skill) <= atk.mana;
 }
 
@@ -4261,10 +4448,20 @@ function pickWeightedSkill(skills, weights) {
 function pickBattleSkill(atk) {
     const affordable = getAffordableBattleSkills(atk);
     const canUseOthers = affordable.length > 0;
+
+    if (isFrozen(atk)) {
+        const healOnly = affordable.filter(s => s.type === "heal");
+        if (!healOnly.length) {
+            return { name: "Frozen", type: "skip", element: "ice" };
+        }
+        const weights = healOnly.map(s =>
+            (atk.lastSkillName && s.name === atk.lastSkillName) ? SKILL_REPEAT_WEIGHT : 1);
+        return pickWeightedSkill(healOnly, weights);
+    }
+
     const candidates = [NORMAL_ATTACK_SKILL, ...affordable];
     const weights = candidates.map(s => {
         if (!atk.lastSkillName || s.name !== atk.lastSkillName) return 1;
-        // When out of mana for skills, normal attack may repeat to rebuild mana.
         if (s.name === NORMAL_ATTACK_SKILL.name && !canUseOthers) return 1;
         return SKILL_REPEAT_WEIGHT;
     });
@@ -4274,7 +4471,23 @@ function pickBattleSkill(atk) {
 async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     await waitWhilePaused(battleToken);
 
-    // Start-of-turn regeneration passive
+    if (hasStatus(atk, "stun")) {
+        removeStatus(atk, "stun");
+        showBanner("STUNNED!", false);
+        renderStatusRow(atkSide, atk);
+        await delay(450);
+        return;
+    }
+
+    if (hasStatus(atk, "poison") && atk.hp > 0) {
+        const tick = Math.max(1, Math.ceil(atk.maxHp * POISON_TICK_PCT));
+        atk.hp = Math.max(0, atk.hp - tick);
+        updateBars(atkSide, atk);
+        showDamage(atkSide, tick, "poison");
+        await delay(280);
+        if (atk.hp <= 0) return;
+    }
+
     const regenP = atk.skills.find(s => s.regen);
     if (regenP && atk.hp > 0) {
         const heal = Math.ceil(atk.maxHp * regenP.regen);
@@ -4284,12 +4497,18 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         await delay(250);
     }
 
-    // Pick a skill: ultimate fires when energy is full and not yet used
     let skill, isUlt = false;
     if (atk.energy >= 100 && !atk.ultimateUsed) {
         skill = atk.ultimate; isUlt = true;
     } else {
         skill = pickBattleSkill(atk);
+    }
+
+    if (skill.type === "skip") {
+        showBanner("FROZEN — cannot attack!", false);
+        renderStatusRow(atkSide, atk);
+        await delay(450);
+        return;
     }
 
     showBanner((isUlt ? "\u2605 " : "") + skill.name + (isUlt ? " \u2605" : ""), isUlt);
@@ -4310,22 +4529,41 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
             atk.mana = Math.min(atk.maxMana, atk.mana + (skill.manaGain || NORMAL_ATTACK_MANA_GAIN));
         }
     };
+    const finishTurn = () => {
+        spendMana();
+        restoreMana();
+        spendEnergy();
+        atk.lastSkillName = skill.name;
+        updateBars(atkSide, atk);
+        updateBars(defSide, def);
+        renderStatusRow(atkSide, atk);
+        renderStatusRow(defSide, def);
+    };
 
-    // Healing skill
+    if (skill.type === "heal" && skill.cleanse) {
+        const removed = cleanseSoftCC(atk);
+        if (skill.heal) {
+            const heal = Math.ceil(atk.maxHp * skill.heal);
+            atk.hp = Math.min(atk.maxHp, atk.hp + heal);
+        }
+        playEffect(atkSide, "heal", isUlt);
+        if (removed) showDamage(atkSide, 0, "heal");
+        finishTurn();
+        await delay(600);
+        return;
+    }
+
     if (skill.type === "heal") {
         const heal = Math.ceil(atk.maxHp * (skill.heal || 0.35));
         atk.hp = Math.min(atk.maxHp, atk.hp + heal);
         playEffect(atkSide, "heal", isUlt);
         showDamage(atkSide, heal, "heal");
-        spendMana();
-        spendEnergy();
-        atk.lastSkillName = skill.name;
-        updateBars(atkSide, atk);
+        finishTurn();
         await delay(600);
         return;
     }
 
-    // Damage skill: dash approach or swing GIF at edge
+    const poisonOnly = skill.effect?.type === "poison" && (skill.power || 0) <= 0;
     const attackPath = getAttackSpritePath(atk.name);
     let animStart = 0;
     if (attackPath) {
@@ -4340,45 +4578,37 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     }
     playEffect(defSide, skill.element, isUlt);
 
-    const effDodge = Math.max(0, Math.min(60, def.stats.dodge + passiveBonus(def, "dodgeBonus") - atk.stats.hit));
+    const effDodge = Math.max(0, Math.min(60, getBattleStat(def, "dodge") - getBattleStat(atk, "hit")));
     if (Math.random() * 100 < effDodge) {
         showDamage(defSide, 0, "miss");
-        spendMana();
-        restoreMana();
-        spendEnergy();
-        atk.lastSkillName = skill.name;
-        updateBars(atkSide, atk);
-        if (attackPath) {
-            await completeGifAttackReturn(atkSide, atk, animStart);
-        } else {
-            await delay(250);
-            await recoil(atkSide);
-            await delay(120);
-        }
+        finishTurn();
+        if (attackPath) await completeGifAttackReturn(atkSide, atk, animStart);
+        else { await delay(250); await recoil(atkSide); await delay(120); }
         return;
     }
 
     let dmg = calculateDamage(atk, def, skill);
-    let crit = false, blocked = false;
-    if (Math.random() * 100 < (atk.stats.crit + passiveBonus(atk, "critBonus"))) { dmg = Math.floor(dmg * 1.8); crit = true; }
-    const effBlock = Math.max(0, Math.min(60, def.stats.block + passiveBonus(def, "blockBonus") - atk.stats.pierce));
-    if (Math.random() * 100 < effBlock) { dmg = Math.floor(dmg * 0.5); blocked = true; }
-    dmg = Math.max(1, dmg);
+    if (!poisonOnly && dmg > 0) {
+        let crit = false, blocked = false;
+        if (Math.random() * 100 < getBattleStat(atk, "crit")) { dmg = Math.floor(dmg * 1.8); crit = true; }
+        const effBlock = Math.max(0, Math.min(60, getBattleStat(def, "block") - getBattleStat(atk, "pierce")));
+        if (Math.random() * 100 < effBlock) { dmg = Math.floor(dmg * 0.5); blocked = true; }
+        dmg = Math.max(1, dmg);
 
-    def.hp = Math.max(0, def.hp - dmg);
-    const dw = document.getElementById("wrap-" + defSide);
-    dw.classList.add("hit-shake");
-    setTimeout(() => dw.classList.remove("hit-shake"), 300);
-    showDamage(defSide, dmg, crit ? "crit" : blocked ? "block" : "");
-    updateBars(defSide, def);
+        def.hp = Math.max(0, def.hp - dmg);
+        const dw = document.getElementById("wrap-" + defSide);
+        dw.classList.add("hit-shake");
+        setTimeout(() => dw.classList.remove("hit-shake"), 300);
+        showDamage(defSide, dmg, crit ? "crit" : blocked ? "block" : "");
+        breakFrozenOnHit(def, dmg);
+    } else if (poisonOnly) {
+        showDamage(defSide, 0, "poison");
+    }
 
-    spendMana();
-    restoreMana();
-    spendEnergy();
-    atk.lastSkillName = skill.name;
+    tryApplySkillEffect(atk, def, skill);
+
     if (def.hp > 0) def.energy = Math.min(100, def.energy + 15);
-    updateBars(atkSide, atk);
-    updateBars(defSide, def);
+    finishTurn();
 
     if (attackPath) {
         await completeGifAttackReturn(atkSide, atk, animStart);
@@ -4404,7 +4634,7 @@ async function runBattle(player, enemy, battleToken) {
         if (battleToken !== adventureBattleToken || !isInAdventureBattle) return;
 
         const P = player[pi], E = enemy[ei];
-        const seq = P.stats.spd >= E.stats.spd
+        const seq = getBattleStat(P, "spd") >= getBattleStat(E, "spd")
             ? [["player", "enemy"], ["enemy", "player"]]
             : [["enemy", "player"], ["player", "enemy"]];
 
@@ -4426,6 +4656,7 @@ async function runBattle(player, enemy, battleToken) {
             ei++;
             if (ei >= enemy.length) return endBattle(true, player);
             clearStatuses(P);
+            clearStatuses(E);
             setFighter("enemy", enemy[ei]);
             renderTeam("enemy", enemy, ei);
             await slideIn("enemy");
@@ -4436,6 +4667,8 @@ async function runBattle(player, enemy, battleToken) {
             renderTeam("player", player, pi);
             pi++;
             if (pi >= player.length) return endBattle(false, player);
+            clearStatuses(P);
+            clearStatuses(E);
             setFighter("player", player[pi]);
             renderTeam("player", player, pi);
             await slideIn("player");
