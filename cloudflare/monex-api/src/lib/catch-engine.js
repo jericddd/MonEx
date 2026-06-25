@@ -17,6 +17,29 @@ const DAMAGE_ACTIVE_POOL = [
   { name: "Gale Slash", element: "wind", type: "active", power: 1.0 },
   { name: "Shadow Strike", element: "dark", type: "active", power: 1.1 },
   { name: "Psy Beam", element: "psychic", type: "active", power: 1.1 },
+  { name: "Holy Palm", element: "physical", type: "active", power: 1.05 },
+  { name: "Starfall Palm", element: "psychic", type: "active", power: 1.1 },
+  { name: "Star Swipe", element: "wind", type: "active", power: 1.0 },
+  { name: "Power Fist", element: "physical", type: "active", power: 1.15 },
+  { name: "Ember Flask", element: "fire", type: "active", power: 1.1 },
+  { name: "Star Hammer", element: "physical", type: "active", power: 1.2 },
+  { name: "Crushing Hammer", element: "physical", type: "active", power: 1.2 },
+  { name: "Solar Vortex", element: "fire", type: "active", power: 1.15 },
+  { name: "Flash Burst", element: "electric", type: "active", power: 1.05 },
+  { name: "Divine Gaze", element: "dark", type: "active", power: 1.1 },
+  { name: "Force Palm", element: "physical", type: "active", power: 1.05 },
+  { name: "Radiant Aura", element: "psychic", type: "active", power: 1.1 },
+  { name: "Verdant Canopy", element: "earth", type: "active", power: 1.0 },
+  { name: "Volt Seed", element: "electric", type: "active", power: 1.1 },
+  { name: "Divine Pillars", element: "psychic", type: "active", power: 1.15 },
+  { name: "Radiant Strike", element: "psychic", type: "active", power: 1.15 },
+  { name: "Void Monolith", element: "dark", type: "active", power: 1.1 },
+  { name: "Holy Blade", element: "physical", type: "active", power: 1.2 },
+  { name: "Arc Lightning", element: "electric", type: "active", power: 1.1 },
+  { name: "Mending Rain", element: "water", type: "active", power: 1.0 },
+  { name: "Spirit Beam", element: "psychic", type: "active", power: 1.05 },
+  { name: "Sacred Word", element: "psychic", type: "active", power: 1.05 },
+  { name: "Arcane Blast", element: "psychic", type: "active", power: 1.15 },
 ];
 
 const HEAL_SKILL_POOL = [
@@ -32,6 +55,12 @@ const PASSIVE_SKILL_POOL = [
   { name: "Evasive", type: "passive" },
   { name: "Bulwark", type: "passive" },
   { name: "Regenerator", type: "passive" },
+  { name: "Static Aegis", type: "passive" },
+  { name: "Shield Stance", type: "passive" },
+  { name: "Storm Guard", type: "passive" },
+  { name: "Emerald Ward", type: "passive" },
+  { name: "Iron Will", type: "passive" },
+  { name: "Mystic Sigil", type: "passive" },
 ];
 
 const SPECIES_ULTIMATE = {
