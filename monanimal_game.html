@@ -2192,6 +2192,27 @@ function getSpritePath(name) {
     return `128x128/${name.toLowerCase()}.png`;
 }
 
+const ATTACK_SPRITE_MAP = {
+    Molandak: "128x128/molandak1.gif",
+    Chog: "128x128/chog1.gif"
+};
+
+function getAttackSpritePath(name) {
+    return ATTACK_SPRITE_MAP[name] || null;
+}
+
+function setBattleSprite(side, src, name, replayGif) {
+    const sprite = document.getElementById("sprite-" + side);
+    if (!sprite || !src) return;
+    sprite.style.visibility = "visible";
+    if (replayGif && src.endsWith(".gif")) {
+        sprite.src = src + "?t=" + Date.now();
+    } else {
+        sprite.src = src;
+    }
+    applyBattleSpriteFacing(sprite, side, name);
+}
+
 // Natural facing of each sprite asset (scan of 128x128 png/gif art).
 // Player sprites should face right; enemy sprites should face left.
 const SPRITE_NATURAL_FACING = {
@@ -3931,10 +3952,7 @@ function renderBattleScene() {
 }
 
 function setFighter(side, f) {
-    const sprite = document.getElementById("sprite-" + side);
-    sprite.style.visibility = "visible";
-    sprite.src = f.sprite;
-    applyBattleSpriteFacing(sprite, side, f.name);
+    setBattleSprite(side, f.sprite, f.name, false);
     const portrait = document.getElementById("portrait-" + side);
     portrait.style.visibility = "visible";
     portrait.src = f.sprite;
@@ -4086,6 +4104,9 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     }
 
     // Damage skill: approach, hit, recoil
+    const attackSprite = getAttackSpritePath(atk.name);
+    if (attackSprite) setBattleSprite(atkSide, attackSprite, atk.name, true);
+
     await approach(atkSide);
     playEffect(defSide, skill.element, isUlt);
 
@@ -4096,6 +4117,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         updateBars(atkSide, atk);
         await delay(250);
         await recoil(atkSide);
+        if (attackSprite) setBattleSprite(atkSide, atk.sprite, atk.name, false);
         return;
     }
 
@@ -4120,6 +4142,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
 
     await delay(250);
     await recoil(atkSide);
+    if (attackSprite) setBattleSprite(atkSide, atk.sprite, atk.name, false);
     await delay(120);
 }
 
