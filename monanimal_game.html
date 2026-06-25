@@ -2210,11 +2210,18 @@ const ATTACK_SPRITE_DURATION_MS = {
     Chog: 1920
 };
 
-const ATTACK_HIT_AT_MS = {
+// GIF frame map: 0-7 walk (960ms), 8-15 swing+recovery at edge (960ms).
+const ATTACK_WALK_MS = {
     Molandak: 960,
     Chog: 960
 };
 
+const ATTACK_HIT_AT_MS = {
+    Molandak: 1080,
+    Chog: 1080
+};
+
+const ATTACK_RETURN_MS = 400;
 const ATTACK_LUNGE_PX = 180;
 
 function getAttackSpritePath(name) {
@@ -2259,6 +2266,16 @@ async function horizontalRecoil(side, durationMs) {
     wrap.style.transition = `transform ${durationMs}ms linear`;
     wrap.style.transform = "translate(0,0)";
     await delay(durationMs);
+}
+
+async function delayUntil(animStart, targetMs) {
+    const wait = targetMs - (Date.now() - animStart);
+    if (wait > 0) await delay(wait);
+}
+
+async function finishGifAttackAtEdge(animStart, name) {
+    const totalMs = ATTACK_SPRITE_DURATION_MS[name] || 1920;
+    await delayUntil(animStart, totalMs);
 }
 
 function setBattleSprite(side, src, name, replayGif) {
@@ -4182,12 +4199,14 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
 
     // Damage skill: approach or GIF attack, hit, return
     const attackPath = getAttackSpritePath(atk.name);
+    let animStart = 0;
+    let walkPromise = null;
     if (attackPath) {
-        const lungeMs = ATTACK_HIT_AT_MS[atk.name] || 960;
-        const returnMs = (ATTACK_SPRITE_DURATION_MS[atk.name] || 1920) - lungeMs;
+        animStart = Date.now();
         beginAttackAnim(atkSide);
         setBattleSprite(atkSide, attackPath, atk.name, true);
-        await horizontalLunge(atkSide, ATTACK_LUNGE_PX, lungeMs);
+        walkPromise = horizontalLunge(atkSide, ATTACK_LUNGE_PX, ATTACK_WALK_MS[atk.name] || 960);
+        await delayUntil(animStart, ATTACK_HIT_AT_MS[atk.name] || 1080);
     } else {
         await approach(atkSide);
     }
@@ -4199,8 +4218,9 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         spendEnergy();
         updateBars(atkSide, atk);
         if (attackPath) {
-            const returnMs = (ATTACK_SPRITE_DURATION_MS[atk.name] || 1920) - (ATTACK_HIT_AT_MS[atk.name] || 960);
-            await horizontalRecoil(atkSide, returnMs);
+            if (walkPromise) await walkPromise;
+            await finishGifAttackAtEdge(animStart, atk.name);
+            await horizontalRecoil(atkSide, ATTACK_RETURN_MS);
             endAttackAnim(atkSide, atk);
         } else {
             await delay(250);
@@ -4230,8 +4250,9 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     updateBars(defSide, def);
 
     if (attackPath) {
-        const returnMs = (ATTACK_SPRITE_DURATION_MS[atk.name] || 1920) - (ATTACK_HIT_AT_MS[atk.name] || 960);
-        await horizontalRecoil(atkSide, returnMs);
+        if (walkPromise) await walkPromise;
+        await finishGifAttackAtEdge(animStart, atk.name);
+        await horizontalRecoil(atkSide, ATTACK_RETURN_MS);
         endAttackAnim(atkSide, atk);
     } else {
         await delay(250);
