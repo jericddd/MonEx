@@ -16,7 +16,7 @@
 
 body {
     margin: 0;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: 'Lato', system-ui, sans-serif;
     background: #f8f8f8;
     color: #111;
 }
@@ -36,9 +36,10 @@ body {
     justify-content: space-between;
 }
 .logo {
-    font-size: 28px;
+    font-size: 22px;
     font-weight: 700;
     color: var(--purple);
+    font-family: 'Press Start 2P', monospace;
 }
 .nav-buttons {
     display: flex;
@@ -52,6 +53,7 @@ body {
     font-weight: 600;
     cursor: pointer;
     border-radius: 0;
+    font-family: 'Lato', sans-serif;
 }
 .nav-btn:hover {
     background: #f0f0f0;
@@ -244,24 +246,28 @@ body {
 }
 .skill-square:hover .skill-tip { display: block; }
 .skill-tip-name {
-    font-weight: 700;
-    font-size: 11px;
+    font-family: 'Press Start 2P', monospace;
+    font-weight: 400;
+    font-size: 9px;
     color: #f5f3ff;
     margin-bottom: 2px;
 }
 .skill-tip-type {
-    font-size: 9px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
     color: #c4b5fd;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: 4px;
 }
 .skill-tip-desc {
-    font-size: 10px;
+    font-family: 'Lato', sans-serif;
+    font-size: 11px;
     color: #d8d4f0;
     margin-bottom: 4px;
 }
 .skill-tip-stats {
+    font-family: 'Lato', sans-serif;
     font-size: 10px;
     color: #fde68a;
     border-top: 1px solid rgba(196, 181, 253, 0.35);
@@ -295,6 +301,7 @@ body {
 }
 
 .currently-text {
+    font-family: 'Lato', sans-serif;
     font-size: 12px;
     color: #666;
     text-align: center;
@@ -403,6 +410,7 @@ button.green:hover {
     font-size: 13px;
     color: #555;
     margin-top: 4px;
+    font-family: 'Lato', sans-serif;
 }
 .boss-label {
     background: #dc2626 !important;
@@ -725,16 +733,16 @@ button,
     transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 .st-label {
-    font-family: 'Lato', sans-serif;
-    font-size: 10px;
-    font-weight: 700;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    font-weight: 400;
     text-transform: uppercase;
     letter-spacing: 0.3px;
     color: #e9d5ff;
 }
 .st-value {
     font-family: 'Lato', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     padding: 4px 6px;
     border: 1px solid rgba(250, 204, 21, 0.55);
@@ -1043,6 +1051,11 @@ button,
 .screen-flash.on { animation: flash .35s ease-out; }
 @keyframes flash { 0% { opacity: 0; } 30% { opacity: 0.85; } 100% { opacity: 0; } }
 .fighter-wrap.hit-shake { animation: shake .3s; }
+.fighter-wrap.block-shake { animation: blockshake .3s; }
+@keyframes blockshake {
+    0%, 100% { filter: drop-shadow(0 6px 5px rgba(0,0,0,0.45)); }
+    50% { filter: drop-shadow(0 0 12px #fbbf24) drop-shadow(0 6px 5px rgba(0,0,0,0.45)); transform: translateX(3px); }
+}
 @keyframes shake {
     0%, 100% { }
     25% { transform: translate(-6px, 0); }
@@ -1175,7 +1188,7 @@ body.afk-layout .currency-pill .currency-tip {
     font-weight: 600;
     cursor: pointer;
     font-size: 11px;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: 'Lato', sans-serif;
     line-height: 1.2;
     transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
@@ -1396,7 +1409,7 @@ body.afk-layout .currency-pill .currency-tip {
     border: none;
     border-radius: 8px;
     padding: 7px 11px;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: 'Lato', sans-serif;
     font-size: 11px;
     font-weight: 600;
     white-space: nowrap;
@@ -2053,28 +2066,31 @@ const PASSIVE_SKILL_POOL = [
     {name: "Tough Hide",        element: "passive", type: "passive", dmgTaken: 0.85, desc: "Takes 15% less damage."},
     {name: "Sharp Claws",       element: "passive", type: "passive", dmgDealt: 1.2,  desc: "Deals 20% more damage."},
     {name: "Critical Instinct", element: "passive", type: "passive", critBonus: 10,  desc: "+10% crit chance."},
-    {name: "Evasive",           element: "passive", type: "passive", dodgeBonus: 10, desc: "+10% dodge chance."},
-    {name: "Bulwark",           element: "passive", type: "passive", blockBonus: 10, desc: "+10% block chance."},
+    {name: "Evasive",           element: "passive", type: "passive", dodgeBonus: 10, desc: "+10 DODGE."},
+    {name: "Bulwark",           element: "passive", type: "passive", blockBonus: 10, desc: "+10 BLOCK."},
     {name: "Regenerator",       element: "passive", type: "passive", regen: 0.05,    desc: "Heals 5% max HP each turn."},
-    {name: "Static Aegis",      element: "passive", type: "passive", blockBonus: 8,  desc: "+8% block chance from a crackling energy shield."},
+    {name: "Static Aegis",      element: "passive", type: "passive", blockBonus: 8,  desc: "+8 BLOCK from a crackling energy shield."},
     {name: "Shield Stance",     element: "passive", type: "passive", dmgTaken: 0.88, desc: "Fighting behind a raised shield reduces damage taken by 12%."},
-    {name: "Storm Guard",       element: "passive", type: "passive", dodgeBonus: 8, desc: "+8% dodge chance from a thunder-wreathed guard."},
+    {name: "Storm Guard",       element: "passive", type: "passive", dodgeBonus: 8, desc: "+8 DODGE from a thunder-wreathed guard."},
     {name: "Emerald Ward",      element: "passive", type: "passive", dmgTaken: 0.9,  desc: "A verdant ward reduces damage taken by 10%."},
     {name: "Iron Will",         element: "passive", type: "passive", dmgTaken: 0.9,  desc: "A crimson sigil steels the body, reducing damage taken by 10%."},
     {name: "Mystic Sigil",      element: "passive", type: "passive", critBonus: 8,  desc: "+8% crit chance from an ancient golden sigil."},
-    {name: "Eagle Eye",         element: "passive", type: "passive", hitBonus: 8,   desc: "+8% hit chance."},
-    {name: "Piercing Gaze",     element: "passive", type: "passive", pierceBonus: 8, desc: "+8% pierce."},
+    {name: "Eagle Eye",         element: "passive", type: "passive", hitBonus: 8,   desc: "+8 HIT."},
+    {name: "Piercing Gaze",     element: "passive", type: "passive", pierceBonus: 8, desc: "+8 PIERCE."},
     {name: "Swift Feet",        element: "passive", type: "passive", spdBonus: 15,  desc: "+15 SPD."},
 ];
 
-// Per-rarity stat budget. %-stats roll within [pct], SPD within [spd].
+// Flat combat ratings. crit = critical damage rating (not crit chance).
 const STAT_RANGES = {
-    Common:    { pct: [1, 6],  spd: [80, 95]  },
-    Uncommon:  { pct: [2, 9],  spd: [85, 105] },
-    Rare:      { pct: [3, 13], spd: [90, 115] },
-    Legendary: { pct: [5, 18], spd: [100, 130] },
-    Mythic:    { pct: [7, 24], spd: [110, 150] },
+    Common:    { rating: [12, 28], critDmg: [18, 32], spd: [80, 95]  },
+    Uncommon:  { rating: [18, 36], critDmg: [22, 38], spd: [85, 105] },
+    Rare:      { rating: [24, 48], critDmg: [28, 50], spd: [90, 115] },
+    Legendary: { rating: [32, 62], critDmg: [36, 62], spd: [100, 130] },
+    Mythic:    { rating: [40, 78], critDmg: [44, 75], spd: [110, 150] },
 };
+const STAT_SYSTEM_VERSION = 2;
+const BASE_CRIT_CHANCE = 20;
+const CRIT_DAMAGE_MULT = 1.1;
 
 // Each species has its own FIXED ultimate (energy-triggered, fires once per run).
 const SPECIES_ULTIMATE = {
@@ -2476,16 +2492,16 @@ function generateStats(rarity) {
     const R = STAT_RANGES[rarity] || STAT_RANGES.Common;
     const s = {
         spd:    randInt(R.spd[0], R.spd[1]),
-        crit:   randF(R.pct[0], R.pct[1]),
-        dodge:  randF(R.pct[0], R.pct[1]),
-        block:  randF(R.pct[0], R.pct[1]),
-        hit:    randF(R.pct[0], R.pct[1]),
-        pierce: randF(R.pct[0], R.pct[1]),
+        crit:   randInt(R.critDmg[0], R.critDmg[1]),
+        dodge:  randInt(R.rating[0], R.rating[1]),
+        block:  randInt(R.rating[0], R.rating[1]),
+        hit:    randInt(R.rating[0], R.rating[1]),
+        pierce: randInt(R.rating[0], R.rating[1]),
     };
     const keys = ["spd", "crit", "dodge", "block", "hit", "pierce"];
     const spec = keys[randInt(0, keys.length - 1)];
     if (spec === "spd") s.spd += 25;
-    else s[spec] = Math.round((s[spec] + randF(8, 12)) * 10) / 10;
+    else s[spec] += randInt(12, 22);
     s.specialty = spec;
     return s;
 }
@@ -2534,11 +2550,11 @@ function formatPassiveDetail(skill) {
     const parts = [];
     if (skill.dmgTaken != null) parts.push("-" + Math.round((1 - skill.dmgTaken) * 100) + "% dmg taken");
     if (skill.dmgDealt != null) parts.push("+" + Math.round((skill.dmgDealt - 1) * 100) + "% dmg dealt");
-    if (skill.critBonus != null) parts.push("+" + skill.critBonus + "% crit");
-    if (skill.dodgeBonus != null) parts.push("+" + skill.dodgeBonus + "% dodge");
-    if (skill.blockBonus != null) parts.push("+" + skill.blockBonus + "% block");
-    if (skill.hitBonus != null) parts.push("+" + skill.hitBonus + "% hit");
-    if (skill.pierceBonus != null) parts.push("+" + skill.pierceBonus + "% pierce");
+    if (skill.critBonus != null) parts.push("+" + skill.critBonus + "% crit chance");
+    if (skill.dodgeBonus != null) parts.push("+" + skill.dodgeBonus + " DODGE");
+    if (skill.blockBonus != null) parts.push("+" + skill.blockBonus + " BLOCK");
+    if (skill.hitBonus != null) parts.push("+" + skill.hitBonus + " HIT");
+    if (skill.pierceBonus != null) parts.push("+" + skill.pierceBonus + " PIERCE");
     if (skill.spdBonus != null) parts.push("+" + skill.spdBonus + " SPD");
     if (skill.regen != null) parts.push("Regen " + Math.round(skill.regen * 100) + "% HP/turn");
     return parts.join(" · ");
@@ -2645,10 +2661,11 @@ function renderStatsInfo(mon) {
     <div class="info-icon">i
         <div class="stats-tooltip">
             <div class="st-title">COMBAT STATS</div>
-            <div style="text-align:center;font-size:11px;color:#c4b5fd;margin-bottom:6px;">ATK ${eff.atk}</div>
-            ${pair("", cell("spd", "SPD", eff.spd), cell("crit", "CRIT", eff.crit + "%"))}
-            ${pair("counter", cell("pierce", "PIERCE", eff.pierce + "%"), cell("block", "BLOCK", eff.block + "%"))}
-            ${pair("counter", cell("hit", "HIT", eff.hit + "%"), cell("dodge", "DODGE", eff.dodge + "%"))}
+            <div class="st-note" style="text-align:center;font-size:10px;color:#a78bfa;margin-bottom:6px;font-family:'Lato',sans-serif;">CRIT = critical damage bonus</div>
+            <div style="text-align:center;font-size:11px;color:#c4b5fd;margin-bottom:6px;font-family:'Lato',sans-serif;">ATK ${eff.atk}</div>
+            ${pair("", cell("spd", "SPD", eff.spd), cell("crit", "CRIT", eff.crit))}
+            ${pair("counter", cell("pierce", "PIERCE", eff.pierce), cell("block", "BLOCK", eff.block))}
+            ${pair("counter", cell("hit", "HIT", eff.hit), cell("dodge", "DODGE", eff.dodge))}
         </div>
     </div>`;
 }
@@ -2722,6 +2739,10 @@ function migrateSkillDefinitions(mon) {
 function ensureMonReady(mon) {
     if (!mon.equipment) mon.equipment = { weapon: null, armor: null, helmet: null, boots: null };
     if (!mon.stats || mon.stats.spd == null) mon.stats = generateStats(mon.rarity);
+    if (mon.statVersion !== STAT_SYSTEM_VERSION) {
+        mon.stats = generateStats(mon.rarity);
+        mon.statVersion = STAT_SYSTEM_VERSION;
+    }
     migrateSkillDefinitions(mon);
     if (needsSkillMigration(mon)) {
         mon.skills = generateSkills(mon.name, mon.rarity);
@@ -2836,11 +2857,11 @@ function getEffectiveStats(mon) {
     return {
         atk: getBaseAtk(Math.floor(mon.level), mon.rarity) + (gb.atk || 0),
         spd: mon.stats.spd + (gb.spd || 0),
-        crit: Math.round((mon.stats.crit + (gb.crit || 0)) * 10) / 10,
-        dodge: Math.round((mon.stats.dodge + (gb.dodge || 0)) * 10) / 10,
-        block: Math.round((mon.stats.block + (gb.block || 0)) * 10) / 10,
-        hit: Math.round((mon.stats.hit + (gb.hit || 0)) * 10) / 10,
-        pierce: Math.round((mon.stats.pierce + (gb.pierce || 0)) * 10) / 10,
+        crit: mon.stats.crit + (gb.crit || 0),
+        dodge: mon.stats.dodge + (gb.dodge || 0),
+        block: mon.stats.block + (gb.block || 0),
+        hit: mon.stats.hit + (gb.hit || 0),
+        pierce: mon.stats.pierce + (gb.pierce || 0),
         specialty: mon.stats.specialty
     };
 }
@@ -2858,20 +2879,21 @@ function formatGearBonuses(b) {
     if (b.atk) parts.push("ATK+" + b.atk);
     if (b.hp) parts.push("HP+" + b.hp);
     if (b.spd) parts.push("SPD+" + b.spd);
-    if (b.crit) parts.push("CRIT+" + b.crit + "%");
-    if (b.dodge) parts.push("DODGE+" + b.dodge + "%");
-    if (b.block) parts.push("BLOCK+" + b.block + "%");
-    if (b.hit) parts.push("HIT+" + b.hit + "%");
+    if (b.crit) parts.push("CRIT+" + b.crit);
+    if (b.dodge) parts.push("DODGE+" + b.dodge);
+    if (b.block) parts.push("BLOCK+" + b.block);
+    if (b.hit) parts.push("HIT+" + b.hit);
+    if (b.pierce) parts.push("PIERCE+" + b.pierce);
     return parts.join(", ") || "No bonus";
 }
 function generateGear(tier, slot) {
     const t = GEAR_TIERS[tier];
     const scale = 4 + tier * 5;
     const bonuses = {};
-    if (slot === "weapon") { bonuses.atk = scale + randInt(0, tier * 3); bonuses.crit = 1 + tier; }
-    else if (slot === "armor") { bonuses.hp = scale * 10 + tier * 15; bonuses.block = 1 + tier; }
-    else if (slot === "helmet") { bonuses.hp = scale * 6 + tier * 10; bonuses.dodge = 1 + tier; }
-    else if (slot === "boots") { bonuses.spd = scale + tier * 4; bonuses.hit = 1 + tier; }
+    if (slot === "weapon") { bonuses.atk = scale + randInt(0, tier * 3); bonuses.crit = 4 + tier * 4; }
+    else if (slot === "armor") { bonuses.hp = scale * 10 + tier * 15; bonuses.block = 4 + tier * 3; }
+    else if (slot === "helmet") { bonuses.hp = scale * 6 + tier * 10; bonuses.dodge = 4 + tier * 3; }
+    else if (slot === "boots") { bonuses.spd = scale + tier * 4; bonuses.hit = 4 + tier * 3; }
     return {
         id: nextGearId(),
         slot,
@@ -3025,7 +3047,7 @@ function passiveBonus(fighter, key) {
 
 function getBattleStat(fighter, stat) {
     const bonusKey = {
-        crit: "critBonus", dodge: "dodgeBonus", block: "blockBonus",
+        dodge: "dodgeBonus", block: "blockBonus",
         hit: "hitBonus", pierce: "pierceBonus", spd: "spdBonus"
     }[stat];
     let val = fighter.stats?.[stat] ?? 0;
@@ -3033,7 +3055,35 @@ function getBattleStat(fighter, stat) {
     for (const st of fighter.status || []) {
         if (st.statMods && st.statMods[stat] != null) val += st.statMods[stat];
     }
-    return val;
+    return Math.max(0, val);
+}
+
+function getCritDamageRating(fighter) {
+    return Math.max(0, fighter.stats?.crit ?? 0);
+}
+
+function getCritChance(fighter) {
+    let chance = BASE_CRIT_CHANCE + passiveBonus(fighter, "critBonus");
+    for (const st of fighter.status || []) {
+        if (st.statMods?.critChance != null) chance += st.statMods.critChance;
+    }
+    return Math.max(0, chance);
+}
+
+function contestChance(defRating, atkRating) {
+    const d = Math.max(0, defRating);
+    const a = Math.max(0, atkRating);
+    const total = d + a;
+    if (total <= 0) return 0;
+    return (d / total) * 100;
+}
+
+function getEffectiveDodge(defender, attacker) {
+    return contestChance(getBattleStat(defender, "dodge"), getBattleStat(attacker, "hit"));
+}
+
+function getEffectiveBlock(defender, attacker) {
+    return contestChance(getBattleStat(defender, "block"), getBattleStat(attacker, "pierce"));
 }
 
 function hasStatus(fighter, id) {
@@ -3720,6 +3770,7 @@ function buildTestMon(name, rarity, level, passiveName, activeNames) {
         skills: [getSpeciesUltimate(name), { ...passive }, ...actives],
     };
     mon.ultimate = { ...mon.skills[0] };
+    mon.statVersion = STAT_SYSTEM_VERSION;
     refreshMonDerivedStats(mon);
     return mon;
 }
@@ -4242,8 +4293,9 @@ function makeEnemyTeam(playerParty, stage) {
         const mon = { name, rarity, level, max_hp: getMaxHP(level, rarity) };
         mon.current_hp = mon.max_hp;
         mon.stats = generateStats(rarity);
+        mon.statVersion = STAT_SYSTEM_VERSION;
         if (boss) {
-            mon.stats.crit = Math.min(40, mon.stats.crit + 5);
+            mon.stats.crit += 8;
             mon.stats.spd += 10;
         }
         mon.skills = generateSkills(name, rarity);
@@ -4578,9 +4630,10 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     }
     playEffect(defSide, skill.element, isUlt);
 
-    const effDodge = Math.max(0, Math.min(60, getBattleStat(def, "dodge") - getBattleStat(atk, "hit")));
+    const effDodge = getEffectiveDodge(def, atk);
     if (Math.random() * 100 < effDodge) {
         showDamage(defSide, 0, "miss");
+        showBanner("EVADED!", false);
         finishTurn();
         if (attackPath) await completeGifAttackReturn(atkSide, atk, animStart);
         else { await delay(250); await recoil(atkSide); await delay(120); }
@@ -4590,16 +4643,20 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     let dmg = calculateDamage(atk, def, skill);
     if (!poisonOnly && dmg > 0) {
         let crit = false, blocked = false;
-        if (Math.random() * 100 < getBattleStat(atk, "crit")) { dmg = Math.floor(dmg * 1.8); crit = true; }
-        const effBlock = Math.max(0, Math.min(60, getBattleStat(def, "block") - getBattleStat(atk, "pierce")));
+        if (Math.random() * 100 < getCritChance(atk)) {
+            dmg = Math.floor(dmg + getCritDamageRating(atk) * CRIT_DAMAGE_MULT);
+            crit = true;
+        }
+        const effBlock = getEffectiveBlock(def, atk);
         if (Math.random() * 100 < effBlock) { dmg = Math.floor(dmg * 0.5); blocked = true; }
         dmg = Math.max(1, dmg);
 
         def.hp = Math.max(0, def.hp - dmg);
         const dw = document.getElementById("wrap-" + defSide);
-        dw.classList.add("hit-shake");
-        setTimeout(() => dw.classList.remove("hit-shake"), 300);
+        dw.classList.add(blocked ? "block-shake" : "hit-shake");
+        setTimeout(() => dw.classList.remove(blocked ? "block-shake" : "hit-shake"), 300);
         showDamage(defSide, dmg, crit ? "crit" : blocked ? "block" : "");
+        if (blocked) showBanner("BLOCKED!", false);
         breakFrozenOnHit(def, dmg);
     } else if (poisonOnly) {
         showDamage(defSide, 0, "poison");
