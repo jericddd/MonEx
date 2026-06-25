@@ -2414,12 +2414,12 @@ function getRarityRoll() {
 }
 
 function getMaxHP(level, rarity) {
-    let baseHP = 80 + (level * 32);
+    let baseHP = 120 + (level * 46);
     let rarityBonus = 0;
-    if (rarity === "Uncommon") rarityBonus = 15;
-    else if (rarity === "Rare") rarityBonus = 35;
-    else if (rarity === "Legendary") rarityBonus = 70;
-    else if (rarity === "Mythic") rarityBonus = 110;
+    if (rarity === "Uncommon") rarityBonus = 22;
+    else if (rarity === "Rare") rarityBonus = 52;
+    else if (rarity === "Legendary") rarityBonus = 105;
+    else if (rarity === "Mythic") rarityBonus = 165;
     return Math.floor(baseHP + rarityBonus);
 }
 
@@ -4243,6 +4243,10 @@ function canUseBattleSkill(atk, skill) {
     return getSkillManaCost(skill) <= atk.mana;
 }
 
+function getAffordableBattleSkills(atk) {
+    return atk.skills.filter(s => canUseBattleSkill(atk, s));
+}
+
 function pickWeightedSkill(skills, weights) {
     const total = weights.reduce((sum, w) => sum + w, 0);
     if (total <= 0) return skills[0];
@@ -4255,12 +4259,15 @@ function pickWeightedSkill(skills, weights) {
 }
 
 function pickBattleSkill(atk) {
-    const candidates = [NORMAL_ATTACK_SKILL];
-    atk.skills.filter(s => canUseBattleSkill(atk, s)).forEach(s => {
-        if (!candidates.some(c => c.name === s.name)) candidates.push(s);
+    const affordable = getAffordableBattleSkills(atk);
+    const canUseOthers = affordable.length > 0;
+    const candidates = [NORMAL_ATTACK_SKILL, ...affordable];
+    const weights = candidates.map(s => {
+        if (!atk.lastSkillName || s.name !== atk.lastSkillName) return 1;
+        // When out of mana for skills, normal attack may repeat to rebuild mana.
+        if (s.name === NORMAL_ATTACK_SKILL.name && !canUseOthers) return 1;
+        return SKILL_REPEAT_WEIGHT;
     });
-    const weights = candidates.map(s =>
-        (atk.lastSkillName && s.name === atk.lastSkillName) ? SKILL_REPEAT_WEIGHT : 1);
     return pickWeightedSkill(candidates, weights);
 }
 
