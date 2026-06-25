@@ -851,6 +851,30 @@ button,
     z-index: 12;
     overflow: visible;
 }
+.fighter-wrap.dash-sweep .bsprite {
+    filter: drop-shadow(0 6px 5px rgba(0,0,0,0.45)) brightness(1.2);
+}
+.fighter-wrap.dash-sweep::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 120%;
+    height: 70%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+    opacity: 0;
+    pointer-events: none;
+    animation: dash-sweep-streak 0.22s ease-out forwards;
+}
+.fighter-wrap.enemy.dash-sweep::after {
+    transform: translate(-50%, -50%) scaleX(-1);
+}
+@keyframes dash-sweep-streak {
+    0% { opacity: 0; transform: translate(-50%, -50%) scaleX(0.4); }
+    40% { opacity: 0.9; }
+    100% { opacity: 0; transform: translate(-50%, -50%) scaleX(1.1); }
+}
 
 /* ===== Pockie-style VS bar ===== */
 .battle-hud {
@@ -2201,27 +2225,22 @@ function getSpritePath(name) {
 }
 
 const ATTACK_SPRITE_MAP = {
-    Molandak: "128x128/molandak1.gif",
-    Chog: "128x128/chog1.gif"
+    Molandak: "128x128/molandak1-swing.gif",
+    Chog: "128x128/chog1-swing.gif"
 };
 
 const ATTACK_SPRITE_DURATION_MS = {
-    Molandak: 1920,
-    Chog: 1920
-};
-
-// GIF frame map: 0-7 walk (960ms), 8-15 swing+recovery at edge (960ms).
-const ATTACK_WALK_MS = {
     Molandak: 960,
     Chog: 960
 };
 
+// Swing GIF frames 8-15 from source; hit near frame 2-3 of swing clip.
 const ATTACK_HIT_AT_MS = {
-    Molandak: 1080,
-    Chog: 1080
+    Molandak: 360,
+    Chog: 360
 };
 
-const ATTACK_RETURN_MS = 400;
+const ATTACK_DASH_MS = 220;
 const ATTACK_LUNGE_PX = 180;
 
 function getAttackSpritePath(name) {
@@ -2251,21 +2270,25 @@ function endAttackAnim(side, atk) {
     setBattleSprite(side, atk.sprite, atk.name, false);
 }
 
-async function horizontalLunge(side, distancePx, durationMs) {
+async function dashHorizontal(side, distancePx, durationMs) {
     const wrap = document.getElementById("wrap-" + side);
     if (!wrap) return;
     const dx = side === "player" ? distancePx : -distancePx;
-    wrap.style.transition = `transform ${durationMs}ms linear`;
+    wrap.classList.add("dash-sweep");
+    wrap.style.transition = `transform ${durationMs}ms cubic-bezier(0.2, 0.85, 0.25, 1)`;
     wrap.style.transform = `translate(${dx}px, 0)`;
     await delay(durationMs);
+    wrap.classList.remove("dash-sweep");
 }
 
-async function horizontalRecoil(side, durationMs) {
+async function dashHome(side, durationMs) {
     const wrap = document.getElementById("wrap-" + side);
     if (!wrap) return;
-    wrap.style.transition = `transform ${durationMs}ms linear`;
+    wrap.classList.add("dash-sweep");
+    wrap.style.transition = `transform ${durationMs}ms cubic-bezier(0.4, 0, 0.2, 1)`;
     wrap.style.transform = "translate(0,0)";
     await delay(durationMs);
+    wrap.classList.remove("dash-sweep");
 }
 
 async function delayUntil(animStart, targetMs) {
@@ -2273,9 +2296,17 @@ async function delayUntil(animStart, targetMs) {
     if (wait > 0) await delay(wait);
 }
 
-async function finishGifAttackAtEdge(animStart, name) {
-    const totalMs = ATTACK_SPRITE_DURATION_MS[name] || 1920;
+async function finishSwingGif(animStart, name) {
+    const totalMs = ATTACK_SPRITE_DURATION_MS[name] || 960;
     await delayUntil(animStart, totalMs);
+}
+
+async function completeGifAttackReturn(atkSide, atk, animStart) {
+    await finishSwingGif(animStart, atk.name);
+    setBattleSprite(atkSide, atk.sprite, atk.name, false);
+    await dashHome(atkSide, ATTACK_DASH_MS);
+    endAttackAnim(atkSide, atk);
+    await delay(120);
 }
 
 function setBattleSprite(side, src, name, replayGif) {
@@ -4126,11 +4157,11 @@ function screenFlash() {
 }
 
 async function approach(side) {
-    await horizontalLunge(side, 130, 280);
+    await dashHorizontal(side, 130, 280);
 }
 
 async function recoil(side) {
-    await horizontalRecoil(side, 250);
+    await dashHome(side, 250);
 }
 
 async function faintAnim(side) {
@@ -4197,16 +4228,15 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         return;
     }
 
-    // Damage skill: approach or GIF attack, hit, return
+    // Damage skill: dash approach or swing GIF at edge
     const attackPath = getAttackSpritePath(atk.name);
     let animStart = 0;
-    let walkPromise = null;
     if (attackPath) {
-        animStart = Date.now();
         beginAttackAnim(atkSide);
+        await dashHorizontal(atkSide, ATTACK_LUNGE_PX, ATTACK_DASH_MS);
         setBattleSprite(atkSide, attackPath, atk.name, true);
-        walkPromise = horizontalLunge(atkSide, ATTACK_LUNGE_PX, ATTACK_WALK_MS[atk.name] || 960);
-        await delayUntil(animStart, ATTACK_HIT_AT_MS[atk.name] || 1080);
+        animStart = Date.now();
+        await delayUntil(animStart, ATTACK_HIT_AT_MS[atk.name] || 360);
     } else {
         await approach(atkSide);
     }
@@ -4218,15 +4248,12 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         spendEnergy();
         updateBars(atkSide, atk);
         if (attackPath) {
-            if (walkPromise) await walkPromise;
-            await finishGifAttackAtEdge(animStart, atk.name);
-            await horizontalRecoil(atkSide, ATTACK_RETURN_MS);
-            endAttackAnim(atkSide, atk);
+            await completeGifAttackReturn(atkSide, atk, animStart);
         } else {
             await delay(250);
             await recoil(atkSide);
+            await delay(120);
         }
-        await delay(120);
         return;
     }
 
@@ -4250,15 +4277,12 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     updateBars(defSide, def);
 
     if (attackPath) {
-        if (walkPromise) await walkPromise;
-        await finishGifAttackAtEdge(animStart, atk.name);
-        await horizontalRecoil(atkSide, ATTACK_RETURN_MS);
-        endAttackAnim(atkSide, atk);
+        await completeGifAttackReturn(atkSide, atk, animStart);
     } else {
         await delay(250);
         await recoil(atkSide);
+        await delay(120);
     }
-    await delay(120);
 }
 
 async function runBattle(player, enemy, battleToken) {
