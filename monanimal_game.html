@@ -2037,10 +2037,10 @@ const DAMAGE_ACTIVE_POOL = [
 ];
 
 const HEAL_SKILL_POOL = [
-    {name: "Mend",       element: "heal", type: "heal", power: 0, heal: 0.35, desc: "Restores 35% of max HP."},
-    {name: "Renew",      element: "heal", type: "heal", power: 0, heal: 0.25, desc: "Restores 25% of max HP."},
-    {name: "Life Bloom", element: "heal", type: "heal", power: 0, heal: 0.45, desc: "Restores 45% of max HP."},
-    {name: "Cleanse",    element: "heal", type: "heal", power: 0, heal: 0, cleanse: true, mana: 28,
+    {name: "Mend",       element: "heal", type: "heal", power: 0, healPower: 0.75, desc: "Restores HP equal to 75% of ATK."},
+    {name: "Renew",      element: "heal", type: "heal", power: 0, healPower: 0.55, desc: "Restores HP equal to 55% of ATK."},
+    {name: "Life Bloom", element: "heal", type: "heal", power: 0, healPower: 1.0,  desc: "Restores HP equal to 100% of ATK."},
+    {name: "Cleanse",    element: "heal", type: "heal", power: 0, healPower: 0, cleanse: true, mana: 28,
         desc: "Removes soft ailments (Frozen, Poison). Does not remove Stun."},
 ];
 
@@ -2563,9 +2563,21 @@ function formatPassiveDetail(skill) {
 function getSkillManaCost(skill) {
     if (skill.mana != null) return skill.mana;
     if (skill.cleanse) return 28;
-    if (skill.type === "heal") return Math.round(20 + (skill.heal || 0.35) * 40);
+    if (skill.type === "heal") return Math.round(16 + (skill.healPower || 0) * 18);
     if (skill.type === "active") return Math.round(12 + (skill.power || 1) * 12);
     return 0;
+}
+
+function getHealerAtkPower(healer) {
+    return healer.atkPower != null
+        ? healer.atkPower
+        : getBaseAtk(Math.floor(healer.level || 1), healer.rarity || "Common");
+}
+
+function calculateHealAmount(healer, skill) {
+    const mult = skill.healPower ?? 0;
+    if (mult <= 0) return 0;
+    return Math.max(1, Math.ceil(getHealerAtkPower(healer) * mult));
 }
 
 function getSkillStatsLine(mon, skill) {
@@ -2586,9 +2598,9 @@ function getSkillStatsLine(mon, skill) {
             : "";
         const chancePart = fx ? fx + " · " + Math.round(skill.effect.chance * 100) + "% chance" : "";
         if (skill.type === "heal") {
-            const pct = Math.round((skill.heal || 0.35) * 100);
-            const heal = Math.ceil(mon.max_hp * (skill.heal || 0.35));
-            const healPart = "Heal: " + heal + " HP (" + pct + "% max HP)";
+            const atk = getEffectiveStats(mon).atk;
+            const heal = calculateHealAmount({ atkPower: atk, level: mon.level, rarity: mon.rarity }, skill);
+            const healPart = "Heal: " + heal + " HP (ATK " + atk + " × " + skill.healPower + ")";
             return [manaPart, healPart, chancePart].filter(Boolean).join(" · ");
         }
         if (skill.type === "ultimate" || skill.type === "active") {
@@ -2601,9 +2613,11 @@ function getSkillStatsLine(mon, skill) {
         }
     }
     if (skill.type === "heal") {
-        const pct = Math.round((skill.heal || 0.35) * 100);
-        const heal = Math.ceil(mon.max_hp * (skill.heal || 0.35));
-        const healPart = "Heal: " + heal + " HP (" + pct + "% max HP)";
+        const atk = getEffectiveStats(mon).atk;
+        const heal = calculateHealAmount({ atkPower: atk, level: mon.level, rarity: mon.rarity }, skill);
+        const healPart = skill.healPower > 0
+            ? "Heal: " + heal + " HP (ATK " + atk + " × " + skill.healPower + ")"
+            : "No HP restore";
         return manaPart ? manaPart + " · " + healPart : healPart;
     }
     if (skill.type === "ultimate" || skill.type === "active") {
@@ -4546,7 +4560,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         atk.hp = Math.min(atk.maxHp, atk.hp + heal);
         updateBars(atkSide, atk);
         showDamage(atkSide, heal, "heal");
-        await delay(250);
+        await delay(180);
     }
 
     let skill, isUlt = false;
@@ -4565,7 +4579,8 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
 
     showBanner((isUlt ? "\u2605 " : "") + skill.name + (isUlt ? " \u2605" : ""), isUlt);
     if (isUlt) screenFlash();
-    await delay(isUlt ? 500 : 300);
+    const preAnimMs = isUlt ? 500 : (skill.type === "heal" ? 180 : 300);
+    await delay(preAnimMs);
 
     const spendEnergy = () => {
         atk.energy = Math.min(100, atk.energy + 30);
@@ -4594,24 +4609,23 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
 
     if (skill.type === "heal" && skill.cleanse) {
         const removed = cleanseSoftCC(atk);
-        if (skill.heal) {
-            const heal = Math.ceil(atk.maxHp * skill.heal);
-            atk.hp = Math.min(atk.maxHp, atk.hp + heal);
-        }
+        const heal = calculateHealAmount(atk, skill);
+        if (heal > 0) atk.hp = Math.min(atk.maxHp, atk.hp + heal);
         playEffect(atkSide, "heal", isUlt);
-        if (removed) showDamage(atkSide, 0, "heal");
+        if (heal > 0) showDamage(atkSide, heal, "heal");
+        else if (removed) showDamage(atkSide, 0, "heal");
         finishTurn();
-        await delay(600);
+        await delay(280);
         return;
     }
 
     if (skill.type === "heal") {
-        const heal = Math.ceil(atk.maxHp * (skill.heal || 0.35));
+        const heal = calculateHealAmount(atk, skill);
         atk.hp = Math.min(atk.maxHp, atk.hp + heal);
         playEffect(atkSide, "heal", isUlt);
         showDamage(atkSide, heal, "heal");
         finishTurn();
-        await delay(600);
+        await delay(280);
         return;
     }
 
