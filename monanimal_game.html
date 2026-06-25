@@ -841,8 +841,8 @@ button,
     width: 170px;
     z-index: 4;
 }
-.fighter-wrap.player { left: 8%; bottom: 8%; }
-.fighter-wrap.enemy { right: 8%; top: 28%; }
+.fighter-wrap.player { left: 10%; bottom: 32%; top: auto; }
+.fighter-wrap.enemy { right: 10%; bottom: 32%; top: auto; }
 .battle-stage.attack-anim-active,
 .battle-scene.attack-anim-active {
     overflow: visible;
@@ -850,13 +850,6 @@ button,
 .fighter-wrap.attack-anim {
     z-index: 12;
     overflow: visible;
-    width: auto;
-    max-width: 280px;
-}
-.fighter-wrap.attack-anim .bsprite {
-    width: 240px;
-    height: 240px;
-    object-fit: contain;
 }
 
 /* ===== Pockie-style VS bar ===== */
@@ -2222,6 +2215,8 @@ const ATTACK_HIT_AT_MS = {
     Chog: 960
 };
 
+const ATTACK_LUNGE_PX = 180;
+
 function getAttackSpritePath(name) {
     return ATTACK_SPRITE_MAP[name] || null;
 }
@@ -2249,11 +2244,21 @@ function endAttackAnim(side, atk) {
     setBattleSprite(side, atk.sprite, atk.name, false);
 }
 
-async function waitAttackAnimRemainder(animStart, name) {
-    const duration = ATTACK_SPRITE_DURATION_MS[name] || 1920;
-    const elapsed = Date.now() - animStart;
-    const remaining = Math.max(0, duration - elapsed);
-    if (remaining) await delay(remaining);
+async function horizontalLunge(side, distancePx, durationMs) {
+    const wrap = document.getElementById("wrap-" + side);
+    if (!wrap) return;
+    const dx = side === "player" ? distancePx : -distancePx;
+    wrap.style.transition = `transform ${durationMs}ms linear`;
+    wrap.style.transform = `translate(${dx}px, 0)`;
+    await delay(durationMs);
+}
+
+async function horizontalRecoil(side, durationMs) {
+    const wrap = document.getElementById("wrap-" + side);
+    if (!wrap) return;
+    wrap.style.transition = `transform ${durationMs}ms linear`;
+    wrap.style.transform = "translate(0,0)";
+    await delay(durationMs);
 }
 
 function setBattleSprite(side, src, name, replayGif) {
@@ -3430,6 +3435,35 @@ function releaseFromBox(index) {
 }
 
 // ==================== CATCH ====================
+function createMonanimal(name, rarity, level) {
+    level = level || 1;
+    const maxHP = getMaxHP(level, rarity);
+    const skills = generateSkills(name, rarity);
+    const mon = {
+        name, rarity, level, max_hp: maxHP, current_hp: maxHP,
+        stats: generateStats(rarity),
+        skills,
+        ultimate: { ...skills[0] }
+    };
+    ensureMonReady(mon);
+    return mon;
+}
+
+function grantTestChogToBox() {
+    if (!currentUser) return;
+    const flagKey = "monex_test_chog_" + currentUser;
+    if (localStorage.getItem(flagKey)) return;
+    if ([...party, ...box].some(m => m.name === "Chog")) {
+        localStorage.setItem(flagKey, "1");
+        return;
+    }
+    if (box.length >= BOX_MAX) return;
+    box.push(createMonanimal("Chog", "Rare", 15));
+    sortBoxByRarity();
+    localStorage.setItem(flagKey, "1");
+    saveData();
+}
+
 function attemptCatch() {
     if (monballs <= 0) {
         alert("No monballs left! (Resets daily at midnight UTC+8)");
@@ -3444,14 +3478,8 @@ function attemptCatch() {
     const result = document.getElementById("catch-result");
 
     if (caught) {
-        const maxHP = getMaxHP(1, rarity);
-        const skills = generateSkills(name, rarity);
-        const newMon = { 
-            name, rarity, level: 1, max_hp: maxHP, current_hp: maxHP,
-            stats: generateStats(rarity),
-            skills,
-            ultimate: { ...skills[0] }
-        };
+        const newMon = createMonanimal(name, rarity, 1);
+        newMon.ultimate = { ...newMon.skills[0] };
 
         if (party.length >= PARTY_MAX) {
             if (box.length >= BOX_MAX) {
@@ -3504,6 +3532,7 @@ async function checkLogin() {
         }
         currentUser = user.username || MonExAuth.getDisplayName();
         await loadData();
+        grantTestChogToBox();
         resolveAbandonedAdventureBattle();
         if (adventureForfeitNotice) {
             adventureForfeitNotice = false;
@@ -3517,6 +3546,7 @@ async function checkLogin() {
         if (cached?.username && MonExAuth.isLoggedIn()) {
             currentUser = cached.username;
             await loadData();
+            grantTestChogToBox();
             resolveAbandonedAdventureBattle();
             if (adventureForfeitNotice) {
                 adventureForfeitNotice = false;
@@ -4079,19 +4109,11 @@ function screenFlash() {
 }
 
 async function approach(side) {
-    const wrap = document.getElementById("wrap-" + side);
-    const dx = side === "player" ? 130 : -130;
-    const dy = side === "player" ? -150 : 150;
-    wrap.style.transition = "transform .28s ease-in";
-    wrap.style.transform = `translate(${dx}px, ${dy}px)`;
-    await delay(280);
+    await horizontalLunge(side, 130, 280);
 }
 
 async function recoil(side) {
-    const wrap = document.getElementById("wrap-" + side);
-    wrap.style.transition = "transform .25s ease-out";
-    wrap.style.transform = "translate(0,0)";
-    await delay(250);
+    await horizontalRecoil(side, 250);
 }
 
 async function faintAnim(side) {
@@ -4105,7 +4127,7 @@ async function slideIn(side) {
     const wrap = document.getElementById("wrap-" + side);
     wrap.classList.remove("fainted");
     wrap.style.transition = "none";
-    wrap.style.transform = side === "player" ? "translate(-240px,130px)" : "translate(240px,-130px)";
+    wrap.style.transform = side === "player" ? "translate(-240px, 0)" : "translate(240px, 0)";
     void wrap.offsetWidth;
     wrap.style.transition = "transform .4s ease-out";
     wrap.style.transform = "translate(0,0)";
@@ -4160,12 +4182,12 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
 
     // Damage skill: approach or GIF attack, hit, return
     const attackPath = getAttackSpritePath(atk.name);
-    let animStart = 0;
     if (attackPath) {
-        animStart = Date.now();
+        const lungeMs = ATTACK_HIT_AT_MS[atk.name] || 960;
+        const returnMs = (ATTACK_SPRITE_DURATION_MS[atk.name] || 1920) - lungeMs;
         beginAttackAnim(atkSide);
         setBattleSprite(atkSide, attackPath, atk.name, true);
-        await delay(ATTACK_HIT_AT_MS[atk.name] || 960);
+        await horizontalLunge(atkSide, ATTACK_LUNGE_PX, lungeMs);
     } else {
         await approach(atkSide);
     }
@@ -4177,7 +4199,8 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         spendEnergy();
         updateBars(atkSide, atk);
         if (attackPath) {
-            await waitAttackAnimRemainder(animStart, atk.name);
+            const returnMs = (ATTACK_SPRITE_DURATION_MS[atk.name] || 1920) - (ATTACK_HIT_AT_MS[atk.name] || 960);
+            await horizontalRecoil(atkSide, returnMs);
             endAttackAnim(atkSide, atk);
         } else {
             await delay(250);
@@ -4207,7 +4230,8 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     updateBars(defSide, def);
 
     if (attackPath) {
-        await waitAttackAnimRemainder(animStart, atk.name);
+        const returnMs = (ATTACK_SPRITE_DURATION_MS[atk.name] || 1920) - (ATTACK_HIT_AT_MS[atk.name] || 960);
+        await horizontalRecoil(atkSide, returnMs);
         endAttackAnim(atkSide, atk);
     } else {
         await delay(250);
