@@ -2279,15 +2279,16 @@ function getMeleeDashDistance(atkSide, defSide) {
 
     const atkBox = atkSprite.getBoundingClientRect();
     const defBox = defSprite.getBoundingClientRect();
-    let gap = 0;
 
     if (atkSide === "player") {
-        gap = defBox.left - atkBox.right;
-    } else {
-        gap = atkBox.left - defBox.right;
+        return Math.max(0, defBox.left - MELEE_TOUCH_GAP_PX - atkBox.right);
     }
+    return Math.max(0, atkBox.left - defBox.right - MELEE_TOUCH_GAP_PX);
+}
 
-    return Math.max(0, Math.min(gap - MELEE_TOUCH_GAP_PX, 800));
+async function measureMeleeDashDistance(atkSide, defSide) {
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    return getMeleeDashDistance(atkSide, defSide);
 }
 
 async function dashHorizontal(side, distancePx, durationMs) {
@@ -4177,7 +4178,7 @@ function screenFlash() {
 }
 
 async function approach(atkSide, defSide) {
-    const dist = getMeleeDashDistance(atkSide, defSide);
+    const dist = await measureMeleeDashDistance(atkSide, defSide);
     await dashHorizontal(atkSide, dist, 280);
 }
 
@@ -4254,7 +4255,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     let animStart = 0;
     if (attackPath) {
         beginAttackAnim(atkSide);
-        const dashDist = getMeleeDashDistance(atkSide, defSide);
+        const dashDist = await measureMeleeDashDistance(atkSide, defSide);
         await dashHorizontal(atkSide, dashDist, ATTACK_DASH_MS);
         setBattleSprite(atkSide, attackPath, atk.name, true);
         animStart = Date.now();
