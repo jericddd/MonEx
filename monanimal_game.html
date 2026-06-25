@@ -923,6 +923,7 @@ button,
 }
 .vs-side.right .vs-name { text-align: right; }
 .hpbar.big { height: 16px; }
+.manbar.big { height: 7px; margin-top: 3px; }
 .enbar.big { height: 7px; margin-top: 3px; }
 .vs-badge {
     flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%;
@@ -959,7 +960,9 @@ button,
     text-align: center; font-size: 9px; color: white;
     line-height: 15px; text-shadow: 0 0 2px #000;
 }
-.enbar { height: 6px; background: #222; border: 1px solid #111; margin-top: 4px; }
+.manbar { height: 6px; background: #222; border: 1px solid #111; margin-top: 3px; }
+.manfill { height: 100%; width: 0; background: linear-gradient(90deg, #93c5fd, #3b82f6); transition: width .3s ease; }
+.enbar { height: 6px; background: #222; border: 1px solid #111; margin-top: 3px; }
 .enfill { height: 100%; width: 0; background: linear-gradient(90deg, #facc15, #f59e0b); transition: width .3s ease; }
 .bench { position: absolute; display: flex; gap: 6px; z-index: 5; }
 .bench-enemy { top: 10px; left: 10px; }
@@ -2242,6 +2245,9 @@ const ATTACK_HIT_AT_MS = {
 
 const ATTACK_DASH_MS = 220;
 const MELEE_TOUCH_GAP_PX = 2;
+const BATTLE_MANA_MAX = 100;
+const BATTLE_MANA_REGEN = 12;
+const SKILL_REPEAT_WEIGHT = 0.15;
 const MELEE_DASH_FALLBACK_PX = 180;
 
 function getAttackSpritePath(name) {
@@ -2505,19 +2511,30 @@ function formatPassiveDetail(skill) {
     return parts.join(" · ");
 }
 
+function getSkillManaCost(skill) {
+    if (skill.mana != null) return skill.mana;
+    if (skill.type === "heal") return Math.round(20 + (skill.heal || 0.35) * 40);
+    if (skill.type === "active") return Math.round(12 + (skill.power || 1) * 12);
+    return 0;
+}
+
 function getSkillStatsLine(mon, skill) {
     if (skill.type === "passive") return formatPassiveDetail(skill);
+    const manaPart = (skill.type === "active" || skill.type === "heal")
+        ? "Mana: " + getSkillManaCost(skill) : "";
     if (skill.type === "heal") {
         const pct = Math.round((skill.heal || 0.35) * 100);
         const heal = Math.ceil(mon.max_hp * (skill.heal || 0.35));
-        return "Heal: " + heal + " HP (" + pct + "% max HP)";
+        const healPart = "Heal: " + heal + " HP (" + pct + "% max HP)";
+        return manaPart ? manaPart + " · " + healPart : healPart;
     }
     if (skill.type === "ultimate" || skill.type === "active") {
         const atk = getEffectiveStats(mon).atk;
         const dmg = Math.floor(atk * (skill.power || 1));
-        return "DMG: " + dmg + " (ATK " + atk + " × " + skill.power + ")";
+        const dmgPart = "DMG: " + dmg + " (ATK " + atk + " × " + skill.power + ")";
+        return manaPart ? manaPart + " · " + dmgPart : dmgPart;
     }
-    return "";
+    return manaPart;
 }
 
 function getSkillSquareClass(skill, index) {
@@ -4017,7 +4034,8 @@ function makeFighter(mon, isPlayer) {
         skills: mon.skills.map(s => ({ ...s })),
         ultimate: { ...mon.ultimate },
         sprite: getSpritePath(mon.name),
-        energy: 0, ultimateUsed: false, status: [], isPlayer
+        energy: 0, mana: BATTLE_MANA_MAX, maxMana: BATTLE_MANA_MAX,
+        ultimateUsed: false, lastSkillName: null, status: [], isPlayer
     };
 }
 
@@ -4073,6 +4091,7 @@ function renderBattleScene() {
                         <div class="vs-bars">
                             <div class="vs-name"><span id="np-name-player"></span> <span class="vs-lv" id="np-lv-player"></span></div>
                             <div class="hpbar big"><div class="hpfill" id="hp-player"></div><span class="hptext" id="hptext-player"></span></div>
+                            <div class="manbar big"><div class="manfill" id="mana-player"></div></div>
                             <div class="enbar big"><div class="enfill" id="en-player"></div></div>
                         </div>
                     </div>
@@ -4081,6 +4100,7 @@ function renderBattleScene() {
                         <div class="vs-bars">
                             <div class="vs-name"><span class="vs-lv" id="np-lv-enemy"></span> <span id="np-name-enemy"></span></div>
                             <div class="hpbar big"><div class="hpfill" id="hp-enemy"></div><span class="hptext" id="hptext-enemy"></span></div>
+                            <div class="manbar big"><div class="manfill" id="mana-enemy"></div></div>
                             <div class="enbar big"><div class="enfill" id="en-enemy"></div></div>
                         </div>
                         <div class="team-col" id="team-enemy"></div>
@@ -4122,6 +4142,8 @@ function updateBars(side, f) {
     hf.style.width = pct + "%";
     hf.style.background = pct > 50 ? "#22c55e" : pct > 25 ? "#f59e0b" : "#ef4444";
     document.getElementById("hptext-" + side).textContent = Math.max(0, Math.ceil(f.hp)) + " / " + f.maxHp;
+    const manaEl = document.getElementById("mana-" + side);
+    if (manaEl) manaEl.style.width = Math.min(100, (f.mana / f.maxMana) * 100) + "%";
     document.getElementById("en-" + side).style.width = Math.min(100, f.energy) + "%";
 }
 
@@ -4206,6 +4228,33 @@ async function slideIn(side) {
 
 function clearStatuses(f) { f.status = []; }
 
+function canUseBattleSkill(atk, skill) {
+    if (skill.type !== "active" && skill.type !== "heal") return false;
+    if (skill.type === "heal" && atk.hp >= atk.maxHp) return false;
+    return getSkillManaCost(skill) <= atk.mana;
+}
+
+function pickWeightedSkill(skills, weights) {
+    const total = weights.reduce((sum, w) => sum + w, 0);
+    if (total <= 0) return skills[0];
+    let roll = Math.random() * total;
+    for (let i = 0; i < skills.length; i++) {
+        roll -= weights[i];
+        if (roll <= 0) return skills[i];
+    }
+    return skills[skills.length - 1];
+}
+
+function pickBattleSkill(atk) {
+    const candidates = atk.skills.filter(s => canUseBattleSkill(atk, s));
+    if (!candidates.length) {
+        return { name: "Struggle", element: "physical", power: 0.5, type: "active", mana: 0 };
+    }
+    const weights = candidates.map(s =>
+        (atk.lastSkillName && s.name === atk.lastSkillName) ? SKILL_REPEAT_WEIGHT : 1);
+    return pickWeightedSkill(candidates, weights);
+}
+
 async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     await waitWhilePaused(battleToken);
 
@@ -4219,14 +4268,15 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         await delay(250);
     }
 
+    atk.mana = Math.min(atk.maxMana, atk.mana + BATTLE_MANA_REGEN);
+    updateBars(atkSide, atk);
+
     // Pick a skill: ultimate fires when energy is full and not yet used
     let skill, isUlt = false;
     if (atk.energy >= 100 && !atk.ultimateUsed) {
         skill = atk.ultimate; isUlt = true;
     } else {
-        const usable = atk.skills.filter(s => s.type === "active" || s.type === "heal");
-        skill = usable.length ? usable[randInt(0, usable.length - 1)]
-                              : { name: "Struggle", element: "physical", power: 0.5, type: "active" };
+        skill = pickBattleSkill(atk);
     }
 
     showBanner((isUlt ? "\u2605 " : "") + skill.name + (isUlt ? " \u2605" : ""), isUlt);
@@ -4237,6 +4287,11 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         atk.energy = Math.min(100, atk.energy + 30);
         if (isUlt) { atk.ultimateUsed = true; atk.energy = 0; }
     };
+    const spendMana = () => {
+        if (!isUlt && skill.name !== "Struggle") {
+            atk.mana = Math.max(0, atk.mana - getSkillManaCost(skill));
+        }
+    };
 
     // Healing skill
     if (skill.type === "heal") {
@@ -4244,7 +4299,9 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         atk.hp = Math.min(atk.maxHp, atk.hp + heal);
         playEffect(atkSide, "heal", isUlt);
         showDamage(atkSide, heal, "heal");
+        spendMana();
         spendEnergy();
+        atk.lastSkillName = skill.name;
         updateBars(atkSide, atk);
         await delay(600);
         return;
@@ -4268,7 +4325,9 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     const effDodge = Math.max(0, Math.min(60, def.stats.dodge + passiveBonus(def, "dodgeBonus") - atk.stats.hit));
     if (Math.random() * 100 < effDodge) {
         showDamage(defSide, 0, "miss");
+        spendMana();
         spendEnergy();
+        if (skill.name !== "Struggle") atk.lastSkillName = skill.name;
         updateBars(atkSide, atk);
         if (attackPath) {
             await completeGifAttackReturn(atkSide, atk, animStart);
@@ -4294,7 +4353,9 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     showDamage(defSide, dmg, crit ? "crit" : blocked ? "block" : "");
     updateBars(defSide, def);
 
+    spendMana();
     spendEnergy();
+    if (skill.name !== "Struggle") atk.lastSkillName = skill.name;
     if (def.hp > 0) def.energy = Math.min(100, def.energy + 15);
     updateBars(atkSide, atk);
     updateBars(defSide, def);
