@@ -843,6 +843,21 @@ button,
 }
 .fighter-wrap.player { left: 8%; bottom: 8%; }
 .fighter-wrap.enemy { right: 8%; top: 28%; }
+.battle-stage.attack-anim-active,
+.battle-scene.attack-anim-active {
+    overflow: visible;
+}
+.fighter-wrap.attack-anim {
+    z-index: 12;
+    overflow: visible;
+    width: auto;
+    max-width: 280px;
+}
+.fighter-wrap.attack-anim .bsprite {
+    width: 240px;
+    height: 240px;
+    object-fit: contain;
+}
 
 /* ===== Pockie-style VS bar ===== */
 .battle-hud {
@@ -2197,8 +2212,48 @@ const ATTACK_SPRITE_MAP = {
     Chog: "128x128/chog1.gif"
 };
 
+const ATTACK_SPRITE_DURATION_MS = {
+    Molandak: 1920,
+    Chog: 1920
+};
+
+const ATTACK_HIT_AT_MS = {
+    Molandak: 960,
+    Chog: 960
+};
+
 function getAttackSpritePath(name) {
     return ATTACK_SPRITE_MAP[name] || null;
+}
+
+function beginAttackAnim(side) {
+    const wrap = document.getElementById("wrap-" + side);
+    const stage = document.getElementById("battle-stage");
+    const scene = document.querySelector(".battle-scene.open");
+    wrap?.classList.add("attack-anim");
+    stage?.classList.add("attack-anim-active");
+    scene?.classList.add("attack-anim-active");
+}
+
+function endAttackAnim(side, atk) {
+    const wrap = document.getElementById("wrap-" + side);
+    const stage = document.getElementById("battle-stage");
+    const scene = document.querySelector(".battle-scene.open");
+    wrap?.classList.remove("attack-anim");
+    stage?.classList.remove("attack-anim-active");
+    scene?.classList.remove("attack-anim-active");
+    if (wrap) {
+        wrap.style.transition = "";
+        wrap.style.transform = "translate(0,0)";
+    }
+    setBattleSprite(side, atk.sprite, atk.name, false);
+}
+
+async function waitAttackAnimRemainder(animStart, name) {
+    const duration = ATTACK_SPRITE_DURATION_MS[name] || 1920;
+    const elapsed = Date.now() - animStart;
+    const remaining = Math.max(0, duration - elapsed);
+    if (remaining) await delay(remaining);
 }
 
 function setBattleSprite(side, src, name, replayGif) {
@@ -4103,11 +4158,17 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         return;
     }
 
-    // Damage skill: approach, hit, recoil
-    const attackSprite = getAttackSpritePath(atk.name);
-    if (attackSprite) setBattleSprite(atkSide, attackSprite, atk.name, true);
-
-    await approach(atkSide);
+    // Damage skill: approach or GIF attack, hit, return
+    const attackPath = getAttackSpritePath(atk.name);
+    let animStart = 0;
+    if (attackPath) {
+        animStart = Date.now();
+        beginAttackAnim(atkSide);
+        setBattleSprite(atkSide, attackPath, atk.name, true);
+        await delay(ATTACK_HIT_AT_MS[atk.name] || 960);
+    } else {
+        await approach(atkSide);
+    }
     playEffect(defSide, skill.element, isUlt);
 
     const effDodge = Math.max(0, Math.min(60, def.stats.dodge + passiveBonus(def, "dodgeBonus") - atk.stats.hit));
@@ -4115,9 +4176,14 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         showDamage(defSide, 0, "miss");
         spendEnergy();
         updateBars(atkSide, atk);
-        await delay(250);
-        await recoil(atkSide);
-        if (attackSprite) setBattleSprite(atkSide, atk.sprite, atk.name, false);
+        if (attackPath) {
+            await waitAttackAnimRemainder(animStart, atk.name);
+            endAttackAnim(atkSide, atk);
+        } else {
+            await delay(250);
+            await recoil(atkSide);
+        }
+        await delay(120);
         return;
     }
 
@@ -4140,9 +4206,13 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     updateBars(atkSide, atk);
     updateBars(defSide, def);
 
-    await delay(250);
-    await recoil(atkSide);
-    if (attackSprite) setBattleSprite(atkSide, atk.sprite, atk.name, false);
+    if (attackPath) {
+        await waitAttackAnimRemainder(animStart, atk.name);
+        endAttackAnim(atkSide, atk);
+    } else {
+        await delay(250);
+        await recoil(atkSide);
+    }
     await delay(120);
 }
 
