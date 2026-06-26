@@ -944,6 +944,9 @@ button,
 .status-pill.stun { background: #d97706; }
 .status-pill.frozen { background: #2563eb; }
 .status-pill.poison { background: #15803d; }
+.status-pill.burn { background: #dc2626; }
+.status-pill.renew { background: #ea580c; }
+.status-pill.lifebloom { background: #16a34a; }
 .vs-badge {
     flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%;
     background: radial-gradient(circle at 30% 30%, #fde68a, #f59e0b);
@@ -1025,6 +1028,7 @@ button,
 .dmgnum.miss  { color: #67e8f9; }
 .dmgnum.heal  { color: #22c55e; }
 .dmgnum.poison { color: #84cc16; }
+.dmgnum.burn { color: #f97316; }
 @keyframes floatup {
     0%   { opacity: 0; }
     20%  { opacity: 1; }
@@ -2005,10 +2009,10 @@ const DAMAGE_ACTIVE_POOL = [
     {name: "Slash",         element: "physical", type: "active", power: 1.0,  desc: "A swift physical slash."},
     {name: "Flame Burst",   element: "fire",     type: "active", power: 1.15, desc: "Bursts the target in flames."},
     {name: "Aqua Jet",      element: "water",    type: "active", power: 0.95, desc: "A fast jet of water."},
-    {name: "Shock Bolt",    element: "electric", type: "active", power: 0.55, desc: "A low-damage bolt that may stun the foe.", effect: { type: "stun", chance: 0.4 }},
+    {name: "Shock Bolt",    element: "electric", type: "active", power: 0.55, desc: "A low-damage bolt that stuns the foe.", effect: { type: "stun", chance: 1 }},
     {name: "Rock Throw",    element: "earth",    type: "active", power: 1.2,  desc: "Hurls heavy rocks."},
-    {name: "Venom Bite",    element: "poison",   type: "active", power: 0,    desc: "Injects venom — no direct damage, only poison over time.", effect: { type: "poison", chance: 0.55 }},
-    {name: "Frost Shard",   element: "ice",      type: "active", power: 0.4,  desc: "Weak icy shards that may freeze the foe.", effect: { type: "frozen", chance: 0.45 }},
+    {name: "Venom Bite",    element: "poison",   type: "active", power: 0,    desc: "Injects venom — no direct damage, only poison over time.", effect: { type: "poison", chance: 1 }},
+    {name: "Frost Shard",   element: "ice",      type: "active", power: 0.4,  desc: "Weak icy shards that freeze the foe.", effect: { type: "frozen", chance: 1 }},
     {name: "Gale Slash",    element: "wind",     type: "active", power: 1.0,  desc: "A crescent of wind."},
     {name: "Shadow Strike", element: "dark",     type: "active", power: 1.1,  desc: "A strike from the shadows."},
     {name: "Psy Beam",      element: "psychic",  type: "active", power: 1.1,  desc: "A focused psychic beam."},
@@ -2016,7 +2020,9 @@ const DAMAGE_ACTIVE_POOL = [
     {name: "Starfall Palm",   element: "psychic",  type: "active", power: 1.1,  desc: "Calls down a burst of starlight through an outstretched hand."},
     {name: "Star Swipe",      element: "wind",     type: "active", power: 1.0,  desc: "Sweeps sparkling cosmic energy across the foe."},
     {name: "Power Fist",      element: "physical", type: "active", power: 1.15, desc: "A rising punch charged with raw fighting spirit."},
-    {name: "Ember Flask",     element: "fire",     type: "active", power: 1.1,  desc: "Hurls a volatile flask that bursts into searing flames."},
+    {name: "Ember Flask",     element: "fire",     type: "active", power: 0.35,
+        desc: "A weak flaming hit that burns the foe for 3 turns.",
+        effect: { type: "burn", chance: 1, turns: 3 }},
     {name: "Star Hammer",     element: "physical", type: "active", power: 1.2,  desc: "Smashes the foe with a hammer forged from starlight."},
     {name: "Crushing Hammer", element: "physical", type: "active", power: 1.2,  desc: "A brutal overhead hammer swing wreathed in fire."},
     {name: "Solar Vortex",    element: "fire",     type: "active", power: 1.15, desc: "Spins a scorching vortex of solar energy into the target."},
@@ -2037,11 +2043,16 @@ const DAMAGE_ACTIVE_POOL = [
 ];
 
 const HEAL_SKILL_POOL = [
-    {name: "Mend",       element: "heal", type: "heal", power: 0, heal: 0.35, desc: "Restores 35% of max HP."},
-    {name: "Renew",      element: "heal", type: "heal", power: 0, heal: 0.25, desc: "Restores 25% of max HP."},
-    {name: "Life Bloom", element: "heal", type: "heal", power: 0, heal: 0.45, desc: "Restores 45% of max HP."},
-    {name: "Cleanse",    element: "heal", type: "heal", power: 0, heal: 0, cleanse: true, mana: 28,
-        desc: "Removes soft ailments (Frozen, Poison). Does not remove Stun."},
+    {name: "Mend",       element: "heal", type: "heal", power: 0, healPower: 0.75,
+        desc: "Restores HP equal to 75% of ATK."},
+    {name: "Renew",      element: "heal", type: "heal", power: 0, healPower: 0.38,
+        selfBuff: { id: "renew", turns: 1, statMods: { atkPct: 0.15 } },
+        desc: "Light heal plus +15% ATK for 1 turn."},
+    {name: "Life Bloom", element: "heal", type: "heal", power: 0, healPower: 0.42,
+        selfBuff: { id: "lifebloom", turns: 1, statMods: { critChance: 12 } },
+        desc: "Light heal plus +12% crit chance for 1 turn."},
+    {name: "Cleanse",    element: "heal", type: "heal", power: 0, healPower: 0, cleanse: true, mana: 28,
+        desc: "Removes soft ailments (Frozen, Poison, Burn). Does not remove Stun."},
 ];
 
 function rollActiveSkill() {
@@ -2293,6 +2304,8 @@ const NORMAL_ATTACK_SKILL = {
     desc: "A basic strike. Damage scales with level and gear. Restores mana."
 };
 const POISON_TICK_PCT = 0.03;
+const BURN_TICK_PCT = 0.06;
+const BURN_TURNS = 3;
 const FREEZE_DMG_BOOST = 1.3;
 const MELEE_DASH_FALLBACK_PX = 180;
 
@@ -2563,9 +2576,51 @@ function formatPassiveDetail(skill) {
 function getSkillManaCost(skill) {
     if (skill.mana != null) return skill.mana;
     if (skill.cleanse) return 28;
-    if (skill.type === "heal") return Math.round(20 + (skill.heal || 0.35) * 40);
+    if (skill.type === "heal") return Math.round(16 + (skill.healPower || 0) * 18);
     if (skill.type === "active") return Math.round(12 + (skill.power || 1) * 12);
     return 0;
+}
+
+function getHealerAtkPower(healer) {
+    return healer.atkPower != null
+        ? healer.atkPower
+        : getBaseAtk(Math.floor(healer.level || 1), healer.rarity || "Common");
+}
+
+function getAtkPowerBuffPct(fighter) {
+    let pct = 0;
+    for (const st of fighter.status || []) {
+        if (st.statMods?.atkPct != null) pct += st.statMods.atkPct;
+    }
+    return pct;
+}
+
+function getEffectiveAtkPower(fighter) {
+    const base = getHealerAtkPower(fighter);
+    return Math.max(1, Math.floor(base * (1 + getAtkPowerBuffPct(fighter))));
+}
+
+function calculateHealAmount(healer, skill) {
+    const mult = skill.healPower ?? 0;
+    if (mult <= 0) return 0;
+    return Math.max(1, Math.ceil(getHealerAtkPower(healer) * mult));
+}
+
+function formatHealSkillDetail(mon, skill) {
+    const atk = getEffectiveStats(mon).atk;
+    const heal = calculateHealAmount({ atkPower: atk, level: mon.level, rarity: mon.rarity }, skill);
+    const parts = [];
+    if (skill.healPower > 0) {
+        parts.push("Heal: " + heal + " HP (ATK " + atk + " × " + skill.healPower + ")");
+    }
+    const buff = skill.selfBuff;
+    if (buff?.statMods?.atkPct != null) {
+        parts.push("+" + Math.round(buff.statMods.atkPct * 100) + "% ATK for " + buff.turns + (buff.turns === 1 ? " turn" : " turns"));
+    }
+    if (buff?.statMods?.critChance != null) {
+        parts.push("+" + buff.statMods.critChance + "% crit chance for " + buff.turns + (buff.turns === 1 ? " turn" : " turns"));
+    }
+    return parts.join(" · ");
 }
 
 function getSkillStatsLine(mon, skill) {
@@ -2573,23 +2628,25 @@ function getSkillStatsLine(mon, skill) {
     const manaPart = (skill.type === "active" || skill.type === "heal")
         ? "Mana: " + getSkillManaCost(skill) : "";
     if (skill.cleanse) {
-        const cleansePart = "Removes Frozen & Poison (not Stun)";
+        const cleansePart = "Removes Frozen, Poison & Burn (not Stun)";
         return manaPart ? manaPart + " · " + cleansePart : cleansePart;
     }
     if (skill.effect?.type === "poison") {
         const poisonPart = "Poison: " + Math.round(POISON_TICK_PCT * 100) + "% max HP/turn until faint";
         return manaPart ? manaPart + " · " + poisonPart : poisonPart;
     }
+    if (skill.effect?.type === "burn") {
+        const turns = skill.effect.turns ?? BURN_TURNS;
+        const burnPart = "Burn: " + Math.round(BURN_TICK_PCT * 100) + "% max HP/turn for " + turns + " turns";
+        return manaPart ? manaPart + " · " + burnPart : burnPart;
+    }
     if (skill.effect) {
-        const fx = skill.effect.type === "stun" ? "May Stun (skip turn)"
-            : skill.effect.type === "frozen" ? "May Freeze (heal/cleanse only)"
+        const fx = skill.effect.type === "stun" ? "Stuns (skip turn)"
+            : skill.effect.type === "frozen" ? "Freezes (heal/cleanse only)"
             : "";
-        const chancePart = fx ? fx + " · " + Math.round(skill.effect.chance * 100) + "% chance" : "";
         if (skill.type === "heal") {
-            const pct = Math.round((skill.heal || 0.35) * 100);
-            const heal = Math.ceil(mon.max_hp * (skill.heal || 0.35));
-            const healPart = "Heal: " + heal + " HP (" + pct + "% max HP)";
-            return [manaPart, healPart, chancePart].filter(Boolean).join(" · ");
+            const healPart = formatHealSkillDetail(mon, skill);
+            return [manaPart, healPart, fx].filter(Boolean).join(" · ");
         }
         if (skill.type === "ultimate" || skill.type === "active") {
             const atk = getEffectiveStats(mon).atk;
@@ -2597,13 +2654,11 @@ function getSkillStatsLine(mon, skill) {
             const dmgPart = skill.power > 0
                 ? "DMG: " + dmg + " (ATK " + atk + " × " + skill.power + ")"
                 : "No direct damage";
-            return [manaPart, dmgPart, chancePart].filter(Boolean).join(" · ");
+            return [manaPart, dmgPart, fx].filter(Boolean).join(" · ");
         }
     }
     if (skill.type === "heal") {
-        const pct = Math.round((skill.heal || 0.35) * 100);
-        const heal = Math.ceil(mon.max_hp * (skill.heal || 0.35));
-        const healPart = "Heal: " + heal + " HP (" + pct + "% max HP)";
+        const healPart = formatHealSkillDetail(mon, skill) || "No HP restore";
         return manaPart ? manaPart + " · " + healPart : healPart;
     }
     if (skill.type === "ultimate" || skill.type === "active") {
@@ -3097,7 +3152,29 @@ function getStatus(fighter, id) {
 function addStatus(fighter, status) {
     if (!fighter.status) fighter.status = [];
     fighter.status = fighter.status.filter(s => s.id !== status.id);
-    fighter.status.push(status);
+    fighter.status.push({ ...status, appliedThisTurn: true });
+}
+
+function applySelfBuff(fighter, buffDef) {
+    if (!buffDef) return;
+    addStatus(fighter, {
+        id: buffDef.id,
+        turns: buffDef.turns ?? 3,
+        statMods: buffDef.statMods || {}
+    });
+}
+
+function tickStatusDurations(fighter) {
+    if (!fighter.status?.length) return;
+    fighter.status = fighter.status.filter(st => {
+        if (st.appliedThisTurn) {
+            delete st.appliedThisTurn;
+            return true;
+        }
+        if (st.turns == null) return true;
+        st.turns -= 1;
+        return st.turns > 0;
+    });
 }
 
 function removeStatus(fighter, id) {
@@ -3118,13 +3195,16 @@ function isFrozen(fighter) {
 
 function tryApplySkillEffect(atk, def, skill) {
     if (!skill.effect || def.hp <= 0) return;
-    if (Math.random() >= skill.effect.chance) return;
+    const chance = skill.effect.chance ?? 1;
+    if (Math.random() >= chance) return;
     if (skill.effect.type === "stun") {
         addStatus(def, { id: "stun" });
     } else if (skill.effect.type === "frozen") {
         addStatus(def, { id: "frozen", applierId: atk.battleId });
     } else if (skill.effect.type === "poison") {
         addStatus(def, { id: "poison" });
+    } else if (skill.effect.type === "burn") {
+        addStatus(def, { id: "burn", turns: skill.effect.turns ?? BURN_TURNS });
     }
 }
 
@@ -3135,16 +3215,14 @@ function breakFrozenOnHit(defender, damage) {
 function renderStatusRow(side, fighter) {
     const el = document.getElementById("status-" + side);
     if (!el) return;
-    const labels = { stun: "STUN", frozen: "FROZEN", poison: "POISON" };
+    const labels = { stun: "STUN", frozen: "FROZEN", poison: "POISON", burn: "BURN", renew: "ATK+", lifebloom: "CRIT+" };
     el.innerHTML = (fighter.status || []).map(st =>
         `<span class="status-pill ${st.id}">${labels[st.id] || st.id.toUpperCase()}</span>`
     ).join("");
 }
 
 function calculateDamage(attacker, defender, skill) {
-    let dmg = attacker.atkPower != null
-        ? attacker.atkPower
-        : getAttackDamage(attacker.level, attacker.rarity);
+    let dmg = getEffectiveAtkPower(attacker);
     dmg = Math.floor(dmg * (skill.power != null ? skill.power : 1));
 
     const dealt = (attacker.skills || []).find(s => s.dmgDealt);
@@ -4427,6 +4505,7 @@ function showDamage(side, amount, kind) {
     if (kind === "miss") d.textContent = "MISS";
     else if (kind === "heal") d.textContent = "+" + amount;
     else if (kind === "poison") d.textContent = amount > 0 ? "-" + amount + " PSN" : "POISON";
+    else if (kind === "burn") d.textContent = amount > 0 ? "-" + amount + " BRN" : "BURN";
     else d.textContent = "-" + amount + (kind === "crit" ? " CRIT" : kind === "block" ? " BLOCK" : "");
     d.style.left = (sR.left - stR.left + sR.width / 2) + "px";
     d.style.top = (sR.top - stR.top + sR.height / 3) + "px";
@@ -4540,13 +4619,26 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         if (atk.hp <= 0) return;
     }
 
+    if (hasStatus(atk, "burn") && atk.hp > 0) {
+        const burn = getStatus(atk, "burn");
+        const tick = Math.max(1, Math.ceil(atk.maxHp * BURN_TICK_PCT));
+        atk.hp = Math.max(0, atk.hp - tick);
+        burn.turns = (burn.turns ?? BURN_TURNS) - 1;
+        if (burn.turns <= 0) removeStatus(atk, "burn");
+        updateBars(atkSide, atk);
+        renderStatusRow(atkSide, atk);
+        showDamage(atkSide, tick, "burn");
+        await delay(280);
+        if (atk.hp <= 0) return;
+    }
+
     const regenP = atk.skills.find(s => s.regen);
     if (regenP && atk.hp > 0) {
         const heal = Math.ceil(atk.maxHp * regenP.regen);
         atk.hp = Math.min(atk.maxHp, atk.hp + heal);
         updateBars(atkSide, atk);
         showDamage(atkSide, heal, "heal");
-        await delay(250);
+        await delay(180);
     }
 
     let skill, isUlt = false;
@@ -4565,7 +4657,8 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
 
     showBanner((isUlt ? "\u2605 " : "") + skill.name + (isUlt ? " \u2605" : ""), isUlt);
     if (isUlt) screenFlash();
-    await delay(isUlt ? 500 : 300);
+    const preAnimMs = isUlt ? 500 : (skill.type === "heal" ? 180 : 300);
+    await delay(preAnimMs);
 
     const spendEnergy = () => {
         atk.energy = Math.min(100, atk.energy + 30);
@@ -4586,6 +4679,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         restoreMana();
         spendEnergy();
         atk.lastSkillName = skill.name;
+        tickStatusDurations(atk);
         updateBars(atkSide, atk);
         updateBars(defSide, def);
         renderStatusRow(atkSide, atk);
@@ -4594,24 +4688,26 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
 
     if (skill.type === "heal" && skill.cleanse) {
         const removed = cleanseSoftCC(atk);
-        if (skill.heal) {
-            const heal = Math.ceil(atk.maxHp * skill.heal);
-            atk.hp = Math.min(atk.maxHp, atk.hp + heal);
-        }
+        const heal = calculateHealAmount(atk, skill);
+        if (heal > 0) atk.hp = Math.min(atk.maxHp, atk.hp + heal);
         playEffect(atkSide, "heal", isUlt);
-        if (removed) showDamage(atkSide, 0, "heal");
+        if (heal > 0) showDamage(atkSide, heal, "heal");
+        else if (removed) showDamage(atkSide, 0, "heal");
         finishTurn();
-        await delay(600);
+        await delay(280);
         return;
     }
 
     if (skill.type === "heal") {
-        const heal = Math.ceil(atk.maxHp * (skill.heal || 0.35));
+        const heal = calculateHealAmount(atk, skill);
         atk.hp = Math.min(atk.maxHp, atk.hp + heal);
+        if (skill.selfBuff) applySelfBuff(atk, skill.selfBuff);
         playEffect(atkSide, "heal", isUlt);
         showDamage(atkSide, heal, "heal");
+        if (skill.selfBuff?.statMods?.atkPct != null) showBanner("ATK UP!", false);
+        else if (skill.selfBuff?.statMods?.critChance != null) showBanner("CRIT UP!", false);
         finishTurn();
-        await delay(600);
+        await delay(280);
         return;
     }
 
