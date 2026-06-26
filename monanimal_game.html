@@ -2102,6 +2102,12 @@ const STAT_RANGES = {
 const STAT_SYSTEM_VERSION = 2;
 const BASE_CRIT_CHANCE = 20;
 const CRIT_DAMAGE_MULT = 1.1;
+const BASE_HIT_CHANCE = 90;
+const HIT_DODGE_FACTOR = 0.5;
+const MIN_HIT_CHANCE = 75;
+const MAX_HIT_CHANCE = 98;
+const BLOCK_PIERCE_FACTOR = 1;
+const MAX_BLOCK_CHANCE = 25;
 
 // Each species has its own FIXED ultimate (energy-triggered, fires once per run).
 const SPECIES_ULTIMATE = {
@@ -3125,20 +3131,28 @@ function getCritChance(fighter) {
     return Math.max(0, chance);
 }
 
-function contestChance(defRating, atkRating) {
-    const d = Math.max(0, defRating);
-    const a = Math.max(0, atkRating);
-    const total = d + a;
-    if (total <= 0) return 0;
-    return (d / total) * 100;
+function clampStat(val, min, max) {
+    return Math.max(min, Math.min(max, val));
+}
+
+function getHitChance(attacker, defender) {
+    const hit = getBattleStat(attacker, "hit");
+    const dodge = getBattleStat(defender, "dodge");
+    return clampStat(
+        BASE_HIT_CHANCE + (hit - dodge) * HIT_DODGE_FACTOR,
+        MIN_HIT_CHANCE,
+        MAX_HIT_CHANCE
+    );
 }
 
 function getEffectiveDodge(defender, attacker) {
-    return contestChance(getBattleStat(defender, "dodge"), getBattleStat(attacker, "hit"));
+    return 100 - getHitChance(attacker, defender);
 }
 
 function getEffectiveBlock(defender, attacker) {
-    return contestChance(getBattleStat(defender, "block"), getBattleStat(attacker, "pierce"));
+    const block = getBattleStat(defender, "block");
+    const pierce = getBattleStat(attacker, "pierce");
+    return clampStat((block - pierce) * BLOCK_PIERCE_FACTOR, 0, MAX_BLOCK_CHANCE);
 }
 
 function hasStatus(fighter, id) {
