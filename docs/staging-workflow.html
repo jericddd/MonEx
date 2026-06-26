@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MonEx — Staging &amp; Live Workflow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 760px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
+        h1 { font-family: "Press Start 2P", sans-serif; font-size: 16px; color: #6B21A8; }
+        h2 { font-family: "Press Start 2P", sans-serif; font-size: 10px; color: #6B21A8; margin-top: 24px; }
+        pre, code { background: #f3e8ff; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+        pre { padding: 12px; overflow-x: auto; }
+        .step { border: 3px solid #6B21A8; padding: 16px; margin: 16px 0; box-shadow: 4px 4px 0 #6B21A8; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #e9d5ff; vertical-align: top; }
+        .warn { background: #fff7ed; border-color: #b45309; }
+    </style>
+</head>
+<body>
+    <h1>Staging &amp; Live</h1>
+    <p>One repo, two environments. Test on <b>staging</b> first; <b>monexmonad.xyz</b> only updates when you promote to <code>main</code>.</p>
+
+    <div class="step">
+        <h2>URLs</h2>
+        <table>
+            <tr><th>Environment</th><th>URL</th><th>Updates when</th></tr>
+            <tr>
+                <td><b>Staging</b></td>
+                <td><code>https://monex-staging.pages.dev/home.html</code><br><small>(exact URL appears in GitHub Actions after first deploy)</small></td>
+                <td>You push to branch <code>staging</code></td>
+            </tr>
+            <tr>
+                <td><b>Live</b></td>
+                <td><code>https://monexmonad.xyz/home.html</code></td>
+                <td>You merge <code>staging</code> → <code>main</code></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="step warn">
+        <h2>One-time setup (Cloudflare token)</h2>
+        <p>Your GitHub secrets <code>CLOUDFLARE_API_TOKEN</code> and <code>CLOUDFLARE_ACCOUNT_ID</code> must allow <b>Cloudflare Pages</b> deploys.</p>
+        <ol>
+            <li>Cloudflare dashboard → <b>My Profile</b> → <b>API Tokens</b></li>
+            <li>Edit your deploy token (or create one) with:<br>
+                <b>Account → Cloudflare Pages → Edit</b><br>
+                <b>Account → Workers Scripts → Edit</b> (you already use this for the API)</li>
+            <li>Save the token in GitHub → repo <b>Settings → Secrets → Actions</b></li>
+        </ol>
+        <p>Then push any commit to <code>staging</code> (or run <b>Deploy Staging (Cloudflare Pages)</b> in Actions).</p>
+    </div>
+
+    <div class="step">
+        <h2>Daily workflow</h2>
+        <table>
+            <tr><th>Step</th><th>What you do</th></tr>
+            <tr><td>1. Develop</td><td>Commit changes on branch <code>staging</code> (or merge your feature branch into <code>staging</code>)</td></tr>
+            <tr><td>2. Auto deploy</td><td>GitHub Actions deploys to Cloudflare Pages staging</td></tr>
+            <tr><td>3. Test</td><td>Open staging URL → orange <b>STAGING</b> banner at top confirms preview</td></tr>
+            <tr><td>4. Go live</td><td>GitHub → <b>Pull requests</b> → <code>staging</code> → <code>main</code> → <b>Merge</b></td></tr>
+            <tr><td>5. Live site</td><td>GitHub Pages updates <code>monexmonad.xyz</code> (usually within a few minutes)</td></tr>
+        </table>
+    </div>
+
+    <div class="step">
+        <h2>API (Cloudflare Worker)</h2>
+        <p>Staging and live share the same API (<code>monex-api</code>). Game-only changes do <b>not</b> need an API redeploy.</p>
+        <p>Use <b>dev login</b> on staging. Deploy API manually when needed: Actions → <b>Deploy Cloudflare API</b>.</p>
+    </div>
+
+    <div class="step">
+        <h2>Branches</h2>
+        <pre>main     → live (GitHub Pages + monexmonad.xyz)
+staging  → preview (Cloudflare Pages)</pre>
+        <p>Keep <code>staging</code> up to date with <code>main</code> after each live release so the next test starts from production:</p>
+        <pre>git checkout staging
+git merge main
+git push origin staging</pre>
+    </div>
+
+    <p><a href="local-test-workflow.html">Local test workflow</a> · <a href="cloudflare-deploy.html">Cloudflare deploy</a></p>
+</body>
+</html>
