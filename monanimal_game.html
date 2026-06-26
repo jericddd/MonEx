@@ -417,6 +417,39 @@ button.green:hover {
     color: white !important;
     padding: 4px 12px !important;
     font-size: 10px !important;
+    font-family: 'Press Start 2P', monospace;
+}
+
+/* Shared hover tip — descriptions in Lato */
+.has-hover-tip {
+    position: relative;
+}
+.has-hover-tip:hover::after {
+    content: attr(data-hover-tip);
+    display: block;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a2e;
+    color: #e0e0ff;
+    padding: 8px 11px;
+    border: 2px solid #6b21a8;
+    box-shadow: 3px 3px 0 #6b21a8;
+    font-family: 'Lato', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.45;
+    white-space: normal;
+    width: max-content;
+    max-width: 260px;
+    text-align: left;
+    z-index: 999;
+    pointer-events: none;
+}
+.gear-inv-slot.has-hover-tip:hover::after {
+    bottom: auto;
+    top: calc(100% + 6px);
 }
 
 /* X activity feed (profile + shared) */
@@ -558,6 +591,27 @@ button.green:hover {
     width: 92%;
     max-height: 80vh;
     overflow-y: auto;
+    font-family: 'Lato', sans-serif;
+}
+.equip-modal h3 {
+    margin: 0 0 12px;
+    color: #6B21A8;
+    text-align: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    line-height: 1.6;
+}
+.equip-modal p,
+.equip-modal small {
+    font-family: 'Lato', sans-serif;
+}
+.equip-modal .equip-action {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+}
+.equip-modal #equip-close {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
 }
 .equip-option {
     display: flex;
@@ -667,8 +721,9 @@ button,
     background: #1a1a2e;
     color: #e0e0ff;
     padding: 5px 9px;
-    font-size: 9px;
-    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    font-family: 'Lato', sans-serif;
+    font-weight: 400;
     white-space: nowrap;
     border: 2px solid #6B21A8;
     box-shadow: 2px 2px 0 #6B21A8;
@@ -707,6 +762,7 @@ button,
     padding: 8px 10px 6px;
     z-index: 10;
     box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    font-family: 'Lato', sans-serif;
 }
 .info-icon:hover .stats-tooltip { display: block; }
 .stats-tooltip .st-title {
@@ -817,6 +873,15 @@ button,
     box-shadow: 3px 3px 0px #065f46;
 }
 .skill-square.skill-heal .skill-tip-stats { color: #6ee7b7; }
+
+/* Skill / stat hovers inside adventure & battle shell */
+.battle-scene .skill-tip,
+.battle-scene-ui .skill-tip,
+.battle-scene .stats-tooltip,
+.battle-scene-ui .stats-tooltip,
+#battle-content .skill-tip {
+    font-family: 'Lato', sans-serif;
+}
 
 /* ===== Battle stage ===== */
 .battle-stage {
@@ -981,6 +1046,13 @@ button,
     position: absolute; top: 0; left: 0; width: 100%;
     text-align: center; font-size: 9px; color: white;
     line-height: 15px; text-shadow: 0 0 2px #000;
+    font-family: 'Lato', sans-serif;
+    font-weight: 700;
+}
+.vs-lv {
+    font-family: 'Lato', sans-serif;
+    font-weight: 400;
+    opacity: 0.9;
 }
 .manbar { height: 6px; background: #222; border: 1px solid #111; margin-top: 3px; }
 .manfill { height: 100%; width: 0; background: linear-gradient(90deg, #93c5fd, #3b82f6); transition: width .3s ease; }
@@ -1182,6 +1254,8 @@ body.afk-layout .currency-pill .currency-tip {
     border-radius: 8px;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
     background: rgba(31, 18, 53, 0.94);
+    font-family: 'Lato', sans-serif;
+    font-size: 10px;
 }
 .header-logout-btn {
     padding: 5px 12px;
@@ -1567,6 +1641,7 @@ body.afk-layout .currency-pill .currency-tip {
     padding: 56px 20px 20px;
     box-sizing: border-box;
     overflow-y: auto;
+    font-family: 'Lato', sans-serif;
 }
 .battle-scene-ui--fight {
     align-items: stretch;
@@ -1582,10 +1657,66 @@ body.afk-layout .currency-pill .currency-tip {
     max-width: min(920px, 96%);
     width: 100%;
     box-sizing: border-box;
+    font-family: 'Lato', sans-serif;
 }
 .adventure-panel h2 {
     margin: 0 0 20px;
     color: #6B21A8;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    line-height: 1.65;
+}
+.adventure-panel p,
+.adventure-panel .adv-desc,
+.adventure-panel .result-drops {
+    font-family: 'Lato', sans-serif;
+}
+.adventure-panel button {
+    font-family: 'Press Start 2P', monospace;
+}
+.battle-leave-panel {
+    background: white;
+    padding: 30px;
+    border: 4px solid #6B21A8;
+    box-shadow: 4px 4px 0 #6B21A8;
+    text-align: center;
+    max-width: 420px;
+    font-family: 'Lato', sans-serif;
+}
+.battle-leave-panel p {
+    font-family: 'Lato', sans-serif;
+    font-size: 16px;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+.battle-leave-panel button {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 12px 28px;
+    border: none;
+    cursor: pointer;
+}
+.battle-leave-stay { background: #6B21A8; color: white; }
+.battle-leave-confirm { background: #ef4444; color: white; }
+.team-slot {
+    border: 4px solid #6B21A8;
+    padding: 12px;
+    width: 190px;
+    background: white;
+    box-shadow: 4px 4px 0 #6B21A8;
+    cursor: grab;
+    user-select: none;
+    font-family: 'Lato', sans-serif;
+}
+.team-slot-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    line-height: 1.5;
+}
+.team-slot-lv {
+    font-family: 'Lato', sans-serif;
+    font-size: 13px;
+    color: #444;
 }
 #battle-content { flex: 1; width: 100%; min-height: 0; }
 #battle-content .battle-stage {
@@ -2738,7 +2869,7 @@ function renderGearRow(location, index, mon) {
         const filled = g ? " filled" : "";
         const tierDot = g ? `<span class="gear-tier-dot" style="background:${GEAR_TIERS[g.tier].color}"></span>` : "";
         const tip = g ? g.name + " — " + formatGearBonuses(g.bonuses) : "Equip " + GEAR_SLOT_LABELS[slot];
-        return `<button class="gear-slot${filled}" title="${tip}" onclick="openEquipModal('${location}',${index},'${slot}')">${GEAR_SLOT_ICONS[slot]}${tierDot}</button>`;
+        return `<button class="gear-slot has-hover-tip${filled}" data-hover-tip="${tip}" onclick="openEquipModal('${location}',${index},'${slot}')">${GEAR_SLOT_ICONS[slot]}${tierDot}</button>`;
     }).join("")}</div>`;
 }
 
@@ -3019,17 +3150,17 @@ function openEquipModal(location, monIndex, slot) {
     bg.className = "equip-modal-bg";
     bg.innerHTML = `
         <div class="equip-modal">
-            <h3 style="margin:0 0 12px;color:#6B21A8;text-align:center;">${GEAR_SLOT_LABELS[slot]} — ${mon.name}</h3>
+            <h3>${GEAR_SLOT_LABELS[slot]} — ${mon.name}</h3>
             ${equipped ? `<div class="equip-option" onclick="unequipGear('${location}',${monIndex},'${slot}'); this.closest('.equip-modal-bg').remove();">
                 <span><b style="color:${GEAR_TIERS[equipped.tier].color}">${equipped.name}</b><br><small>${formatGearBonuses(equipped.bonuses)}</small></span>
-                <span style="color:#ef4444;font-weight:bold;">UNEQUIP</span>
+                <span class="equip-action" style="color:#ef4444;">UNEQUIP</span>
             </div>` : `<p style="font-size:12px;color:#666;text-align:center;">Nothing equipped</p>`}
             <hr style="border:none;border-top:1px solid #ddd;margin:12px 0;">
             <p style="font-size:11px;color:#666;margin:0 0 8px;">Inventory (${options.length})</p>
             ${options.length ? options.map(g => `
                 <div class="equip-option" data-gid="${g.id}">
                     <span><b style="color:${GEAR_TIERS[g.tier].color}">${g.name}</b><br><small>${formatGearBonuses(g.bonuses)}</small></span>
-                    <span style="color:#6B21A8;font-weight:bold;">EQUIP</span>
+                    <span class="equip-action" style="color:#6B21A8;">EQUIP</span>
                 </div>`).join("") : `<p style="font-size:12px;color:#888;text-align:center;">No ${GEAR_SLOT_LABELS[slot]} in inventory.<br>Win adventure battles to find gear!</p>`}
             <button style="margin-top:14px;width:100%;padding:10px;border:2px solid #6B21A8;background:white;cursor:pointer;" id="equip-close">CLOSE</button>
         </div>`;
@@ -4232,7 +4363,7 @@ function enterAdventureMode() {
         <div class="adventure-panel">
             <h2>ADVENTURE</h2>
             <button id="current-stage-btn" onclick="startStageSelection()"
-                style="font-size: 22px; padding: 22px 70px; background: #6B21A8; color: white; border: none; cursor: pointer; font-family: 'Press Start 2P', monospace;">
+                style="font-size: 22px; padding: 22px 70px; background: #6B21A8; color: white; border: none; cursor: pointer;">
                 CHAPTER 1-${currentStage}
             </button>
         </div>
@@ -4250,9 +4381,9 @@ function startStageSelection() {
     content.innerHTML = `
         <div class="adventure-panel">
             <h2>CHAPTER 1 - STAGE ${currentStage}${boss ? ' <span class="boss-label">BOSS</span>' : ''}</h2>
-            <p style="margin:20px 0 30px 0; font-size:15px; color:#444;">${boss ? 'Boss stage — tougher enemies and better rewards!' : 'Arrange sequence before battle start, drag and drop'}</p>
+            <p class="adv-desc" style="margin:20px 0 30px 0; font-size:15px; color:#444;">${boss ? 'Boss stage — tougher enemies and better rewards!' : 'Arrange sequence before battle start, drag and drop'}</p>
             <div id="team-arrange" style="display:flex; gap:20px; justify-content:center; margin:30px 0; flex-wrap:wrap;"></div>
-            <button onclick="startAdventureBattle()" style="padding:18px 80px; font-size:20px; background:#6B21A8; color:white; border:none; cursor:pointer; font-family:'Press Start 2P';">
+            <button onclick="startAdventureBattle()" style="padding:18px 80px; font-size:20px; background:#6B21A8; color:white; border:none; cursor:pointer;">
                 START BATTLE
             </button>
         </div>
@@ -4276,22 +4407,13 @@ function renderTeamArrangement() {
         div.className = "team-slot";
         div.draggable = true;
         div.dataset.index = i;
-        div.style.cssText = `
-            border:4px solid #6B21A8; 
-            padding:12px; 
-            width:190px; 
-            background:white; 
-            box-shadow:4px 4px 0px #6B21A8; 
-            cursor: grab;
-            user-select: none;
-        `;
         div.innerHTML = `
             <div style="height:140px; display:flex; align-items:center; justify-content:center;">
-                <img src="${getSpritePath(mon.name)}" style="max-height:130px; max-width:130px;">
+                <img src="${getSpritePath(mon.name)}" style="max-height:130px; max-width:130px;" alt="">
             </div>
             <div style="text-align:center; margin-top:10px;">
-                <strong>${mon.name}</strong><br>
-                Lv.${Math.floor(mon.level)}
+                <div class="team-slot-name">${mon.name}</div>
+                <div class="team-slot-lv">Lv.${Math.floor(mon.level)}</div>
             </div>
         `;
 
@@ -4890,7 +5012,7 @@ function showBattleResult(win, reward) {
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui";
     const drops = win
-        ? `<div style="margin:18px 0; font-size:15px;">
+        ? `<div class="result-drops" style="margin:18px 0; font-size:15px;">
                <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("gold", 20)} <b>+${reward.gold}</b></div>
                <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("essence", 20)} <b>+${reward.essence}</b></div>
                ${reward.shards > 0 ? `<div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("shards", 20)} <b>+${reward.shards}</b></div>` : ""}
@@ -4898,12 +5020,12 @@ function showBattleResult(win, reward) {
                <div>&#11088; Trainer XP <b>+${reward.trainerXp}</b></div>
                <div style="margin-top:8px; color:#666; font-size:13px;">Materials added to your Inventory. Team restored to full HP.</div>
            </div>`
-        : `<p style="font-size:15px; margin:20px 0;">Your team was defeated. Everyone was restored to full HP — level up and try again!</p>`;
+        : `<p class="adv-desc" style="font-size:15px; margin:20px 0;">Your team was defeated. Everyone was restored to full HP — level up and try again!</p>`;
     content.innerHTML = `
         <div class="adventure-panel">
-            <h2 style="color:${win ? '#16a34a' : '#ef4444'}; font-family:'Press Start 2P', monospace;">${win ? 'VICTORY!' : 'DEFEAT'}</h2>
+            <h2 style="color:${win ? '#16a34a' : '#ef4444'};">${win ? 'VICTORY!' : 'DEFEAT'}</h2>
             ${drops}
-            <button onclick="enterAdventureMode()" style="margin-top:10px; padding:14px 45px; background:#6B21A8; color:white; border:none; cursor:pointer; font-family:'Press Start 2P', monospace;">
+            <button onclick="enterAdventureMode()" style="margin-top:10px; padding:14px 45px; background:#6B21A8; color:white; border:none; cursor:pointer;">
                 CONTINUE
             </button>
         </div>
@@ -4940,15 +5062,17 @@ function renderInventory() {
         if (i < materials.length) {
             const m = materials[i];
             const info = GAME_ICONS[m.key];
-            slot.title = info.name + ": " + m.count;
+            slot.className = "gear-inv-slot has-hover-tip";
+            slot.dataset.hoverTip = info.name + ": " + m.count;
             slot.innerHTML = `
                 <img src="${info.src}" alt="" style="width:30px;height:30px;image-rendering:pixelated;">
                 <span style="position:absolute; bottom:2px; right:4px; font-size:12px; font-weight:bold; color:#111; background:rgba(255,255,255,0.85); padding:0 2px; border-radius:3px;">${m.count}</span>
             `;
         } else if (i - 3 < gearInventory.length) {
             const g = gearInventory[i - 3];
+            slot.className = "gear-inv-slot has-hover-tip";
             slot.style.borderColor = GEAR_TIERS[g.tier].color;
-            slot.title = g.name + "\n" + formatGearBonuses(g.bonuses) + "\nEquip via mon card gear slots.";
+            slot.dataset.hoverTip = g.name + "\n" + formatGearBonuses(g.bonuses) + "\nEquip via mon card gear slots.";
             slot.innerHTML = `
                 <span style="font-size: 22px;">${GEAR_SLOT_ICONS[g.slot]}</span>
                 <span style="font-size:8px;font-weight:bold;color:${GEAR_TIERS[g.tier].color};margin-top:2px;">${g.tierName}</span>
@@ -4971,21 +5095,11 @@ function showBattleLeaveWarning(targetTab) {
         justify-content: center; z-index: 500;
     `;
     modal.innerHTML = `
-        <div style="background:white; padding:30px; border:4px solid #6B21A8; 
-                    box-shadow:4px 4px 0px #6B21A8; text-align:center; max-width:420px;">
-            <p style="font-size:16px; margin-bottom:25px; line-height:1.5;">
-                Leaving the battle now will count as a loss.<br>
-                Are you sure you want to leave?
-            </p>
+        <div class="battle-leave-panel">
+            <p>Leaving the battle now will count as a loss.<br>Are you sure you want to leave?</p>
             <div style="display:flex; gap:15px; justify-content:center;">
-                <button onclick="confirmLeaveBattle('${targetTab}')" 
-                        style="padding:12px 28px; background:#ef4444; color:white; border:none; cursor:pointer;">
-                    Yes, Leave (Lose)
-                </button>
-                <button onclick="stayInBattleFromWarning()" 
-                        style="padding:12px 28px; background:#6B21A8; color:white; border:none; cursor:pointer;">
-                    No, Stay in Battle
-                </button>
+                <button class="battle-leave-confirm" onclick="confirmLeaveBattle('${targetTab}')">Yes, Leave (Lose)</button>
+                <button class="battle-leave-stay" onclick="stayInBattleFromWarning()">No, Stay in Battle</button>
             </div>
         </div>
     `;
