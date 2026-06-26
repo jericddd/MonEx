@@ -143,7 +143,7 @@ async function handleRequest(request, env) {
       const code = url.searchParams.get("code");
       const state = url.searchParams.get("state");
       const oauthErr = url.searchParams.get("error");
-      const frontend = env.FRONTEND_ORIGIN || "https://jericddd.github.io/MonEx";
+      const frontend = env.FRONTEND_ORIGIN || "https://monexmonad.xyz";
 
       if (oauthErr || !code || !state) {
         const dest = `${frontend}/home.html?auth_error=${encodeURIComponent(oauthErr || "denied")}`;
