@@ -12,7 +12,7 @@
     --game-max-width: 1400px;
     --game-side-pad: 30px;
     --monad-purple: #200052;
-    --scene-fighter-size: 112px;
+    --scene-fighter-size: 88px;
 }
 
 body {
@@ -1376,7 +1376,7 @@ body.afk-layout .currency-pill .currency-tip {
     gap: 0;
     width: 100%;
     max-width: 520px;
-    min-height: calc(var(--scene-fighter-size, 112px) * 1.44);
+    min-height: calc(var(--scene-fighter-size, 88px) * 1.15);
     transform: scale(0.92);
     transform-origin: center bottom;
 }
@@ -1385,11 +1385,11 @@ body.afk-layout .currency-pill .currency-tip {
     flex-direction: row;
     align-items: flex-end;
     width: 100%;
-    min-height: calc(var(--scene-fighter-size, 112px) * 0.58);
+    min-height: calc(var(--scene-fighter-size, 88px) * 0.33);
     overflow: visible;
 }
 .scene-idle-row + .scene-idle-row {
-    margin-top: -30px;
+    margin-top: -47px;
 }
 .scene-idle-row.row-left {
     justify-content: flex-start;
@@ -1411,15 +1411,15 @@ body.afk-layout .currency-pill .currency-tip {
     overflow: visible;
 }
 .scene-idle-pair .scene-idle-fighter.enemy {
-    margin-left: -20px;
+    margin-left: -16px;
 }
 .scene-idle-team {
     display: none;
 }
 .scene-idle-fighter {
     position: relative;
-    width: var(--scene-fighter-size, 112px);
-    height: var(--scene-fighter-size, 112px);
+    width: var(--scene-fighter-size, 88px);
+    height: var(--scene-fighter-size, 88px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1431,8 +1431,8 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-idle-fighter.hero { z-index: 2; }
 .scene-idle-fighter.enemy { z-index: 1; }
 .scene-idle-sprite {
-    width: var(--scene-fighter-size, 112px);
-    height: var(--scene-fighter-size, 112px);
+    width: var(--scene-fighter-size, 88px);
+    height: var(--scene-fighter-size, 88px);
     max-width: none;
     max-height: none;
     object-fit: contain;
@@ -2195,10 +2195,10 @@ body.afk-layout .currency-pill .currency-tip {
     }
     .scene-idle-arena {
         transform: scale(0.84);
-        min-height: calc(var(--scene-fighter-size, 96px) * 2.05);
+        min-height: calc(var(--scene-fighter-size, 76px) * 1.15);
     }
     .scene-idle-row + .scene-idle-row {
-        margin-top: -22px;
+        margin-top: -35px;
     }
     .scene-idle-row.row-left .scene-idle-pair {
         transform: translateX(-18px);
@@ -2207,9 +2207,9 @@ body.afk-layout .currency-pill .currency-tip {
         transform: translateX(36px);
     }
     .scene-idle-pair .scene-idle-fighter.enemy {
-        margin-left: -14px;
+        margin-left: -12px;
     }
-    :root { --scene-fighter-size: 96px; }
+    :root { --scene-fighter-size: 76px; }
     .side-rail,
     .left-rail {
         position: absolute;
@@ -2942,17 +2942,15 @@ function getSceneIdleBattleSignature(heroes, enemies) {
     });
 }
 
-function renderSceneIdleFighter(team, index, mon, showHp) {
+function renderSceneIdleFighter(team, index, mon) {
     const side = team === "hero" ? "hero" : "enemy";
     const slotClass = index === 0 ? "slot-0" : index === 1 ? "slot-1" : "slot-2";
-    const hpPct = showHp ? Math.max(0, Math.min(100, (mon.current_hp / mon.max_hp) * 100)) : 0;
     const sprite = getSceneIdleHomeSprite(mon.name);
     const fallback = isJohnw(mon.name) ? JOHNW_PNG_SPRITE : getSpritePath(mon.name);
     const mirrored = shouldMirrorBattleSprite(team === "hero" ? "player" : "enemy", mon.name) ? " mirrored" : "";
     return `
         <div class="scene-idle-fighter ${side} ${slotClass}" id="scene-idle-${team}-${index}" data-team="${team}" data-index="${index}">
             <img class="scene-idle-sprite${mirrored}" id="scene-idle-sprite-${team}-${index}" src="${sprite}" alt="${mon.name}" onerror="this.onerror=null;this.src='${fallback}'">
-            ${showHp ? `<div class="scene-hp-bar"><div style="width:${hpPct}%"></div></div>` : ""}
         </div>`;
 }
 
@@ -2972,19 +2970,10 @@ function buildSceneIdleBattleDOM(heroes, enemies) {
     arenaEl.innerHTML = rowLayout.map((rowClass, idx) => {
         const hero = heroSlots[idx];
         const enemy = enemySlots[idx];
-        const heroHtml = hero ? renderSceneIdleFighter("hero", idx, hero, true) : "";
-        const enemyHtml = enemy ? renderSceneIdleFighter("enemy", idx, enemy, false) : "";
+        const heroHtml = hero ? renderSceneIdleFighter("hero", idx, hero) : "";
+        const enemyHtml = enemy ? renderSceneIdleFighter("enemy", idx, enemy) : "";
         return `<div class="scene-idle-row ${rowClass}"><div class="scene-idle-pair">${heroHtml}${enemyHtml}</div></div>`;
     }).join("");
-}
-
-function updateSceneIdleHpBars(heroes) {
-    heroes.slice(0, 3).forEach((mon, i) => {
-        const bar = document.querySelector(`#scene-idle-hero-${i} .scene-hp-bar div`);
-        if (!bar) return;
-        const hpPct = Math.max(0, Math.min(100, (mon.current_hp / mon.max_hp) * 100));
-        bar.style.width = `${hpPct}%`;
-    });
 }
 
 function getSceneIdleDashDistance(atkEl, defEl) {
@@ -4384,7 +4373,6 @@ function renderMainScene() {
         buildSceneIdleBattleDOM(heroes, enemies);
         ensureSceneIdleBattleRunning();
     } else {
-        updateSceneIdleHpBars(heroes);
         ensureSceneIdleBattleRunning();
     }
 }
