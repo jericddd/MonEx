@@ -134,9 +134,16 @@ body {
     position: relative;
 }
 .mon-sprite img {
+    width: 110px;
+    height: 110px;
     max-width: 110px;
     max-height: 110px;
+    object-fit: contain;
+    object-position: center bottom;
+    image-rendering: pixelated;
     transition: transform 0.3s ease;
+    flex-shrink: 0;
+    display: block;
 }
 .mon-card:hover .mon-sprite img {
     transform: scale(1.08);
@@ -1443,8 +1450,19 @@ body.afk-layout .currency-pill .currency-tip {
     image-rendering: pixelated;
     filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5));
     pointer-events: none;
+    display: block;
+    flex-shrink: 0;
+    transform-origin: center bottom;
 }
+.scene-idle-sprite[data-mon="Chog"] { transform: scale(1.22); }
+.scene-idle-sprite[data-mon="Mopo"] { transform: scale(1.48); }
+.scene-idle-sprite[data-mon="Anago"] { transform: scale(1.38); }
+.scene-idle-sprite[data-mon="Johnw"] { transform: scale(0.94); }
 .scene-idle-sprite.mirrored { transform: scaleX(-1); }
+.scene-idle-sprite[data-mon="Chog"].mirrored { transform: scale(1.22) scaleX(-1); }
+.scene-idle-sprite[data-mon="Mopo"].mirrored { transform: scale(1.48) scaleX(-1); }
+.scene-idle-sprite[data-mon="Anago"].mirrored { transform: scale(1.38) scaleX(-1); }
+.scene-idle-sprite[data-mon="Johnw"].mirrored { transform: scale(0.94) scaleX(-1); }
 .scene-idle-fighter.dash-sweep .scene-idle-sprite {
     filter: drop-shadow(0 6px 5px rgba(0,0,0,0.45)) brightness(1.15);
 }
@@ -1916,6 +1934,16 @@ body.afk-layout .currency-pill .currency-tip {
 .box-content-grid .mon-sprite {
     height: 110px;
     margin-bottom: 8px;
+}
+.box-content-grid .mon-sprite img {
+    width: 96px;
+    height: 96px;
+    max-width: 96px;
+    max-height: 96px;
+    object-fit: contain;
+    object-position: center bottom;
+    image-rendering: pixelated;
+    display: block;
 }
 .box-content-grid .mon-name {
     font-size: 8px;
@@ -2742,7 +2770,7 @@ const STAGES_PER_CHAPTER = 40;
 let sceneIdleEnemyTeam = [];
 let sceneIdleBattleToken = 0;
 let sceneIdleBattleSignature = "";
-const SCENE_IDLE_LAYOUT_REV = 5;
+const SCENE_IDLE_LAYOUT_REV = 6;
 let sceneIdleBattleRunning = false;
 let xHandle = "";
 let profileActivityTimer = null;
@@ -2893,8 +2921,18 @@ function getSceneFighterSprite(name) {
 }
 
 function getSceneIdleHomeSprite(mon) {
-    if (typeof mon === "object" && mon?.name) return getMonAvatarPath(mon);
-    return getSpritePath(mon);
+    return getSceneIdleDisplaySprite(mon);
+}
+
+// Main-scene battle sprites: stable GIF idle for animated species, PNG for everyone else.
+// Party/box/switch still use getMonAvatarPath (rarity-driven GIF for Legendary+).
+function getSceneIdleDisplaySprite(mon) {
+    const name = mon?.name || mon;
+    if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
+    if (getAttackSpritePath(name)) return getMonGifPath(name);
+    const lower = String(name || "").toLowerCase();
+    if (lower === "mopo" || lower === "anago") return getMonGifPath(name);
+    return getMonPngPath(name);
 }
 
 function normalizeSpritePath(src) {
@@ -2916,6 +2954,10 @@ function getSceneSpriteHitAtMs(spritePath, monName, durationMs) {
 
 function setSceneIdleSprite(imgEl, spritePath) {
     if (!imgEl || !spritePath) return;
+    const base = normalizeSpritePath(spritePath);
+    const current = normalizeSpritePath(imgEl.dataset.spriteBase || imgEl.src);
+    if (current === base) return;
+    imgEl.dataset.spriteBase = base;
     imgEl.src = spritePath + "?t=" + Date.now();
 }
 
@@ -2985,12 +3027,12 @@ function getSceneIdlePairOffset(idx) {
 function renderSceneIdleFighter(team, index, mon) {
     const side = team === "hero" ? "hero" : "enemy";
     const slotClass = index === 0 ? "slot-0" : index === 1 ? "slot-1" : "slot-2";
-    const sprite = getMonAvatarPath(mon);
+    const sprite = getSceneIdleDisplaySprite(mon);
     const fallback = getMonAvatarFallbackPath(mon);
     const mirrored = shouldMirrorBattleSprite(team === "hero" ? "player" : "enemy", mon.name) ? " mirrored" : "";
     return `
         <div class="scene-idle-fighter ${side} ${slotClass}" id="scene-idle-${team}-${index}" data-team="${team}" data-index="${index}">
-            <img class="scene-idle-sprite${mirrored}" id="scene-idle-sprite-${team}-${index}" src="${sprite}" alt="${mon.name}" onerror="this.onerror=null;this.src='${fallback}'">
+            <img class="scene-idle-sprite${mirrored}" id="scene-idle-sprite-${team}-${index}" data-mon="${mon.name}" src="${sprite}" alt="${mon.name}" onerror="this.onerror=null;this.src='${fallback}'">
         </div>`;
 }
 
@@ -3095,7 +3137,7 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
                 setTimeout(() => defEl.classList.remove("hit-shake"), 300);
                 const remain = durationMs - hitAtMs;
                 if (remain > 0) await delay(remain);
-                atkImg.src = idleSprite;
+                setSceneIdleSprite(atkImg, idleSprite);
             } else {
                 setSceneIdleSprite(atkImg, attackPath);
                 const durationMs = getSceneSpriteDurationMs(attackPath, atkMon.name);
@@ -4379,7 +4421,7 @@ function renderPartyGrid() {
         card.innerHTML = `
     ${renderStatsInfo(mon)}
     <div class="mon-sprite">
-        <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" style="max-width:110px; max-height:110px;" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
+        <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
     </div>
     <div class="mon-name">${mon.name}</div>
     <div class="type-tags">
@@ -4458,7 +4500,7 @@ function renderBox() {
         card.innerHTML = `
     ${renderStatsInfo(mon)}
     <div class="mon-sprite">
-        <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" style="max-width:96px; max-height:96px;" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
+        <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
     </div>
     <div class="mon-name">${mon.name}</div>
     <div class="type-tags">
