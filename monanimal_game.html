@@ -1718,6 +1718,14 @@ body.afk-layout .currency-pill .currency-tip {
     font-size: 13px;
     color: #444;
 }
+.team-slot-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+}
+.team-slot-actions button {
+    cursor: pointer;
+}
 #battle-content { flex: 1; width: 100%; min-height: 0; }
 #battle-content .battle-stage {
     width: 100%;
@@ -4303,6 +4311,9 @@ function swapPartyWithBox(partyIndex, boxIndex) {
     refreshSceneEnemies();
     updateUI();
     closePartySwitchPicker();
+    if (battleScreen === "chapter" && document.getElementById("team-arrange")) {
+        renderTeamArrangement();
+    }
 }
 
 function withdrawFromBox(index) {
@@ -4904,6 +4915,9 @@ function renderTeamArrangement() {
             <div style="text-align:center; margin-top:10px;">
                 <div class="team-slot-name">${mon.name}</div>
                 <div class="team-slot-lv">Lv.${Math.floor(mon.level)}</div>
+            </div>
+            <div class="mon-actions team-slot-actions">
+                <button type="button" onclick="event.stopPropagation(); openPartySwitchPicker(${i})">SWITCH</button>
             </div>
         `;
 
