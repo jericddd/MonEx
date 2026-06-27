@@ -1445,7 +1445,19 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .scene-idle-fighter.hero { z-index: 2; }
 .scene-idle-fighter.enemy { z-index: 1; }
+.scene-idle-body-shadow {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.34) 0%, rgba(0, 0, 0, 0.16) 55%, transparent 72%);
+    pointer-events: none;
+    z-index: 0;
+}
 .scene-idle-sprite {
+    position: relative;
+    z-index: 1;
     width: var(--scene-fighter-size, 88px);
     height: var(--scene-fighter-size, 88px);
     max-width: none;
@@ -1453,7 +1465,6 @@ body.afk-layout .currency-pill .currency-tip {
     object-fit: contain;
     object-position: center bottom;
     image-rendering: pixelated;
-    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5));
     pointer-events: none;
     display: block;
     flex-shrink: 0;
@@ -1469,7 +1480,7 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-idle-sprite[data-mon="Anago"].mirrored { transform: scale(1.38) scaleX(-1); }
 .scene-idle-sprite[data-mon="Johnw"].mirrored { transform: scale(0.94) scaleX(-1); }
 .scene-idle-fighter.dash-sweep .scene-idle-sprite {
-    filter: drop-shadow(0 6px 5px rgba(0,0,0,0.45)) brightness(1.15);
+    filter: brightness(1.15);
 }
 .scene-idle-fighter.hit-shake { animation: scene-idle-shake .3s; }
 @keyframes scene-idle-shake {
@@ -2791,7 +2802,22 @@ const STAGES_PER_CHAPTER = 40;
 let sceneIdleEnemyTeam = [];
 let sceneIdleBattleToken = 0;
 let sceneIdleBattleSignature = "";
-const SCENE_IDLE_LAYOUT_REV = 6;
+const SCENE_IDLE_LAYOUT_REV = 7;
+
+// Ground shadow footprint (fraction of --scene-fighter-size), tuned to each species' body at the feet.
+const SCENE_IDLE_BODY_SHADOW = {
+    Johnw:    { w: 0.44, h: 0.085 },
+    Chog:     { w: 0.54, h: 0.10 },
+    Molandak: { w: 0.60, h: 0.115 },
+    Mopo:     { w: 0.40, h: 0.078 },
+    Anago:    { w: 0.42, h: 0.082 },
+};
+const SCENE_IDLE_BODY_SHADOW_DEFAULT = { w: 0.56, h: 0.105 };
+
+function getSceneIdleBodyShadowHtml(monName) {
+    const cfg = SCENE_IDLE_BODY_SHADOW[monName] || SCENE_IDLE_BODY_SHADOW_DEFAULT;
+    return `<div class="scene-idle-body-shadow" data-mon="${monName}" style="width:calc(var(--scene-fighter-size, 88px) * ${cfg.w});height:calc(var(--scene-fighter-size, 88px) * ${cfg.h});" aria-hidden="true"></div>`;
+}
 let sceneIdleBattleRunning = false;
 let xHandle = "";
 let profileActivityTimer = null;
@@ -3053,6 +3079,7 @@ function renderSceneIdleFighter(team, index, mon) {
     const mirrored = shouldMirrorBattleSprite(team === "hero" ? "player" : "enemy", mon.name) ? " mirrored" : "";
     return `
         <div class="scene-idle-fighter ${side} ${slotClass}" id="scene-idle-${team}-${index}" data-team="${team}" data-index="${index}">
+            ${getSceneIdleBodyShadowHtml(mon.name)}
             <img class="scene-idle-sprite${mirrored}" id="scene-idle-sprite-${team}-${index}" data-mon="${mon.name}" src="${sprite}" alt="${mon.name}" onerror="this.onerror=null;this.src='${fallback}'">
         </div>`;
 }
