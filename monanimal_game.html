@@ -1812,6 +1812,121 @@ body.afk-layout .currency-pill .currency-tip {
     width: 100%;
     padding-bottom: 4px;
 }
+
+/* Party switch picker — box avatars over party modal */
+#modal-party-switch.game-modal { z-index: 260; }
+#modal-party-switch .game-modal-panel {
+    width: min(1120px, 96vw);
+    max-width: min(1120px, 96vw);
+    overflow: visible;
+}
+#modal-party-switch .game-modal-body {
+    overflow: visible;
+    padding-top: 0;
+}
+.party-switch-subtitle {
+    text-align: center;
+    font-size: 11px;
+    color: #666;
+    margin: 0 0 12px;
+    font-family: 'Lato', sans-serif;
+}
+.party-switch-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+    padding: 4px 4px 20px;
+    overflow: visible;
+}
+.party-switch-avatar {
+    position: relative;
+    aspect-ratio: 1;
+    min-height: 72px;
+    padding: 8px;
+    background: white;
+    border: 4px solid #6a21a6;
+    box-shadow: 3px 3px 0 #6a21a6;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.party-switch-avatar:hover {
+    transform: translateY(-2px);
+    border-color: #A855F7;
+}
+.party-switch-avatar.rarity-common { border-color: #111; }
+.party-switch-avatar.rarity-uncommon { border-color: #16a34a; }
+.party-switch-avatar.rarity-rare { border-color: #2563eb; }
+.party-switch-avatar.rarity-legendary { border-color: #ca8a04; }
+.party-switch-avatar.rarity-mythic { border-color: #9f1239; }
+.party-switch-avatar img {
+    width: 100%;
+    height: 100%;
+    max-width: 88px;
+    max-height: 88px;
+    object-fit: contain;
+}
+.party-switch-hover-tip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 200px;
+    max-width: 260px;
+    padding: 10px 12px;
+    background: #1a1028;
+    border: 3px solid #6B21A8;
+    box-shadow: 4px 4px 0 #6B21A8;
+    z-index: 400;
+    text-align: left;
+    pointer-events: none;
+}
+.party-switch-avatar:hover { z-index: 50; }
+.party-switch-avatar:hover .party-switch-hover-tip { display: block; }
+.party-switch-tip-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: #f5f3ff;
+    margin-bottom: 6px;
+    line-height: 1.5;
+    text-transform: uppercase;
+}
+.party-switch-tip-rarity {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 9px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+.party-switch-tip-skills {
+    font-family: 'Lato', sans-serif;
+    font-size: 11px;
+    color: #ddd6fe;
+    line-height: 1.45;
+}
+.party-switch-skill-line {
+    margin-bottom: 3px;
+}
+.party-switch-skill-type {
+    color: #c4b5fd;
+    font-size: 9px;
+    font-weight: 700;
+    margin-right: 4px;
+}
+.party-switch-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 48px 20px;
+    color: #666;
+    font-size: 14px;
+}
+
 #modal-party .skill-tip,
 #modal-box .skill-tip,
 #modal-inventory .skill-tip,
@@ -2011,6 +2126,20 @@ body.afk-layout .currency-pill .currency-tip {
         </div>
         <div class="game-modal-body">
             <div class="party-grid" id="party-grid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Party switch picker (box avatars) -->
+<div id="modal-party-switch" class="game-modal" onclick="if(event.target===this)closePartySwitchPicker()">
+    <div class="game-modal-panel game-modal-wide" onclick="event.stopPropagation()">
+        <div class="game-modal-header">
+            <h2 id="party-switch-title">SWITCH</h2>
+            <button type="button" class="game-modal-close" onclick="closePartySwitchPicker()">×</button>
+        </div>
+        <div class="game-modal-body">
+            <p class="party-switch-subtitle">Pick a Monanimal from your Box to swap into this party slot</p>
+            <div class="party-switch-grid" id="party-switch-grid"></div>
         </div>
     </div>
 </div>
@@ -3583,7 +3712,7 @@ function renderPartyGrid() {
     </div>
     <div class="currently-text">Currently: ready for battle</div>
     <div class="mon-actions">
-        <button onclick="toBox(${index})">SWITCH</button>
+        <button onclick="event.stopPropagation(); openPartySwitchPicker(${index})">SWITCH</button>
         ${levelBtn}
     </div>
     ${renderAscendBtn(index, mon)}
@@ -3868,6 +3997,79 @@ function toBox(index) {
     updateUI();
 }
 
+let _partySwitchIndex = null;
+
+function renderPartySwitchSkillList(mon) {
+    ensureMonReady(mon);
+    if (!mon.skills || !mon.skills.length) {
+        return '<div class="party-switch-skill-line">No skills</div>';
+    }
+    return mon.skills.map((skill) => {
+        const typeLabel = skill.type === "heal" ? "HEAL"
+            : (skill.type || "active").toUpperCase();
+        return `<div class="party-switch-skill-line"><span class="party-switch-skill-type">${typeLabel}</span>${skill.name}</div>`;
+    }).join("");
+}
+
+function renderPartySwitchGrid() {
+    const grid = document.getElementById("party-switch-grid");
+    if (!grid || _partySwitchIndex === null) return;
+    grid.innerHTML = "";
+
+    if (!box || box.length === 0) {
+        grid.innerHTML = `
+            <div class="party-switch-empty">
+                <p style="font-size:16px; margin-bottom:10px;">Your Box is empty</p>
+                <p style="font-size:13px;">Catch Monanimals or move mons to the Box first.</p>
+            </div>`;
+        return;
+    }
+
+    const entries = box.map((mon, i) => ({ mon, i }));
+    entries.sort((a, b) => getRarityRank(b.mon.rarity) - getRarityRank(a.mon.rarity));
+
+    entries.forEach(({ mon, i }) => {
+        ensureMonReady(mon);
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = `party-switch-avatar ${getRarityClass(mon.rarity)}`;
+        cell.innerHTML = `
+            <img src="${getSpritePath(mon.name)}" alt="${mon.name}" onerror="this.style.opacity='0.3'">
+            <div class="party-switch-hover-tip">
+                <div class="party-switch-tip-name">${mon.name}</div>
+                <span class="party-switch-tip-rarity ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
+                <div class="party-switch-tip-skills">${renderPartySwitchSkillList(mon)}</div>
+            </div>`;
+        cell.onclick = () => swapPartyWithBox(_partySwitchIndex, i);
+        grid.appendChild(cell);
+    });
+}
+
+function openPartySwitchPicker(partyIndex) {
+    if (!party[partyIndex]) return;
+    _partySwitchIndex = partyIndex;
+    const title = document.getElementById("party-switch-title");
+    if (title) title.textContent = `SWITCH — ${party[partyIndex].name}`;
+    renderPartySwitchGrid();
+    document.getElementById("modal-party-switch")?.classList.add("open");
+}
+
+function closePartySwitchPicker() {
+    document.getElementById("modal-party-switch")?.classList.remove("open");
+    _partySwitchIndex = null;
+}
+
+function swapPartyWithBox(partyIndex, boxIndex) {
+    if (!party[partyIndex] || !box[boxIndex]) return;
+    const temp = party[partyIndex];
+    party[partyIndex] = box[boxIndex];
+    box[boxIndex] = temp;
+    saveData();
+    refreshSceneEnemies();
+    updateUI();
+    closePartySwitchPicker();
+}
+
 function withdrawFromBox(index) {
     if (party.length >= PARTY_MAX) { alert("Party is full!"); return; }
     const mon = box.splice(index, 1)[0];
@@ -4133,6 +4335,7 @@ function showMainScene() {
 }
 
 function closeAllModals() {
+    closePartySwitchPicker();
     document.querySelectorAll(".game-modal").forEach(el => el.classList.remove("open"));
 }
 
