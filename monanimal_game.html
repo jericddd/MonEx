@@ -1361,6 +1361,7 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-fighter img {
     width: 72px;
     height: 72px;
+    object-fit: contain;
     image-rendering: pixelated;
     filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
 }
@@ -2604,12 +2605,12 @@ let pendingBattleLeaveTab = "main";
 let battleScreen = "main";
 const BATTLE_BG_MENU = "for%20result%20banner/battlebackground.jpg";
 const BATTLE_BG_MAP = "for%20result%20banner/map1.gif";
-let sceneEnemySeed = 0;
-const WILD_SCENE_MOBS = ["Chog", "Moyaki", "Spidermon", "Shramp", "Salmonad", "Mouch", "Larvanad", "Anago"];
-let xHandle = "";
 let currentChapter = 1;
 let currentStage = 1;
 const STAGES_PER_CHAPTER = 40;
+let sceneIdleEnemyChapter = 0;
+let sceneIdleEnemyTeam = [];
+let xHandle = "";
 let profileActivityTimer = null;
 
 const PARTY_MAX = 3;
@@ -2684,6 +2685,42 @@ const MELEE_DASH_FALLBACK_PX = 180;
 
 function getAttackSpritePath(name) {
     return ATTACK_SPRITE_MAP[name] || null;
+}
+
+function getSceneFighterSprite(name) {
+    return getAttackSpritePath(name) || `128x128/${name.toLowerCase()}.png`;
+}
+
+function makeSeededRand(seed) {
+    let s = seed >>> 0;
+    return function() {
+        s = (s + 0x6D2B79F5) | 0;
+        let t = Math.imul(s ^ (s >>> 15), 1 | s);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+function makeSceneIdleEnemyTeam(chapter) {
+    const rng = makeSeededRand((chapter || 1) * 2654435761);
+    const team = [];
+    for (let i = 0; i < 3; i++) {
+        const name = MONANIMAL_NAMES[Math.floor(rng() * MONANIMAL_NAMES.length)];
+        team.push({ name });
+    }
+    return team;
+}
+
+function ensureSceneIdleEnemies() {
+    if (sceneIdleEnemyChapter !== currentChapter || sceneIdleEnemyTeam.length !== 3) {
+        sceneIdleEnemyTeam = makeSceneIdleEnemyTeam(currentChapter);
+        sceneIdleEnemyChapter = currentChapter;
+    }
+}
+
+function invalidateSceneIdleEnemies() {
+    sceneIdleEnemyChapter = 0;
+    sceneIdleEnemyTeam = [];
 }
 
 function beginAttackAnim(side) {
@@ -3927,32 +3964,25 @@ function renderMainScene() {
 
     if (label) label.textContent = `Chapter ${currentChapter}-${currentStage}`;
 
-    if (party.length === 0) {
+    const heroes = party.slice(0, 3);
+    if (heroes.length === 0) {
         heroesEl.innerHTML = '<div class="scene-empty">Deploy your party to fight!</div>';
     } else {
-        heroesEl.innerHTML = party.map((mon, i) => {
+        heroesEl.innerHTML = heroes.map((mon) => {
             const hpPct = Math.max(0, Math.min(100, (mon.current_hp / mon.max_hp) * 100));
             return `
                 <div class="scene-fighter hero">
-                    <img src="${getSpritePath(mon.name)}" alt="${mon.name}" onerror="this.style.opacity='0.3'">
+                    <img src="${getSceneFighterSprite(mon.name)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getSpritePath(mon.name)}'">
                     <div class="scene-hp-bar"><div style="width:${hpPct}%"></div></div>
                 </div>`;
         }).join("");
     }
 
-    const enemyCount = Math.max(1, Math.min(3, party.length || 1));
-    enemiesEl.innerHTML = Array.from({ length: enemyCount }, (_, i) => {
-        const name = WILD_SCENE_MOBS[(sceneEnemySeed + i) % WILD_SCENE_MOBS.length];
-        return `
-            <div class="scene-fighter enemy">
-                <img src="${getSpritePath(name)}" alt="${name}" onerror="this.style.opacity='0.3'">
-            </div>`;
-    }).join("");
-}
-
-function refreshSceneEnemies() {
-    sceneEnemySeed = Math.floor(Math.random() * WILD_SCENE_MOBS.length);
-    renderMainScene();
+    ensureSceneIdleEnemies();
+    enemiesEl.innerHTML = sceneIdleEnemyTeam.map((enemy) => `
+        <div class="scene-fighter enemy">
+            <img src="${getSceneFighterSprite(enemy.name)}" alt="${enemy.name}" onerror="this.onerror=null;this.src='${getSpritePath(enemy.name)}'">
+        </div>`).join("");
 }
 
 function renderParty() {
@@ -4191,7 +4221,6 @@ function toBox(index) {
     const mon = party.splice(index, 1)[0];
     box.push(mon);
     saveData();
-    refreshSceneEnemies();
     updateUI();
 }
 
@@ -4361,7 +4390,6 @@ function swapPartyWithBox(partyIndex, boxIndex) {
     party[partyIndex] = box[boxIndex];
     box[boxIndex] = temp;
     saveData();
-    refreshSceneEnemies();
     updateUI();
     closePartySwitchPicker();
     if (battleScreen === "chapter" && document.getElementById("team-arrange")) {
@@ -5539,6 +5567,7 @@ function endBattle(win, player) {
         if (currentStage >= STAGES_PER_CHAPTER) {
             currentChapter++;
             currentStage = 1;
+            invalidateSceneIdleEnemies();
         } else {
             currentStage++;
         }
