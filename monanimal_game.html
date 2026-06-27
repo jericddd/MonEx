@@ -1817,7 +1817,7 @@ body.afk-layout .currency-pill .currency-tip {
 #modal-party-switch.game-modal { z-index: 260; }
 #modal-party-switch .game-modal-panel {
     width: auto;
-    max-width: min(560px, 98vw);
+    max-width: min(620px, 98vw);
     max-height: min(88vh, 720px);
     overflow: hidden;
     display: flex;
@@ -1850,17 +1850,17 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .party-switch-grid {
     display: grid;
-    grid-template-columns: repeat(10, 44px);
+    grid-template-columns: repeat(10, 53px);
     justify-content: center;
-    gap: 6px;
+    gap: 7px;
     padding: 4px 2px 8px;
     overflow: visible;
 }
 .party-switch-avatar {
     position: relative;
-    width: 44px;
-    height: 44px;
-    padding: 3px;
+    width: 53px;
+    height: 53px;
+    padding: 4px;
     background: white;
     border: 2px solid #6a21a6;
     box-shadow: 2px 2px 0 #6a21a6;
@@ -1869,11 +1869,18 @@ body.afk-layout .currency-pill .currency-tip {
     align-items: center;
     justify-content: center;
     overflow: visible;
-    transition: border-color 0.15s ease, transform 0.15s ease;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
-.party-switch-avatar:hover {
-    transform: translateY(-2px);
-    border-color: #A855F7;
+.party-switch-avatar:hover,
+.party-switch-avatar.is-tip-open {
+    border-color: #A855F7 !important;
+    box-shadow: 0 4px 14px rgba(168, 85, 247, 0.45);
+    filter: brightness(1.04);
+    z-index: 50;
+}
+.party-switch-avatar:hover img,
+.party-switch-avatar.is-tip-open img {
+    transform: scale(1.08);
 }
 .party-switch-avatar.rarity-common { border-color: #111; }
 .party-switch-avatar.rarity-uncommon { border-color: #16a34a; }
@@ -1883,11 +1890,13 @@ body.afk-layout .currency-pill .currency-tip {
 .party-switch-avatar img {
     width: 100%;
     height: 100%;
-    max-width: 34px;
-    max-height: 34px;
+    max-width: 41px;
+    max-height: 41px;
     object-fit: contain;
+    transition: transform 0.15s ease;
 }
-.party-switch-hover-tip {
+.party-switch-hover-tip,
+.party-switch-hover-tip-float {
     display: none;
     position: fixed;
     left: 0;
@@ -1903,8 +1912,9 @@ body.afk-layout .currency-pill .currency-tip {
     text-align: left;
     pointer-events: none;
 }
-.party-switch-avatar:hover { z-index: 50; }
-.party-switch-avatar.is-tip-open .party-switch-hover-tip { display: block; }
+.party-switch-hover-tip-float.is-visible {
+    display: block;
+}
 .party-switch-tip-name {
     font-family: 'Press Start 2P', monospace;
     font-size: 9px;
@@ -4071,46 +4081,59 @@ function renderPartySwitchSkillList(mon) {
 }
 
 function positionPartySwitchTip(cell) {
+    clearPartySwitchTip(cell);
+
     const tip = cell.querySelector(".party-switch-hover-tip");
     if (!tip) return;
 
-    tip.style.display = "block";
-    tip.style.visibility = "hidden";
-    const tipRect = tip.getBoundingClientRect();
+    const floatTip = tip.cloneNode(true);
+    floatTip.classList.add("party-switch-hover-tip-float");
+    floatTip.classList.remove("party-switch-hover-tip");
+    floatTip.style.display = "block";
+    floatTip.style.visibility = "hidden";
+    document.body.appendChild(floatTip);
+    cell._switchTipFloat = floatTip;
+
+    const tipRect = floatTip.getBoundingClientRect();
     const cellRect = cell.getBoundingClientRect();
     const gap = 10;
     const pad = 12;
 
     let top = cellRect.top - tipRect.height - gap;
-    tip.classList.remove("tip-below");
+    floatTip.classList.remove("tip-below");
 
     if (top < pad) {
         top = cellRect.bottom + gap;
-        tip.classList.add("tip-below");
+        floatTip.classList.add("tip-below");
         if (top + tipRect.height > window.innerHeight - pad) {
             top = Math.max(pad, cellRect.top - tipRect.height - gap);
-            tip.classList.remove("tip-below");
+            floatTip.classList.remove("tip-below");
         }
     }
 
     let left = cellRect.left + cellRect.width / 2 - tipRect.width / 2;
     left = Math.max(pad, Math.min(left, window.innerWidth - tipRect.width - pad));
 
-    tip.style.top = `${top}px`;
-    tip.style.left = `${left}px`;
-    tip.style.visibility = "visible";
+    floatTip.style.top = `${top}px`;
+    floatTip.style.left = `${left}px`;
+    floatTip.style.visibility = "visible";
+    floatTip.classList.add("is-visible");
     cell.classList.add("is-tip-open");
 }
 
 function clearPartySwitchTip(cell) {
-    const tip = cell.querySelector(".party-switch-hover-tip");
+    if (cell._switchTipFloat) {
+        cell._switchTipFloat.remove();
+        cell._switchTipFloat = null;
+    }
     cell.classList.remove("is-tip-open");
-    if (!tip) return;
-    tip.style.display = "";
-    tip.style.visibility = "";
-    tip.style.top = "";
-    tip.style.left = "";
-    tip.classList.remove("tip-below");
+}
+
+function closePartySwitchPicker() {
+    document.querySelectorAll(".party-switch-avatar.is-tip-open").forEach(clearPartySwitchTip);
+    document.querySelectorAll(".party-switch-hover-tip-float").forEach((el) => el.remove());
+    document.getElementById("modal-party-switch")?.classList.remove("open");
+    _partySwitchIndex = null;
 }
 
 function bindPartySwitchTip(cell) {
@@ -4162,11 +4185,6 @@ function openPartySwitchPicker(partyIndex) {
     if (title) title.textContent = `SWITCH — ${party[partyIndex].name}`;
     renderPartySwitchGrid();
     document.getElementById("modal-party-switch")?.classList.add("open");
-}
-
-function closePartySwitchPicker() {
-    document.getElementById("modal-party-switch")?.classList.remove("open");
-    _partySwitchIndex = null;
 }
 
 function swapPartyWithBox(partyIndex, boxIndex) {
