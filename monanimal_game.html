@@ -4408,6 +4408,7 @@ function renderMainScene() {
 
     ensureSceneIdleEnemies();
     const heroes = party.slice(0, 3);
+    const enemies = sceneIdleEnemyTeam.slice(0, 3);
     const signature = getSceneIdleBattleSignature(heroes);
     const arenaEl = document.getElementById("scene-idle-arena");
     const needsLayoutRefresh = arenaEl && !arenaEl.querySelector(".scene-idle-row.row-slot-0");
