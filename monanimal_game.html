@@ -1816,8 +1816,8 @@ body.afk-layout .currency-pill .currency-tip {
 /* Party switch picker — box avatars over party modal */
 #modal-party-switch.game-modal { z-index: 260; }
 #modal-party-switch .game-modal-panel {
-    width: min(1120px, 96vw);
-    max-width: min(1120px, 96vw);
+    width: auto;
+    max-width: min(380px, 96vw);
     overflow: visible;
 }
 #modal-party-switch .game-modal-body {
@@ -1833,19 +1833,20 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .party-switch-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 12px;
-    padding: 4px 4px 20px;
+    grid-template-columns: repeat(5, 44px);
+    justify-content: center;
+    gap: 6px;
+    padding: 4px 4px 16px;
     overflow: visible;
 }
 .party-switch-avatar {
     position: relative;
-    aspect-ratio: 1;
-    min-height: 72px;
-    padding: 8px;
+    width: 44px;
+    height: 44px;
+    padding: 3px;
     background: white;
-    border: 4px solid #6a21a6;
-    box-shadow: 3px 3px 0 #6a21a6;
+    border: 2px solid #6a21a6;
+    box-shadow: 2px 2px 0 #6a21a6;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1865,8 +1866,8 @@ body.afk-layout .currency-pill .currency-tip {
 .party-switch-avatar img {
     width: 100%;
     height: 100%;
-    max-width: 88px;
-    max-height: 88px;
+    max-width: 34px;
+    max-height: 34px;
     object-fit: contain;
 }
 .party-switch-hover-tip {
@@ -1911,7 +1912,45 @@ body.afk-layout .currency-pill .currency-tip {
     line-height: 1.45;
 }
 .party-switch-skill-line {
-    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+.party-switch-skill-icon {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    background: linear-gradient(145deg, #c084fc, #7c3aed);
+    border: 2px solid #6b21a8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.party-switch-skill-icon .skill-icon-img {
+    position: relative;
+    z-index: 1;
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+.party-switch-skill-icon .skill-icon-fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7px;
+    line-height: 1;
+    color: white;
+    font-weight: 700;
+}
+.party-switch-skill-name {
+    flex: 1;
+    min-width: 0;
 }
 .party-switch-skill-type {
     color: #c4b5fd;
@@ -4005,9 +4044,10 @@ function renderPartySwitchSkillList(mon) {
         return '<div class="party-switch-skill-line">No skills</div>';
     }
     return mon.skills.map((skill) => {
-        const typeLabel = skill.type === "heal" ? "HEAL"
-            : (skill.type || "active").toUpperCase();
-        return `<div class="party-switch-skill-line"><span class="party-switch-skill-type">${typeLabel}</span>${skill.name}</div>`;
+        return `<div class="party-switch-skill-line">
+            <span class="party-switch-skill-icon">${getSkillIcon(skill)}</span>
+            <span class="party-switch-skill-name">${skill.name}</span>
+        </div>`;
     }).join("");
 }
 
