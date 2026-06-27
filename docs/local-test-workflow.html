@@ -17,16 +17,17 @@
 </head>
 <body>
     <h1>Local Test Workflow</h1>
-    <p>How we work during testing: <b>GitHub updates often</b>, <b>Cloudflare only when you say so</b>.</p>
+    <p>How we work: test on <b>staging</b> first, promote to <b>main</b> for live. <a href="staging-workflow.html">Staging workflow</a></p>
 
     <div class="step">
         <h2>Your flow</h2>
         <table>
             <tr><th>Step</th><th>What happens</th></tr>
-            <tr><td>1. Apply changes</td><td>Code edits + merge to <code>main</code> on GitHub</td></tr>
-            <tr><td>2. GitHub Pages</td><td>Game site auto-updates (free) — optional for quick look</td></tr>
-            <tr><td>3. Cloudflare API</td><td><b>Does NOT auto-deploy</b> — you run deploy manually when ready</td></tr>
-            <tr><td>4. Test locally</td><td>Download ZIP → run local server → play on your PC</td></tr>
+            <tr><td>1. Apply changes</td><td>Code edits on branch <code>staging</code></td></tr>
+            <tr><td>2. Staging site</td><td>Cloudflare Pages auto-updates (free preview URL)</td></tr>
+            <tr><td>3. Go live</td><td>Merge <code>staging</code> → <code>main</code> → <code>monexmonad.xyz</code> updates</td></tr>
+            <tr><td>4. Cloudflare API</td><td><b>Does NOT auto-deploy</b> — run manually when ready</td></tr>
+            <tr><td>5. Test locally</td><td>Download ZIP → run local server → play on your PC</td></tr>
         </table>
     </div>
 
@@ -65,12 +66,13 @@ npx wrangler deploy</pre>
     <div class="step">
         <h2>What auto-updates vs manual</h2>
         <table>
-            <tr><th>Target</th><th>On push to main</th></tr>
-            <tr><td>GitHub Pages (game HTML/JS)</td><td>✅ Auto</td></tr>
-            <tr><td>Cloudflare Worker (API)</td><td>❌ Manual only</td></tr>
+            <tr><th>Target</th><th>On push to staging</th><th>On merge to main</th></tr>
+            <tr><td>Cloudflare Pages (staging preview)</td><td>✅ Auto (via Cloudflare Git link)</td><td>—</td></tr>
+            <tr><td>GitHub Pages (monexmonad.xyz)</td><td>—</td><td>✅ Auto</td></tr>
+            <tr><td>Cloudflare Worker (API)</td><td>❌ Manual</td><td>❌ Manual</td></tr>
         </table>
     </div>
 
-    <p><a href="../home.html">← Back to Home</a> · <a href="cloudflare-deploy.html">Cloudflare setup</a></p>
+    <p><a href="../home.html">← Back to Home</a> · <a href="staging-workflow.html">Staging workflow</a> · <a href="cloudflare-deploy.html">Cloudflare setup</a></p>
 </body>
 </html>
