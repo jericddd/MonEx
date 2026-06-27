@@ -2193,11 +2193,14 @@ body.afk-layout .currency-pill .currency-tip {
     .scene-idle-arena {
         transform: scale(0.84);
     }
-    .scene-idle-row + .scene-idle-row {
-        margin-top: -16px;
+    .scene-idle-row.row-left .scene-idle-pair {
+        transform: translateX(-18px);
     }
     .scene-idle-row.row-right .scene-idle-pair {
-        transform: translateX(24px);
+        transform: translateX(36px);
+    }
+    .scene-idle-pair .scene-idle-fighter.enemy {
+        margin-left: -14px;
     }
     :root { --scene-fighter-size: 96px; }
     .side-rail,
