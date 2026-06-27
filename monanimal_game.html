@@ -2739,7 +2739,6 @@ const BATTLE_BG_MAP = "for%20result%20banner/map1.gif";
 let currentChapter = 1;
 let currentStage = 1;
 const STAGES_PER_CHAPTER = 40;
-let sceneIdleEnemyChapter = 0;
 let sceneIdleEnemyTeam = [];
 let sceneIdleBattleToken = 0;
 let sceneIdleBattleSignature = "";
@@ -4385,8 +4384,10 @@ function renderMainScene() {
     const heroes = party.slice(0, 3);
     const enemies = sceneIdleEnemyTeam.slice(0, 3);
     const signature = getSceneIdleBattleSignature(heroes, enemies);
+    const arenaEl = document.getElementById("scene-idle-arena");
+    const needsLayoutRefresh = arenaEl && !arenaEl.querySelector(".scene-idle-row.row-slot-0");
 
-    if (signature !== sceneIdleBattleSignature) {
+    if (signature !== sceneIdleBattleSignature || needsLayoutRefresh) {
         sceneIdleBattleSignature = signature;
         stopSceneIdleBattle();
         buildSceneIdleBattleDOM(heroes, enemies);
