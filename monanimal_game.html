@@ -2239,7 +2239,7 @@ body.afk-layout .currency-pill .currency-tip {
             <button type="button" class="game-modal-close" onclick="closePartySwitchPicker()">×</button>
         </div>
         <div class="game-modal-body">
-            <p class="party-switch-subtitle">Pick a Monanimal from your Box to swap into this party slot</p>
+            <p class="party-switch-subtitle" id="party-switch-subtitle">Pick a Monanimal from your Box to swap into this party slot</p>
             <div class="party-switch-scroll">
                 <div class="party-switch-grid" id="party-switch-grid"></div>
             </div>
@@ -4003,7 +4003,7 @@ function renderBox() {
         <div class="stat-row"><span><strong>HP</strong></span><span>${Math.ceil(mon.current_hp)} / ${mon.max_hp}</span></div>
     </div>
     <div class="mon-actions">
-        <button onclick="withdrawFromBox(${i})" class="green">TO PARTY</button>
+        <button onclick="event.stopPropagation(); openBoxSwitchPicker(${i})">SWITCH</button>
         <button onclick="releaseFromBox(${i})" class="red">RELEASE</button>
     </div>
 `;
@@ -4196,6 +4196,7 @@ function toBox(index) {
 }
 
 let _partySwitchIndex = null;
+let _partySwitchBoxIndex = null;
 
 function renderPartySwitchSkillList(mon) {
     ensureMonReady(mon);
@@ -4264,6 +4265,7 @@ function closePartySwitchPicker() {
     document.querySelectorAll(".party-switch-hover-tip-float").forEach((el) => el.remove());
     document.getElementById("modal-party-switch")?.classList.remove("open");
     _partySwitchIndex = null;
+    _partySwitchBoxIndex = null;
 }
 
 function bindPartySwitchTip(cell) {
@@ -4273,47 +4275,82 @@ function bindPartySwitchTip(cell) {
     cell.addEventListener("blur", () => clearPartySwitchTip(cell));
 }
 
+function renderPartySwitchAvatarCell(mon, onClick) {
+    ensureMonReady(mon);
+    const cell = document.createElement("button");
+    cell.type = "button";
+    cell.className = `party-switch-avatar ${getRarityClass(mon.rarity)}`;
+    cell.innerHTML = `
+        <span class="party-switch-lv">Lv.${Math.floor(mon.level)}</span>
+        <img src="${getSpritePath(mon.name)}" alt="${mon.name}" onerror="this.style.opacity='0.3'">
+        <div class="party-switch-hover-tip">
+            <div class="party-switch-tip-name">${mon.name}</div>
+            <span class="party-switch-tip-rarity ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
+            <div class="party-switch-tip-skills">${renderPartySwitchSkillList(mon)}</div>
+        </div>`;
+    cell.onclick = onClick;
+    bindPartySwitchTip(cell);
+    return cell;
+}
+
 function renderPartySwitchGrid() {
     const grid = document.getElementById("party-switch-grid");
-    if (!grid || _partySwitchIndex === null) return;
+    if (!grid || (_partySwitchIndex === null && _partySwitchBoxIndex === null)) return;
     grid.innerHTML = "";
 
-    if (!box || box.length === 0) {
+    if (_partySwitchIndex !== null) {
+        if (!box || box.length === 0) {
+            grid.innerHTML = `
+                <div class="party-switch-empty">
+                    <p style="font-size:16px; margin-bottom:10px;">Your Box is empty</p>
+                    <p style="font-size:13px;">Catch Monanimals or move mons to the Box first.</p>
+                </div>`;
+            return;
+        }
+
+        const entries = box.map((mon, i) => ({ mon, i }));
+        entries.sort((a, b) => getRarityRank(b.mon.rarity) - getRarityRank(a.mon.rarity));
+
+        entries.forEach(({ mon, i }) => {
+            grid.appendChild(renderPartySwitchAvatarCell(mon, () => swapPartyWithBox(_partySwitchIndex, i)));
+        });
+        return;
+    }
+
+    if (!party || party.length === 0) {
         grid.innerHTML = `
             <div class="party-switch-empty">
-                <p style="font-size:16px; margin-bottom:10px;">Your Box is empty</p>
-                <p style="font-size:13px;">Catch Monanimals or move mons to the Box first.</p>
+                <p style="font-size:16px; margin-bottom:10px;">Your Party is empty</p>
+                <p style="font-size:13px;">Add Monanimals to your party first.</p>
             </div>`;
         return;
     }
 
-    const entries = box.map((mon, i) => ({ mon, i }));
-    entries.sort((a, b) => getRarityRank(b.mon.rarity) - getRarityRank(a.mon.rarity));
-
-    entries.forEach(({ mon, i }) => {
-        ensureMonReady(mon);
-        const cell = document.createElement("button");
-        cell.type = "button";
-        cell.className = `party-switch-avatar ${getRarityClass(mon.rarity)}`;
-        cell.innerHTML = `
-            <span class="party-switch-lv">Lv.${Math.floor(mon.level)}</span>
-            <img src="${getSpritePath(mon.name)}" alt="${mon.name}" onerror="this.style.opacity='0.3'">
-            <div class="party-switch-hover-tip">
-                <div class="party-switch-tip-name">${mon.name}</div>
-                <span class="party-switch-tip-rarity ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
-                <div class="party-switch-tip-skills">${renderPartySwitchSkillList(mon)}</div>
-            </div>`;
-        cell.onclick = () => swapPartyWithBox(_partySwitchIndex, i);
-        bindPartySwitchTip(cell);
-        grid.appendChild(cell);
+    party.forEach((mon, i) => {
+        grid.appendChild(renderPartySwitchAvatarCell(mon, () => swapPartyWithBox(i, _partySwitchBoxIndex)));
     });
 }
 
 function openPartySwitchPicker(partyIndex) {
     if (!party[partyIndex]) return;
     _partySwitchIndex = partyIndex;
+    _partySwitchBoxIndex = null;
     const title = document.getElementById("party-switch-title");
+    const subtitle = document.getElementById("party-switch-subtitle");
     if (title) title.textContent = `SWITCH — ${party[partyIndex].name}`;
+    if (subtitle) subtitle.textContent = "Pick a Monanimal from your Box to swap into this party slot";
+    renderPartySwitchGrid();
+    document.getElementById("modal-party-switch")?.classList.add("open");
+}
+
+function openBoxSwitchPicker(boxIndex) {
+    if (!box[boxIndex]) return;
+    _partySwitchBoxIndex = boxIndex;
+    _partySwitchIndex = null;
+    const title = document.getElementById("party-switch-title");
+    const subtitle = document.getElementById("party-switch-subtitle");
+    if (title) title.textContent = `SWITCH — ${box[boxIndex].name}`;
+    if (subtitle) subtitle.textContent = "Pick a party member to swap with this Box Monanimal";
     renderPartySwitchGrid();
     document.getElementById("modal-party-switch")?.classList.add("open");
 }
@@ -4330,16 +4367,6 @@ function swapPartyWithBox(partyIndex, boxIndex) {
     if (battleScreen === "chapter" && document.getElementById("team-arrange")) {
         renderTeamArrangement();
     }
-}
-
-function withdrawFromBox(index) {
-    if (party.length >= PARTY_MAX) { alert("Party is full!"); return; }
-    const mon = box.splice(index, 1)[0];
-    party.push(mon);
-    saveData();
-    refreshSceneEnemies();
-    updateUI();
-    renderBox();
 }
 
 function showConfirmModal(message, onConfirm) {
