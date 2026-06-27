@@ -1373,10 +1373,10 @@ body.afk-layout .currency-pill .currency-tip {
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-end;
-    gap: 4px;
+    gap: 0;
     width: 100%;
     max-width: 520px;
-    min-height: calc(var(--scene-fighter-size, 112px) * 2.8);
+    min-height: calc(var(--scene-fighter-size, 112px) * 2.35);
     transform: scale(0.92);
     transform-origin: center bottom;
 }
@@ -1385,8 +1385,11 @@ body.afk-layout .currency-pill .currency-tip {
     flex-direction: row;
     align-items: flex-end;
     width: 100%;
-    min-height: calc(var(--scene-fighter-size, 112px) * 0.92);
+    min-height: calc(var(--scene-fighter-size, 112px) * 0.72);
     overflow: visible;
+}
+.scene-idle-row + .scene-idle-row {
+    margin-top: -22px;
 }
 .scene-idle-row.row-left {
     justify-content: flex-start;
@@ -1394,11 +1397,14 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-idle-row.row-right {
     justify-content: flex-end;
 }
+.scene-idle-row.row-right .scene-idle-pair {
+    transform: translateX(36px);
+}
 .scene-idle-pair {
     display: flex;
     flex-direction: row;
     align-items: flex-end;
-    gap: clamp(10px, 4vw, 24px);
+    gap: clamp(6px, 2.5vw, 14px);
     overflow: visible;
 }
 .scene-idle-team {
@@ -2183,6 +2189,12 @@ body.afk-layout .currency-pill .currency-tip {
     }
     .scene-idle-arena {
         transform: scale(0.84);
+    }
+    .scene-idle-row + .scene-idle-row {
+        margin-top: -16px;
+    }
+    .scene-idle-row.row-right .scene-idle-pair {
+        transform: translateX(24px);
     }
     :root { --scene-fighter-size: 96px; }
     .side-rail,
