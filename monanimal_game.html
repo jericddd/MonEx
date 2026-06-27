@@ -12,6 +12,7 @@
     --game-max-width: 1400px;
     --game-side-pad: 30px;
     --monad-purple: #200052;
+    --scene-fighter-size: 88px;
 }
 
 body {
@@ -133,9 +134,16 @@ body {
     position: relative;
 }
 .mon-sprite img {
+    width: 110px;
+    height: 110px;
     max-width: 110px;
     max-height: 110px;
+    object-fit: contain;
+    object-position: center bottom;
+    image-rendering: pixelated;
     transition: transform 0.3s ease;
+    flex-shrink: 0;
+    display: block;
 }
 .mon-card:hover .mon-sprite img {
     transform: scale(1.08);
@@ -1315,6 +1323,27 @@ body.afk-layout .currency-pill .currency-tip {
     box-sizing: border-box;
     z-index: 1;
 }
+.scene-upper-zone {
+    flex: 1 1 auto;
+    min-height: 120px;
+    position: relative;
+    z-index: 2;
+    pointer-events: none;
+}
+.scene-upper-zone > * {
+    pointer-events: auto;
+}
+.scene-battle-dock {
+    flex: 0 0 auto;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding: 0 80px 10px;
+    box-sizing: border-box;
+    z-index: 3;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.22) 55%, rgba(0, 0, 0, 0.35) 100%);
+}
 .main-scene::before {
     content: "";
     position: absolute;
@@ -1337,10 +1366,119 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-battle-row {
     display: flex;
     width: 100%;
-    justify-content: space-between;
+    max-width: 480px;
+    flex: 0 0 auto;
+    justify-content: center;
     align-items: flex-end;
     position: relative;
     z-index: 1;
+    padding: 2px 8px 0;
+    box-sizing: border-box;
+}
+.scene-idle-arena {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-end;
+    gap: 0;
+    width: 100%;
+    max-width: 520px;
+    min-height: calc(var(--scene-fighter-size, 88px) * 1.15);
+    transform: scale(0.92);
+    transform-origin: center bottom;
+}
+.scene-idle-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    width: 100%;
+    min-height: calc(var(--scene-fighter-size, 88px) * 0.33);
+    overflow: visible;
+}
+.scene-idle-row + .scene-idle-row {
+    margin-top: -47px;
+}
+.scene-idle-row.row-left {
+    justify-content: flex-start;
+}
+.scene-idle-row.row-slot-0 .scene-idle-pair {
+    transform: translateX(72px);
+}
+.scene-idle-row.row-slot-2 .scene-idle-pair {
+    transform: translateX(-18px);
+}
+.scene-idle-row.row-right .scene-idle-pair {
+    transform: translateX(44px);
+}
+.scene-idle-row.row-right {
+    justify-content: flex-end;
+}
+.scene-idle-pair {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 0;
+    overflow: visible;
+}
+.scene-idle-pair .scene-idle-fighter.enemy {
+    margin-left: -16px;
+}
+.scene-idle-team {
+    display: none;
+}
+.scene-idle-fighter {
+    position: relative;
+    width: var(--scene-fighter-size, 88px);
+    height: var(--scene-fighter-size, 88px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    will-change: transform;
+    overflow: visible;
+}
+.scene-idle-fighter.hero { z-index: 2; }
+.scene-idle-fighter.enemy { z-index: 1; }
+.scene-idle-sprite {
+    width: var(--scene-fighter-size, 88px);
+    height: var(--scene-fighter-size, 88px);
+    max-width: none;
+    max-height: none;
+    object-fit: contain;
+    object-position: center bottom;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5));
+    pointer-events: none;
+    display: block;
+    flex-shrink: 0;
+    transform-origin: center bottom;
+}
+.scene-idle-sprite[data-mon="Chog"] { transform: scale(1.22); }
+.scene-idle-sprite[data-mon="Mopo"] { transform: scale(1.48); }
+.scene-idle-sprite[data-mon="Anago"] { transform: scale(1.38); }
+.scene-idle-sprite[data-mon="Johnw"] { transform: scale(0.94); }
+.scene-idle-sprite.mirrored { transform: scaleX(-1); }
+.scene-idle-sprite[data-mon="Chog"].mirrored { transform: scale(1.22) scaleX(-1); }
+.scene-idle-sprite[data-mon="Mopo"].mirrored { transform: scale(1.48) scaleX(-1); }
+.scene-idle-sprite[data-mon="Anago"].mirrored { transform: scale(1.38) scaleX(-1); }
+.scene-idle-sprite[data-mon="Johnw"].mirrored { transform: scale(0.94) scaleX(-1); }
+.scene-idle-fighter.dash-sweep .scene-idle-sprite {
+    filter: drop-shadow(0 6px 5px rgba(0,0,0,0.45)) brightness(1.15);
+}
+.scene-idle-fighter.hit-shake { animation: scene-idle-shake .3s; }
+@keyframes scene-idle-shake {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-6px, 0); }
+    50% { transform: translate(6px, 0); }
+    75% { transform: translate(-4px, 0); }
+}
+.scene-idle-fighter .scene-hp-bar {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%) scale(0.85);
+    transform-origin: center top;
 }
 .scene-fighters {
     display: flex;
@@ -1361,23 +1499,9 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-fighter img {
     width: 72px;
     height: 72px;
+    object-fit: contain;
     image-rendering: pixelated;
     filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
-}
-.scene-fighter.hero { animation: scene-hero-attack 1.4s ease-in-out infinite; }
-.scene-fighter.enemy { animation: scene-enemy-idle 1.4s ease-in-out infinite; }
-.scene-fighter.hero:nth-child(2) { animation-delay: 0.25s; }
-.scene-fighter.hero:nth-child(3) { animation-delay: 0.5s; }
-.scene-fighter.enemy:nth-child(2) { animation-delay: 0.2s; }
-.scene-fighter.enemy:nth-child(3) { animation-delay: 0.4s; }
-@keyframes scene-hero-attack {
-    0%, 100% { transform: translateX(0) translateY(0); }
-    35% { transform: translateX(18px) translateY(-6px); }
-    50% { transform: translateX(22px) translateY(0); }
-}
-@keyframes scene-enemy-idle {
-    0%, 100% { transform: translateX(0); }
-    50% { transform: translateX(-8px); }
 }
 .scene-hp-bar {
     width: 56px;
@@ -1718,6 +1842,14 @@ body.afk-layout .currency-pill .currency-tip {
     font-size: 13px;
     color: #444;
 }
+.team-slot-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+}
+.team-slot-actions button {
+    cursor: pointer;
+}
 #battle-content { flex: 1; width: 100%; min-height: 0; }
 #battle-content .battle-stage {
     width: 100%;
@@ -1803,6 +1935,16 @@ body.afk-layout .currency-pill .currency-tip {
     height: 110px;
     margin-bottom: 8px;
 }
+.box-content-grid .mon-sprite img {
+    width: 96px;
+    height: 96px;
+    max-width: 96px;
+    max-height: 96px;
+    object-fit: contain;
+    object-position: center bottom;
+    image-rendering: pixelated;
+    display: block;
+}
 .box-content-grid .mon-name {
     font-size: 8px;
     line-height: 1.4;
@@ -1812,6 +1954,217 @@ body.afk-layout .currency-pill .currency-tip {
     width: 100%;
     padding-bottom: 4px;
 }
+
+/* Party switch picker — box avatars over party modal */
+#modal-party-switch.game-modal { z-index: 260; }
+#modal-party-switch .game-modal-panel {
+    --ps-cell: 58px;
+    --ps-gap: 8px;
+    --ps-cols: 10;
+    --ps-grid-w: calc(var(--ps-cols) * var(--ps-cell) + (var(--ps-cols) - 1) * var(--ps-gap));
+    width: min(calc(var(--ps-grid-w) + 88px), 98vw);
+    min-width: 0;
+    max-width: 98vw;
+    max-height: min(92vh, 820px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+#modal-party-switch .game-modal-header {
+    flex-shrink: 0;
+}
+#modal-party-switch .game-modal-body {
+    overflow: hidden;
+    padding: 0 10px 16px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1 1 auto;
+}
+.party-switch-subtitle {
+    text-align: center;
+    font-size: 11px;
+    color: #666;
+    margin: 0 0 10px;
+    font-family: 'Lato', sans-serif;
+    flex-shrink: 0;
+}
+.party-switch-scroll {
+    overflow-y: auto;
+    overflow-x: auto;
+    flex: 1 1 auto;
+    min-height: 200px;
+    max-height: min(72vh, 640px);
+    padding: 8px 6px 32px 4px;
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
+}
+.party-switch-grid {
+    display: grid;
+    grid-template-columns: repeat(10, var(--ps-cell, 58px));
+    gap: var(--ps-gap, 8px);
+    width: var(--ps-grid-w, 652px);
+    max-width: none;
+    margin: 0 auto;
+    padding: 10px 12px 28px;
+    box-sizing: content-box;
+}
+.party-switch-avatar {
+    position: relative;
+    width: var(--ps-cell, 58px);
+    height: var(--ps-cell, 58px);
+    padding: 4px;
+    box-sizing: border-box;
+    background: white;
+    border: 2px solid #6a21a6;
+    box-shadow: 2px 2px 0 #6a21a6;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.party-switch-avatar:hover,
+.party-switch-avatar.is-tip-open {
+    border-color: #A855F7 !important;
+    box-shadow: 0 4px 14px rgba(168, 85, 247, 0.45);
+    filter: brightness(1.04);
+    z-index: 50;
+}
+.party-switch-avatar:hover img,
+.party-switch-avatar.is-tip-open img {
+    transform: scale(1.08);
+}
+.party-switch-avatar.rarity-common { border-color: #111; }
+.party-switch-avatar.rarity-uncommon { border-color: #16a34a; }
+.party-switch-avatar.rarity-rare { border-color: #2563eb; }
+.party-switch-avatar.rarity-legendary { border-color: #ca8a04; }
+.party-switch-avatar.rarity-mythic { border-color: #9f1239; }
+.party-switch-avatar img {
+    width: 45px;
+    height: 45px;
+    max-width: 45px;
+    max-height: 45px;
+    object-fit: contain;
+    object-position: center bottom;
+    image-rendering: pixelated;
+    display: block;
+    transition: transform 0.15s ease;
+}
+.party-switch-lv {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    z-index: 2;
+    padding: 1px 3px;
+    font-family: 'Lato', sans-serif;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #1a1028;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid #6B21A8;
+    pointer-events: none;
+}
+.party-switch-hover-tip,
+.party-switch-hover-tip-float {
+    display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    transform: none;
+    min-width: 200px;
+    max-width: 260px;
+    padding: 10px 12px;
+    background: #1a1028;
+    border: 3px solid #6B21A8;
+    box-shadow: 4px 4px 0 #6B21A8;
+    z-index: 500;
+    text-align: left;
+    pointer-events: none;
+}
+.party-switch-hover-tip-float.is-visible {
+    display: block;
+}
+.party-switch-tip-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: #f5f3ff;
+    margin-bottom: 6px;
+    line-height: 1.5;
+    text-transform: uppercase;
+}
+.party-switch-tip-rarity {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 9px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+.party-switch-tip-skills {
+    font-family: 'Lato', sans-serif;
+    font-size: 11px;
+    color: #ddd6fe;
+    line-height: 1.45;
+}
+.party-switch-skill-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+.party-switch-skill-icon {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    background: linear-gradient(145deg, #c084fc, #7c3aed);
+    border: 2px solid #6b21a8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.party-switch-skill-icon .skill-icon-img {
+    position: relative;
+    z-index: 1;
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+.party-switch-skill-icon .skill-icon-fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7px;
+    line-height: 1;
+    color: white;
+    font-weight: 700;
+}
+.party-switch-skill-name {
+    flex: 1;
+    min-width: 0;
+}
+.party-switch-skill-type {
+    color: #c4b5fd;
+    font-size: 9px;
+    font-weight: 700;
+    margin-right: 4px;
+}
+.party-switch-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 48px 20px;
+    color: #666;
+    font-size: 14px;
+}
+
 #modal-party .skill-tip,
 #modal-box .skill-tip,
 #modal-inventory .skill-tip,
@@ -1870,7 +2223,30 @@ body.afk-layout .currency-pill .currency-tip {
         justify-content: center;
     }
     .game-container { flex-direction: column; min-height: auto; }
-    .main-scene { min-height: 420px; padding-bottom: 72px; }
+    .main-scene { min-height: 420px; }
+    .scene-battle-dock {
+        padding: 0 10px 88px;
+    }
+    .scene-idle-arena {
+        transform: scale(0.84);
+        min-height: calc(var(--scene-fighter-size, 76px) * 1.15);
+    }
+    .scene-idle-row + .scene-idle-row {
+        margin-top: -35px;
+    }
+    .scene-idle-row.row-slot-0 .scene-idle-pair {
+        transform: translateX(52px);
+    }
+    .scene-idle-row.row-slot-2 .scene-idle-pair {
+        transform: translateX(-14px);
+    }
+    .scene-idle-row.row-right .scene-idle-pair {
+        transform: translateX(32px);
+    }
+    .scene-idle-pair .scene-idle-fighter.enemy {
+        margin-left: -12px;
+    }
+    :root { --scene-fighter-size: 76px; }
     .side-rail,
     .left-rail {
         position: absolute;
@@ -1941,9 +2317,11 @@ body.afk-layout .currency-pill .currency-tip {
     <img class="scene-bg" src="for%20result%20banner/battlebackground.jpg" alt="">
     <div id="main-scene" class="main-scene">
         <div class="scene-stage-label" id="scene-stage-label">Chapter 1-1</div>
-        <div class="scene-battle-row">
-            <div class="scene-fighters scene-heroes" id="scene-heroes"></div>
-            <div class="scene-fighters scene-enemies" id="scene-enemies"></div>
+        <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions"></div>
+        <div class="scene-battle-dock">
+            <div class="scene-battle-row">
+                <div class="scene-idle-arena" id="scene-idle-arena"></div>
+            </div>
         </div>
     </div>
 
@@ -2011,6 +2389,22 @@ body.afk-layout .currency-pill .currency-tip {
         </div>
         <div class="game-modal-body">
             <div class="party-grid" id="party-grid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Party switch picker (box avatars) -->
+<div id="modal-party-switch" class="game-modal" onclick="if(event.target===this)closePartySwitchPicker()">
+    <div class="game-modal-panel game-modal-wide" onclick="event.stopPropagation()">
+        <div class="game-modal-header">
+            <h2 id="party-switch-title">SWITCH</h2>
+            <button type="button" class="game-modal-close" onclick="closePartySwitchPicker()">×</button>
+        </div>
+        <div class="game-modal-body">
+            <p class="party-switch-subtitle" id="party-switch-subtitle">Pick a Monanimal from your Box to swap into this party slot</p>
+            <div class="party-switch-scroll">
+                <div class="party-switch-grid" id="party-switch-grid"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -2132,7 +2526,8 @@ const SPRITE_MAP = {
     "Lyraffe": "128x128/lyraffe.png", "Mokadal": "128x128/mokadal.png", "Monavara": "128x128/monavara.png",
     "Moncock": "128x128/moncock.png", "Mondigrade": "128x128/mondigrade.png", "Montiger": "128x128/montiger.png",
     "Mopo": "128x128/mopo.png", "Mosferatu": "128x128/mosferatu.png", "Moxy": "128x128/moxy.png",
-    "Shramp": "128x128/shramp.png", "Spidermon": "128x128/spidermon.png", "Moyaki": "128x128/moyaki.png"
+    "Shramp": "128x128/shramp.png", "Spidermon": "128x128/spidermon.png", "Moyaki": "128x128/moyaki.png",
+    "Johnw": "128x128/johnw.png"
 };
 
 // Damage actives and heal actives are separate RNG pools — neither is guaranteed per mon.
@@ -2362,6 +2757,7 @@ let essence = 0;
 let monShards = 0;
 let trainerXp = 0;
 let highestStageCleared = 0;
+let adventureGlobalBest = 0;
 let lastResetDate = null;
 let isInAdventureBattle = false;
 let adventureBattleToken = 0;
@@ -2371,10 +2767,15 @@ let pendingBattleLeaveTab = "main";
 let battleScreen = "main";
 const BATTLE_BG_MENU = "for%20result%20banner/battlebackground.jpg";
 const BATTLE_BG_MAP = "for%20result%20banner/map1.gif";
-let sceneEnemySeed = 0;
-const WILD_SCENE_MOBS = ["Chog", "Moyaki", "Spidermon", "Shramp", "Salmonad", "Mouch", "Larvanad", "Anago"];
-let xHandle = "";
+let currentChapter = 1;
 let currentStage = 1;
+const STAGES_PER_CHAPTER = 40;
+let sceneIdleEnemyTeam = [];
+let sceneIdleBattleToken = 0;
+let sceneIdleBattleSignature = "";
+const SCENE_IDLE_LAYOUT_REV = 6;
+let sceneIdleBattleRunning = false;
+let xHandle = "";
 let profileActivityTimer = null;
 
 const PARTY_MAX = 3;
@@ -2404,28 +2805,93 @@ let gearInventory = [];
 let _gearIdSeq = 0;
 
 // ==================== HELPER FUNCTIONS ====================
-function getSpritePath(name) {
-    if (name === "Chog" || name === "Mopo" || name === "Anago" || name === "Molandak") {
-        return `128x128/${name.toLowerCase()}.gif`;
-    }
-    return `128x128/${name.toLowerCase()}.png`;
+function getMonPngPath(name) {
+    return `128x128/${String(name || "").toLowerCase()}.png`;
+}
+
+function getMonGifPath(name) {
+    return `128x128/${String(name || "").toLowerCase()}.gif`;
+}
+
+function isLegendaryOrAbove(rarity) {
+    const rank = RARITY_ORDER.indexOf(rarity);
+    const legRank = RARITY_ORDER.indexOf("Legendary");
+    return rank >= legRank && rank >= 0;
+}
+
+function getMonAvatarPath(mon) {
+    const name = mon?.name || mon;
+    const rarity = mon?.rarity;
+    if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
+    if (rarity && isLegendaryOrAbove(rarity)) return getMonGifPath(name);
+    return getMonPngPath(name);
+}
+
+function getMonAvatarFallbackPath(mon) {
+    const name = mon?.name || mon;
+    if (isJohnw(name)) return JOHNW_PNG_SPRITE;
+    return getMonPngPath(name);
+}
+
+function getSpritePath(name, rarity) {
+    if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
+    if (rarity && isLegendaryOrAbove(rarity)) return getMonGifPath(name);
+    return getMonPngPath(name);
+}
+
+const JOHNW_ENEMY_NAME = "Johnw";
+const JOHNW_IDLE_SPRITE = "128x128/johnw-idle.gif";
+const JOHNW_PNG_SPRITE = "128x128/johnw.png";
+const JOHNW_SWING_SPRITES = [
+    "128x128/johnw-swing1.gif",
+    "128x128/johnw-swing2.gif"
+];
+
+function isJohnw(name) {
+    return String(name || "").toLowerCase() === "johnw";
+}
+
+function getJohnwIdleSprite() {
+    return JOHNW_IDLE_SPRITE;
+}
+
+function pickJohnwSwingSprite() {
+    return JOHNW_SWING_SPRITES[Math.floor(Math.random() * JOHNW_SWING_SPRITES.length)];
 }
 
 const ATTACK_SPRITE_MAP = {
     Molandak: "128x128/molandak1-swing.gif",
-    Chog: "128x128/chog1-swing.gif"
+    Chog: "128x128/chog1-swing.gif",
+    Johnw: JOHNW_SWING_SPRITES[0]
 };
 
 const ATTACK_SPRITE_DURATION_MS = {
     Molandak: 960,
-    Chog: 960
+    Chog: 960,
+    Johnw: 1920
 };
 
 // Swing GIF frames 8-15 from source; hit near frame 2-3 of swing clip.
 const ATTACK_HIT_AT_MS = {
     Molandak: 360,
-    Chog: 360
+    Chog: 360,
+    Johnw: 720
 };
+
+// Full measured GIF loop lengths for main-scene idle fighting (ffprobe).
+const SCENE_SPRITE_DURATION_MS = {
+    "128x128/johnw-idle.gif": 1920,
+    "128x128/johnw-swing1.gif": 1920,
+    "128x128/johnw-swing2.gif": 1920,
+    "128x128/chog1-swing.gif": 960,
+    "128x128/molandak1-swing.gif": 960,
+    "128x128/chog.gif": 1440,
+    "128x128/molandak.gif": 960,
+    "128x128/mopo.gif": 5800,
+    "128x128/anago.gif": 960
+};
+
+const sceneIdleFighterBusy = new Set();
 
 const ATTACK_DASH_MS = 220;
 const MELEE_TOUCH_GAP_PX = 2;
@@ -2448,7 +2914,303 @@ const FREEZE_DMG_BOOST = 1.3;
 const MELEE_DASH_FALLBACK_PX = 180;
 
 function getAttackSpritePath(name) {
+    if (isJohnw(name)) return pickJohnwSwingSprite();
     return ATTACK_SPRITE_MAP[name] || null;
+}
+
+function getSceneFighterSprite(name) {
+    if (isJohnw(name)) return getJohnwIdleSprite();
+    return getAttackSpritePath(name) || `128x128/${name.toLowerCase()}.png`;
+}
+
+function getSceneIdleHomeSprite(mon) {
+    return getSceneIdleDisplaySprite(mon);
+}
+
+// Main-scene battle sprites: stable GIF idle for animated species, PNG for everyone else.
+// Party/box/switch still use getMonAvatarPath (rarity-driven GIF for Legendary+).
+function getSceneIdleDisplaySprite(mon) {
+    const name = mon?.name || mon;
+    if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
+    if (getAttackSpritePath(name)) return getMonGifPath(name);
+    const lower = String(name || "").toLowerCase();
+    if (lower === "mopo" || lower === "anago") return getMonGifPath(name);
+    return getMonPngPath(name);
+}
+
+function normalizeSpritePath(src) {
+    return String(src || "").split("?")[0];
+}
+
+function getSceneSpriteDurationMs(spritePath, monName) {
+    const key = normalizeSpritePath(spritePath);
+    if (SCENE_SPRITE_DURATION_MS[key]) return SCENE_SPRITE_DURATION_MS[key];
+    if (monName && ATTACK_SPRITE_DURATION_MS[monName]) return ATTACK_SPRITE_DURATION_MS[monName];
+    return 960;
+}
+
+function getSceneSpriteHitAtMs(spritePath, monName, durationMs) {
+    const key = normalizeSpritePath(spritePath);
+    if (monName && ATTACK_HIT_AT_MS[monName]) return ATTACK_HIT_AT_MS[monName];
+    return Math.floor(durationMs * 0.375);
+}
+
+function setSceneIdleSprite(imgEl, spritePath) {
+    if (!imgEl || !spritePath) return;
+    const base = normalizeSpritePath(spritePath);
+    const current = normalizeSpritePath(imgEl.dataset.spriteBase || imgEl.src);
+    if (current === base) return;
+    imgEl.dataset.spriteBase = base;
+    imgEl.src = spritePath + "?t=" + Date.now();
+}
+
+async function waitSceneGifMs(ms, token) {
+    const durationMs = Math.max(0, ms);
+    const step = 50;
+    let elapsed = 0;
+    while (elapsed < durationMs) {
+        if (token !== sceneIdleBattleToken) return;
+        const chunk = Math.min(step, durationMs - elapsed);
+        await delay(chunk);
+        elapsed += chunk;
+    }
+}
+
+async function waitSceneGifComplete(spritePath, monName, token) {
+    await waitSceneGifMs(getSceneSpriteDurationMs(spritePath, monName), token);
+}
+
+function makeSeededRand(seed) {
+    let s = seed >>> 0;
+    return function() {
+        s = (s + 0x6D2B79F5) | 0;
+        let t = Math.imul(s ^ (s >>> 15), 1 | s);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+// Main scene idle battle rules:
+// - Heroes: first 3 mons from the active Party tab (party[]).
+// - Enemies: always 3 Johnw for every user on the main scene (adventure fights unchanged).
+
+function makeSceneIdleEnemyTeam() {
+    return [
+        { name: JOHNW_ENEMY_NAME },
+        { name: JOHNW_ENEMY_NAME },
+        { name: JOHNW_ENEMY_NAME }
+    ];
+}
+
+function ensureSceneIdleEnemies() {
+    if (sceneIdleEnemyTeam.length !== 3 || sceneIdleEnemyTeam.some((e) => !isJohnw(e.name))) {
+        sceneIdleEnemyTeam = makeSceneIdleEnemyTeam();
+    }
+}
+
+function invalidateSceneIdleEnemies() {
+    sceneIdleEnemyTeam = [];
+    sceneIdleBattleSignature = "";
+}
+
+function getSceneIdleBattleSignature(heroes) {
+    return JSON.stringify({
+        layout: SCENE_IDLE_LAYOUT_REV,
+        heroes: heroes.map((m) => m.name),
+    });
+}
+
+function getSceneIdlePairOffset(idx) {
+    if (idx === 0) return "transform:translateX(72px);";
+    if (idx === 1) return "transform:translateX(44px);";
+    if (idx === 2) return "transform:translateX(-18px);";
+    return "";
+}
+
+function renderSceneIdleFighter(team, index, mon) {
+    const side = team === "hero" ? "hero" : "enemy";
+    const slotClass = index === 0 ? "slot-0" : index === 1 ? "slot-1" : "slot-2";
+    const sprite = getSceneIdleDisplaySprite(mon);
+    const fallback = getMonAvatarFallbackPath(mon);
+    const mirrored = shouldMirrorBattleSprite(team === "hero" ? "player" : "enemy", mon.name) ? " mirrored" : "";
+    return `
+        <div class="scene-idle-fighter ${side} ${slotClass}" id="scene-idle-${team}-${index}" data-team="${team}" data-index="${index}">
+            <img class="scene-idle-sprite${mirrored}" id="scene-idle-sprite-${team}-${index}" data-mon="${mon.name}" src="${sprite}" alt="${mon.name}" onerror="this.onerror=null;this.src='${fallback}'">
+        </div>`;
+}
+
+function buildSceneIdleBattleDOM(heroes, enemies) {
+    const arenaEl = document.getElementById("scene-idle-arena");
+    if (!arenaEl) return;
+
+    if (!heroes.length) {
+        arenaEl.innerHTML = '<div class="scene-empty">Deploy your party to fight!</div>';
+        return;
+    }
+
+    const heroSlots = heroes.slice(0, 3);
+    const enemySlots = enemies.slice(0, 3);
+    const rowLayout = [
+        { cls: "row-left row-slot-0" },
+        { cls: "row-right row-slot-1" },
+        { cls: "row-left row-slot-2" },
+    ];
+
+    arenaEl.innerHTML = rowLayout.map(({ cls }, idx) => {
+        const hero = heroSlots[idx];
+        const enemy = enemySlots[idx];
+        const heroHtml = hero ? renderSceneIdleFighter("hero", idx, hero) : "";
+        const enemyHtml = enemy ? renderSceneIdleFighter("enemy", idx, enemy) : "";
+        return `<div class="scene-idle-row ${cls}"><div class="scene-idle-pair" style="${getSceneIdlePairOffset(idx)}">${heroHtml}${enemyHtml}</div></div>`;
+    }).join("");
+}
+
+function getSceneIdleDashDistance(atkEl, defEl) {
+    if (!atkEl || !defEl) return MELEE_DASH_FALLBACK_PX;
+    const atkBox = atkEl.getBoundingClientRect();
+    const defBox = defEl.getBoundingClientRect();
+    const isHero = atkEl.dataset.team === "hero";
+    if (isHero) {
+        return Math.max(0, defBox.left - MELEE_TOUCH_GAP_PX - atkBox.right);
+    }
+    return Math.max(0, atkBox.left - defBox.right - MELEE_TOUCH_GAP_PX);
+}
+
+function getSceneIdleLungePx(atkEl, defEl) {
+    const dash = getSceneIdleDashDistance(atkEl, defEl);
+    return dash > MELEE_TOUCH_GAP_PX ? dash : 14;
+}
+
+function stopSceneIdleBattle() {
+    sceneIdleBattleToken++;
+    sceneIdleBattleRunning = false;
+}
+
+function ensureSceneIdleBattleRunning() {
+    const mainScene = document.getElementById("main-scene");
+    if (!mainScene || mainScene.style.display === "none") return;
+    if (!party.length || !sceneIdleEnemyTeam.length) return;
+    if (sceneIdleBattleRunning) return;
+    requestAnimationFrame(() => startSceneIdleBattleLoop());
+}
+
+async function sceneIdleDash(el, dx, durationMs) {
+    if (!el) return;
+    el.classList.add("dash-sweep");
+    el.style.transition = `transform ${durationMs}ms cubic-bezier(0.2, 0.85, 0.25, 1)`;
+    el.style.transform = `translate(${dx}px, 0)`;
+    await delay(durationMs);
+    el.classList.remove("dash-sweep");
+}
+
+async function sceneIdleDashHome(el, durationMs) {
+    if (!el) return;
+    el.classList.add("dash-sweep");
+    el.style.transition = `transform ${durationMs}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+    el.style.transform = "translate(0, 0)";
+    await delay(durationMs);
+    el.classList.remove("dash-sweep");
+}
+
+async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
+    if (token !== sceneIdleBattleToken) return;
+    const busyKey = `${atkTeam}-${atkIdx}`;
+    if (sceneIdleFighterBusy.has(busyKey)) return;
+
+    const atkEl = document.getElementById(`scene-idle-${atkTeam}-${atkIdx}`);
+    const defEl = document.getElementById(`scene-idle-${defTeam}-${defIdx}`);
+    const atkImg = document.getElementById(`scene-idle-sprite-${atkTeam}-${atkIdx}`);
+    if (!atkEl || !defEl || !atkImg) return;
+
+    const atkMon = atkTeam === "hero" ? party[atkIdx] : sceneIdleEnemyTeam[atkIdx];
+    if (!atkMon) return;
+
+    sceneIdleFighterBusy.add(busyKey);
+    try {
+        const attackPath = isJohnw(atkMon.name) ? pickJohnwSwingSprite() : getAttackSpritePath(atkMon.name);
+        const idleSprite = getSceneIdleHomeSprite(atkMon);
+        if (attackPath) {
+            if (atkMon.name === "Chog") {
+                setSceneIdleSprite(atkImg, attackPath);
+                const hitAtMs = ATTACK_HIT_AT_MS.Chog || 360;
+                const durationMs = ATTACK_SPRITE_DURATION_MS.Chog || 960;
+                await delay(hitAtMs);
+                if (token !== sceneIdleBattleToken) return;
+                defEl.classList.add("hit-shake");
+                setTimeout(() => defEl.classList.remove("hit-shake"), 300);
+                const remain = durationMs - hitAtMs;
+                if (remain > 0) await delay(remain);
+                setSceneIdleSprite(atkImg, idleSprite);
+            } else {
+                setSceneIdleSprite(atkImg, attackPath);
+                const durationMs = getSceneSpriteDurationMs(attackPath, atkMon.name);
+                const hitAtMs = getSceneSpriteHitAtMs(attackPath, atkMon.name, durationMs);
+                await delay(hitAtMs);
+                if (token !== sceneIdleBattleToken) return;
+                defEl.classList.add("hit-shake");
+                setTimeout(() => defEl.classList.remove("hit-shake"), 300);
+                await waitSceneGifMs(durationMs - hitAtMs, token);
+                if (token !== sceneIdleBattleToken) return;
+                setSceneIdleSprite(atkImg, idleSprite);
+                await waitSceneGifComplete(idleSprite, atkMon.name, token);
+            }
+        } else {
+            await delay(280);
+            if (token !== sceneIdleBattleToken) return;
+            defEl.classList.add("hit-shake");
+            setTimeout(() => defEl.classList.remove("hit-shake"), 300);
+            await delay(320);
+        }
+    } finally {
+        sceneIdleFighterBusy.delete(busyKey);
+    }
+}
+
+async function sceneIdleFighterCombatLoop(atkTeam, atkIdx, token, startDelay) {
+    await delay(startDelay);
+    while (token === sceneIdleBattleToken) {
+        const mainScene = document.getElementById("main-scene");
+        if (!mainScene || mainScene.style.display === "none") {
+            await delay(250);
+            continue;
+        }
+
+        const heroes = party.slice(0, 3);
+        const enemies = sceneIdleEnemyTeam.slice(0, 3);
+        if (!heroes.length || !enemies.length) break;
+        if (atkTeam === "hero" && !heroes[atkIdx]) break;
+        if (atkTeam === "enemy" && !enemies[atkIdx]) break;
+
+        const defTeam = atkTeam === "hero" ? "enemy" : "hero";
+        const defIdx = atkIdx;
+
+        await sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token);
+        await delay(180 + Math.random() * 320);
+    }
+}
+
+async function startSceneIdleBattleLoop() {
+    const token = ++sceneIdleBattleToken;
+    sceneIdleBattleRunning = true;
+    await delay(200);
+
+    const heroes = party.slice(0, 3);
+    const enemies = sceneIdleEnemyTeam.slice(0, 3);
+    if (!heroes.length || !enemies.length) {
+        sceneIdleBattleRunning = false;
+        return;
+    }
+
+    const loops = [];
+    heroes.forEach((_, i) => {
+        loops.push(sceneIdleFighterCombatLoop("hero", i, token, i * 120 + Math.random() * 280));
+    });
+    enemies.forEach((_, i) => {
+        loops.push(sceneIdleFighterCombatLoop("enemy", i, token, i * 120 + Math.random() * 280));
+    });
+
+    await Promise.all(loops);
+    if (token === sceneIdleBattleToken) sceneIdleBattleRunning = false;
 }
 
 function beginAttackAnim(side) {
@@ -2565,7 +3327,8 @@ const SPRITE_NATURAL_FACING = {
     Moxy: "right",
     Shramp: "left",
     Spidermon: "left",
-    Moyaki: "left"
+    Moyaki: "left",
+    Johnw: "left"
 };
 
 function getSpriteNaturalFacing(name) {
@@ -2985,7 +3748,93 @@ function addTrainerXp(amount) {
 }
 
 function isBossStage(stage) {
-    return stage > 0 && stage % 5 === 0;
+    return stage === 1 || (stage > 0 && stage % 4 === 0);
+}
+
+function getGlobalAdventureProgress(chapter, stage) {
+    const ch = Math.max(1, chapter || 1);
+    const st = Math.max(1, stage || 1);
+    return (ch - 1) * STAGES_PER_CHAPTER + st;
+}
+
+function globalProgressToChapterStage(globalProgress) {
+    const g = Math.max(1, globalProgress || 1);
+    return {
+        chapter: Math.floor((g - 1) / STAGES_PER_CHAPTER) + 1,
+        stage: ((g - 1) % STAGES_PER_CHAPTER) + 1,
+    };
+}
+
+function migrateAdventureSave() {
+    if (typeof currentChapter !== "number" || currentChapter < 1) currentChapter = 1;
+    if (typeof adventureGlobalBest !== "number" || adventureGlobalBest < 0) {
+        adventureGlobalBest = getGlobalAdventureProgress(1, highestStageCleared || 0);
+    }
+    while (currentStage > STAGES_PER_CHAPTER) {
+        currentChapter++;
+        currentStage -= STAGES_PER_CHAPTER;
+    }
+    if (currentStage < 1) currentStage = 1;
+    const best = globalProgressToChapterStage(adventureGlobalBest);
+    highestStageCleared = best.stage;
+}
+
+function getChapter() {
+    return currentChapter;
+}
+
+function getAdventureEnemyLevel(globalProgress, slotIndex, boss) {
+    const base = Math.floor(4 + globalProgress * 0.75);
+    const bossBonus = boss ? 3 : 0;
+    const leadBonus = slotIndex === 0 ? 2 : 0;
+    const jitter = randInt(-1, boss ? 3 : 2);
+    return Math.min(80, Math.max(1, base + bossBonus + leadBonus + jitter));
+}
+
+function rollAdventureEnemyRarity(globalProgress, slotIndex, boss) {
+    const order = ["Common", "Uncommon", "Rare", "Legendary", "Mythic"];
+    let minIdx = Math.min(order.length - 1, Math.floor((globalProgress - 1) / 14));
+    if (boss) minIdx = Math.min(order.length - 1, minIdx + (slotIndex === 0 ? 2 : 1));
+    else if (slotIndex === 0) minIdx = Math.min(order.length - 1, minIdx + 1);
+    return rollRarityAtLeast(order[minIdx]);
+}
+
+function getEnemyAscensionStacks(globalProgress, boss, slotIndex) {
+    let stacks = Math.floor((globalProgress - 1) / 35);
+    if (boss && slotIndex === 0) stacks += 1;
+    return Math.min(4, stacks);
+}
+
+function buildAdventureEnemyMon(name, globalProgress, slotIndex, boss) {
+    let rarity = rollAdventureEnemyRarity(globalProgress, slotIndex, boss);
+    let level = getAdventureEnemyLevel(globalProgress, slotIndex, boss);
+    const mon = { name, rarity, level };
+    mon.stats = generateStats(rarity);
+    mon.statVersion = STAT_SYSTEM_VERSION;
+    if (boss) {
+        mon.stats.crit += 8;
+        mon.stats.spd += 10;
+        mon.stats.hit += 5;
+    }
+    const ascStacks = getEnemyAscensionStacks(globalProgress, boss, slotIndex);
+    for (let s = 0; s < ascStacks; s++) {
+        const next = getNextRarity(mon.rarity);
+        if (next) {
+            mon.rarity = next;
+            level = Math.min(getLevelCap({ rarity: next }), level + 2);
+            mon.level = level;
+        } else {
+            level = Math.min(80, level + 4);
+            mon.level = level;
+            mon.stats.crit += 4;
+            mon.stats.spd += 4;
+        }
+    }
+    mon.max_hp = getMaxHP(mon.level, mon.rarity);
+    mon.current_hp = mon.max_hp;
+    mon.skills = generateSkills(mon.name, mon.rarity);
+    mon.ultimate = { ...mon.skills[0] };
+    return mon;
 }
 
 function rollRarityAtLeast(minRarity) {
@@ -3018,11 +3867,10 @@ function formatCost(cost) {
 }
 
 // ===== Phase 3: Equipment & Ascension =====
-function getChapter(stage) {
-    return Math.min(5, Math.max(1, Math.ceil(stage / 8)));
-}
 function isEquipmentUnlocked() {
-    return highestStageCleared >= 8 || currentStage >= 9;
+    return adventureGlobalBest >= 9
+        || currentChapter >= 2
+        || getGlobalAdventureProgress(currentChapter, currentStage) >= 9;
 }
 function nextGearId() {
     return "gear_" + Date.now() + "_" + (++_gearIdSeq);
@@ -3096,8 +3944,7 @@ function generateGear(tier, slot) {
         bonuses
     };
 }
-function rollGearDrop(stage, isBoss) {
-    const chapter = getChapter(stage);
+function rollGearDrop(chapter, isBoss) {
     if (chapter < 2) return null;
     let tier = chapter;
     if (isBoss && Math.random() < 0.35 && tier < 5) tier += 1;
@@ -3462,7 +4309,9 @@ function resolveAbandonedAdventureBattle() {
 function saveData() {
     if (!currentUser) return;
     const payload = {
-        party, box, monballs, money, essence, monShards, trainerXp, highestStageCleared, currentStage, gearInventory, lastResetDate, xHandle,
+        party, box, monballs, money, essence, monShards, trainerXp,
+        highestStageCleared, adventureGlobalBest, currentChapter, currentStage,
+        gearInventory, lastResetDate, xHandle,
         adventureBattleActive: isInAdventureBattle
     };
     localStorage.setItem("monex_" + currentUser, JSON.stringify(payload));
@@ -3497,7 +4346,10 @@ async function loadData() {
         monShards = data.monShards ?? 0;
         trainerXp = data.trainerXp ?? 0;
         highestStageCleared = data.highestStageCleared ?? 0;
+        adventureGlobalBest = data.adventureGlobalBest ?? highestStageCleared ?? 0;
+        currentChapter = data.currentChapter ?? 1;
         currentStage = data.currentStage ?? 1;
+        migrateAdventureSave();
         gearInventory = data.gearInventory || [];
         lastResetDate = data.lastResetDate || null;
         xHandle = data.xHandle || xHandle || "";
@@ -3513,6 +4365,8 @@ async function loadData() {
         monShards = 0;
         trainerXp = 0;
         highestStageCleared = 0;
+        adventureGlobalBest = 0;
+        currentChapter = 1;
         currentStage = 1;
         gearInventory = [];
         lastResetDate = null;
@@ -3532,8 +4386,9 @@ function updateUI() {
     document.getElementById("shard-count").innerText = monShards;
 
     const tInfo = getTrainerLevelInfo(trainerXp);
+    const best = globalProgressToChapterStage(adventureGlobalBest);
     document.getElementById("trainer-meta").innerText =
-        `Trainer Lv.${tInfo.level} (${tInfo.progress}/${tInfo.needed} XP) • Highest Stage: ${highestStageCleared}`;
+        `Trainer Lv.${tInfo.level} (${tInfo.progress}/${tInfo.needed} XP) • Highest: Ch.${best.chapter} Stage ${best.stage}`;
 
     renderMainScene();
     renderPartyGrid();
@@ -3569,7 +4424,7 @@ function renderPartyGrid() {
         card.innerHTML = `
     ${renderStatsInfo(mon)}
     <div class="mon-sprite">
-        <img src="${getSpritePath(mon.name)}" alt="${mon.name}" style="max-width:110px; max-height:110px;" onerror="this.style.display='none'">
+        <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
     </div>
     <div class="mon-name">${mon.name}</div>
     <div class="type-tags">
@@ -3583,7 +4438,7 @@ function renderPartyGrid() {
     </div>
     <div class="currently-text">Currently: ready for battle</div>
     <div class="mon-actions">
-        <button onclick="toBox(${index})">SWITCH</button>
+        <button onclick="event.stopPropagation(); openPartySwitchPicker(${index})">SWITCH</button>
         ${levelBtn}
     </div>
     ${renderAscendBtn(index, mon)}
@@ -3593,39 +4448,24 @@ function renderPartyGrid() {
 }
 
 function renderMainScene() {
-    const heroesEl = document.getElementById("scene-heroes");
-    const enemiesEl = document.getElementById("scene-enemies");
     const label = document.getElementById("scene-stage-label");
-    if (!heroesEl || !enemiesEl) return;
+    if (label) label.textContent = `Chapter ${currentChapter}-${currentStage}`;
 
-    if (label) label.textContent = `Chapter 1-${currentStage}`;
+    ensureSceneIdleEnemies();
+    const heroes = party.slice(0, 3);
+    const enemies = sceneIdleEnemyTeam.slice(0, 3);
+    const signature = getSceneIdleBattleSignature(heroes);
+    const arenaEl = document.getElementById("scene-idle-arena");
+    const needsLayoutRefresh = arenaEl && !arenaEl.querySelector(".scene-idle-row.row-slot-0");
 
-    if (party.length === 0) {
-        heroesEl.innerHTML = '<div class="scene-empty">Deploy your party to fight!</div>';
+    if (signature !== sceneIdleBattleSignature || needsLayoutRefresh) {
+        sceneIdleBattleSignature = signature;
+        stopSceneIdleBattle();
+        buildSceneIdleBattleDOM(heroes, enemies);
+        ensureSceneIdleBattleRunning();
     } else {
-        heroesEl.innerHTML = party.map((mon, i) => {
-            const hpPct = Math.max(0, Math.min(100, (mon.current_hp / mon.max_hp) * 100));
-            return `
-                <div class="scene-fighter hero">
-                    <img src="${getSpritePath(mon.name)}" alt="${mon.name}" onerror="this.style.opacity='0.3'">
-                    <div class="scene-hp-bar"><div style="width:${hpPct}%"></div></div>
-                </div>`;
-        }).join("");
+        ensureSceneIdleBattleRunning();
     }
-
-    const enemyCount = Math.max(1, Math.min(3, party.length || 1));
-    enemiesEl.innerHTML = Array.from({ length: enemyCount }, (_, i) => {
-        const name = WILD_SCENE_MOBS[(sceneEnemySeed + i) % WILD_SCENE_MOBS.length];
-        return `
-            <div class="scene-fighter enemy">
-                <img src="${getSpritePath(name)}" alt="${name}" onerror="this.style.opacity='0.3'">
-            </div>`;
-    }).join("");
-}
-
-function refreshSceneEnemies() {
-    sceneEnemySeed = Math.floor(Math.random() * WILD_SCENE_MOBS.length);
-    renderMainScene();
 }
 
 function renderParty() {
@@ -3663,7 +4503,7 @@ function renderBox() {
         card.innerHTML = `
     ${renderStatsInfo(mon)}
     <div class="mon-sprite">
-        <img src="${getSpritePath(mon.name) || ''}" alt="${mon.name}" style="max-width:96px; max-height:96px;" onerror="this.style.display='none'">
+        <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
     </div>
     <div class="mon-name">${mon.name}</div>
     <div class="type-tags">
@@ -3676,7 +4516,7 @@ function renderBox() {
         <div class="stat-row"><span><strong>HP</strong></span><span>${Math.ceil(mon.current_hp)} / ${mon.max_hp}</span></div>
     </div>
     <div class="mon-actions">
-        <button onclick="withdrawFromBox(${i})" class="green">TO PARTY</button>
+        <button onclick="event.stopPropagation(); openBoxSwitchPicker(${i})">SWITCH</button>
         <button onclick="releaseFromBox(${i})" class="red">RELEASE</button>
     </div>
 `;
@@ -3864,18 +4704,180 @@ function toBox(index) {
     const mon = party.splice(index, 1)[0];
     box.push(mon);
     saveData();
-    refreshSceneEnemies();
     updateUI();
 }
 
-function withdrawFromBox(index) {
-    if (party.length >= PARTY_MAX) { alert("Party is full!"); return; }
-    const mon = box.splice(index, 1)[0];
-    party.push(mon);
+let _partySwitchIndex = null;
+let _partySwitchBoxIndex = null;
+
+function renderPartySwitchSkillList(mon) {
+    ensureMonReady(mon);
+    if (!mon.skills || !mon.skills.length) {
+        return '<div class="party-switch-skill-line">No skills</div>';
+    }
+    return mon.skills.map((skill) => {
+        return `<div class="party-switch-skill-line">
+            <span class="party-switch-skill-icon">${getSkillIcon(skill)}</span>
+            <span class="party-switch-skill-name">${skill.name}</span>
+        </div>`;
+    }).join("");
+}
+
+function positionPartySwitchTip(cell) {
+    clearPartySwitchTip(cell);
+
+    const tip = cell.querySelector(".party-switch-hover-tip");
+    if (!tip) return;
+
+    const floatTip = tip.cloneNode(true);
+    floatTip.classList.add("party-switch-hover-tip-float");
+    floatTip.classList.remove("party-switch-hover-tip");
+    floatTip.style.display = "block";
+    floatTip.style.visibility = "hidden";
+    document.body.appendChild(floatTip);
+    cell._switchTipFloat = floatTip;
+
+    const tipRect = floatTip.getBoundingClientRect();
+    const cellRect = cell.getBoundingClientRect();
+    const gap = 10;
+    const pad = 12;
+
+    let top = cellRect.top - tipRect.height - gap;
+    floatTip.classList.remove("tip-below");
+
+    if (top < pad) {
+        top = cellRect.bottom + gap;
+        floatTip.classList.add("tip-below");
+        if (top + tipRect.height > window.innerHeight - pad) {
+            top = Math.max(pad, cellRect.top - tipRect.height - gap);
+            floatTip.classList.remove("tip-below");
+        }
+    }
+
+    let left = cellRect.left + cellRect.width / 2 - tipRect.width / 2;
+    left = Math.max(pad, Math.min(left, window.innerWidth - tipRect.width - pad));
+
+    floatTip.style.top = `${top}px`;
+    floatTip.style.left = `${left}px`;
+    floatTip.style.visibility = "visible";
+    floatTip.classList.add("is-visible");
+    cell.classList.add("is-tip-open");
+}
+
+function clearPartySwitchTip(cell) {
+    if (cell._switchTipFloat) {
+        cell._switchTipFloat.remove();
+        cell._switchTipFloat = null;
+    }
+    cell.classList.remove("is-tip-open");
+}
+
+function closePartySwitchPicker() {
+    document.querySelectorAll(".party-switch-avatar.is-tip-open").forEach(clearPartySwitchTip);
+    document.querySelectorAll(".party-switch-hover-tip-float").forEach((el) => el.remove());
+    document.getElementById("modal-party-switch")?.classList.remove("open");
+    _partySwitchIndex = null;
+    _partySwitchBoxIndex = null;
+}
+
+function bindPartySwitchTip(cell) {
+    cell.addEventListener("mouseenter", () => positionPartySwitchTip(cell));
+    cell.addEventListener("mouseleave", () => clearPartySwitchTip(cell));
+    cell.addEventListener("focus", () => positionPartySwitchTip(cell));
+    cell.addEventListener("blur", () => clearPartySwitchTip(cell));
+}
+
+function renderPartySwitchAvatarCell(mon, onClick) {
+    ensureMonReady(mon);
+    const cell = document.createElement("button");
+    cell.type = "button";
+    cell.className = `party-switch-avatar ${getRarityClass(mon.rarity)}`;
+    cell.innerHTML = `
+        <span class="party-switch-lv">Lv.${Math.floor(mon.level)}</span>
+        <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
+        <div class="party-switch-hover-tip">
+            <div class="party-switch-tip-name">${mon.name}</div>
+            <span class="party-switch-tip-rarity ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
+            <div class="party-switch-tip-skills">${renderPartySwitchSkillList(mon)}</div>
+        </div>`;
+    cell.onclick = onClick;
+    bindPartySwitchTip(cell);
+    return cell;
+}
+
+function renderPartySwitchGrid() {
+    const grid = document.getElementById("party-switch-grid");
+    if (!grid || (_partySwitchIndex === null && _partySwitchBoxIndex === null)) return;
+    grid.innerHTML = "";
+
+    if (_partySwitchIndex !== null) {
+        if (!box || box.length === 0) {
+            grid.innerHTML = `
+                <div class="party-switch-empty">
+                    <p style="font-size:16px; margin-bottom:10px;">Your Box is empty</p>
+                    <p style="font-size:13px;">Catch Monanimals or move mons to the Box first.</p>
+                </div>`;
+            return;
+        }
+
+        const entries = box.map((mon, i) => ({ mon, i }));
+        entries.sort((a, b) => getRarityRank(b.mon.rarity) - getRarityRank(a.mon.rarity));
+
+        entries.forEach(({ mon, i }) => {
+            grid.appendChild(renderPartySwitchAvatarCell(mon, () => swapPartyWithBox(_partySwitchIndex, i)));
+        });
+        return;
+    }
+
+    if (!party || party.length === 0) {
+        grid.innerHTML = `
+            <div class="party-switch-empty">
+                <p style="font-size:16px; margin-bottom:10px;">Your Party is empty</p>
+                <p style="font-size:13px;">Add Monanimals to your party first.</p>
+            </div>`;
+        return;
+    }
+
+    party.forEach((mon, i) => {
+        grid.appendChild(renderPartySwitchAvatarCell(mon, () => swapPartyWithBox(i, _partySwitchBoxIndex)));
+    });
+}
+
+function openPartySwitchPicker(partyIndex) {
+    if (!party[partyIndex]) return;
+    _partySwitchIndex = partyIndex;
+    _partySwitchBoxIndex = null;
+    const title = document.getElementById("party-switch-title");
+    const subtitle = document.getElementById("party-switch-subtitle");
+    if (title) title.textContent = `SWITCH — ${party[partyIndex].name}`;
+    if (subtitle) subtitle.textContent = "Pick a Monanimal from your Box to swap into this party slot";
+    renderPartySwitchGrid();
+    document.getElementById("modal-party-switch")?.classList.add("open");
+}
+
+function openBoxSwitchPicker(boxIndex) {
+    if (!box[boxIndex]) return;
+    _partySwitchBoxIndex = boxIndex;
+    _partySwitchIndex = null;
+    const title = document.getElementById("party-switch-title");
+    const subtitle = document.getElementById("party-switch-subtitle");
+    if (title) title.textContent = `SWITCH — ${box[boxIndex].name}`;
+    if (subtitle) subtitle.textContent = "Pick a party member to swap with this Box Monanimal";
+    renderPartySwitchGrid();
+    document.getElementById("modal-party-switch")?.classList.add("open");
+}
+
+function swapPartyWithBox(partyIndex, boxIndex) {
+    if (!party[partyIndex] || !box[boxIndex]) return;
+    const temp = party[partyIndex];
+    party[partyIndex] = box[boxIndex];
+    box[boxIndex] = temp;
     saveData();
-    refreshSceneEnemies();
     updateUI();
-    renderBox();
+    closePartySwitchPicker();
+    if (battleScreen === "chapter" && document.getElementById("team-arrange")) {
+        renderTeamArrangement();
+    }
 }
 
 function showConfirmModal(message, onConfirm) {
@@ -4061,7 +5063,8 @@ async function logout() {
         try {
             await MonExAuth.flushCloudSave({
                 party, box, monballs, money, essence, monShards, trainerXp,
-                highestStageCleared, currentStage, gearInventory, lastResetDate, xHandle
+                highestStageCleared, adventureGlobalBest, currentChapter, currentStage,
+                gearInventory, lastResetDate, xHandle
             });
         } catch (_) {}
         await MonExAuth.logout();
@@ -4133,6 +5136,7 @@ function showMainScene() {
 }
 
 function closeAllModals() {
+    closePartySwitchPicker();
     document.querySelectorAll(".game-modal").forEach(el => el.classList.remove("open"));
 }
 
@@ -4202,6 +5206,11 @@ function renderBattleMenu() {
                            background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
                     ADVENTURE
                 </button>
+                <button onclick="enterHouseTowerMode()"
+                    style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
+                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
+                    HOUSE TOWER
+                </button>
                 <button onclick="alert('Arena coming soon!')"
                     style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
                            background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
@@ -4222,9 +5231,48 @@ function renderBattleMenu() {
     `;
 }
 
+function enterHouseTowerMode() {
+    battleScreen = "tower";
+    ensureBattleSceneOpen();
+    enterAdventureFullMode(BATTLE_BG_MENU);
+    const content = document.getElementById("battle-content");
+    content.className = "battle-scene-ui";
+    content.innerHTML = `
+        <div class="adventure-panel">
+            <h2>HOUSE TOWER</h2>
+            <p class="adv-desc" style="margin:0 0 20px; font-size:14px; color:#555; text-align:center;">
+                Choose a tower — coming soon
+            </p>
+            <div style="display:flex; flex-direction:column; gap:18px; align-items:center; width:100%;">
+                <button onclick="alert('Tower of Chog coming soon!')"
+                    style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
+                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
+                    TOWER OF CHOG
+                </button>
+                <button onclick="alert('Tower of Molandak coming soon!')"
+                    style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
+                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
+                    TOWER OF MOLANDAK
+                </button>
+                <button onclick="alert('Tower of Moyaki coming soon!')"
+                    style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
+                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
+                    TOWER OF MOYAKI
+                </button>
+                <button onclick="renderBattleMenu()"
+                    style="padding: 14px 50px; font-size: 15px; font-weight: bold; cursor: pointer;
+                           background: #f3e8ff; color: #6B21A8; border: 3px solid #6B21A8; width: min(320px, 100%);">
+                    BACK
+                </button>
+            </div>
+        </div>
+    `;
+}
+
 function openBattleScene() {
     if (isInAdventureBattle) return;
     closeAllModals();
+    stopSceneIdleBattle();
     enterAdventureFullMode(BATTLE_BG_MENU);
     document.getElementById("main-scene").style.display = "none";
     document.getElementById("battle-scene").classList.add("open");
@@ -4244,6 +5292,11 @@ function requestLeaveBattle() {
         return;
     }
     if (battleScreen === "adventure") {
+        enterAdventureFullMode(BATTLE_BG_MENU);
+        renderBattleMenu();
+        return;
+    }
+    if (battleScreen === "tower") {
         enterAdventureFullMode(BATTLE_BG_MENU);
         renderBattleMenu();
         return;
@@ -4338,8 +5391,10 @@ window.onload = async function() {
 // ==================== ADVENTURE MODE ====================
 
 function loadAdventureProgress() {
-    if (highestStageCleared < currentStage - 1) {
-        highestStageCleared = Math.max(0, currentStage - 1);
+    migrateAdventureSave();
+    const currentGlobal = getGlobalAdventureProgress(currentChapter, currentStage);
+    if (adventureGlobalBest < currentGlobal - 1) {
+        adventureGlobalBest = Math.max(0, currentGlobal - 1);
     }
 }
 
@@ -4348,6 +5403,7 @@ function saveAdventureProgress() {
 }
 
 function ensureBattleSceneOpen() {
+    stopSceneIdleBattle();
     document.getElementById("main-scene").style.display = "none";
     document.getElementById("battle-scene").classList.add("open");
 }
@@ -4365,7 +5421,7 @@ function enterAdventureMode() {
             <h2>ADVENTURE</h2>
             <button id="current-stage-btn" onclick="startStageSelection()"
                 style="font-size: 22px; padding: 22px 70px; background: #6B21A8; color: white; border: none; cursor: pointer;">
-                CHAPTER 1-${currentStage}
+                CHAPTER ${currentChapter}-${currentStage}
             </button>
         </div>
     `;
@@ -4381,7 +5437,7 @@ function startStageSelection() {
     content.className = "battle-scene-ui";
     content.innerHTML = `
         <div class="adventure-panel">
-            <h2>CHAPTER 1 - STAGE ${currentStage}${boss ? ' <span class="boss-label">BOSS</span>' : ''}</h2>
+            <h2>CHAPTER ${currentChapter} - STAGE ${currentStage}${boss ? ' <span class="boss-label">BOSS</span>' : ''}</h2>
             <p class="adv-desc" style="margin:20px 0 30px 0; font-size:15px; color:#444;">${boss ? 'Boss stage — tougher enemies and better rewards!' : 'Arrange sequence before battle start, drag and drop'}</p>
             <div id="team-arrange" style="display:flex; gap:20px; justify-content:center; margin:30px 0; flex-wrap:wrap;"></div>
             <button onclick="startAdventureBattle()" style="padding:18px 80px; font-size:20px; background:#6B21A8; color:white; border:none; cursor:pointer;">
@@ -4410,11 +5466,14 @@ function renderTeamArrangement() {
         div.dataset.index = i;
         div.innerHTML = `
             <div style="height:140px; display:flex; align-items:center; justify-content:center;">
-                <img src="${getSpritePath(mon.name)}" style="max-height:130px; max-width:130px;" alt="">
+                <img src="${getMonAvatarPath(mon)}" style="max-height:130px; max-width:130px;" alt="" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
             </div>
             <div style="text-align:center; margin-top:10px;">
                 <div class="team-slot-name">${mon.name}</div>
                 <div class="team-slot-lv">Lv.${Math.floor(mon.level)}</div>
+            </div>
+            <div class="mon-actions team-slot-actions">
+                <button type="button" onclick="event.stopPropagation(); openPartySwitchPicker(${i})">SWITCH</button>
             </div>
         `;
 
@@ -4490,31 +5549,20 @@ function makeFighter(mon, isPlayer) {
         stats,
         skills: mon.skills.map(s => ({ ...s })),
         ultimate: { ...mon.ultimate },
-        sprite: getSpritePath(mon.name),
+        sprite: getSpritePath(mon.name, mon.rarity),
         energy: 0, mana: BATTLE_MANA_MAX, maxMana: BATTLE_MANA_MAX,
         battleId: (isPlayer ? "p" : "e") + "_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
         ultimateUsed: false, lastSkillName: null, status: [], isPlayer
     };
 }
 
-function makeEnemyTeam(playerParty, stage) {
-    const baseLevel = Math.floor(playerParty[0].level);
+function makeEnemyTeam(chapter, stage) {
+    const globalProgress = getGlobalAdventureProgress(chapter, stage);
     const boss = isBossStage(stage);
     const team = [];
     for (let i = 0; i < 3; i++) {
         const name = MONANIMAL_NAMES[randInt(0, MONANIMAL_NAMES.length - 1)];
-        let rarity = boss && i === 0 ? rollRarityAtLeast("Rare") : getRarityRoll();
-        const level = Math.max(1, baseLevel + (boss ? 2 : 0) - 2 + randInt(0, boss ? 5 : 4));
-        const mon = { name, rarity, level, max_hp: getMaxHP(level, rarity) };
-        mon.current_hp = mon.max_hp;
-        mon.stats = generateStats(rarity);
-        mon.statVersion = STAT_SYSTEM_VERSION;
-        if (boss) {
-            mon.stats.crit += 8;
-            mon.stats.spd += 10;
-        }
-        mon.skills = generateSkills(name, rarity);
-        mon.ultimate = { ...mon.skills[0] };
+        const mon = buildAdventureEnemyMon(name, globalProgress, i, boss);
         team.push(makeFighter(mon, false));
     }
     return team;
@@ -4530,7 +5578,7 @@ function start3v3Battle(playerParty) {
     setAdventureMode(true);
     setBattleSceneBackground(BATTLE_BG_MENU);
     const playerTeam = playerParty.slice(0, 3).map(m => makeFighter(m, true));
-    const enemyTeam = makeEnemyTeam(playerParty, currentStage);
+    const enemyTeam = makeEnemyTeam(currentChapter, currentStage);
     renderBattleScene();
     setBattleFightingUI(true);
     runBattle(playerTeam, enemyTeam, adventureBattleToken);
@@ -4572,7 +5620,7 @@ function renderBattleScene() {
                     <button type="button" class="battle-pause-btn" id="battle-pause-btn" onclick="openBattlePauseMenu()">⏸ PAUSE</button>
                 </div>
             </div>
-            <div class="stage-label${boss ? ' boss-label' : ''}">${boss ? 'BOSS — ' : ''}CH.${getChapter(currentStage)} STAGE ${currentStage}</div>
+            <div class="stage-label${boss ? ' boss-label' : ''}">${boss ? 'BOSS — ' : ''}CH.${currentChapter} STAGE ${currentStage}</div>
             <div class="fighter-wrap enemy" id="wrap-enemy">
                 <img class="bsprite" id="sprite-enemy" onerror="this.style.visibility='hidden'">
             </div>
@@ -4978,27 +6026,35 @@ function endBattle(win, player) {
     if (win) {
         const boss = isBossStage(currentStage);
         const mult = boss ? 2 : 1;
-        reward.gold = (80 + currentStage * 12) * mult;
-        reward.essence = (10 + currentStage * 4) * mult;
-        reward.trainerXp = Math.floor((50 + currentStage * 25) * (boss ? 1.5 : 1));
+        const globalP = getGlobalAdventureProgress(currentChapter, currentStage);
+        reward.gold = (80 + globalP * 12) * mult;
+        reward.essence = (10 + globalP * 4) * mult;
+        reward.trainerXp = Math.floor((50 + globalP * 25) * (boss ? 1.5 : 1));
         if (boss && isEquipmentUnlocked()) {
-            const gear = rollGearDrop(currentStage, true);
+            const gear = rollGearDrop(currentChapter, true);
             if (gear) { gearInventory.push(gear); reward.gear = gear; }
-            reward.shards = 1 + Math.floor(currentStage / 15);
+            reward.shards = 1 + Math.floor(globalP / 15);
         } else if (boss) {
-            reward.shards = 2 + Math.floor(currentStage / 10);
+            reward.shards = 2 + Math.floor(globalP / 10);
         } else if (isEquipmentUnlocked() && Math.random() < 0.12) {
-            const gear = rollGearDrop(currentStage, false);
+            const gear = rollGearDrop(currentChapter, false);
             if (gear) { gearInventory.push(gear); reward.gear = gear; }
-        } else if (currentStage >= 3 && Math.random() < 0.25) {
+        } else if (globalP >= 3 && Math.random() < 0.25) {
             reward.shards = 1;
         }
         money += reward.gold;
         essence += reward.essence;
         monShards += reward.shards;
         addTrainerXp(reward.trainerXp);
-        highestStageCleared = Math.max(highestStageCleared, currentStage);
-        currentStage = Math.min(40, currentStage + 1);
+        adventureGlobalBest = Math.max(adventureGlobalBest, globalP);
+        const best = globalProgressToChapterStage(adventureGlobalBest);
+        highestStageCleared = best.stage;
+        if (currentStage >= STAGES_PER_CHAPTER) {
+            currentChapter++;
+            currentStage = 1;
+        } else {
+            currentStage++;
+        }
         saveAdventureProgress();
     }
 

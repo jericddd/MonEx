@@ -124,6 +124,8 @@ function buildSavePayload(state) {
     monShards: state.monShards,
     trainerXp: state.trainerXp,
     highestStageCleared: state.highestStageCleared,
+    adventureGlobalBest: state.adventureGlobalBest,
+    currentChapter: state.currentChapter,
     currentStage: state.currentStage,
     gearInventory: state.gearInventory,
     lastResetDate: state.lastResetDate,

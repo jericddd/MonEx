@@ -9,6 +9,8 @@ export const DEFAULT_SAVE = {
   monShards: 0,
   trainerXp: 0,
   highestStageCleared: 0,
+  adventureGlobalBest: 0,
+  currentChapter: 1,
   currentStage: 1,
   gearInventory: [],
   lastResetDate: null,
@@ -32,6 +34,10 @@ export function buildSavePayload(body, session) {
     highestStageCleared: Number.isFinite(src.highestStageCleared)
       ? src.highestStageCleared
       : DEFAULT_SAVE.highestStageCleared,
+    adventureGlobalBest: Number.isFinite(src.adventureGlobalBest)
+      ? src.adventureGlobalBest
+      : (Number.isFinite(src.highestStageCleared) ? src.highestStageCleared : DEFAULT_SAVE.adventureGlobalBest),
+    currentChapter: Number.isFinite(src.currentChapter) ? src.currentChapter : DEFAULT_SAVE.currentChapter,
     currentStage: Number.isFinite(src.currentStage) ? src.currentStage : DEFAULT_SAVE.currentStage,
     gearInventory: Array.isArray(src.gearInventory) ? src.gearInventory : DEFAULT_SAVE.gearInventory,
     lastResetDate: src.lastResetDate || null,
