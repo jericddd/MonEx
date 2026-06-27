@@ -12,6 +12,7 @@
     --game-max-width: 1400px;
     --game-side-pad: 30px;
     --monad-purple: #200052;
+    --scene-fighter-size: 112px;
 }
 
 body {
@@ -1315,6 +1316,27 @@ body.afk-layout .currency-pill .currency-tip {
     box-sizing: border-box;
     z-index: 1;
 }
+.scene-upper-zone {
+    flex: 1 1 auto;
+    min-height: 120px;
+    position: relative;
+    z-index: 2;
+    pointer-events: none;
+}
+.scene-upper-zone > * {
+    pointer-events: auto;
+}
+.scene-battle-dock {
+    flex: 0 0 auto;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding: 0 80px 14px;
+    box-sizing: border-box;
+    z-index: 3;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.22) 55%, rgba(0, 0, 0, 0.35) 100%);
+}
 .main-scene::before {
     content: "";
     position: absolute;
@@ -1337,28 +1359,31 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-battle-row {
     display: flex;
     width: 100%;
-    flex: 1;
+    max-width: 480px;
+    flex: 0 0 auto;
     justify-content: center;
-    align-items: center;
+    align-items: flex-end;
     position: relative;
     z-index: 1;
-    padding: 0 16px 48px;
+    padding: 6px 8px 2px;
     box-sizing: border-box;
 }
 .scene-idle-arena {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
     gap: 0;
     max-width: 100%;
+    transform: scale(0.92);
+    transform-origin: center bottom;
 }
 .scene-idle-team {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
+    justify-content: flex-end;
+    gap: 4px;
     overflow: visible;
 }
 .scene-idle-team.heroes {
@@ -1369,8 +1394,8 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .scene-idle-fighter {
     position: relative;
-    width: 176px;
-    height: 176px;
+    width: var(--scene-fighter-size, 112px);
+    height: var(--scene-fighter-size, 112px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1381,21 +1406,21 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .scene-idle-fighter.hero { z-index: 2; }
 .scene-idle-fighter.enemy { z-index: 1; }
-.scene-idle-fighter.hero.slot-0 { margin-right: 6px; margin-top: 0; }
-.scene-idle-fighter.hero.slot-1 { margin-right: 22px; margin-top: -10px; }
-.scene-idle-fighter.hero.slot-2 { margin-right: -8px; margin-top: 12px; }
-.scene-idle-fighter.enemy.slot-0 { margin-left: 6px; margin-top: 4px; }
-.scene-idle-fighter.enemy.slot-1 { margin-left: 20px; margin-top: -8px; }
-.scene-idle-fighter.enemy.slot-2 { margin-left: -10px; margin-top: 10px; }
+.scene-idle-fighter.hero.slot-0 { margin-right: 4px; margin-top: 0; }
+.scene-idle-fighter.hero.slot-1 { margin-right: 14px; margin-top: -6px; }
+.scene-idle-fighter.hero.slot-2 { margin-right: -5px; margin-top: 8px; }
+.scene-idle-fighter.enemy.slot-0 { margin-left: 4px; margin-top: 2px; }
+.scene-idle-fighter.enemy.slot-1 { margin-left: 12px; margin-top: -5px; }
+.scene-idle-fighter.enemy.slot-2 { margin-left: -6px; margin-top: 6px; }
 .scene-idle-sprite {
-    width: 176px;
-    height: 176px;
+    width: var(--scene-fighter-size, 112px);
+    height: var(--scene-fighter-size, 112px);
     max-width: none;
     max-height: none;
     object-fit: contain;
     object-position: center bottom;
     image-rendering: pixelated;
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5));
     pointer-events: none;
 }
 .scene-idle-sprite.mirrored { transform: scaleX(-1); }
@@ -1411,9 +1436,10 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .scene-idle-fighter .scene-hp-bar {
     position: absolute;
-    bottom: -10px;
+    bottom: -8px;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) scale(0.85);
+    transform-origin: center top;
 }
 .scene-fighters {
     display: flex;
@@ -2145,7 +2171,14 @@ body.afk-layout .currency-pill .currency-tip {
         justify-content: center;
     }
     .game-container { flex-direction: column; min-height: auto; }
-    .main-scene { min-height: 420px; padding-bottom: 72px; }
+    .main-scene { min-height: 420px; }
+    .scene-battle-dock {
+        padding: 0 10px 88px;
+    }
+    .scene-idle-arena {
+        transform: scale(0.84);
+    }
+    :root { --scene-fighter-size: 96px; }
     .side-rail,
     .left-rail {
         position: absolute;
@@ -2216,10 +2249,13 @@ body.afk-layout .currency-pill .currency-tip {
     <img class="scene-bg" src="for%20result%20banner/battlebackground.jpg" alt="">
     <div id="main-scene" class="main-scene">
         <div class="scene-stage-label" id="scene-stage-label">Chapter 1-1</div>
-        <div class="scene-battle-row">
-            <div class="scene-idle-arena" id="scene-idle-arena">
-                <div class="scene-idle-team heroes" id="scene-heroes"></div>
-                <div class="scene-idle-team enemies" id="scene-enemies"></div>
+        <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions"></div>
+        <div class="scene-battle-dock">
+            <div class="scene-battle-row">
+                <div class="scene-idle-arena" id="scene-idle-arena">
+                    <div class="scene-idle-team heroes" id="scene-heroes"></div>
+                    <div class="scene-idle-team enemies" id="scene-enemies"></div>
+                </div>
             </div>
         </div>
     </div>
