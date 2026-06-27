@@ -2997,17 +2997,30 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
         const attackPath = isJohnw(atkMon.name) ? pickJohnwSwingSprite() : getAttackSpritePath(atkMon.name);
         const idleSprite = getSceneIdleHomeSprite(atkMon.name);
         if (attackPath) {
-            setSceneIdleSprite(atkImg, attackPath);
-            const durationMs = getSceneSpriteDurationMs(attackPath, atkMon.name);
-            const hitAtMs = getSceneSpriteHitAtMs(attackPath, atkMon.name, durationMs);
-            await delay(hitAtMs);
-            if (token !== sceneIdleBattleToken) return;
-            defEl.classList.add("hit-shake");
-            setTimeout(() => defEl.classList.remove("hit-shake"), 300);
-            await waitSceneGifMs(durationMs - hitAtMs, token);
-            if (token !== sceneIdleBattleToken) return;
-            setSceneIdleSprite(atkImg, idleSprite);
-            await waitSceneGifComplete(idleSprite, atkMon.name, token);
+            if (atkMon.name === "Chog") {
+                setSceneIdleSprite(atkImg, attackPath);
+                const hitAtMs = ATTACK_HIT_AT_MS.Chog || 360;
+                const durationMs = ATTACK_SPRITE_DURATION_MS.Chog || 960;
+                await delay(hitAtMs);
+                if (token !== sceneIdleBattleToken) return;
+                defEl.classList.add("hit-shake");
+                setTimeout(() => defEl.classList.remove("hit-shake"), 300);
+                const remain = durationMs - hitAtMs;
+                if (remain > 0) await delay(remain);
+                atkImg.src = idleSprite;
+            } else {
+                setSceneIdleSprite(atkImg, attackPath);
+                const durationMs = getSceneSpriteDurationMs(attackPath, atkMon.name);
+                const hitAtMs = getSceneSpriteHitAtMs(attackPath, atkMon.name, durationMs);
+                await delay(hitAtMs);
+                if (token !== sceneIdleBattleToken) return;
+                defEl.classList.add("hit-shake");
+                setTimeout(() => defEl.classList.remove("hit-shake"), 300);
+                await waitSceneGifMs(durationMs - hitAtMs, token);
+                if (token !== sceneIdleBattleToken) return;
+                setSceneIdleSprite(atkImg, idleSprite);
+                await waitSceneGifComplete(idleSprite, atkMon.name, token);
+            }
         } else {
             await delay(280);
             if (token !== sceneIdleBattleToken) return;
