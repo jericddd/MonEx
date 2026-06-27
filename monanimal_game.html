@@ -1395,16 +1395,16 @@ body.afk-layout .currency-pill .currency-tip {
     justify-content: flex-start;
 }
 .scene-idle-row.row-slot-0 .scene-idle-pair {
-    transform: translateX(48px);
+    transform: translateX(72px);
 }
 .scene-idle-row.row-slot-2 .scene-idle-pair {
-    transform: translateX(-32px);
+    transform: translateX(-18px);
+}
+.scene-idle-row.row-right .scene-idle-pair {
+    transform: translateX(44px);
 }
 .scene-idle-row.row-right {
     justify-content: flex-end;
-}
-.scene-idle-row.row-right .scene-idle-pair {
-    transform: translateX(52px);
 }
 .scene-idle-pair {
     display: flex;
@@ -2203,14 +2203,14 @@ body.afk-layout .currency-pill .currency-tip {
     .scene-idle-row + .scene-idle-row {
         margin-top: -35px;
     }
-    .scene-idle-row.row-left .scene-idle-pair {
-        transform: translateX(-18px);
+    .scene-idle-row.row-slot-0 .scene-idle-pair {
+        transform: translateX(52px);
     }
-    .scene-idle-row.row-left:first-child .scene-idle-pair {
-        transform: translateX(-13px);
+    .scene-idle-row.row-slot-2 .scene-idle-pair {
+        transform: translateX(-14px);
     }
     .scene-idle-row.row-right .scene-idle-pair {
-        transform: translateX(36px);
+        transform: translateX(32px);
     }
     .scene-idle-pair .scene-idle-fighter.enemy {
         margin-left: -12px;
@@ -2743,6 +2743,7 @@ let sceneIdleEnemyChapter = 0;
 let sceneIdleEnemyTeam = [];
 let sceneIdleBattleToken = 0;
 let sceneIdleBattleSignature = "";
+const SCENE_IDLE_LAYOUT_REV = 5;
 let sceneIdleBattleRunning = false;
 let xHandle = "";
 let profileActivityTimer = null;
@@ -2942,10 +2943,18 @@ function invalidateSceneIdleEnemies() {
 
 function getSceneIdleBattleSignature(heroes, enemies) {
     return JSON.stringify({
+        layout: SCENE_IDLE_LAYOUT_REV,
         chapter: currentChapter,
         heroes: heroes.map((m) => m.name),
         enemies: enemies.map((e) => e.name),
     });
+}
+
+function getSceneIdlePairOffset(idx) {
+    if (idx === 0) return "transform:translateX(72px);";
+    if (idx === 1) return "transform:translateX(44px);";
+    if (idx === 2) return "transform:translateX(-18px);";
+    return "";
 }
 
 function renderSceneIdleFighter(team, index, mon) {
@@ -2971,14 +2980,18 @@ function buildSceneIdleBattleDOM(heroes, enemies) {
 
     const heroSlots = heroes.slice(0, 3);
     const enemySlots = enemies.slice(0, 3);
-    const rowLayout = ["row-left", "row-right", "row-left"];
+    const rowLayout = [
+        { cls: "row-left row-slot-0" },
+        { cls: "row-right row-slot-1" },
+        { cls: "row-left row-slot-2" },
+    ];
 
-    arenaEl.innerHTML = rowLayout.map((rowClass, idx) => {
+    arenaEl.innerHTML = rowLayout.map(({ cls }, idx) => {
         const hero = heroSlots[idx];
         const enemy = enemySlots[idx];
         const heroHtml = hero ? renderSceneIdleFighter("hero", idx, hero) : "";
         const enemyHtml = enemy ? renderSceneIdleFighter("enemy", idx, enemy) : "";
-        return `<div class="scene-idle-row ${rowClass}"><div class="scene-idle-pair">${heroHtml}${enemyHtml}</div></div>`;
+        return `<div class="scene-idle-row ${cls}"><div class="scene-idle-pair" style="${getSceneIdlePairOffset(idx)}">${heroHtml}${enemyHtml}</div></div>`;
     }).join("");
 }
 
