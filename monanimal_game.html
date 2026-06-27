@@ -2774,12 +2774,38 @@ let gearInventory = [];
 let _gearIdSeq = 0;
 
 // ==================== HELPER FUNCTIONS ====================
-function getSpritePath(name) {
+function getMonPngPath(name) {
+    return `128x128/${String(name || "").toLowerCase()}.png`;
+}
+
+function getMonGifPath(name) {
+    return `128x128/${String(name || "").toLowerCase()}.gif`;
+}
+
+function isLegendaryOrAbove(rarity) {
+    const rank = RARITY_ORDER.indexOf(rarity);
+    const legRank = RARITY_ORDER.indexOf("Legendary");
+    return rank >= legRank && rank >= 0;
+}
+
+function getMonAvatarPath(mon) {
+    const name = mon?.name || mon;
+    const rarity = mon?.rarity;
     if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
-    if (name === "Chog" || name === "Mopo" || name === "Anago" || name === "Molandak") {
-        return `128x128/${name.toLowerCase()}.gif`;
-    }
-    return `128x128/${name.toLowerCase()}.png`;
+    if (rarity && isLegendaryOrAbove(rarity)) return getMonGifPath(name);
+    return getMonPngPath(name);
+}
+
+function getMonAvatarFallbackPath(mon) {
+    const name = mon?.name || mon;
+    if (isJohnw(name)) return JOHNW_PNG_SPRITE;
+    return getMonPngPath(name);
+}
+
+function getSpritePath(name, rarity) {
+    if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
+    if (rarity && isLegendaryOrAbove(rarity)) return getMonGifPath(name);
+    return getMonPngPath(name);
 }
 
 const JOHNW_ENEMY_NAME = "Johnw";
@@ -2866,9 +2892,9 @@ function getSceneFighterSprite(name) {
     return getAttackSpritePath(name) || `128x128/${name.toLowerCase()}.png`;
 }
 
-function getSceneIdleHomeSprite(name) {
-    if (isJohnw(name)) return getJohnwIdleSprite();
-    return getSpritePath(name);
+function getSceneIdleHomeSprite(mon) {
+    if (typeof mon === "object" && mon?.name) return getMonAvatarPath(mon);
+    return getSpritePath(mon);
 }
 
 function normalizeSpritePath(src) {
@@ -2919,6 +2945,10 @@ function makeSeededRand(seed) {
     };
 }
 
+// Main scene idle battle rules:
+// - Heroes: first 3 mons from the active Party tab (party[]).
+// - Enemies: always 3 Johnw for every user on the main scene (adventure fights unchanged).
+
 function makeSceneIdleEnemyTeam() {
     return [
         { name: JOHNW_ENEMY_NAME },
@@ -2928,24 +2958,20 @@ function makeSceneIdleEnemyTeam() {
 }
 
 function ensureSceneIdleEnemies() {
-    if (sceneIdleEnemyTeam.length !== 3) {
+    if (sceneIdleEnemyTeam.length !== 3 || sceneIdleEnemyTeam.some((e) => !isJohnw(e.name))) {
         sceneIdleEnemyTeam = makeSceneIdleEnemyTeam();
-        sceneIdleEnemyChapter = currentChapter;
     }
 }
 
 function invalidateSceneIdleEnemies() {
-    sceneIdleEnemyChapter = 0;
     sceneIdleEnemyTeam = [];
     sceneIdleBattleSignature = "";
 }
 
-function getSceneIdleBattleSignature(heroes, enemies) {
+function getSceneIdleBattleSignature(heroes) {
     return JSON.stringify({
         layout: SCENE_IDLE_LAYOUT_REV,
-        chapter: currentChapter,
         heroes: heroes.map((m) => m.name),
-        enemies: enemies.map((e) => e.name),
     });
 }
 
@@ -2959,8 +2985,8 @@ function getSceneIdlePairOffset(idx) {
 function renderSceneIdleFighter(team, index, mon) {
     const side = team === "hero" ? "hero" : "enemy";
     const slotClass = index === 0 ? "slot-0" : index === 1 ? "slot-1" : "slot-2";
-    const sprite = getSceneIdleHomeSprite(mon.name);
-    const fallback = isJohnw(mon.name) ? JOHNW_PNG_SPRITE : getSpritePath(mon.name);
+    const sprite = getMonAvatarPath(mon);
+    const fallback = getMonAvatarFallbackPath(mon);
     const mirrored = shouldMirrorBattleSprite(team === "hero" ? "player" : "enemy", mon.name) ? " mirrored" : "";
     return `
         <div class="scene-idle-fighter ${side} ${slotClass}" id="scene-idle-${team}-${index}" data-team="${team}" data-index="${index}">
@@ -3057,7 +3083,7 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
     sceneIdleFighterBusy.add(busyKey);
     try {
         const attackPath = isJohnw(atkMon.name) ? pickJohnwSwingSprite() : getAttackSpritePath(atkMon.name);
-        const idleSprite = getSceneIdleHomeSprite(atkMon.name);
+        const idleSprite = getSceneIdleHomeSprite(atkMon);
         if (attackPath) {
             if (atkMon.name === "Chog") {
                 setSceneIdleSprite(atkImg, attackPath);
@@ -4353,7 +4379,7 @@ function renderPartyGrid() {
         card.innerHTML = `
     ${renderStatsInfo(mon)}
     <div class="mon-sprite">
-        <img src="${getSpritePath(mon.name)}" alt="${mon.name}" style="max-width:110px; max-height:110px;" onerror="this.style.display='none'">
+        <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" style="max-width:110px; max-height:110px;" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
     </div>
     <div class="mon-name">${mon.name}</div>
     <div class="type-tags">
@@ -4382,8 +4408,7 @@ function renderMainScene() {
 
     ensureSceneIdleEnemies();
     const heroes = party.slice(0, 3);
-    const enemies = sceneIdleEnemyTeam.slice(0, 3);
-    const signature = getSceneIdleBattleSignature(heroes, enemies);
+    const signature = getSceneIdleBattleSignature(heroes);
     const arenaEl = document.getElementById("scene-idle-arena");
     const needsLayoutRefresh = arenaEl && !arenaEl.querySelector(".scene-idle-row.row-slot-0");
 
@@ -4432,7 +4457,7 @@ function renderBox() {
         card.innerHTML = `
     ${renderStatsInfo(mon)}
     <div class="mon-sprite">
-        <img src="${getSpritePath(mon.name) || ''}" alt="${mon.name}" style="max-width:96px; max-height:96px;" onerror="this.style.display='none'">
+        <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" style="max-width:96px; max-height:96px;" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
     </div>
     <div class="mon-name">${mon.name}</div>
     <div class="type-tags">
@@ -4723,7 +4748,7 @@ function renderPartySwitchAvatarCell(mon, onClick) {
     cell.className = `party-switch-avatar ${getRarityClass(mon.rarity)}`;
     cell.innerHTML = `
         <span class="party-switch-lv">Lv.${Math.floor(mon.level)}</span>
-        <img src="${getSpritePath(mon.name)}" alt="${mon.name}" onerror="this.style.opacity='0.3'">
+        <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
         <div class="party-switch-hover-tip">
             <div class="party-switch-tip-name">${mon.name}</div>
             <span class="party-switch-tip-rarity ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
@@ -5395,7 +5420,7 @@ function renderTeamArrangement() {
         div.dataset.index = i;
         div.innerHTML = `
             <div style="height:140px; display:flex; align-items:center; justify-content:center;">
-                <img src="${getSpritePath(mon.name)}" style="max-height:130px; max-width:130px;" alt="">
+                <img src="${getMonAvatarPath(mon)}" style="max-height:130px; max-width:130px;" alt="" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
             </div>
             <div style="text-align:center; margin-top:10px;">
                 <div class="team-slot-name">${mon.name}</div>
@@ -5478,7 +5503,7 @@ function makeFighter(mon, isPlayer) {
         stats,
         skills: mon.skills.map(s => ({ ...s })),
         ultimate: { ...mon.ultimate },
-        sprite: getSpritePath(mon.name),
+        sprite: getSpritePath(mon.name, mon.rarity),
         energy: 0, mana: BATTLE_MANA_MAX, maxMana: BATTLE_MANA_MAX,
         battleId: (isPlayer ? "p" : "e") + "_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
         ultimateUsed: false, lastSkillName: null, status: [], isPlayer
