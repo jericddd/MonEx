@@ -2535,6 +2535,7 @@ const SPRITE_MAP = {
 };
 
 // Damage actives and heal actives are separate RNG pools — neither is guaranteed per mon.
+// Each mon may have at most one heal active (Mend, Renew, Life Bloom, or Cleanse).
 // Each active slot (3rd+) rolls once from the combined pool.
 const DAMAGE_ACTIVE_POOL = [
     {name: "Slash",         element: "physical", type: "active", power: 1.0,  desc: "A swift physical slash."},
@@ -2601,6 +2602,18 @@ function pickUniqueSkill(pool, usedNames) {
     const skill = available[randInt(0, available.length - 1)];
     usedNames.add(skill.name);
     return { ...skill };
+}
+
+function isHealActiveSkill(skill) {
+    return skill && skill.type === "heal";
+}
+
+function monHasHealActive(skills) {
+    return (skills || []).some(isHealActiveSkill);
+}
+
+function getActiveSkillPoolForMon(skills) {
+    return monHasHealActive(skills) ? DAMAGE_ACTIVE_POOL : ACTIVE_SKILL_POOL;
 }
 
 // Passive skills are also RNG-rolled. They apply continuously in battle.
@@ -3442,6 +3455,8 @@ function needsSkillMigration(mon) {
     }
     const rngNames = mon.skills.slice(1).map(skill => skill.name);
     if (new Set(rngNames).size !== rngNames.length) return true;
+    const healActives = mon.skills.filter(isHealActiveSkill);
+    if (healActives.length > 1) return true;
     return false;
 }
 
@@ -3457,7 +3472,7 @@ function expandSkillsForRarity(mon) {
     const expected = getSkillCount(mon.rarity);
     const usedNames = new Set(mon.skills.map(skill => skill.name));
     while (mon.skills.length < expected) {
-        const skill = pickUniqueSkill(ACTIVE_SKILL_POOL, usedNames);
+        const skill = pickUniqueSkill(getActiveSkillPoolForMon(mon.skills), usedNames);
         if (!skill) break;
         mon.skills.push(skill);
     }
@@ -3664,7 +3679,7 @@ function renderSkillsGrid(mon) {
     return `<div class="skills-grid">${squares}</div>`;
 }
 
-// Slot 1 ultimate (fixed), slot 2 passive (RNG), slots 3+ damage/heal actives (RNG — heal not guaranteed).
+// Slot 1 ultimate (fixed), slot 2 passive (RNG), slots 3+ actives (RNG — at most one heal incl. Cleanse).
 function generateSkills(name, rarity) {
     const count = getSkillCount(rarity);
     const usedNames = new Set();
@@ -3672,7 +3687,7 @@ function generateSkills(name, rarity) {
     const passive = pickUniqueSkill(PASSIVE_SKILL_POOL, usedNames);
     if (passive) skills.push(passive);
     while (skills.length < count) {
-        const active = pickUniqueSkill(ACTIVE_SKILL_POOL, usedNames);
+        const active = pickUniqueSkill(getActiveSkillPoolForMon(skills), usedNames);
         if (!active) break;
         skills.push(active);
     }
@@ -4974,9 +4989,9 @@ function grantTestBattleParty() {
     if (localStorage.getItem(flagKey)) return;
 
     party = [
-        buildTestMon("Chog", "Rare", 15, "Eagle Eye", ["Mend", "Cleanse", "Shock Bolt"]),
+        buildTestMon("Chog", "Rare", 15, "Eagle Eye", ["Cleanse", "Shock Bolt", "Flame Burst"]),
         buildTestMon("Molandak", "Rare", 15, "Swift Feet", ["Renew", "Frost Shard", "Slash"]),
-        buildTestMon("Larvanad", "Rare", 15, "Piercing Gaze", ["Life Bloom", "Venom Bite", "Cleanse"]),
+        buildTestMon("Larvanad", "Rare", 15, "Piercing Gaze", ["Life Bloom", "Venom Bite", "Rock Throw"]),
     ];
     localStorage.setItem(flagKey, "1");
     saveData();
