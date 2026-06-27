@@ -115,13 +115,18 @@ body {
     border-radius: 0;
     padding: 14px;
     box-sizing: border-box;
-    transition: all 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
     position: relative;
     overflow: visible;
 }
+.mon-card.rarity-common { border-color: #111; box-shadow: 4px 4px 0 #111; }
+.mon-card.rarity-uncommon { border-color: #16a34a; box-shadow: 4px 4px 0 #16a34a; }
+.mon-card.rarity-rare { border-color: #2563eb; box-shadow: 4px 4px 0 #2563eb; }
+.mon-card.rarity-legendary { border-color: #ca8a04; box-shadow: 4px 4px 0 #ca8a04; }
+.mon-card.rarity-mythic { border-color: #9f1239; box-shadow: 4px 4px 0 #9f1239; }
 .mon-card:hover {
-    border-color: #A855F7;
-    box-shadow: 0 8px 25px rgba(107, 33, 168, 0.15);
+    border-color: #A855F7 !important;
+    box-shadow: 0 8px 25px rgba(107, 33, 168, 0.15) !important;
 }
 .mon-sprite {
     width: 100%;
@@ -4419,7 +4424,7 @@ function renderPartyGrid() {
         const levelBtn = renderLevelUpBtn(index, mon, cost, atCap, cap);
 
         const card = document.createElement("div");
-        card.className = "mon-card";
+        card.className = `mon-card ${getRarityClass(mon.rarity)}`;
         card.style.cursor = "pointer";
         card.innerHTML = `
     ${renderStatsInfo(mon)}
@@ -4499,7 +4504,7 @@ function renderBox() {
         const cap = getLevelCap(mon);
 
         const card = document.createElement("div");
-        card.className = "mon-card";
+        card.className = `mon-card ${getRarityClass(mon.rarity)}`;
         card.innerHTML = `
     ${renderStatsInfo(mon)}
     <div class="mon-sprite">
