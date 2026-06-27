@@ -5348,7 +5348,8 @@ function makeEnemyTeam(chapter, stage) {
     const boss = isBossStage(stage);
     const team = [];
     for (let i = 0; i < 3; i++) {
-        const mon = buildAdventureEnemyMon(JOHNW_ENEMY_NAME, globalProgress, i, boss);
+        const name = MONANIMAL_NAMES[randInt(0, MONANIMAL_NAMES.length - 1)];
+        const mon = buildAdventureEnemyMon(name, globalProgress, i, boss);
         team.push(makeFighter(mon, false));
     }
     return team;
