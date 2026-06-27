@@ -1332,7 +1332,7 @@ body.afk-layout .currency-pill .currency-tip {
     display: flex;
     justify-content: center;
     align-items: flex-end;
-    padding: 0 80px 14px;
+    padding: 0 80px 10px;
     box-sizing: border-box;
     z-index: 3;
     background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.22) 55%, rgba(0, 0, 0, 0.35) 100%);
@@ -1365,7 +1365,7 @@ body.afk-layout .currency-pill .currency-tip {
     align-items: flex-end;
     position: relative;
     z-index: 1;
-    padding: 6px 8px 2px;
+    padding: 2px 8px 0;
     box-sizing: border-box;
 }
 .scene-idle-arena {
@@ -1373,10 +1373,10 @@ body.afk-layout .currency-pill .currency-tip {
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-end;
-    gap: 6px;
+    gap: 0;
     width: 100%;
     max-width: 520px;
-    min-height: calc(var(--scene-fighter-size, 112px) * 2.8);
+    min-height: calc(var(--scene-fighter-size, 112px) * 1.44);
     transform: scale(0.92);
     transform-origin: center bottom;
 }
@@ -1385,8 +1385,11 @@ body.afk-layout .currency-pill .currency-tip {
     flex-direction: row;
     align-items: flex-end;
     width: 100%;
-    min-height: calc(var(--scene-fighter-size, 112px) * 0.92);
+    min-height: calc(var(--scene-fighter-size, 112px) * 0.58);
     overflow: visible;
+}
+.scene-idle-row + .scene-idle-row {
+    margin-top: -30px;
 }
 .scene-idle-row.row-left {
     justify-content: flex-start;
@@ -2192,6 +2195,10 @@ body.afk-layout .currency-pill .currency-tip {
     }
     .scene-idle-arena {
         transform: scale(0.84);
+        min-height: calc(var(--scene-fighter-size, 96px) * 2.05);
+    }
+    .scene-idle-row + .scene-idle-row {
+        margin-top: -22px;
     }
     .scene-idle-row.row-left .scene-idle-pair {
         transform: translateX(-18px);
