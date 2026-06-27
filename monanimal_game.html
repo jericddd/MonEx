@@ -1817,26 +1817,43 @@ body.afk-layout .currency-pill .currency-tip {
 #modal-party-switch.game-modal { z-index: 260; }
 #modal-party-switch .game-modal-panel {
     width: auto;
-    max-width: min(380px, 96vw);
-    overflow: visible;
+    max-width: min(560px, 98vw);
+    max-height: min(88vh, 720px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 #modal-party-switch .game-modal-body {
-    overflow: visible;
+    overflow: hidden;
     padding-top: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1 1 auto;
 }
 .party-switch-subtitle {
     text-align: center;
     font-size: 11px;
     color: #666;
-    margin: 0 0 12px;
+    margin: 0 0 10px;
     font-family: 'Lato', sans-serif;
+    flex-shrink: 0;
+}
+.party-switch-scroll {
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: min(52vh, 400px);
+    padding: 2px 8px 10px;
+    box-sizing: border-box;
 }
 .party-switch-grid {
     display: grid;
-    grid-template-columns: repeat(5, 44px);
+    grid-template-columns: repeat(10, 44px);
     justify-content: center;
     gap: 6px;
-    padding: 4px 4px 16px;
+    padding: 4px 2px 8px;
     overflow: visible;
 }
 .party-switch-avatar {
@@ -1872,22 +1889,22 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .party-switch-hover-tip {
     display: none;
-    position: absolute;
-    bottom: calc(100% + 10px);
-    left: 50%;
-    transform: translateX(-50%);
+    position: fixed;
+    left: 0;
+    top: 0;
+    transform: none;
     min-width: 200px;
     max-width: 260px;
     padding: 10px 12px;
     background: #1a1028;
     border: 3px solid #6B21A8;
     box-shadow: 4px 4px 0 #6B21A8;
-    z-index: 400;
+    z-index: 500;
     text-align: left;
     pointer-events: none;
 }
 .party-switch-avatar:hover { z-index: 50; }
-.party-switch-avatar:hover .party-switch-hover-tip { display: block; }
+.party-switch-avatar.is-tip-open .party-switch-hover-tip { display: block; }
 .party-switch-tip-name {
     font-family: 'Press Start 2P', monospace;
     font-size: 9px;
@@ -2178,7 +2195,9 @@ body.afk-layout .currency-pill .currency-tip {
         </div>
         <div class="game-modal-body">
             <p class="party-switch-subtitle">Pick a Monanimal from your Box to swap into this party slot</p>
-            <div class="party-switch-grid" id="party-switch-grid"></div>
+            <div class="party-switch-scroll">
+                <div class="party-switch-grid" id="party-switch-grid"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -4051,6 +4070,56 @@ function renderPartySwitchSkillList(mon) {
     }).join("");
 }
 
+function positionPartySwitchTip(cell) {
+    const tip = cell.querySelector(".party-switch-hover-tip");
+    if (!tip) return;
+
+    tip.style.display = "block";
+    tip.style.visibility = "hidden";
+    const tipRect = tip.getBoundingClientRect();
+    const cellRect = cell.getBoundingClientRect();
+    const gap = 10;
+    const pad = 12;
+
+    let top = cellRect.top - tipRect.height - gap;
+    tip.classList.remove("tip-below");
+
+    if (top < pad) {
+        top = cellRect.bottom + gap;
+        tip.classList.add("tip-below");
+        if (top + tipRect.height > window.innerHeight - pad) {
+            top = Math.max(pad, cellRect.top - tipRect.height - gap);
+            tip.classList.remove("tip-below");
+        }
+    }
+
+    let left = cellRect.left + cellRect.width / 2 - tipRect.width / 2;
+    left = Math.max(pad, Math.min(left, window.innerWidth - tipRect.width - pad));
+
+    tip.style.top = `${top}px`;
+    tip.style.left = `${left}px`;
+    tip.style.visibility = "visible";
+    cell.classList.add("is-tip-open");
+}
+
+function clearPartySwitchTip(cell) {
+    const tip = cell.querySelector(".party-switch-hover-tip");
+    cell.classList.remove("is-tip-open");
+    if (!tip) return;
+    tip.style.display = "";
+    tip.style.visibility = "";
+    tip.style.top = "";
+    tip.style.left = "";
+    tip.classList.remove("tip-below");
+}
+
+function bindPartySwitchTip(cell) {
+    cell.addEventListener("mouseenter", () => positionPartySwitchTip(cell));
+    cell.addEventListener("mouseleave", () => clearPartySwitchTip(cell));
+    cell.addEventListener("focus", () => positionPartySwitchTip(cell));
+    cell.addEventListener("blur", () => clearPartySwitchTip(cell));
+}
+
 function renderPartySwitchGrid() {
     const grid = document.getElementById("party-switch-grid");
     if (!grid || _partySwitchIndex === null) return;
@@ -4081,6 +4150,7 @@ function renderPartySwitchGrid() {
                 <div class="party-switch-tip-skills">${renderPartySwitchSkillList(mon)}</div>
             </div>`;
         cell.onclick = () => swapPartyWithBox(_partySwitchIndex, i);
+        bindPartySwitchTip(cell);
         grid.appendChild(cell);
     });
 }
