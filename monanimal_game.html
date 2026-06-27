@@ -1359,6 +1359,7 @@ body.afk-layout .currency-pill .currency-tip {
     align-items: center;
     justify-content: center;
     gap: 8px;
+    overflow: visible;
 }
 .scene-idle-team.heroes {
     align-items: flex-end;
@@ -1368,14 +1369,15 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .scene-idle-fighter {
     position: relative;
-    width: 128px;
-    height: 128px;
+    width: 176px;
+    height: 176px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     box-sizing: border-box;
     will-change: transform;
+    overflow: visible;
 }
 .scene-idle-fighter.hero { z-index: 2; }
 .scene-idle-fighter.enemy { z-index: 1; }
@@ -1386,9 +1388,12 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-idle-fighter.enemy.slot-1 { margin-left: 20px; margin-top: -8px; }
 .scene-idle-fighter.enemy.slot-2 { margin-left: -10px; margin-top: 10px; }
 .scene-idle-sprite {
-    width: 128px;
-    height: 128px;
+    width: 176px;
+    height: 176px;
+    max-width: none;
+    max-height: none;
     object-fit: contain;
+    object-position: center bottom;
     image-rendering: pixelated;
     filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
     pointer-events: none;
@@ -2736,15 +2741,30 @@ const ATTACK_SPRITE_MAP = {
 const ATTACK_SPRITE_DURATION_MS = {
     Molandak: 960,
     Chog: 960,
-    Johnw: 960
+    Johnw: 1920
 };
 
 // Swing GIF frames 8-15 from source; hit near frame 2-3 of swing clip.
 const ATTACK_HIT_AT_MS = {
     Molandak: 360,
     Chog: 360,
-    Johnw: 360
+    Johnw: 720
 };
+
+// Full measured GIF loop lengths for main-scene idle fighting (ffprobe).
+const SCENE_SPRITE_DURATION_MS = {
+    "128x128/johnw-idle.gif": 1920,
+    "128x128/johnw-swing1.gif": 1920,
+    "128x128/johnw-swing2.gif": 1920,
+    "128x128/chog1-swing.gif": 960,
+    "128x128/molandak1-swing.gif": 960,
+    "128x128/chog.gif": 1440,
+    "128x128/molandak.gif": 960,
+    "128x128/mopo.gif": 5800,
+    "128x128/anago.gif": 960
+};
+
+const sceneIdleFighterBusy = new Set();
 
 const ATTACK_DASH_MS = 220;
 const MELEE_TOUCH_GAP_PX = 2;
@@ -2779,6 +2799,44 @@ function getSceneFighterSprite(name) {
 function getSceneIdleHomeSprite(name) {
     if (isJohnw(name)) return getJohnwIdleSprite();
     return getSpritePath(name);
+}
+
+function normalizeSpritePath(src) {
+    return String(src || "").split("?")[0];
+}
+
+function getSceneSpriteDurationMs(spritePath, monName) {
+    const key = normalizeSpritePath(spritePath);
+    if (SCENE_SPRITE_DURATION_MS[key]) return SCENE_SPRITE_DURATION_MS[key];
+    if (monName && ATTACK_SPRITE_DURATION_MS[monName]) return ATTACK_SPRITE_DURATION_MS[monName];
+    return 960;
+}
+
+function getSceneSpriteHitAtMs(spritePath, monName, durationMs) {
+    const key = normalizeSpritePath(spritePath);
+    if (monName && ATTACK_HIT_AT_MS[monName]) return ATTACK_HIT_AT_MS[monName];
+    return Math.floor(durationMs * 0.375);
+}
+
+function setSceneIdleSprite(imgEl, spritePath) {
+    if (!imgEl || !spritePath) return;
+    imgEl.src = spritePath + "?t=" + Date.now();
+}
+
+async function waitSceneGifMs(ms, token) {
+    const durationMs = Math.max(0, ms);
+    const step = 50;
+    let elapsed = 0;
+    while (elapsed < durationMs) {
+        if (token !== sceneIdleBattleToken) return;
+        const chunk = Math.min(step, durationMs - elapsed);
+        await delay(chunk);
+        elapsed += chunk;
+    }
+}
+
+async function waitSceneGifComplete(spritePath, monName, token) {
+    await waitSceneGifMs(getSceneSpriteDurationMs(spritePath, monName), token);
 }
 
 function makeSeededRand(seed) {
@@ -2917,6 +2975,9 @@ async function sceneIdleDashHome(el, durationMs) {
 
 async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
     if (token !== sceneIdleBattleToken) return;
+    const busyKey = `${atkTeam}-${atkIdx}`;
+    if (sceneIdleFighterBusy.has(busyKey)) return;
+
     const atkEl = document.getElementById(`scene-idle-${atkTeam}-${atkIdx}`);
     const defEl = document.getElementById(`scene-idle-${defTeam}-${defIdx}`);
     const atkImg = document.getElementById(`scene-idle-sprite-${atkTeam}-${atkIdx}`);
@@ -2925,32 +2986,40 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
     const atkMon = atkTeam === "hero" ? party[atkIdx] : sceneIdleEnemyTeam[atkIdx];
     if (!atkMon) return;
 
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    const lunge = getSceneIdleLungePx(atkEl, defEl);
-    const dx = atkTeam === "hero" ? lunge : -lunge;
-    await sceneIdleDash(atkEl, dx, ATTACK_DASH_MS);
-    if (token !== sceneIdleBattleToken) return;
+    sceneIdleFighterBusy.add(busyKey);
+    try {
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const lunge = getSceneIdleLungePx(atkEl, defEl);
+        const dx = atkTeam === "hero" ? lunge : -lunge;
+        await sceneIdleDash(atkEl, dx, ATTACK_DASH_MS);
+        if (token !== sceneIdleBattleToken) return;
 
-    const attackPath = isJohnw(atkMon.name) ? pickJohnwSwingSprite() : getAttackSpritePath(atkMon.name);
-    const idleSprite = getSceneIdleHomeSprite(atkMon.name);
-    if (attackPath) {
-        atkImg.src = attackPath + "?t=" + Date.now();
-        await delay(ATTACK_HIT_AT_MS[atkMon.name] || 360);
-        if (token !== sceneIdleBattleToken) return;
-        defEl.classList.add("hit-shake");
-        setTimeout(() => defEl.classList.remove("hit-shake"), 300);
-        const remain = (ATTACK_SPRITE_DURATION_MS[atkMon.name] || 960) - (ATTACK_HIT_AT_MS[atkMon.name] || 360);
-        if (remain > 0) await delay(remain);
-        atkImg.src = idleSprite;
-    } else {
-        await delay(220);
-        if (token !== sceneIdleBattleToken) return;
-        defEl.classList.add("hit-shake");
-        setTimeout(() => defEl.classList.remove("hit-shake"), 300);
-        await delay(180);
+        const attackPath = isJohnw(atkMon.name) ? pickJohnwSwingSprite() : getAttackSpritePath(atkMon.name);
+        const idleSprite = getSceneIdleHomeSprite(atkMon.name);
+        if (attackPath) {
+            setSceneIdleSprite(atkImg, attackPath);
+            const durationMs = getSceneSpriteDurationMs(attackPath, atkMon.name);
+            const hitAtMs = getSceneSpriteHitAtMs(attackPath, atkMon.name, durationMs);
+            await delay(hitAtMs);
+            if (token !== sceneIdleBattleToken) return;
+            defEl.classList.add("hit-shake");
+            setTimeout(() => defEl.classList.remove("hit-shake"), 300);
+            await waitSceneGifMs(durationMs - hitAtMs, token);
+            if (token !== sceneIdleBattleToken) return;
+            setSceneIdleSprite(atkImg, idleSprite);
+            await waitSceneGifComplete(idleSprite, atkMon.name, token);
+        } else {
+            await delay(280);
+            if (token !== sceneIdleBattleToken) return;
+            defEl.classList.add("hit-shake");
+            setTimeout(() => defEl.classList.remove("hit-shake"), 300);
+            await delay(320);
+        }
+
+        await sceneIdleDashHome(atkEl, ATTACK_DASH_MS);
+    } finally {
+        sceneIdleFighterBusy.delete(busyKey);
     }
-
-    await sceneIdleDashHome(atkEl, ATTACK_DASH_MS);
 }
 
 async function sceneIdleFighterCombatLoop(atkTeam, atkIdx, token, startDelay) {
@@ -2973,7 +3042,7 @@ async function sceneIdleFighterCombatLoop(atkTeam, atkIdx, token, startDelay) {
         const defIdx = Math.floor(Math.random() * defCount);
 
         await sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token);
-        await delay(420 + Math.random() * 900);
+        await delay(180 + Math.random() * 320);
     }
 }
 
