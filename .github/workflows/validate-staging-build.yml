@@ -1,12 +1,10 @@
 name: Validate Staging Build
 
-# Checks the staging site bundle builds correctly (no Cloudflare token needed).
-# Actual staging deploy: Cloudflare Pages connected to GitHub (see docs/staging-workflow.html).
+# Checks the staging site bundle on pull requests (no Cloudflare token needed).
+# Staging deploy runs separately on push to `staging` via deploy-staging-pages.yml.
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [staging]
   workflow_dispatch:
 
 permissions:

@@ -1,0 +1,40 @@
+name: Deploy Staging (Cloudflare Pages)
+
+# Auto-deploy staging on push to `staging` branch (free — uses your Cloudflare API token).
+# Token needs Account → Cloudflare Pages → Edit (no extra cost). See docs/staging-workflow.html.
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy game to Cloudflare Pages (staging)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare static site
+        run: bash scripts/prepare-staging-site.sh
+
+      - name: Check Cloudflare secrets
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then
+            echo "::error::Missing GitHub secret CLOUDFLARE_API_TOKEN"
+            exit 1
+          fi
+          if [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "::error::Missing GitHub secret CLOUDFLARE_ACCOUNT_ID"
+            exit 1
+          fi
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy staging-dist --project-name=monex-staging --commit-dirty=true
