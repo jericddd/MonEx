@@ -1337,10 +1337,73 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-battle-row {
     display: flex;
     width: 100%;
-    justify-content: space-between;
-    align-items: flex-end;
+    flex: 1;
+    justify-content: center;
+    align-items: center;
     position: relative;
     z-index: 1;
+    padding: 0 16px 48px;
+    box-sizing: border-box;
+}
+.scene-idle-arena {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 0;
+    max-width: 100%;
+}
+.scene-idle-team {
+    display: flex;
+    align-items: flex-end;
+    gap: 0;
+}
+.scene-idle-team.heroes {
+    flex-direction: row;
+    justify-content: flex-end;
+}
+.scene-idle-team.enemies {
+    flex-direction: row;
+    justify-content: flex-start;
+}
+.scene-idle-fighter {
+    position: relative;
+    width: 128px;
+    height: 128px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    will-change: transform;
+}
+.scene-idle-fighter.hero { z-index: 2; }
+.scene-idle-fighter.enemy { z-index: 1; }
+.scene-idle-fighter.slot-1 { margin-bottom: 10px; opacity: 0.92; }
+.scene-idle-fighter.slot-2 { margin-bottom: 18px; opacity: 0.84; }
+.scene-idle-sprite {
+    width: 128px;
+    height: 128px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+    pointer-events: none;
+}
+.scene-idle-sprite.mirrored { transform: scaleX(-1); }
+.scene-idle-fighter.dash-sweep .scene-idle-sprite {
+    filter: drop-shadow(0 6px 5px rgba(0,0,0,0.45)) brightness(1.15);
+}
+.scene-idle-fighter.hit-shake { animation: scene-idle-shake .3s; }
+@keyframes scene-idle-shake {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-6px, 0); }
+    50% { transform: translate(6px, 0); }
+    75% { transform: translate(-4px, 0); }
+}
+.scene-idle-fighter .scene-hp-bar {
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
 }
 .scene-fighters {
     display: flex;
@@ -1364,21 +1427,6 @@ body.afk-layout .currency-pill .currency-tip {
     object-fit: contain;
     image-rendering: pixelated;
     filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
-}
-.scene-fighter.hero { animation: scene-hero-attack 1.4s ease-in-out infinite; }
-.scene-fighter.enemy { animation: scene-enemy-idle 1.4s ease-in-out infinite; }
-.scene-fighter.hero:nth-child(2) { animation-delay: 0.25s; }
-.scene-fighter.hero:nth-child(3) { animation-delay: 0.5s; }
-.scene-fighter.enemy:nth-child(2) { animation-delay: 0.2s; }
-.scene-fighter.enemy:nth-child(3) { animation-delay: 0.4s; }
-@keyframes scene-hero-attack {
-    0%, 100% { transform: translateX(0) translateY(0); }
-    35% { transform: translateX(18px) translateY(-6px); }
-    50% { transform: translateX(22px) translateY(0); }
-}
-@keyframes scene-enemy-idle {
-    0%, 100% { transform: translateX(0); }
-    50% { transform: translateX(-8px); }
 }
 .scene-hp-bar {
     width: 56px;
@@ -2159,8 +2207,10 @@ body.afk-layout .currency-pill .currency-tip {
     <div id="main-scene" class="main-scene">
         <div class="scene-stage-label" id="scene-stage-label">Chapter 1-1</div>
         <div class="scene-battle-row">
-            <div class="scene-fighters scene-heroes" id="scene-heroes"></div>
-            <div class="scene-fighters scene-enemies" id="scene-enemies"></div>
+            <div class="scene-idle-arena" id="scene-idle-arena">
+                <div class="scene-idle-team heroes" id="scene-heroes"></div>
+                <div class="scene-idle-team enemies" id="scene-enemies"></div>
+            </div>
         </div>
     </div>
 
@@ -2610,6 +2660,9 @@ let currentStage = 1;
 const STAGES_PER_CHAPTER = 40;
 let sceneIdleEnemyChapter = 0;
 let sceneIdleEnemyTeam = [];
+let sceneIdleBattleToken = 0;
+let sceneIdleBattleSignature = "";
+let sceneIdleBattleRunning = false;
 let xHandle = "";
 let profileActivityTimer = null;
 
@@ -2721,6 +2774,184 @@ function ensureSceneIdleEnemies() {
 function invalidateSceneIdleEnemies() {
     sceneIdleEnemyChapter = 0;
     sceneIdleEnemyTeam = [];
+    sceneIdleBattleSignature = "";
+}
+
+function getSceneIdleBattleSignature(heroes, enemies) {
+    return JSON.stringify({
+        chapter: currentChapter,
+        heroes: heroes.map((m) => m.name),
+        enemies: enemies.map((e) => e.name),
+    });
+}
+
+function renderSceneIdleFighter(team, index, mon, showHp) {
+    const side = team === "hero" ? "hero" : "enemy";
+    const slotClass = index === 0 ? "slot-0" : index === 1 ? "slot-1" : "slot-2";
+    const hpPct = showHp ? Math.max(0, Math.min(100, (mon.current_hp / mon.max_hp) * 100)) : 0;
+    const sprite = getSceneFighterSprite(mon.name);
+    const fallback = getSpritePath(mon.name);
+    const mirrored = shouldMirrorBattleSprite(team === "hero" ? "player" : "enemy", mon.name) ? " mirrored" : "";
+    return `
+        <div class="scene-idle-fighter ${side} ${slotClass}" id="scene-idle-${team}-${index}" data-team="${team}" data-index="${index}">
+            <img class="scene-idle-sprite${mirrored}" id="scene-idle-sprite-${team}-${index}" src="${sprite}" alt="${mon.name}" onerror="this.onerror=null;this.src='${fallback}'">
+            ${showHp ? `<div class="scene-hp-bar"><div style="width:${hpPct}%"></div></div>` : ""}
+        </div>`;
+}
+
+function buildSceneIdleBattleDOM(heroes, enemies) {
+    const heroesEl = document.getElementById("scene-heroes");
+    const enemiesEl = document.getElementById("scene-enemies");
+    const arenaEl = document.getElementById("scene-idle-arena");
+    if (!heroesEl || !enemiesEl || !arenaEl) return;
+
+    if (!heroes.length) {
+        arenaEl.innerHTML = '<div class="scene-empty">Deploy your party to fight!</div>';
+        return;
+    }
+
+    if (!arenaEl.querySelector(".scene-idle-team")) {
+        arenaEl.innerHTML = `
+            <div class="scene-idle-team heroes" id="scene-heroes"></div>
+            <div class="scene-idle-team enemies" id="scene-enemies"></div>`;
+    }
+
+    const heroesTarget = document.getElementById("scene-heroes");
+    const enemiesTarget = document.getElementById("scene-enemies");
+    const heroSlots = heroes.slice(0, 3);
+    const enemySlots = enemies.slice(0, 3);
+    const heroOrder = [...heroSlots].reverse();
+    heroesTarget.innerHTML = heroOrder.map((mon, displayIdx) => {
+        const partyIdx = heroSlots.length - 1 - displayIdx;
+        return renderSceneIdleFighter("hero", partyIdx, mon, true);
+    }).join("");
+    enemiesTarget.innerHTML = enemySlots.map((mon, idx) => renderSceneIdleFighter("enemy", idx, mon, false)).join("");
+}
+
+function updateSceneIdleHpBars(heroes) {
+    heroes.slice(0, 3).forEach((mon, i) => {
+        const bar = document.querySelector(`#scene-idle-hero-${i} .scene-hp-bar div`);
+        if (!bar) return;
+        const hpPct = Math.max(0, Math.min(100, (mon.current_hp / mon.max_hp) * 100));
+        bar.style.width = `${hpPct}%`;
+    });
+}
+
+function getSceneIdleDashDistance(atkEl, defEl) {
+    if (!atkEl || !defEl) return MELEE_DASH_FALLBACK_PX;
+    const atkBox = atkEl.getBoundingClientRect();
+    const defBox = defEl.getBoundingClientRect();
+    const isHero = atkEl.dataset.team === "hero";
+    if (isHero) {
+        return Math.max(0, defBox.left - MELEE_TOUCH_GAP_PX - atkBox.right);
+    }
+    return Math.max(0, atkBox.left - defBox.right - MELEE_TOUCH_GAP_PX);
+}
+
+function getSceneIdleLungePx(atkEl, defEl) {
+    const dash = getSceneIdleDashDistance(atkEl, defEl);
+    return dash > MELEE_TOUCH_GAP_PX ? dash : 14;
+}
+
+function stopSceneIdleBattle() {
+    sceneIdleBattleToken++;
+    sceneIdleBattleRunning = false;
+}
+
+function ensureSceneIdleBattleRunning() {
+    const mainScene = document.getElementById("main-scene");
+    if (!mainScene || mainScene.style.display === "none") return;
+    if (!party.length || !sceneIdleEnemyTeam.length) return;
+    if (sceneIdleBattleRunning) return;
+    requestAnimationFrame(() => startSceneIdleBattleLoop());
+}
+
+async function sceneIdleDash(el, dx, durationMs) {
+    if (!el) return;
+    el.classList.add("dash-sweep");
+    el.style.transition = `transform ${durationMs}ms cubic-bezier(0.2, 0.85, 0.25, 1)`;
+    el.style.transform = `translate(${dx}px, 0)`;
+    await delay(durationMs);
+    el.classList.remove("dash-sweep");
+}
+
+async function sceneIdleDashHome(el, durationMs) {
+    if (!el) return;
+    el.classList.add("dash-sweep");
+    el.style.transition = `transform ${durationMs}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+    el.style.transform = "translate(0, 0)";
+    await delay(durationMs);
+    el.classList.remove("dash-sweep");
+}
+
+async function sceneIdleAttackTurn(atkTeam, atkIdx, defTeam, defIdx, token) {
+    if (token !== sceneIdleBattleToken) return;
+    const atkEl = document.getElementById(`scene-idle-${atkTeam}-${atkIdx}`);
+    const defEl = document.getElementById(`scene-idle-${defTeam}-${defIdx}`);
+    const atkImg = document.getElementById(`scene-idle-sprite-${atkTeam}-${atkIdx}`);
+    if (!atkEl || !defEl || !atkImg) return;
+
+    const atkMon = atkTeam === "hero" ? party[atkIdx] : sceneIdleEnemyTeam[atkIdx];
+    if (!atkMon) return;
+
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const lunge = getSceneIdleLungePx(atkEl, defEl);
+    const dx = atkTeam === "hero" ? lunge : -lunge;
+    await sceneIdleDash(atkEl, dx, ATTACK_DASH_MS);
+    if (token !== sceneIdleBattleToken) return;
+
+    const attackPath = getAttackSpritePath(atkMon.name);
+    const idleSprite = getSceneFighterSprite(atkMon.name);
+    if (attackPath) {
+        atkImg.src = attackPath + "?t=" + Date.now();
+        await delay(ATTACK_HIT_AT_MS[atkMon.name] || 360);
+        if (token !== sceneIdleBattleToken) return;
+        defEl.classList.add("hit-shake");
+        setTimeout(() => defEl.classList.remove("hit-shake"), 300);
+        const remain = (ATTACK_SPRITE_DURATION_MS[atkMon.name] || 960) - (ATTACK_HIT_AT_MS[atkMon.name] || 360);
+        if (remain > 0) await delay(remain);
+        atkImg.src = idleSprite;
+    } else {
+        await delay(280);
+        if (token !== sceneIdleBattleToken) return;
+        defEl.classList.add("hit-shake");
+        setTimeout(() => defEl.classList.remove("hit-shake"), 300);
+        await delay(220);
+    }
+
+    await sceneIdleDashHome(atkEl, ATTACK_DASH_MS);
+    if (token !== sceneIdleBattleToken) return;
+    await delay(160);
+}
+
+async function startSceneIdleBattleLoop() {
+    const token = ++sceneIdleBattleToken;
+    sceneIdleBattleRunning = true;
+    let turn = 0;
+    await delay(400);
+
+    while (token === sceneIdleBattleToken) {
+        const heroes = party.slice(0, 3);
+        const enemies = sceneIdleEnemyTeam.slice(0, 3);
+        if (!heroes.length || !enemies.length) break;
+        const mainScene = document.getElementById("main-scene");
+        if (!mainScene || mainScene.style.display === "none") {
+            await delay(300);
+            continue;
+        }
+
+        const heroIdx = turn % heroes.length;
+        await sceneIdleAttackTurn("hero", heroIdx, "enemy", 0, token);
+        if (token !== sceneIdleBattleToken) break;
+
+        const enemyIdx = turn % enemies.length;
+        await sceneIdleAttackTurn("enemy", enemyIdx, "hero", 0, token);
+        if (token !== sceneIdleBattleToken) break;
+
+        turn++;
+    }
+
+    if (token === sceneIdleBattleToken) sceneIdleBattleRunning = false;
 }
 
 function beginAttackAnim(side) {
@@ -3957,32 +4188,23 @@ function renderPartyGrid() {
 }
 
 function renderMainScene() {
-    const heroesEl = document.getElementById("scene-heroes");
-    const enemiesEl = document.getElementById("scene-enemies");
     const label = document.getElementById("scene-stage-label");
-    if (!heroesEl || !enemiesEl) return;
-
     if (label) label.textContent = `Chapter ${currentChapter}-${currentStage}`;
 
-    const heroes = party.slice(0, 3);
-    if (heroes.length === 0) {
-        heroesEl.innerHTML = '<div class="scene-empty">Deploy your party to fight!</div>';
-    } else {
-        heroesEl.innerHTML = heroes.map((mon) => {
-            const hpPct = Math.max(0, Math.min(100, (mon.current_hp / mon.max_hp) * 100));
-            return `
-                <div class="scene-fighter hero">
-                    <img src="${getSceneFighterSprite(mon.name)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getSpritePath(mon.name)}'">
-                    <div class="scene-hp-bar"><div style="width:${hpPct}%"></div></div>
-                </div>`;
-        }).join("");
-    }
-
     ensureSceneIdleEnemies();
-    enemiesEl.innerHTML = sceneIdleEnemyTeam.map((enemy) => `
-        <div class="scene-fighter enemy">
-            <img src="${getSceneFighterSprite(enemy.name)}" alt="${enemy.name}" onerror="this.onerror=null;this.src='${getSpritePath(enemy.name)}'">
-        </div>`).join("");
+    const heroes = party.slice(0, 3);
+    const enemies = sceneIdleEnemyTeam.slice(0, 3);
+    const signature = getSceneIdleBattleSignature(heroes, enemies);
+
+    if (signature !== sceneIdleBattleSignature) {
+        sceneIdleBattleSignature = signature;
+        stopSceneIdleBattle();
+        buildSceneIdleBattleDOM(heroes, enemies);
+        ensureSceneIdleBattleRunning();
+    } else {
+        updateSceneIdleHpBars(heroes);
+        ensureSceneIdleBattleRunning();
+    }
 }
 
 function renderParty() {
@@ -4789,6 +5011,7 @@ function enterHouseTowerMode() {
 function openBattleScene() {
     if (isInAdventureBattle) return;
     closeAllModals();
+    stopSceneIdleBattle();
     enterAdventureFullMode(BATTLE_BG_MENU);
     document.getElementById("main-scene").style.display = "none";
     document.getElementById("battle-scene").classList.add("open");
@@ -4919,6 +5142,7 @@ function saveAdventureProgress() {
 }
 
 function ensureBattleSceneOpen() {
+    stopSceneIdleBattle();
     document.getElementById("main-scene").style.display = "none";
     document.getElementById("battle-scene").classList.add("open");
 }
