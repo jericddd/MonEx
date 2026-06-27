@@ -1,0 +1,32 @@
+name: Validate Staging Build
+
+# Checks the staging site bundle builds correctly (no Cloudflare token needed).
+# Actual staging deploy: Cloudflare Pages connected to GitHub (see docs/staging-workflow.html).
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Validate staging site bundle
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare static site
+        run: bash scripts/prepare-staging-site.sh
+
+      - name: Verify bundle
+        run: |
+          test -f staging-dist/home.html
+          test -f staging-dist/monanimal_game.html
+          test ! -f staging-dist/CNAME
+          test -f staging-dist/js/staging-banner.js
+          echo "Staging bundle OK — ready for Cloudflare Pages"

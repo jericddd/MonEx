@@ -26,7 +26,7 @@
             <tr><th>Environment</th><th>URL</th><th>Updates when</th></tr>
             <tr>
                 <td><b>Staging</b></td>
-                <td><code>https://monex-staging.pages.dev/home.html</code><br><small>(exact URL appears in GitHub Actions after first deploy)</small></td>
+                <td><code>https://monex-staging.pages.dev/home.html</code><br><small>(shown in Cloudflare after first deploy)</small></td>
                 <td>You push to branch <code>staging</code></td>
             </tr>
             <tr>
@@ -38,44 +38,49 @@
     </div>
 
     <div class="step warn">
-        <h2>One-time setup (Cloudflare token)</h2>
-        <p>Your GitHub secrets <code>CLOUDFLARE_API_TOKEN</code> and <code>CLOUDFLARE_ACCOUNT_ID</code> must allow <b>Cloudflare Pages</b> deploys.</p>
+        <h2>One-time setup (Cloudflare Pages — free)</h2>
+        <p>Connect Cloudflare to GitHub once. No API token changes needed.</p>
         <ol>
-            <li>Cloudflare dashboard → <b>My Profile</b> → <b>API Tokens</b></li>
-            <li>Edit your deploy token (or create one) with:<br>
-                <b>Account → Cloudflare Pages → Edit</b><br>
-                <b>Account → Workers Scripts → Edit</b> (you already use this for the API)</li>
-            <li>Save the token in GitHub → repo <b>Settings → Secrets → Actions</b></li>
+            <li><a href="https://dash.cloudflare.com" target="_blank" rel="noopener">Cloudflare dashboard</a> → <b>Workers &amp; Pages</b> → <b>Create</b> → <b>Pages</b> → <b>Connect to Git</b></li>
+            <li>Authorize GitHub → choose repo <b>MonEx</b></li>
+            <li>Settings:
+                <ul>
+                    <li><b>Project name:</b> <code>monex-staging</code></li>
+                    <li><b>Production branch:</b> <code>staging</code></li>
+                    <li><b>Framework preset:</b> None</li>
+                    <li><b>Build command:</b> <code>bash scripts/prepare-staging-site.sh</code></li>
+                    <li><b>Build output directory:</b> <code>staging-dist</code></li>
+                </ul>
+            </li>
+            <li><b>Save and Deploy</b></li>
         </ol>
-        <p>Then push any commit to <code>staging</code> (or run <b>Deploy Staging (Cloudflare Pages)</b> in Actions).</p>
+        <p>After the first build, bookmark your staging URL (usually <code>monex-staging.pages.dev</code>).</p>
     </div>
 
     <div class="step">
         <h2>Daily workflow</h2>
         <table>
             <tr><th>Step</th><th>What you do</th></tr>
-            <tr><td>1. Develop</td><td>Commit changes on branch <code>staging</code> (or merge your feature branch into <code>staging</code>)</td></tr>
-            <tr><td>2. Auto deploy</td><td>GitHub Actions deploys to Cloudflare Pages staging</td></tr>
-            <tr><td>3. Test</td><td>Open staging URL → orange <b>STAGING</b> banner at top confirms preview</td></tr>
+            <tr><td>1. Develop</td><td>Commit changes on branch <code>staging</code></td></tr>
+            <tr><td>2. Auto deploy</td><td>Cloudflare Pages rebuilds staging (1–2 min)</td></tr>
+            <tr><td>3. Test</td><td>Open staging URL → orange <b>STAGING</b> banner at top</td></tr>
             <tr><td>4. Go live</td><td>GitHub → <b>Pull requests</b> → <code>staging</code> → <code>main</code> → <b>Merge</b></td></tr>
-            <tr><td>5. Live site</td><td>GitHub Pages updates <code>monexmonad.xyz</code> (usually within a few minutes)</td></tr>
+            <tr><td>5. Live site</td><td>GitHub Pages updates <code>monexmonad.xyz</code></td></tr>
         </table>
     </div>
 
     <div class="step">
         <h2>API (Cloudflare Worker)</h2>
         <p>Staging and live share the same API (<code>monex-api</code>). Game-only changes do <b>not</b> need an API redeploy.</p>
-        <p>Use <b>dev login</b> on staging. Deploy API manually when needed: Actions → <b>Deploy Cloudflare API</b>.</p>
+        <p>Use <b>dev login</b> on staging. Deploy API manually: Actions → <b>Deploy Cloudflare API</b>.</p>
     </div>
 
     <div class="step">
         <h2>Branches</h2>
         <pre>main     → live (GitHub Pages + monexmonad.xyz)
 staging  → preview (Cloudflare Pages)</pre>
-        <p>Keep <code>staging</code> up to date with <code>main</code> after each live release so the next test starts from production:</p>
-        <pre>git checkout staging
-git merge main
-git push origin staging</pre>
+        <p>After each live release, sync staging from main:</p>
+        <pre>GitHub → New PR → base: staging, compare: main → Merge</pre>
     </div>
 
     <p><a href="local-test-workflow.html">Local test workflow</a> · <a href="cloudflare-deploy.html">Cloudflare deploy</a></p>
