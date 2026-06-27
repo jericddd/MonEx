@@ -1816,8 +1816,13 @@ body.afk-layout .currency-pill .currency-tip {
 /* Party switch picker — box avatars over party modal */
 #modal-party-switch.game-modal { z-index: 260; }
 #modal-party-switch .game-modal-panel {
-    width: auto;
-    max-width: min(680px, 98vw);
+    --ps-cell: 58px;
+    --ps-gap: 8px;
+    --ps-cols: 10;
+    --ps-grid-w: calc(var(--ps-cols) * var(--ps-cell) + (var(--ps-cols) - 1) * var(--ps-gap));
+    width: min(calc(var(--ps-grid-w) + 88px), 98vw);
+    min-width: 0;
+    max-width: 98vw;
     max-height: min(92vh, 820px);
     overflow: hidden;
     display: flex;
@@ -1828,8 +1833,7 @@ body.afk-layout .currency-pill .currency-tip {
 }
 #modal-party-switch .game-modal-body {
     overflow: hidden;
-    padding-top: 0;
-    padding-bottom: 14px;
+    padding: 0 10px 16px;
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -1845,28 +1849,30 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .party-switch-scroll {
     overflow-y: auto;
-    overflow-x: hidden;
+    overflow-x: auto;
     flex: 1 1 auto;
     min-height: 200px;
-    max-height: min(72vh, 620px);
-    padding: 4px 14px 24px 8px;
-    margin-right: 2px;
+    max-height: min(72vh, 640px);
+    padding: 8px 6px 32px 4px;
     box-sizing: border-box;
     -webkit-overflow-scrolling: touch;
 }
 .party-switch-grid {
     display: grid;
-    grid-template-columns: repeat(10, 58px);
-    justify-content: center;
-    gap: 8px;
-    padding: 6px 4px 20px;
-    box-sizing: border-box;
+    grid-template-columns: repeat(10, var(--ps-cell, 58px));
+    gap: var(--ps-gap, 8px);
+    width: var(--ps-grid-w, 652px);
+    max-width: none;
+    margin: 0 auto;
+    padding: 10px 12px 28px;
+    box-sizing: content-box;
 }
 .party-switch-avatar {
     position: relative;
-    width: 58px;
-    height: 58px;
+    width: var(--ps-cell, 58px);
+    height: var(--ps-cell, 58px);
     padding: 4px;
+    box-sizing: border-box;
     background: white;
     border: 2px solid #6a21a6;
     box-shadow: 2px 2px 0 #6a21a6;
