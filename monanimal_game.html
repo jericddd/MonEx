@@ -1373,9 +1373,10 @@ body.afk-layout .currency-pill .currency-tip {
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-end;
-    gap: 2px;
+    gap: 4px;
     width: 100%;
-    max-width: 440px;
+    max-width: 520px;
+    min-height: calc(var(--scene-fighter-size, 112px) * 2.8);
     transform: scale(0.92);
     transform-origin: center bottom;
 }
@@ -1383,18 +1384,22 @@ body.afk-layout .currency-pill .currency-tip {
     display: flex;
     flex-direction: row;
     align-items: flex-end;
-    justify-content: space-between;
     width: 100%;
-    min-height: calc(var(--scene-fighter-size, 112px) * 0.9);
+    min-height: calc(var(--scene-fighter-size, 112px) * 0.92);
     overflow: visible;
 }
-.scene-idle-row.row-outer {
-    padding: 0 2px;
+.scene-idle-row.row-left {
+    justify-content: flex-start;
 }
-.scene-idle-row.row-inner {
-    justify-content: center;
-    gap: clamp(28px, 12vw, 56px);
-    padding: 0 clamp(36px, 14vw, 72px);
+.scene-idle-row.row-right {
+    justify-content: flex-end;
+}
+.scene-idle-pair {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: clamp(10px, 4vw, 24px);
+    overflow: visible;
 }
 .scene-idle-team {
     display: none;
@@ -2937,14 +2942,14 @@ function buildSceneIdleBattleDOM(heroes, enemies) {
 
     const heroSlots = heroes.slice(0, 3);
     const enemySlots = enemies.slice(0, 3);
-    const rowLayout = ["row-outer", "row-inner", "row-outer"];
+    const rowLayout = ["row-left", "row-right", "row-left"];
 
     arenaEl.innerHTML = rowLayout.map((rowClass, idx) => {
         const hero = heroSlots[idx];
         const enemy = enemySlots[idx];
         const heroHtml = hero ? renderSceneIdleFighter("hero", idx, hero, true) : "";
         const enemyHtml = enemy ? renderSceneIdleFighter("enemy", idx, enemy, false) : "";
-        return `<div class="scene-idle-row ${rowClass}">${heroHtml}${enemyHtml}</div>`;
+        return `<div class="scene-idle-row ${rowClass}"><div class="scene-idle-pair">${heroHtml}${enemyHtml}</div></div>`;
     }).join("");
 }
 
@@ -3019,12 +3024,6 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
 
     sceneIdleFighterBusy.add(busyKey);
     try {
-        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-        const lunge = getSceneIdleLungePx(atkEl, defEl);
-        const dx = atkTeam === "hero" ? lunge : -lunge;
-        await sceneIdleDash(atkEl, dx, ATTACK_DASH_MS);
-        if (token !== sceneIdleBattleToken) return;
-
         const attackPath = isJohnw(atkMon.name) ? pickJohnwSwingSprite() : getAttackSpritePath(atkMon.name);
         const idleSprite = getSceneIdleHomeSprite(atkMon.name);
         if (attackPath) {
@@ -3059,8 +3058,6 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
             setTimeout(() => defEl.classList.remove("hit-shake"), 300);
             await delay(320);
         }
-
-        await sceneIdleDashHome(atkEl, ATTACK_DASH_MS);
     } finally {
         sceneIdleFighterBusy.delete(busyKey);
     }
@@ -3082,8 +3079,7 @@ async function sceneIdleFighterCombatLoop(atkTeam, atkIdx, token, startDelay) {
         if (atkTeam === "enemy" && !enemies[atkIdx]) break;
 
         const defTeam = atkTeam === "hero" ? "enemy" : "hero";
-        const defCount = defTeam === "hero" ? heroes.length : enemies.length;
-        const defIdx = Math.floor(Math.random() * defCount);
+        const defIdx = atkIdx;
 
         await sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token);
         await delay(180 + Math.random() * 320);
