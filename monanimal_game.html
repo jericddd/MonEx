@@ -4296,6 +4296,7 @@ function renderPartySwitchGrid() {
         cell.type = "button";
         cell.className = `party-switch-avatar ${getRarityClass(mon.rarity)}`;
         cell.innerHTML = `
+            <span class="party-switch-lv">Lv.${Math.floor(mon.level)}</span>
             <img src="${getSpritePath(mon.name)}" alt="${mon.name}" onerror="this.style.opacity='0.3'">
             <div class="party-switch-hover-tip">
                 <div class="party-switch-tip-name">${mon.name}</div>
