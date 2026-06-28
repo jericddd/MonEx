@@ -1485,9 +1485,9 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-idle-fighter.hit-shake { animation: scene-idle-shake 0.3s ease; }
 @keyframes scene-idle-shake {
     0%, 100% { transform: translate(0, 0); }
-    25% { transform: translate(-2px, 0); }
-    50% { transform: translate(2px, 0); }
-    75% { transform: translate(-1px, 0); }
+    25% { transform: translate(-3px, 0); }
+    50% { transform: translate(3px, 0); }
+    75% { transform: translate(-2px, 0); }
 }
 .scene-idle-fighter .scene-hp-bar {
     position: absolute;
@@ -2936,6 +2936,21 @@ const SCENE_SPRITE_DURATION_MS = {
 };
 
 const sceneIdleFighterBusy = new Set();
+const SCENE_IDLE_SPRITE_SPEED = 2;
+
+function scaleSceneIdleSpriteMs(ms) {
+    return Math.max(16, Math.round(ms / SCENE_IDLE_SPRITE_SPEED));
+}
+
+function getSceneIdleSpriteDurationMs(spritePath, monName) {
+    return scaleSceneIdleSpriteMs(getSceneSpriteDurationMs(spritePath, monName));
+}
+
+function getSceneIdleSpriteHitAtMs(spritePath, monName) {
+    return scaleSceneIdleSpriteMs(
+        getSceneSpriteHitAtMs(spritePath, monName, getSceneSpriteDurationMs(spritePath, monName))
+    );
+}
 
 const ATTACK_DASH_MS = 220;
 const MELEE_TOUCH_GAP_PX = 2;
@@ -3183,8 +3198,8 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
         if (attackPath) {
             if (atkMon.name === "Chog") {
                 setSceneIdleSprite(atkImg, attackPath);
-                const hitAtMs = ATTACK_HIT_AT_MS.Chog || 360;
-                const durationMs = ATTACK_SPRITE_DURATION_MS.Chog || 960;
+                const hitAtMs = scaleSceneIdleSpriteMs(ATTACK_HIT_AT_MS.Chog || 360);
+                const durationMs = scaleSceneIdleSpriteMs(ATTACK_SPRITE_DURATION_MS.Chog || 960);
                 await delay(hitAtMs);
                 if (token !== sceneIdleBattleToken) return;
                 sceneIdleShakeHit(defEl);
@@ -3193,21 +3208,21 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
                 setSceneIdleSprite(atkImg, idleSprite);
             } else {
                 setSceneIdleSprite(atkImg, attackPath);
-                const durationMs = getSceneSpriteDurationMs(attackPath, atkMon.name);
-                const hitAtMs = getSceneSpriteHitAtMs(attackPath, atkMon.name, durationMs);
+                const durationMs = getSceneIdleSpriteDurationMs(attackPath, atkMon.name);
+                const hitAtMs = getSceneIdleSpriteHitAtMs(attackPath, atkMon.name);
                 await delay(hitAtMs);
                 if (token !== sceneIdleBattleToken) return;
                 sceneIdleShakeHit(defEl);
                 await waitSceneGifMs(durationMs - hitAtMs, token);
                 if (token !== sceneIdleBattleToken) return;
                 setSceneIdleSprite(atkImg, idleSprite);
-                await waitSceneGifComplete(idleSprite, atkMon.name, token);
+                await waitSceneGifMs(getSceneIdleSpriteDurationMs(idleSprite, atkMon.name), token);
             }
         } else {
-            await delay(280);
+            await delay(scaleSceneIdleSpriteMs(280));
             if (token !== sceneIdleBattleToken) return;
             sceneIdleShakeHit(defEl);
-            await delay(320);
+            await delay(scaleSceneIdleSpriteMs(320));
         }
     } finally {
         sceneIdleFighterBusy.delete(busyKey);
