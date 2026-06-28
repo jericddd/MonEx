@@ -1482,12 +1482,14 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-idle-fighter.dash-sweep .scene-idle-sprite {
     filter: brightness(1.15);
 }
-.scene-idle-fighter.hit-shake { animation: scene-idle-shake .3s; }
-@keyframes scene-idle-shake {
-    0%, 100% { transform: translate(0, 0); }
-    25% { transform: translate(-6px, 0); }
-    50% { transform: translate(6px, 0); }
-    75% { transform: translate(-4px, 0); }
+.scene-idle-fighter.scene-idle-hit .scene-idle-sprite {
+    animation: scene-idle-hit-flash 0.32s ease;
+}
+@keyframes scene-idle-hit-flash {
+    0%, 100% { filter: none; }
+    18%, 52% {
+        filter: brightness(1.14) saturate(2) hue-rotate(336deg) sepia(0.28);
+    }
 }
 .scene-idle-fighter .scene-hp-bar {
     position: absolute;
@@ -3157,6 +3159,14 @@ async function sceneIdleDashHome(el, durationMs) {
     el.classList.remove("dash-sweep");
 }
 
+function sceneIdleFlashHit(defEl) {
+    if (!defEl) return;
+    defEl.classList.remove("scene-idle-hit");
+    void defEl.offsetWidth;
+    defEl.classList.add("scene-idle-hit");
+    setTimeout(() => defEl.classList.remove("scene-idle-hit"), 320);
+}
+
 async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
     if (token !== sceneIdleBattleToken) return;
     const busyKey = `${atkTeam}-${atkIdx}`;
@@ -3181,8 +3191,7 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
                 const durationMs = ATTACK_SPRITE_DURATION_MS.Chog || 960;
                 await delay(hitAtMs);
                 if (token !== sceneIdleBattleToken) return;
-                defEl.classList.add("hit-shake");
-                setTimeout(() => defEl.classList.remove("hit-shake"), 300);
+                sceneIdleFlashHit(defEl);
                 const remain = durationMs - hitAtMs;
                 if (remain > 0) await delay(remain);
                 setSceneIdleSprite(atkImg, idleSprite);
@@ -3192,8 +3201,7 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
                 const hitAtMs = getSceneSpriteHitAtMs(attackPath, atkMon.name, durationMs);
                 await delay(hitAtMs);
                 if (token !== sceneIdleBattleToken) return;
-                defEl.classList.add("hit-shake");
-                setTimeout(() => defEl.classList.remove("hit-shake"), 300);
+                sceneIdleFlashHit(defEl);
                 await waitSceneGifMs(durationMs - hitAtMs, token);
                 if (token !== sceneIdleBattleToken) return;
                 setSceneIdleSprite(atkImg, idleSprite);
@@ -3202,8 +3210,7 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
         } else {
             await delay(280);
             if (token !== sceneIdleBattleToken) return;
-            defEl.classList.add("hit-shake");
-            setTimeout(() => defEl.classList.remove("hit-shake"), 300);
+            sceneIdleFlashHit(defEl);
             await delay(320);
         }
     } finally {
