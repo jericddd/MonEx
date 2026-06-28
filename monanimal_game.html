@@ -4165,17 +4165,18 @@ function returnAllGearToInventory(mon) {
 }
 function renderLevelUpBtn(index, mon, cost, atCap, cap) {
     if (atCap) {
-        return `<button class="green" disabled style="opacity:0.6;">MAX LEVEL (${cap})</button>`;
+        return `<button class="green level-up-btn" disabled style="opacity:0.6;"><span class="level-up-btn-label">MAX LEVEL (${cap})</span></button>`;
     }
     const hasGold = money >= cost.gold;
     const hasEssence = essence >= cost.essence;
     const goldClass = hasGold ? "" : "cost-lack";
     const essenceClass = hasEssence ? "" : "cost-lack";
-    const costLabel = `${currencyIcon("gold", 14)}<span class="${goldClass}">${cost.gold}</span> ${currencyIcon("essence", 14)}<span class="${essenceClass}">${cost.essence}</span>`;
+    const costLine = `<span class="level-up-btn-cost">${currencyQty("gold", cost.gold, 12, goldClass)}${currencyQty("essence", cost.essence, 12, essenceClass)}</span>`;
+    const inner = `<span class="level-up-btn-label">LEVEL UP</span>${costLine}`;
     if (hasGold && hasEssence) {
-        return `<button onclick="levelUpMonManual(${index})" class="green">LEVEL UP ${costLabel}</button>`;
+        return `<button onclick="levelUpMonManual(${index})" class="green level-up-btn">${inner}</button>`;
     }
-    return `<button class="green" disabled>LEVEL UP ${costLabel}</button>`;
+    return `<button class="green level-up-btn" disabled>${inner}</button>`;
 }
 
 function passiveBonus(fighter, key) {
