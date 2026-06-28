@@ -1482,14 +1482,12 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-idle-fighter.dash-sweep .scene-idle-sprite {
     filter: brightness(1.15);
 }
-.scene-idle-fighter.scene-idle-hit .scene-idle-sprite {
-    animation: scene-idle-hit-flash 0.32s ease;
-}
-@keyframes scene-idle-hit-flash {
-    0%, 100% { filter: none; }
-    18%, 52% {
-        filter: brightness(1.14) saturate(2) hue-rotate(336deg) sepia(0.28);
-    }
+.scene-idle-fighter.hit-shake { animation: scene-idle-shake 0.3s ease; }
+@keyframes scene-idle-shake {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-2px, 0); }
+    50% { transform: translate(2px, 0); }
+    75% { transform: translate(-1px, 0); }
 }
 .scene-idle-fighter .scene-hp-bar {
     position: absolute;
