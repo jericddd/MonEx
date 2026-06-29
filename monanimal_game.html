@@ -938,7 +938,10 @@ button,
     border: 4px solid #6B21A8;
     box-shadow: 4px 4px 0px #6B21A8;
     overflow: hidden;
-    background: url('for%20result%20banner/battlebackground.jpg') center/cover no-repeat;
+    background-color: #1a0a2e;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
 }
 .stage-label {
     position: absolute;
@@ -2647,7 +2650,7 @@ body.afk-layout .currency-pill .currency-tip {
 
 <div class="game-shell">
 <div class="game-container">
-    <img class="scene-bg" src="for%20result%20banner/battlebackground.jpg" alt="">
+    <img class="scene-bg" src="for%20result%20banner/adventure_chapter1.png" alt="">
     <div id="main-scene" class="main-scene">
         <div class="scene-stage-label" id="scene-stage-label">Chapter 1-1</div>
         <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions"></div>
@@ -3132,6 +3135,35 @@ let pendingBattleLeaveTab = "main";
 let battleScreen = "main";
 const BATTLE_BG_MENU = "for%20result%20banner/battlebackground.jpg";
 const BATTLE_BG_MAP = "for%20result%20banner/map1.gif";
+const CHAPTER_BG_MAX = 4;
+const CHAPTER_BG_FALLBACK = BATTLE_BG_MENU;
+
+function getChapterBackgroundPath(chapter) {
+    const ch = Math.max(1, Math.min(CHAPTER_BG_MAX, Math.floor(chapter) || 1));
+    return `for%20result%20banner/adventure_chapter${ch}.png`;
+}
+
+function updateMainSceneBackground() {
+    const bg = document.querySelector(".scene-bg");
+    if (!bg) return;
+    const path = getChapterBackgroundPath(currentChapter);
+    if (bg.dataset.chapterBg !== path) {
+        bg.dataset.chapterBg = path;
+        bg.src = path;
+    }
+}
+
+function applyBattleStageChapterBackground(chapter) {
+    const stage = document.getElementById("battle-stage");
+    if (!stage) return;
+    const path = getChapterBackgroundPath(chapter ?? currentChapter);
+    stage.style.backgroundImage = `url('${path}')`;
+}
+
+function refreshAdventureChapterBackground() {
+    setBattleSceneBackground(getChapterBackgroundPath(currentChapter));
+    applyBattleStageChapterBackground(currentChapter);
+}
 let currentChapter = 1;
 let currentStage = 1;
 const STAGES_PER_CHAPTER = 40;
@@ -5072,6 +5104,7 @@ function renderPartyGrid() {
 function renderMainScene() {
     const label = document.getElementById("scene-stage-label");
     if (label) label.textContent = `Chapter ${currentChapter}-${currentStage}`;
+    updateMainSceneBackground();
 
     ensureSceneIdleEnemies();
     const heroes = party.slice(0, 3);
@@ -6043,7 +6076,7 @@ function enterAdventureMode() {
     loadAdventureProgress();
     battleScreen = "adventure";
     ensureBattleSceneOpen();
-    enterAdventureFullMode(BATTLE_BG_MAP);
+    enterAdventureFullMode(getChapterBackgroundPath(currentChapter));
 
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui";
@@ -6063,7 +6096,7 @@ function startStageSelection() {
     battleScreen = "chapter";
     ensureBattleSceneOpen();
     setAdventureMode(true);
-    setBattleSceneBackground(BATTLE_BG_MAP);
+    refreshAdventureChapterBackground();
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui";
     content.innerHTML = `
@@ -6207,7 +6240,7 @@ function start3v3Battle(playerParty) {
     saveData();
     ensureBattleSceneOpen();
     setAdventureMode(true);
-    setBattleSceneBackground(BATTLE_BG_MENU);
+    refreshAdventureChapterBackground();
     const playerTeam = playerParty.slice(0, 3).map(m => makeFighter(m, true));
     const enemyTeam = makeEnemyTeam(currentChapter, currentStage);
     renderBattleScene();
@@ -6263,6 +6296,7 @@ function renderBattleScene() {
             <div class="screen-flash" id="screen-flash"></div>
         </div>
     `;
+    applyBattleStageChapterBackground(currentChapter);
 }
 
 function setFighter(side, f) {
@@ -6696,7 +6730,7 @@ function endBattle(win, player) {
 
 function showBattleResult(win, reward) {
     battleScreen = "result";
-    setBattleSceneBackground(BATTLE_BG_MAP);
+    refreshAdventureChapterBackground();
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui";
     const drops = win
