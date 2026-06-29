@@ -1371,6 +1371,26 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-upper-zone > * {
     pointer-events: auto;
 }
+.scene-battle-path {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: calc(var(--scene-fighter-size, 88px) * 3.15);
+    object-fit: fill;
+    object-position: center bottom;
+    z-index: 1;
+    pointer-events: none;
+    display: block;
+}
+.scene-battle-dock-shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.22) 55%, rgba(0, 0, 0, 0.35) 100%);
+    pointer-events: none;
+    z-index: 0;
+}
 .scene-battle-dock {
     flex: 0 0 auto;
     width: 100%;
@@ -1379,8 +1399,9 @@ body.afk-layout .currency-pill .currency-tip {
     align-items: flex-end;
     padding: 0 80px 10px;
     box-sizing: border-box;
-    z-index: 3;
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.22) 55%, rgba(0, 0, 0, 0.35) 100%);
+    position: relative;
+    z-index: 2;
+    background: none;
 }
 .main-scene::before {
     content: "";
@@ -1409,7 +1430,7 @@ body.afk-layout .currency-pill .currency-tip {
     justify-content: center;
     align-items: flex-end;
     position: relative;
-    z-index: 1;
+    z-index: 2;
     padding: 2px 8px 0;
     box-sizing: border-box;
 }
@@ -1420,20 +1441,6 @@ body.afk-layout .currency-pill .currency-tip {
     min-height: calc(var(--scene-fighter-size, 88px) * 2.05);
     transform: scale(0.92);
     transform-origin: center bottom;
-}
-.scene-battle-path {
-    position: absolute;
-    left: 50%;
-    bottom: 0;
-    transform: translateX(-50%);
-    width: 106%;
-    max-width: 548px;
-    height: calc(var(--scene-fighter-size, 88px) * 1.28);
-    object-fit: contain;
-    object-position: center bottom;
-    z-index: 0;
-    pointer-events: none;
-    display: block;
 }
 .scene-idle-arena {
     display: flex;
@@ -2547,6 +2554,9 @@ body.afk-layout .currency-pill .currency-tip {
     .scene-battle-dock {
         padding: 0 10px 88px;
     }
+    .scene-battle-path {
+        height: calc(var(--scene-fighter-size, 76px) * 3.35);
+    }
     .scene-idle-stage {
         transform: scale(0.84);
     }
@@ -2640,10 +2650,11 @@ body.afk-layout .currency-pill .currency-tip {
     <div id="main-scene" class="main-scene">
         <div class="scene-stage-label" id="scene-stage-label">Chapter 1-1</div>
         <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions"></div>
+        <img class="scene-battle-path" src="for%20result%20banner/mainscene_battlepath.jpg" alt="" aria-hidden="true">
         <div class="scene-battle-dock">
+            <div class="scene-battle-dock-shade" aria-hidden="true"></div>
             <div class="scene-battle-row">
                 <div class="scene-idle-stage">
-                    <img class="scene-battle-path" src="for%20result%20banner/mainscene_battlepath.jpg" alt="" aria-hidden="true">
                     <div class="scene-idle-arena" id="scene-idle-arena"></div>
                 </div>
             </div>
