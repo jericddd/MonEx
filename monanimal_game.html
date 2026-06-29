@@ -1588,7 +1588,11 @@ body.afk-layout .currency-pill .currency-tip {
     box-sizing: border-box;
     pointer-events: none;
 }
-.left-rail { left: 0; }
+.left-rail {
+    left: 0;
+    justify-content: flex-start;
+    padding-top: 20px;
+}
 .side-rail { right: 0; }
 .side-rail .side-icon-btn,
 .left-rail .side-icon-btn {
@@ -2262,6 +2266,264 @@ body.afk-layout .currency-pill .currency-tip {
 .game-modal-close:hover::before { display: none !important; }
 .game-modal-body { padding: 18px; }
 
+/* Daily Quest modal */
+#modal-daily-quest .game-modal-panel {
+    max-width: min(720px, 96vw);
+    padding: 0;
+    overflow: hidden;
+}
+#modal-daily-quest .game-modal-header {
+    margin: 0;
+    border-bottom: none;
+    padding: 14px 18px 8px;
+    background: linear-gradient(180deg, #f7f4ff 0%, #fff 100%);
+}
+#modal-daily-quest .game-modal-body {
+    padding: 0;
+}
+.quest-refresh-bar {
+    text-align: center;
+    padding: 0 16px 12px;
+    font-family: 'Lato', sans-serif;
+    font-size: 12px;
+    color: #6b21a8;
+    background: linear-gradient(180deg, #fff 0%, #faf5ff 100%);
+}
+.quest-milestone-section {
+    background: linear-gradient(180deg, #5b21b6 0%, #6b21a8 55%, #4c1d95 100%);
+    padding: 14px 16px 18px;
+    border-top: 3px solid #a855f7;
+    border-bottom: 3px solid #3b0764;
+}
+.quest-milestone-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.quest-points-badge {
+    flex-shrink: 0;
+    width: 56px;
+    text-align: center;
+    color: #fff;
+}
+.quest-points-badge .quest-points-icon {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.12);
+    border: 2px solid #facc15;
+    box-shadow: 0 0 10px rgba(250,204,21,0.35);
+    font-size: 20px;
+}
+.quest-points-badge .quest-points-val {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    line-height: 1.2;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+}
+.quest-milestone-track-wrap {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    padding-top: 36px;
+}
+.quest-milestone-track {
+    height: 10px;
+    background: rgba(0,0,0,0.35);
+    border: 2px solid rgba(255,255,255,0.25);
+    border-radius: 0;
+    overflow: hidden;
+}
+.quest-milestone-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #facc15, #fde68a);
+    box-shadow: 0 0 8px rgba(250,204,21,0.6);
+    transition: width 0.35s ease;
+}
+.quest-chests {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+}
+.quest-chest {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    pointer-events: auto;
+    transform: translateX(-50%);
+    position: absolute;
+    top: 0;
+}
+.quest-chest[data-ms="20"] { left: 20%; }
+.quest-chest[data-ms="40"] { left: 40%; }
+.quest-chest[data-ms="60"] { left: 60%; }
+.quest-chest[data-ms="80"] { left: 80%; }
+.quest-chest[data-ms="100"] { left: 100%; }
+.quest-chest-btn {
+    width: 34px;
+    height: 30px;
+    border: 2px solid #facc15;
+    background: linear-gradient(180deg, #a855f7 0%, #6b21a8 100%);
+    box-shadow: 2px 2px 0 #3b0764;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease, filter 0.15s ease;
+}
+.quest-chest-btn:hover:not(:disabled) {
+    transform: scale(1.08);
+    filter: brightness(1.1);
+}
+.quest-chest-btn:disabled {
+    cursor: default;
+    opacity: 0.55;
+    filter: grayscale(0.35);
+}
+.quest-chest-btn.claimed {
+    border-color: #86efac;
+    background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
+}
+.quest-chest-ms {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: #fde68a;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.quest-task-list {
+    padding: 14px 14px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #faf8ff;
+    min-height: 200px;
+    max-height: min(42vh, 360px);
+    overflow-y: auto;
+}
+.quest-task-card {
+    display: grid;
+    grid-template-columns: 52px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    background: #fff;
+    border: 3px solid #6b21a8;
+    box-shadow: 3px 3px 0 #6b21a8;
+}
+.quest-task-card.is-done {
+    opacity: 0.72;
+    background: #f3f4f6;
+}
+.quest-task-reward {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #6b21a8;
+}
+.quest-task-reward img {
+    width: 28px;
+    height: 28px;
+    image-rendering: pixelated;
+}
+.quest-task-body {
+    min-width: 0;
+}
+.quest-task-desc {
+    font-family: 'Lato', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #1f1235;
+    margin: 0 0 8px;
+    line-height: 1.35;
+}
+.quest-task-progress {
+    height: 8px;
+    background: #e5e7eb;
+    border: 1px solid #9ca3af;
+    overflow: hidden;
+}
+.quest-task-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #a855f7, #6b21a8);
+    transition: width 0.3s ease;
+}
+.quest-task-progress-text {
+    font-family: 'Lato', sans-serif;
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 4px;
+}
+.quest-task-action {
+    min-width: 78px;
+}
+.quest-advance-btn {
+    padding: 8px 10px;
+    border: 3px solid #6b21a8;
+    background: #f3e8ff;
+    color: #4c1d95;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 #6b21a8;
+    white-space: nowrap;
+}
+.quest-advance-btn:hover:not(:disabled) {
+    background: #ede9fe;
+    filter: brightness(1.05);
+}
+.quest-advance-btn:disabled {
+    cursor: default;
+    opacity: 0.5;
+}
+.quest-completed-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: #9ca3af;
+    text-align: center;
+}
+.quest-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 12px 14px 16px;
+    background: #fff;
+    border-top: 3px solid #6b21a8;
+}
+.quest-tab-btn {
+    flex: 1;
+    padding: 10px 8px;
+    border: 3px solid #6b21a8;
+    background: #fff;
+    color: #4c1d95;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 #6b21a8;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.quest-tab-btn.active {
+    background: #6b21a8;
+    color: #fff;
+    box-shadow: 3px 3px 0 #3b0764;
+}
+.quest-tab-btn:hover:not(.active) {
+    background: #faf5ff;
+}
+
 @media (max-width: 720px) {
     :root { --game-side-pad: 16px; }
     .header-inner { gap: 10px; }
@@ -2390,6 +2652,10 @@ body.afk-layout .currency-pill .currency-tip {
     </div>
 
     <nav class="left-rail" aria-label="Quick actions">
+        <button type="button" class="side-icon-btn" id="rail-daily-quest" onclick="openGameModal('daily-quest')">
+            <span class="side-icon-emoji">📜</span>
+            <span class="rail-tip">DAILY QUEST</span>
+        </button>
         <button type="button" class="side-icon-btn" onclick="buyMonball()">
             <img src="game_icons/monball.png" alt="">
             <span class="rail-tip">BUY BALL (500G)</span>
@@ -2505,6 +2771,17 @@ body.afk-layout .currency-pill .currency-tip {
             <p style="text-align: center; color: #666; font-size: 13px; margin: 0 0 16px;">Spend Gold and Essence on supplies.</p>
             <div id="shop-grid" class="shop-grid"></div>
         </div>
+    </div>
+</div>
+
+<!-- Daily Quest modal -->
+<div id="modal-daily-quest" class="game-modal" onclick="if(event.target===this)closeGameModal('daily-quest')">
+    <div class="game-modal-panel" onclick="event.stopPropagation()">
+        <div class="game-modal-header">
+            <h2 id="quest-modal-title">QUESTS</h2>
+            <button type="button" class="game-modal-close" onclick="closeGameModal('daily-quest')">×</button>
+        </div>
+        <div class="game-modal-body" id="daily-quest-content"></div>
     </div>
 </div>
 
@@ -2863,6 +3140,169 @@ const SHOP_ITEMS = [
     { id: "essence25",  name: "Essence Pack",   desc: "25 Essence for leveling.",     cost: { gold: 900 },               grant: { essence: 25 } },
     { id: "shards3",    name: "Shard Pack",     desc: "3 Mon Shards.",                cost: { gold: 1800, essence: 15 }, grant: { monShards: 3 } },
 ];
+
+const QUEST_MILESTONES = [20, 40, 60, 80, 100];
+const QUEST_MAX_POINTS = 100;
+const QUEST_CHEST_REWARDS = {
+    20:  { label: "200 Gold",      grant: { gold: 200 } },
+    40:  { label: "25 Essence",    grant: { essence: 25 } },
+    60:  { label: "3 Monballs",    grant: { monballs: 3 } },
+    80:  { label: "5 Shards",      grant: { monShards: 5 } },
+    100: { label: "500G + 50 Ess", grant: { gold: 500, essence: 50 } },
+};
+
+let questState = {
+    tab: "dailies",
+    points: 35,
+    claimedChests: [],
+    tasks: {
+        dailies: [
+            { id: "d1", desc: "Purchase items from the Shop 5 times", progress: 2, goal: 5, points: 10, rewardKey: "gold", rewardAmount: 100, claimed: false },
+            { id: "d2", desc: "Level up a party member 3 times", progress: 3, goal: 3, points: 10, rewardKey: "essence", rewardAmount: 15, claimed: false },
+            { id: "d3", desc: "Spend a total of 500 Gold", progress: 0, goal: 500, points: 20, rewardKey: "shards", rewardAmount: 2, claimed: false },
+        ],
+        weeklies: [
+            { id: "w1", desc: "Win 3 adventure battles (placeholder)", progress: 1, goal: 3, points: 20, rewardKey: "gold", rewardAmount: 300, claimed: false },
+            { id: "w2", desc: "Catch 5 Monanimals on X (placeholder)", progress: 0, goal: 5, points: 30, rewardKey: "essence", rewardAmount: 40, claimed: false },
+        ],
+        campaign: [
+            { id: "c1", desc: "Clear Chapter 1 Stage 10 (placeholder)", progress: 0, goal: 1, points: 30, rewardKey: "monball", rewardAmount: 5, claimed: false },
+        ],
+    },
+};
+
+function getQuestRefreshLabel() {
+    const now = new Date();
+    const next = new Date(now);
+    next.setUTCHours(24, 0, 0, 0);
+    const ms = next - now;
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    return `Daily Quest Refresh: ${h} Hours ${m} Min`;
+}
+
+function grantQuestReward(grant) {
+    if (!grant) return;
+    if (grant.gold) money += grant.gold;
+    if (grant.essence) essence += grant.essence;
+    if (grant.monballs) monballs += grant.monballs;
+    if (grant.monShards) monShards += grant.monShards;
+    saveData();
+    updateUI();
+}
+
+function switchQuestTab(tab) {
+    questState.tab = tab;
+    renderDailyQuest();
+}
+
+function advanceQuestTask(taskId) {
+    const tasks = questState.tasks[questState.tab] || [];
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || task.claimed || task.progress < task.goal) return;
+    task.claimed = true;
+    questState.points = Math.min(QUEST_MAX_POINTS, questState.points + task.points);
+    if (task.rewardKey && task.rewardAmount) {
+        const g = {};
+        if (task.rewardKey === "gold") g.gold = task.rewardAmount;
+        else if (task.rewardKey === "essence") g.essence = task.rewardAmount;
+        else if (task.rewardKey === "shards") g.monShards = task.rewardAmount;
+        else if (task.rewardKey === "monball") g.monballs = task.rewardAmount;
+        grantQuestReward(g);
+    }
+    renderDailyQuest();
+}
+
+function claimQuestChest(milestone) {
+    if (questState.points < milestone || questState.claimedChests.includes(milestone)) return;
+    const chest = QUEST_CHEST_REWARDS[milestone];
+    if (!chest) return;
+    questState.claimedChests.push(milestone);
+    grantQuestReward(chest.grant);
+    alert("Chest reward claimed: " + chest.label);
+    renderDailyQuest();
+}
+
+function renderQuestTaskCard(task) {
+    const pct = Math.min(100, Math.round((task.progress / task.goal) * 100));
+    const done = task.claimed;
+    const canAdvance = !done && task.progress >= task.goal;
+    const rewardIcon = GAME_ICONS[task.rewardKey === "shards" ? "shards" : task.rewardKey === "monball" ? "monball" : task.rewardKey]?.src || GAME_ICONS.gold.src;
+    const action = done
+        ? `<span class="quest-completed-label">Completed</span>`
+        : `<button type="button" class="quest-advance-btn" onclick="advanceQuestTask('${task.id}')" ${canAdvance ? "" : "disabled"}>Advance</button>`;
+    return `
+        <div class="quest-task-card${done ? " is-done" : ""}">
+            <div class="quest-task-reward">
+                <img src="${rewardIcon}" alt="">
+                <span>${task.points}</span>
+            </div>
+            <div class="quest-task-body">
+                <p class="quest-task-desc">${task.desc}</p>
+                <div class="quest-task-progress"><div class="quest-task-progress-fill" style="width:${pct}%"></div></div>
+                <div class="quest-task-progress-text">${Math.min(task.progress, task.goal)} / ${task.goal}</div>
+            </div>
+            <div class="quest-task-action">${action}</div>
+        </div>`;
+}
+
+function renderDailyQuest() {
+    const root = document.getElementById("daily-quest-content");
+    if (!root) return;
+
+    const tab = questState.tab;
+    const tabTitles = { dailies: "DAILIES", weeklies: "WEEKLIES", campaign: "CAMPAIGN" };
+    const refreshLabels = {
+        dailies: getQuestRefreshLabel(),
+        weeklies: "Weekly Quest Refresh: 3 Days 14 Hours",
+        campaign: "Campaign quests — placeholder",
+    };
+    const title = document.getElementById("quest-modal-title");
+    if (title) title.textContent = tab === "dailies" ? "DAILY QUESTS" : "QUESTS";
+
+    const fillPct = Math.min(100, (questState.points / QUEST_MAX_POINTS) * 100);
+    const chestsHtml = QUEST_MILESTONES.map(ms => {
+        const claimed = questState.claimedChests.includes(ms);
+        const unlocked = questState.points >= ms;
+        const canClaim = unlocked && !claimed;
+        return `
+            <div class="quest-chest" data-ms="${ms}">
+                <button type="button" class="quest-chest-btn${claimed ? " claimed" : ""}"
+                    title="${QUEST_CHEST_REWARDS[ms]?.label || "Reward"}"
+                    onclick="claimQuestChest(${ms})"
+                    ${canClaim ? "" : "disabled"}>🎁</button>
+                <span class="quest-chest-ms">${ms}</span>
+            </div>`;
+    }).join("");
+
+    const tasks = questState.tasks[tab] || [];
+    const tasksHtml = tasks.length
+        ? tasks.map(renderQuestTaskCard).join("")
+        : `<p style="text-align:center;color:#666;padding:24px;font-family:Lato,sans-serif;">No quests in this tab yet.</p>`;
+
+    root.innerHTML = `
+        <div class="quest-refresh-bar">${refreshLabels[tab] || ""}</div>
+        <div class="quest-milestone-section">
+            <div class="quest-milestone-row">
+                <div class="quest-points-badge">
+                    <div class="quest-points-icon">⭐</div>
+                    <div class="quest-points-val">${questState.points}</div>
+                </div>
+                <div class="quest-milestone-track-wrap">
+                    <div class="quest-chests">${chestsHtml}</div>
+                    <div class="quest-milestone-track">
+                        <div class="quest-milestone-fill" style="width:${fillPct}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="quest-task-list">${tasksHtml}</div>
+        <div class="quest-tabs">
+            <button type="button" class="quest-tab-btn${tab === "dailies" ? " active" : ""}" onclick="switchQuestTab('dailies')">Dailies</button>
+            <button type="button" class="quest-tab-btn${tab === "weeklies" ? " active" : ""}" onclick="switchQuestTab('weeklies')">Weeklies</button>
+            <button type="button" class="quest-tab-btn${tab === "campaign" ? " active" : ""}" onclick="switchQuestTab('campaign')">Campaign</button>
+        </div>`;
+}
 
 // Phase 3 — Equipment & Ascension
 const GEAR_SLOTS = ["weapon", "armor", "helmet", "boots"];
@@ -4540,7 +4980,7 @@ function renderPartyGrid() {
     ${renderGearRow("party", index, mon)}
     <div class="mon-stats">
         <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
-        <div class="stat-row"><span><strong>HP</strong></span><span>${Math.ceil(mon.current_hp)} / ${mon.max_hp}</span></div>
+        <div class="stat-row"><span><strong>HP</strong></span><span>${mon.max_hp}</span></div>
     </div>
     <div class="currently-text">Currently: ready for battle</div>
     <div class="mon-actions">
@@ -4619,7 +5059,7 @@ function renderBox() {
     ${renderGearRow("box", i, mon)}
     <div class="mon-stats">
         <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
-        <div class="stat-row"><span><strong>HP</strong></span><span>${Math.ceil(mon.current_hp)} / ${mon.max_hp}</span></div>
+        <div class="stat-row"><span><strong>HP</strong></span><span>${mon.max_hp}</span></div>
     </div>
     <div class="mon-actions">
         <button onclick="event.stopPropagation(); openBoxSwitchPicker(${i})">SWITCH</button>
@@ -5269,6 +5709,7 @@ function openGameModal(name) {
     if (name === "inventory") renderInventory();
     if (name === "shop") renderShop();
     if (name === "profile") renderProfile();
+    if (name === "daily-quest") renderDailyQuest();
 }
 
 function closeGameModal(name) {
