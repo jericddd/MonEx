@@ -1373,14 +1373,20 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .scene-battle-path {
     position: absolute;
-    left: 0;
-    right: 0;
+    left: 50%;
     bottom: 0;
+    transform: translateX(-50%);
     width: 100%;
-    height: calc(var(--scene-fighter-size, 88px) * 3.15);
+    height: var(--scene-battle-path-height, calc(var(--scene-fighter-size, 88px) * 1.62));
     object-fit: fill;
     object-position: center bottom;
-    z-index: 1;
+    clip-path: polygon(
+        var(--scene-battle-path-top-inset, 10%) 0%,
+        calc(100% - var(--scene-battle-path-top-inset, 10%)) 0%,
+        100% 100%,
+        0% 100%
+    );
+    z-index: 0;
     pointer-events: none;
     display: block;
 }
@@ -2555,7 +2561,7 @@ body.afk-layout .currency-pill .currency-tip {
         padding: 0 10px 88px;
     }
     .scene-battle-path {
-        height: calc(var(--scene-fighter-size, 76px) * 3.35);
+        height: var(--scene-battle-path-height, calc(var(--scene-fighter-size, 76px) * 1.62));
     }
     .scene-idle-stage {
         transform: scale(0.84);
@@ -2650,11 +2656,11 @@ body.afk-layout .currency-pill .currency-tip {
     <div id="main-scene" class="main-scene">
         <div class="scene-stage-label" id="scene-stage-label">Chapter 1-1</div>
         <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions"></div>
-        <img class="scene-battle-path" src="for%20result%20banner/mainscene_battlepath.jpg" alt="" aria-hidden="true">
         <div class="scene-battle-dock">
             <div class="scene-battle-dock-shade" aria-hidden="true"></div>
             <div class="scene-battle-row">
                 <div class="scene-idle-stage">
+                    <img class="scene-battle-path" src="for%20result%20banner/mainscene_battlepath.jpg" alt="" aria-hidden="true">
                     <div class="scene-idle-arena" id="scene-idle-arena"></div>
                 </div>
             </div>
