@@ -3434,10 +3434,32 @@ function getMonAvatarFallbackPath(mon) {
     return getMonPngPath(name);
 }
 
+// Only these species have battle idle GIFs in 128x128/ — others use PNG even when Legendary+.
+const MONS_WITH_BATTLE_GIF = new Set(["molandak", "chog", "mopo", "anago"]);
+
 function getSpritePath(name, rarity) {
     if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
-    if (rarity && isLegendaryOrAbove(rarity)) return getMonGifPath(name);
+    const lower = String(name || "").toLowerCase();
+    if (MONS_WITH_BATTLE_GIF.has(lower) && rarity && isLegendaryOrAbove(rarity)) {
+        return getMonGifPath(name);
+    }
     return getMonPngPath(name);
+}
+
+function bindBattleImgFallback(img, name) {
+    if (!img) return;
+    img.onerror = function() {
+        const fallback = isJohnw(name) ? JOHNW_PNG_SPRITE : getMonPngPath(name);
+        const norm = (src) => String(src || "").split("?")[0];
+        if (norm(this.src) !== norm(fallback)) {
+            this.onerror = null;
+            this.src = fallback;
+            this.style.visibility = "visible";
+        } else {
+            this.onerror = null;
+            this.style.visibility = "hidden";
+        }
+    };
 }
 
 const JOHNW_ENEMY_NAME = "Johnw";
@@ -3943,6 +3965,7 @@ function setBattleSprite(side, src, name, replayGif) {
     const sprite = document.getElementById("sprite-" + side);
     if (!sprite || !src) return;
     sprite.style.visibility = "visible";
+    bindBattleImgFallback(sprite, name);
     if (replayGif && src.endsWith(".gif")) {
         sprite.src = src + "?t=" + Date.now();
     } else {
@@ -6257,7 +6280,7 @@ function renderBattleScene() {
             <div class="battle-hud">
                 <div class="vs-bar">
                     <div class="vs-side left">
-                        <img class="vs-portrait" id="portrait-player" onerror="this.style.visibility='hidden'">
+                        <img class="vs-portrait" id="portrait-player" alt="">
                         <div class="team-col" id="team-player"></div>
                         <div class="vs-bars">
                             <div class="vs-name"><span id="np-name-player"></span> <span class="vs-lv" id="np-lv-player"></span></div>
@@ -6277,7 +6300,7 @@ function renderBattleScene() {
                             <div class="status-row" id="status-enemy"></div>
                         </div>
                         <div class="team-col" id="team-enemy"></div>
-                        <img class="vs-portrait" id="portrait-enemy" onerror="this.style.visibility='hidden'">
+                        <img class="vs-portrait" id="portrait-enemy" alt="">
                     </div>
                 </div>
                 <div class="battle-pause-wrap">
@@ -6286,10 +6309,10 @@ function renderBattleScene() {
             </div>
             <div class="stage-label${boss ? ' boss-label' : ''}">${boss ? 'BOSS — ' : ''}CH.${currentChapter} STAGE ${currentStage}</div>
             <div class="fighter-wrap enemy" id="wrap-enemy">
-                <img class="bsprite" id="sprite-enemy" onerror="this.style.visibility='hidden'">
+                <img class="bsprite" id="sprite-enemy" alt="">
             </div>
             <div class="fighter-wrap player" id="wrap-player">
-                <img class="bsprite" id="sprite-player" onerror="this.style.visibility='hidden'">
+                <img class="bsprite" id="sprite-player" alt="">
             </div>
             <div class="fx-layer" id="fx-layer"></div>
             <div class="skill-banner" id="skill-banner"></div>
@@ -6302,9 +6325,12 @@ function renderBattleScene() {
 function setFighter(side, f) {
     setBattleSprite(side, f.sprite, f.name, false);
     const portrait = document.getElementById("portrait-" + side);
-    portrait.style.visibility = "visible";
-    portrait.src = f.sprite;
-    applyBattleSpriteFacing(portrait, side, f.name);
+    if (portrait) {
+        bindBattleImgFallback(portrait, f.name);
+        portrait.style.visibility = "visible";
+        portrait.src = f.sprite;
+        applyBattleSpriteFacing(portrait, side, f.name);
+    }
     document.getElementById("np-name-" + side).textContent = f.name;
     document.getElementById("np-lv-" + side).textContent = "Lv." + f.level;
     updateBars(side, f);
