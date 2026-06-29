@@ -1413,6 +1413,24 @@ body.afk-layout .currency-pill .currency-tip {
     padding: 2px 8px 0;
     box-sizing: border-box;
 }
+.scene-idle-stage {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    transform: scale(0.92);
+    transform-origin: center bottom;
+}
+.scene-battle-path {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center bottom;
+    z-index: 0;
+    pointer-events: none;
+    display: block;
+}
 .scene-idle-arena {
     display: flex;
     flex-direction: column;
@@ -1422,8 +1440,8 @@ body.afk-layout .currency-pill .currency-tip {
     width: 100%;
     max-width: 520px;
     min-height: calc(var(--scene-fighter-size, 88px) * 1.15);
-    transform: scale(0.92);
-    transform-origin: center bottom;
+    position: relative;
+    z-index: 1;
 }
 .scene-idle-row {
     display: flex;
@@ -2534,8 +2552,10 @@ body.afk-layout .currency-pill .currency-tip {
     .scene-battle-dock {
         padding: 0 10px 88px;
     }
-    .scene-idle-arena {
+    .scene-idle-stage {
         transform: scale(0.84);
+    }
+    .scene-idle-arena {
         min-height: calc(var(--scene-fighter-size, 76px) * 1.15);
     }
     .scene-idle-row + .scene-idle-row {
@@ -2627,7 +2647,10 @@ body.afk-layout .currency-pill .currency-tip {
         <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions"></div>
         <div class="scene-battle-dock">
             <div class="scene-battle-row">
-                <div class="scene-idle-arena" id="scene-idle-arena"></div>
+                <div class="scene-idle-stage">
+                    <img class="scene-battle-path" src="for%20result%20banner/mainscene_battlepath.jpg" alt="" aria-hidden="true">
+                    <div class="scene-idle-arena" id="scene-idle-arena"></div>
+                </div>
             </div>
         </div>
     </div>
