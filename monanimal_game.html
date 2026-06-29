@@ -3229,7 +3229,7 @@ let xHandle = "";
 let profileActivityTimer = null;
 
 const PARTY_MAX = 3;
-const BOX_MAX = 100;
+const BOX_MAX = Infinity;
 
 const SHOP_ITEMS = [
     { id: "monball5",   name: "Monball Pack",   desc: "5 Monballs for catching.",     cost: { gold: 2000 },              grant: { monballs: 5 } },
@@ -5183,7 +5183,7 @@ function renderParty() {
 function renderBox() {
     const content = document.getElementById("box-content");
     const capLabel = document.getElementById("box-capacity-label");
-    if (capLabel) capLabel.textContent = `Box: ${box.length} / ${BOX_MAX}`;
+    if (capLabel) capLabel.textContent = `Box: ${box.length}`;
     sortBoxByRarity();
     content.innerHTML = "";
 
@@ -5407,7 +5407,6 @@ async function refreshProfileActivity() {
 }
 
 function toBox(index) {
-    if (box.length >= BOX_MAX) { alert("Box is full!"); return; }
     const mon = party.splice(index, 1)[0];
     box.push(mon);
     saveData();
@@ -5716,7 +5715,6 @@ function grantTestChogToBox() {
         localStorage.setItem(flagKey, "1");
         return;
     }
-    if (box.length >= BOX_MAX) return;
     box.push(createMonanimal("Chog", "Rare", 15));
     sortBoxByRarity();
     localStorage.setItem(flagKey, "1");
@@ -5739,7 +5737,7 @@ function promoteAllAccountMonsToLegendary() {
 
     const owned = new Set([...party, ...box].map((m) => m.name));
     for (const name of MONANIMAL_NAMES) {
-        if (owned.has(name) || box.length >= BOX_MAX) continue;
+        if (owned.has(name)) continue;
         box.push(createMonanimal(name, "Legendary", 15));
         owned.add(name);
     }
@@ -5766,13 +5764,6 @@ function attemptCatch() {
         newMon.ultimate = { ...newMon.skills[0] };
 
         if (party.length >= PARTY_MAX) {
-            if (box.length >= BOX_MAX) {
-                result.innerHTML = `<span style="color:red">Box is full! Cannot catch.</span>`;
-                monballs++;
-                saveData();
-                updateUI();
-                return;
-            }
             box.push(newMon);
             result.innerHTML = `<span style="color:green">Caught ${rarity} ${name}! Sent to Box.</span>`;
         } else {
