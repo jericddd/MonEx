@@ -5721,10 +5721,8 @@ function grantTestChogToBox() {
     saveData();
 }
 
-function promoteAllAccountMonsToLegendary() {
+function ensureLegendaryBoxRoster() {
     if (!currentUser) return;
-    const flagKey = "monex_staging_legendary_all_v1_" + currentUser;
-    if (localStorage.getItem(flagKey)) return;
 
     const promote = (mon) => {
         if (!mon) return;
@@ -5735,14 +5733,15 @@ function promoteAllAccountMonsToLegendary() {
     party.forEach(promote);
     box.forEach(promote);
 
-    const owned = new Set([...party, ...box].map((m) => m.name));
+    const inBox = new Set(box.map((m) => m.name));
+    let added = false;
     for (const name of MONANIMAL_NAMES) {
-        if (owned.has(name)) continue;
+        if (inBox.has(name)) continue;
         box.push(createMonanimal(name, "Legendary", 15));
-        owned.add(name);
+        inBox.add(name);
+        added = true;
     }
-    sortBoxByRarity();
-    localStorage.setItem(flagKey, "1");
+    if (added) sortBoxByRarity();
     saveData();
 }
 
@@ -5811,7 +5810,7 @@ async function checkLogin() {
         await loadData();
         grantTestBattleParty();
         grantTestChogToBox();
-        promoteAllAccountMonsToLegendary();
+        ensureLegendaryBoxRoster();
         resolveAbandonedAdventureBattle();
         if (adventureForfeitNotice) {
             adventureForfeitNotice = false;
@@ -5827,7 +5826,7 @@ async function checkLogin() {
             await loadData();
             grantTestBattleParty();
         grantTestChogToBox();
-        promoteAllAccountMonsToLegendary();
+        ensureLegendaryBoxRoster();
             resolveAbandonedAdventureBattle();
             if (adventureForfeitNotice) {
                 adventureForfeitNotice = false;
