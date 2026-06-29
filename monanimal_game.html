@@ -3426,6 +3426,19 @@ function getMonGifPath(name) {
     return `128x128/${String(name || "").toLowerCase()}.gif`;
 }
 
+function getMonIdleGifPath(name) {
+    return `128x128/${String(name || "").toLowerCase()}-idle.gif`;
+}
+
+// Species with [name]-idle.gif assets (Legendary+ avatars / battle idle).
+const MONS_WITH_IDLE_GIF = new Set(["anago", "mouch"]);
+
+function getMonLegendaryGifPath(name) {
+    const lower = String(name || "").toLowerCase();
+    if (MONS_WITH_IDLE_GIF.has(lower)) return getMonIdleGifPath(name);
+    return getMonGifPath(name);
+}
+
 function isLegendaryOrAbove(rarity) {
     const rank = RARITY_ORDER.indexOf(rarity);
     const legRank = RARITY_ORDER.indexOf("Legendary");
@@ -3436,7 +3449,7 @@ function getMonAvatarPath(mon) {
     const name = mon?.name || mon;
     const rarity = mon?.rarity;
     if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
-    if (rarity && isLegendaryOrAbove(rarity)) return getMonGifPath(name);
+    if (rarity && isLegendaryOrAbove(rarity)) return getMonLegendaryGifPath(name);
     return getMonPngPath(name);
 }
 
@@ -3447,13 +3460,13 @@ function getMonAvatarFallbackPath(mon) {
 }
 
 // Only these species have battle idle GIFs in 128x128/ — others use PNG even when Legendary+.
-const MONS_WITH_BATTLE_GIF = new Set(["molandak", "chog", "mopo", "anago"]);
+const MONS_WITH_BATTLE_GIF = new Set(["molandak", "chog", "mopo", "anago", "mouch"]);
 
 function getSpritePath(name, rarity) {
     if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
     const lower = String(name || "").toLowerCase();
     if (MONS_WITH_BATTLE_GIF.has(lower) && rarity && isLegendaryOrAbove(rarity)) {
-        return getMonGifPath(name);
+        return getMonLegendaryGifPath(name);
     }
     return getMonPngPath(name);
 }
@@ -3523,7 +3536,9 @@ const SCENE_SPRITE_DURATION_MS = {
     "128x128/chog.gif": 1440,
     "128x128/molandak.gif": 960,
     "128x128/mopo.gif": 5800,
-    "128x128/anago.gif": 960
+    "128x128/anago.gif": 960,
+    "128x128/anago-idle.gif": 960,
+    "128x128/mouch-idle.gif": 960
 };
 
 const sceneIdleFighterBusy = new Set();
@@ -3582,9 +3597,10 @@ function getSceneIdleHomeSprite(mon) {
 function getSceneIdleDisplaySprite(mon) {
     const name = mon?.name || mon;
     if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
-    if (getAttackSpritePath(name)) return getMonGifPath(name);
     const lower = String(name || "").toLowerCase();
-    if (lower === "mopo" || lower === "anago") return getMonGifPath(name);
+    if (MONS_WITH_IDLE_GIF.has(lower)) return getMonIdleGifPath(name);
+    if (getAttackSpritePath(name)) return getMonGifPath(name);
+    if (lower === "mopo") return getMonGifPath(name);
     return getMonPngPath(name);
 }
 
