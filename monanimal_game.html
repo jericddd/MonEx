@@ -1996,6 +1996,17 @@ body.afk-layout .currency-pill .currency-tip {
     border-bottom: none;
     padding-bottom: 6px;
 }
+#modal-box .game-modal-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+#modal-box .box-capacity-label {
+    color: #666;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+}
 #modal-party .game-modal-body,
 #modal-box .game-modal-body,
 #modal-inventory .game-modal-body {
@@ -2777,11 +2788,13 @@ body.afk-layout .currency-pill .currency-tip {
 <div id="modal-box" class="game-modal" onclick="if(event.target===this)closeGameModal('box')">
     <div class="game-modal-panel game-modal-wide">
         <div class="game-modal-header">
-            <h2>BOX</h2>
+            <div class="game-modal-title-row">
+                <h2>BOX</h2>
+                <span id="box-capacity-label" class="box-capacity-label"></span>
+            </div>
             <button type="button" class="game-modal-close" onclick="closeGameModal('box')">×</button>
         </div>
         <div class="game-modal-body">
-            <p id="box-capacity-label" style="text-align:center; color:#666; font-size:12px; margin:0 0 10px;"></p>
             <div class="box-scroll-wrap">
                 <div id="box-content" class="box-content-grid"></div>
             </div>
@@ -5183,7 +5196,7 @@ function renderParty() {
 function renderBox() {
     const content = document.getElementById("box-content");
     const capLabel = document.getElementById("box-capacity-label");
-    if (capLabel) capLabel.textContent = `Box: ${box.length}`;
+    if (capLabel) capLabel.textContent = String(box.length);
     sortBoxByRarity();
     content.innerHTML = "";
 
