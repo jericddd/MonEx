@@ -11,6 +11,8 @@
     --purple-light: #A855F7;
     --game-max-width: 1400px;
     --game-side-pad: 30px;
+    --scene-battle-path-height: calc(var(--scene-fighter-size, 88px) * 1.62);
+    --scene-battle-path-top-half: min(208px, 40%);
     --monad-purple: #200052;
     --scene-fighter-size: 88px;
 }
@@ -1371,24 +1373,29 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-upper-zone > * {
     pointer-events: auto;
 }
-.scene-battle-path {
+.scene-battle-path-frame {
     position: absolute;
-    left: 50%;
+    left: 0;
+    right: 0;
     bottom: 0;
-    transform: translateX(-50%);
     width: 100%;
-    height: var(--scene-battle-path-height, calc(var(--scene-fighter-size, 88px) * 1.62));
-    object-fit: fill;
-    object-position: center bottom;
+    height: var(--scene-battle-path-height);
     clip-path: polygon(
-        var(--scene-battle-path-top-inset, 10%) 0%,
-        calc(100% - var(--scene-battle-path-top-inset, 10%)) 0%,
+        calc(50% - var(--scene-battle-path-top-half)) 0%,
+        calc(50% + var(--scene-battle-path-top-half)) 0%,
         100% 100%,
         0% 100%
     );
-    z-index: 0;
+    z-index: 1;
     pointer-events: none;
+    overflow: hidden;
+}
+.scene-battle-path {
     display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    object-position: center bottom;
 }
 .scene-battle-dock-shade {
     position: absolute;
@@ -2560,8 +2567,8 @@ body.afk-layout .currency-pill .currency-tip {
     .scene-battle-dock {
         padding: 0 10px 88px;
     }
-    .scene-battle-path {
-        height: var(--scene-battle-path-height, calc(var(--scene-fighter-size, 76px) * 1.62));
+    .scene-battle-path-frame {
+        height: var(--scene-battle-path-height);
     }
     .scene-idle-stage {
         transform: scale(0.84);
@@ -2656,11 +2663,13 @@ body.afk-layout .currency-pill .currency-tip {
     <div id="main-scene" class="main-scene">
         <div class="scene-stage-label" id="scene-stage-label">Chapter 1-1</div>
         <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions"></div>
+        <div class="scene-battle-path-frame" aria-hidden="true">
+            <img class="scene-battle-path" src="for%20result%20banner/mainscene_battlepath.jpg" alt="">
+        </div>
         <div class="scene-battle-dock">
             <div class="scene-battle-dock-shade" aria-hidden="true"></div>
             <div class="scene-battle-row">
                 <div class="scene-idle-stage">
-                    <img class="scene-battle-path" src="for%20result%20banner/mainscene_battlepath.jpg" alt="" aria-hidden="true">
                     <div class="scene-idle-arena" id="scene-idle-arena"></div>
                 </div>
             </div>
