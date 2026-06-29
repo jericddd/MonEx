@@ -4004,12 +4004,13 @@ function setBattleSprite(side, src, name, replayGif) {
 
 // Natural facing of each sprite asset (scan of 128x128 png/gif art).
 // Player sprites should face right; enemy sprites should face left.
+// Anago + Mouch new art (2026): both face left in source PNG / idle GIF.
 const SPRITE_NATURAL_FACING = {
     Molandak: "right",
     Chog: "right",
     Mouch: "left",
     Salmonad: "right",
-    Anago: "right",
+    Anago: "left",
     Larvanad: "left",
     Lyraffe: "right",
     Mokadal: "left",
@@ -5672,13 +5673,13 @@ function createMonanimal(name, rarity, level) {
 
 function grantTestBattleParty() {
     if (!currentUser) return;
-    const flagKey = "monex_test_cc_party_v2_" + currentUser;
+    const flagKey = "monex_test_cc_party_v3_" + currentUser;
     if (localStorage.getItem(flagKey)) return;
 
     party = [
-        buildTestMon("Chog", "Rare", 15, "Eagle Eye", ["Cleanse", "Shock Bolt", "Flame Burst"]),
-        buildTestMon("Molandak", "Rare", 15, "Swift Feet", ["Renew", "Frost Shard", "Slash"]),
-        buildTestMon("Larvanad", "Rare", 15, "Piercing Gaze", ["Life Bloom", "Venom Bite", "Rock Throw"]),
+        buildTestMon("Anago", "Legendary", 15, "Eagle Eye", ["Cleanse", "Shock Bolt", "Flame Burst"]),
+        buildTestMon("Mouch", "Legendary", 15, "Swift Feet", ["Renew", "Frost Shard", "Slash"]),
+        buildTestMon("Chog", "Legendary", 15, "Piercing Gaze", ["Life Bloom", "Venom Bite", "Rock Throw"]),
     ];
     localStorage.setItem(flagKey, "1");
     saveData();
@@ -5717,6 +5718,31 @@ function grantTestChogToBox() {
     }
     if (box.length >= BOX_MAX) return;
     box.push(createMonanimal("Chog", "Rare", 15));
+    sortBoxByRarity();
+    localStorage.setItem(flagKey, "1");
+    saveData();
+}
+
+function promoteAllAccountMonsToLegendary() {
+    if (!currentUser) return;
+    const flagKey = "monex_staging_legendary_all_v1_" + currentUser;
+    if (localStorage.getItem(flagKey)) return;
+
+    const promote = (mon) => {
+        if (!mon) return;
+        mon.rarity = "Legendary";
+        ensureMonReady(mon);
+        refreshMonDerivedStats(mon);
+    };
+    party.forEach(promote);
+    box.forEach(promote);
+
+    const owned = new Set([...party, ...box].map((m) => m.name));
+    for (const name of MONANIMAL_NAMES) {
+        if (owned.has(name) || box.length >= BOX_MAX) continue;
+        box.push(createMonanimal(name, "Legendary", 15));
+        owned.add(name);
+    }
     sortBoxByRarity();
     localStorage.setItem(flagKey, "1");
     saveData();
@@ -5794,6 +5820,7 @@ async function checkLogin() {
         await loadData();
         grantTestBattleParty();
         grantTestChogToBox();
+        promoteAllAccountMonsToLegendary();
         resolveAbandonedAdventureBattle();
         if (adventureForfeitNotice) {
             adventureForfeitNotice = false;
@@ -5809,6 +5836,7 @@ async function checkLogin() {
             await loadData();
             grantTestBattleParty();
         grantTestChogToBox();
+        promoteAllAccountMonsToLegendary();
             resolveAbandonedAdventureBattle();
             if (adventureForfeitNotice) {
                 adventureForfeitNotice = false;
