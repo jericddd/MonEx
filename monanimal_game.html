@@ -1948,7 +1948,6 @@ body.afk-layout .currency-pill .currency-tip {
 .battle-hub-btn:focus,
 .battle-hub-btn:active,
 .battle-hub-btn:focus-visible {
-    transform: translate(-50%, -50%) !important;
     appearance: none;
     -webkit-appearance: none;
     background: transparent !important;
@@ -1957,6 +1956,12 @@ body.afk-layout .currency-pill .currency-tip {
     outline: none !important;
     box-shadow: none !important;
     color: inherit !important;
+}
+.battle-hub-btn:not(.battle-hub-btn--scene-arena):not(.battle-hub-btn--scene-house-tower):hover,
+.battle-hub-btn:not(.battle-hub-btn--scene-arena):not(.battle-hub-btn--scene-house-tower):focus,
+.battle-hub-btn:not(.battle-hub-btn--scene-arena):not(.battle-hub-btn--scene-house-tower):active,
+.battle-hub-btn:not(.battle-hub-btn--scene-arena):not(.battle-hub-btn--scene-house-tower):focus-visible {
+    transform: translate(-50%, -50%) !important;
 }
 .battle-hub-btn:hover::before,
 .battle-hub-btn:focus::before,
@@ -1971,12 +1976,17 @@ body.afk-layout .currency-pill .currency-tip {
     background-color: transparent !important;
     border: none !important;
     box-shadow: none !important;
+}
+#battle-content .battle-hub-btn:not(.battle-hub-btn--scene-arena):not(.battle-hub-btn--scene-house-tower):hover,
+#battle-content .battle-hub-btn:not(.battle-hub-btn--scene-arena):not(.battle-hub-btn--scene-house-tower):focus,
+#battle-content .battle-hub-btn:not(.battle-hub-btn--scene-arena):not(.battle-hub-btn--scene-house-tower):active {
     transform: translate(-50%, -50%) !important;
 }
 .battle-hub-btn img {
     width: 100%;
     height: auto;
     display: block;
+    object-fit: contain;
     filter: drop-shadow(0 8px 18px rgba(15, 6, 30, 0.45));
     transition: filter 0.2s ease;
     pointer-events: none;
@@ -1995,18 +2005,39 @@ body.afk-layout .currency-pill .currency-tip {
     transform: translate(0, -50%) !important;
 }
 .battle-hub-btn--statue {
-    width: clamp(150px, 24vw, 300px);
+    height: auto;
     z-index: 2;
 }
+/* Uniform scale shrinks width + height together (arena −10%, house tower −20%). */
 .battle-hub-btn--scene-house-tower {
     left: 70%;
     top: 45%;
-    width: 11.67%;
+    width: 14.58%;
+    transform: translate(-50%, -50%) scale(0.8);
 }
 .battle-hub-btn--scene-arena {
     left: 35%;
     top: 65%;
-    width: 14.06%;
+    width: 15.63%;
+    transform: translate(-50%, -50%) scale(0.9);
+}
+.battle-hub-btn--scene-house-tower:hover,
+.battle-hub-btn--scene-house-tower:focus,
+.battle-hub-btn--scene-house-tower:active,
+.battle-hub-btn--scene-house-tower:focus-visible,
+#battle-content .battle-hub-btn--scene-house-tower:hover,
+#battle-content .battle-hub-btn--scene-house-tower:focus,
+#battle-content .battle-hub-btn--scene-house-tower:active {
+    transform: translate(-50%, -50%) scale(0.8) !important;
+}
+.battle-hub-btn--scene-arena:hover,
+.battle-hub-btn--scene-arena:focus,
+.battle-hub-btn--scene-arena:active,
+.battle-hub-btn--scene-arena:focus-visible,
+#battle-content .battle-hub-btn--scene-arena:hover,
+#battle-content .battle-hub-btn--scene-arena:focus,
+#battle-content .battle-hub-btn--scene-arena:active {
+    transform: translate(-50%, -50%) scale(0.9) !important;
 }
 .battle-hub-btn--scene-house-tower:hover img,
 .battle-hub-btn--scene-arena:hover img {
