@@ -3018,7 +3018,7 @@ body.afk-layout .currency-pill .currency-tip {
 </div>
 
 <!-- Battle menu modal -->
-<div id="modal-battle" class="game-modal game-modal-battle" onclick="if(event.target===this)closeGameModal('battle')">
+<div id="modal-battle" class="game-modal" onclick="if(event.target===this)closeGameModal('battle')">
     <div class="game-modal-panel battle-modal-panel" onclick="event.stopPropagation()">
         <div class="game-modal-header">
             <h2 id="battle-modal-title">BATTLE</h2>
@@ -3658,11 +3658,13 @@ function getMonGifPath(name) {
 }
 
 function getMonIdleGifPath(name) {
-    return `128x128/${String(name || "").toLowerCase()}-idle.gif`;
+    const lower = String(name || "").toLowerCase();
+    if (MON_LEGENDARY_GIF_OVERRIDES[lower]) return MON_LEGENDARY_GIF_OVERRIDES[lower];
+    return `128x128/${lower}-idle.gif`;
 }
 
-// Species with [name]-idle.gif assets (Legendary+ avatars / battle idle).
-const MONS_WITH_IDLE_GIF = new Set(["anago", "mouch"]);
+// Species with idle GIF assets (main scene + legendary avatars).
+const MONS_WITH_IDLE_GIF = new Set(["anago", "mouch", "moyaki"]);
 const MON_LEGENDARY_GIF_OVERRIDES = {
     moyaki: "128x128/main-moyaki.gif",
 };
