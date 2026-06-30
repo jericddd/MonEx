@@ -974,7 +974,7 @@ button,
 .battle-stage {
     position: relative;
     width: 100%;
-    height: 520px;
+    height: 100%;
     border: 4px solid #6B21A8;
     box-shadow: 4px 4px 0px #6B21A8;
     overflow: hidden;
@@ -982,6 +982,7 @@ button,
     background-position: center;
     background-size: cover;
     background-repeat: no-repeat;
+    box-sizing: border-box;
 }
 .stage-label {
     position: absolute;
@@ -1000,8 +1001,8 @@ button,
     left: 50%;
     bottom: 24%;
     transform: translateX(-50%);
-    width: min(68%, 520px);
-    height: 130px;
+    width: 68%;
+    height: 12%;
     object-fit: fill;
     object-position: center bottom;
     z-index: 2;
@@ -1013,8 +1014,8 @@ button,
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    width: 170px;
+    gap: calc(6px * var(--battle-fighter-scale, 1));
+    width: calc(170px * var(--battle-fighter-scale, 1));
     z-index: 4;
 }
 .fighter-wrap.player { left: 10%; bottom: 32%; top: auto; }
@@ -1123,8 +1124,8 @@ button,
     box-shadow: 0 0 12px rgba(245,158,11,0.8); transform: rotate(-8deg);
 }
 .bsprite {
-    width: 150px;
-    height: 150px;
+    width: calc(150px * var(--battle-fighter-scale, 1));
+    height: calc(150px * var(--battle-fighter-scale, 1));
     object-fit: contain;
     filter: drop-shadow(0 6px 5px rgba(0,0,0,0.45));
 }
@@ -1398,16 +1399,47 @@ body.afk-layout .currency-pill .currency-tip {
     isolation: isolate;
 }
 
-.scene-bg {
+/* Shared cover-art stage: UI % coords map to 1920×1080 design boards */
+.cover-viewport {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+.cover-art-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    --cover-scale: 1;
+}
+.cover-art-bg {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: fill;
     object-position: center center;
     z-index: 0;
     pointer-events: none;
     display: block;
+}
+.cover-art-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    pointer-events: none;
+}
+.cover-art-layer > * {
+    pointer-events: auto;
+}
+
+#main-scene-cover-stage {
+    --scene-fighter-size: calc(88px * var(--cover-scale));
 }
 
 .main-scene {
@@ -1415,8 +1447,9 @@ body.afk-layout .currency-pill .currency-tip {
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    min-height: calc(100vh - 110px);
     width: 100%;
+    height: 100%;
+    min-height: 0;
     box-sizing: border-box;
     z-index: 1;
 }
@@ -1436,7 +1469,7 @@ body.afk-layout .currency-pill .currency-tip {
     right: 0;
     bottom: 0;
     width: 100%;
-    height: var(--scene-battle-path-height);
+    height: 26.6%;
     object-fit: fill;
     object-position: center bottom;
     z-index: 1;
@@ -1451,14 +1484,16 @@ body.afk-layout .currency-pill .currency-tip {
     z-index: 0;
 }
 .scene-battle-dock {
-    flex: 0 0 auto;
-    width: 100%;
+    position: absolute;
+    left: 50%;
+    bottom: 7%;
+    transform: translateX(-50%);
+    width: 52%;
     display: flex;
     justify-content: center;
     align-items: flex-end;
-    padding: 0 80px 10px;
+    padding: 0;
     box-sizing: border-box;
-    position: relative;
     z-index: 2;
     background: none;
 }
@@ -1471,8 +1506,8 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .scene-stage-label {
     position: absolute;
-    top: 16px;
-    left: 20px;
+    top: 1.5%;
+    left: 1%;
     background: rgba(0,0,0,0.55);
     border: 2px solid #facc15;
     color: #fde68a;
@@ -1496,9 +1531,8 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-idle-stage {
     position: relative;
     width: 100%;
-    max-width: 520px;
-    min-height: calc(var(--scene-fighter-size, 88px) * 2.05);
-    transform: scale(0.92);
+    min-height: 19%;
+    transform: none;
     transform-origin: center bottom;
 }
 .scene-idle-arena {
@@ -1508,8 +1542,7 @@ body.afk-layout .currency-pill .currency-tip {
     justify-content: flex-end;
     gap: 0;
     width: 100%;
-    max-width: 520px;
-    min-height: calc(var(--scene-fighter-size, 88px) * 1.15);
+    min-height: 100%;
     position: relative;
     z-index: 1;
 }
@@ -1522,19 +1555,19 @@ body.afk-layout .currency-pill .currency-tip {
     overflow: visible;
 }
 .scene-idle-row + .scene-idle-row {
-    margin-top: -47px;
+    margin-top: -43%;
 }
 .scene-idle-row.row-left {
     justify-content: flex-start;
 }
 .scene-idle-row.row-slot-0 .scene-idle-pair {
-    transform: translateX(72px);
+    transform: translateX(3.75%);
 }
 .scene-idle-row.row-slot-2 .scene-idle-pair {
-    transform: translateX(-18px);
+    transform: translateX(-0.94%);
 }
 .scene-idle-row.row-right .scene-idle-pair {
-    transform: translateX(44px);
+    transform: translateX(2.29%);
 }
 .scene-idle-row.row-right {
     justify-content: flex-end;
@@ -1547,7 +1580,7 @@ body.afk-layout .currency-pill .currency-tip {
     overflow: visible;
 }
 .scene-idle-pair .scene-idle-fighter.enemy {
-    margin-left: -16px;
+    margin-left: calc(-16px * var(--cover-scale, 1));
 }
 .scene-idle-team {
     display: none;
@@ -1776,8 +1809,7 @@ body.afk-layout .currency-pill .currency-tip {
 .game-container.adventure-mode .battle-scene {
     z-index: 25;
 }
-.game-container.adventure-mode .scene-bg,
-.game-container.adventure-mode .main-scene,
+.game-container.adventure-mode .main-scene-viewport,
 .game-container.adventure-mode .left-rail,
 .game-container.adventure-mode .side-rail {
     visibility: hidden;
@@ -1792,14 +1824,6 @@ body.afk-layout .currency-pill .currency-tip {
     flex-direction: column;
 }
 .battle-scene-bg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center center;
-    z-index: 0;
-    pointer-events: none;
     display: none;
 }
 .battle-scene-bg.visible { display: block; }
@@ -1888,42 +1912,30 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .battle-pause-panel button:hover::before { display: none !important; }
 .battle-scene-ui {
-    position: relative;
+    position: absolute;
+    inset: 0;
     z-index: 1;
-    flex: 1;
     width: 100%;
-    min-height: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 56px 20px 20px;
+    padding: 0;
     box-sizing: border-box;
-    overflow-y: auto;
+    overflow: hidden;
     font-family: 'Lato', sans-serif;
 }
 .battle-scene-ui--fight {
     align-items: stretch;
-    justify-content: flex-start;
-    padding: 48px 10px 10px;
+    justify-content: stretch;
 }
 .battle-scene-ui--hub {
-    position: absolute;
-    inset: 0;
-    padding: 0;
     align-items: stretch;
     justify-content: stretch;
-    overflow: hidden;
 }
-.battle-hub-cover-stage {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-}
-.battle-hub-cover-stage .battle-hub-btn {
-    pointer-events: auto;
+.battle-scene-ui:not(.battle-scene-ui--hub):not(.battle-scene-ui--fight) {
+    overflow-y: auto;
+    padding: 56px 20px 20px;
 }
 .battle-hub-layer {
     position: absolute;
@@ -2141,21 +2153,18 @@ body.afk-layout .currency-pill .currency-tip {
 }
 #battle-content { flex: 1; width: 100%; min-height: 0; }
 #battle-content .battle-stage {
+    position: absolute;
+    inset: 0;
     width: 100%;
-    min-height: calc(100vh - 220px);
-}
-.game-container.adventure-mode .battle-scene-ui--fight {
-    padding: 52px 0 0;
-    align-items: stretch;
-    justify-content: stretch;
+    height: 100%;
 }
 .game-container.adventure-mode .battle-scene-ui--fight .battle-stage {
-    flex: 1;
-    min-height: calc(100vh - 130px);
-    height: auto;
     border: none;
     box-shadow: none;
     background: transparent;
+}
+#battle-scene-cover-stage {
+    --battle-fighter-scale: var(--cover-scale);
 }
 
 .game-modal {
@@ -2880,42 +2889,35 @@ body.afk-layout .currency-pill .currency-tip {
         min-height: min(420px, calc(100vh - 110px));
     }
     .main-scene { min-height: min(420px, calc(100vh - 110px)); }
-    .scene-bg {
-        object-position: center center;
+    #main-scene-cover-stage {
+        --scene-fighter-size: calc(76px * var(--cover-scale));
     }
     .scene-battle-dock {
-        padding: 0 10px 88px;
+        padding: 0;
     }
     .scene-battle-path {
         height: var(--scene-battle-path-height);
     }
     .battle-stage-path {
-        width: min(78%, 420px);
-        height: 108px;
+        width: 78%;
+        height: 10%;
         bottom: 22%;
     }
-    .scene-idle-stage {
-        transform: scale(0.84);
-    }
-    .scene-idle-arena {
-        min-height: calc(var(--scene-fighter-size, 76px) * 1.15);
-    }
     .scene-idle-row + .scene-idle-row {
-        margin-top: -35px;
+        margin-top: -39%;
     }
     .scene-idle-row.row-slot-0 .scene-idle-pair {
-        transform: translateX(52px);
+        transform: translateX(3.75%);
     }
     .scene-idle-row.row-slot-2 .scene-idle-pair {
-        transform: translateX(-14px);
+        transform: translateX(-0.94%);
     }
     .scene-idle-row.row-right .scene-idle-pair {
-        transform: translateX(32px);
+        transform: translateX(2.29%);
     }
     .scene-idle-pair .scene-idle-fighter.enemy {
-        margin-left: -12px;
+        margin-left: calc(-16px * var(--cover-scale));
     }
-    :root { --scene-fighter-size: 76px; }
     .side-rail,
     .left-rail {
         position: absolute;
@@ -2983,24 +2985,31 @@ body.afk-layout .currency-pill .currency-tip {
 
 <div class="game-shell">
 <div class="game-container">
-    <img class="scene-bg" src="for%20result%20banner/mainscene_background.png" alt="">
-    <div id="main-scene" class="main-scene">
-        <div class="scene-stage-label" id="scene-stage-label">Chapter 1-1</div>
-        <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions"></div>
-        <img class="scene-battle-path" src="for%20result%20banner/mainscene_battlepath.jpg" alt="" aria-hidden="true">
-        <div class="scene-battle-dock">
-            <div class="scene-battle-dock-shade" aria-hidden="true"></div>
-            <div class="scene-battle-row">
-                <div class="scene-idle-stage">
-                    <div class="scene-idle-arena" id="scene-idle-arena"></div>
+    <div id="main-scene-viewport" class="cover-viewport">
+        <div id="main-scene-cover-stage" class="cover-art-stage">
+            <img class="cover-art-bg scene-bg" src="for%20result%20banner/mainscene_background.png" alt="">
+            <div id="main-scene" class="main-scene cover-art-layer">
+                <div class="scene-stage-label" id="scene-stage-label">Chapter 1-1</div>
+                <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions"></div>
+                <img class="scene-battle-path" src="for%20result%20banner/mainscene_battlepath.jpg" alt="" aria-hidden="true">
+                <div class="scene-battle-dock">
+                    <div class="scene-battle-dock-shade" aria-hidden="true"></div>
+                    <div class="scene-battle-row">
+                        <div class="scene-idle-stage">
+                            <div class="scene-idle-arena" id="scene-idle-arena"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <div id="battle-scene" class="battle-scene">
-        <div class="battle-scene-frame">
-            <img id="battle-scene-bg" class="battle-scene-bg" alt="">
+        <div class="battle-scene-frame cover-viewport" id="battle-scene-viewport">
+            <div id="battle-scene-cover-stage" class="cover-art-stage">
+                <img id="battle-scene-bg" class="cover-art-bg battle-scene-bg" alt="">
+                <div id="battle-content" class="battle-scene-ui cover-art-layer"></div>
+            </div>
             <button type="button" class="battle-back-btn" id="battle-back-btn" onclick="requestLeaveBattle()">← BACK</button>
             <div id="battle-pause-menu" class="battle-pause-menu">
                 <div class="battle-pause-panel">
@@ -3009,7 +3018,6 @@ body.afk-layout .currency-pill .currency-tip {
                     <button type="button" class="battle-pause-continue" onclick="continueFromPause()">CONTINUE</button>
                 </div>
             </div>
-            <div id="battle-content" class="battle-scene-ui"></div>
         </div>
     </div>
 
@@ -3494,9 +3502,60 @@ const ADVENTURE_CHAPTER_PLACEHOLDER = BANNER_DIR + "/adventure_chapter_placehold
 const CHAPTER_BG_FALLBACK = ADVENTURE_CHAPTER_PLACEHOLDER;
 const BATTLE_HUB_BTN_DIR = BANNER_DIR + "/battle_hub";
 const BATTLE_ICONS_DIR = "game_icons/battle";
-// battlescene_background.png artboard — hub hotspots use % of this rect
-const BATTLE_HUB_COVER_ART = { w: 1920, h: 1080 };
-let battleHubCoverObserver = null;
+// 1920×1080 design boards — UI hotspots use % inside .cover-art-stage
+const COVER_ART_1920_1080 = { w: 1920, h: 1080 };
+const coverStageRegistry = new Map();
+let coverStagesObserver = null;
+
+function registerCoverStage(viewportId, stageId, options = {}) {
+    coverStageRegistry.set(viewportId, {
+        stageId,
+        art: options.art || COVER_ART_1920_1080,
+        isActive: options.isActive || (() => true),
+        onSync: options.onSync || null,
+    });
+}
+
+function applyCoverFit(viewportEl, stageEl, art) {
+    const bounds = viewportEl.getBoundingClientRect();
+    const fit = getObjectCoverRect(bounds.width, bounds.height, art.w, art.h);
+    stageEl.style.left = `${fit.left}px`;
+    stageEl.style.top = `${fit.top}px`;
+    stageEl.style.width = `${fit.width}px`;
+    stageEl.style.height = `${fit.height}px`;
+    stageEl.style.setProperty("--cover-scale", (fit.width / art.w).toFixed(4));
+    return fit;
+}
+
+function syncCoverStages() {
+    coverStageRegistry.forEach((cfg, viewportId) => {
+        if (!cfg.isActive()) return;
+        const viewport = document.getElementById(viewportId);
+        const stage = document.getElementById(cfg.stageId);
+        if (!viewport || !stage) return;
+        const fit = applyCoverFit(viewport, stage, cfg.art);
+        cfg.onSync?.(stage, fit, cfg.art);
+    });
+}
+
+function ensureCoverStagesSync() {
+    syncCoverStages();
+    if (coverStagesObserver) return;
+    const container = document.querySelector(".game-container");
+    if (!container) return;
+    coverStagesObserver = new ResizeObserver(() => syncCoverStages());
+    coverStagesObserver.observe(container);
+    window.addEventListener("resize", syncCoverStages);
+}
+
+function setMainSceneVisible(visible) {
+    const viewport = document.getElementById("main-scene-viewport");
+    const main = document.getElementById("main-scene");
+    const display = visible ? "block" : "none";
+    if (viewport) viewport.style.display = display;
+    if (main) main.style.display = visible ? "flex" : "none";
+    if (visible) syncCoverStages();
+}
 
 function getChapterBackgroundPath(chapter) {
     const ch = Math.max(1, Math.floor(chapter) || 1);
@@ -4055,9 +4114,9 @@ function getSceneIdleBattleSignature(heroes) {
 }
 
 function getSceneIdlePairOffset(idx) {
-    if (idx === 0) return "transform:translateX(72px);";
-    if (idx === 1) return "transform:translateX(44px);";
-    if (idx === 2) return "transform:translateX(-18px);";
+    if (idx === 0) return "transform:translateX(3.75%);";
+    if (idx === 1) return "transform:translateX(2.29%);";
+    if (idx === 2) return "transform:translateX(-0.94%);";
     return "";
 }
 
@@ -5620,6 +5679,7 @@ function renderMainScene() {
         refreshSceneIdleHeroFighters(heroes);
         ensureSceneIdleBattleRunning();
     }
+    requestAnimationFrame(() => syncCoverStages());
 }
 
 function renderParty() {
@@ -6327,9 +6387,8 @@ function resetToMainSceneUI() {
     setBattleSceneBackground("");
     battleScreen = "main";
     const battle = document.getElementById("battle-scene");
-    const main = document.getElementById("main-scene");
     if (battle) battle.classList.remove("open");
-    if (main) main.style.display = "flex";
+    setMainSceneVisible(true);
     closeAllModals();
 }
 
@@ -6337,6 +6396,7 @@ function showMainScene() {
     resetToMainSceneUI();
     document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
     renderMainScene();
+    ensureCoverStagesSync();
 }
 
 function closeAllModals() {
@@ -6408,33 +6468,16 @@ function getObjectCoverRect(containerW, containerH, imgW, imgH) {
     return { left: 0, top: (containerH - height) / 2, width, height };
 }
 
-function syncBattleHubCoverStage() {
-    const stage = document.getElementById("battle-hub-cover-stage");
-    const frame = document.querySelector(".battle-scene-frame");
-    if (!stage || !frame) return;
-    if (battleScreen !== "menu" && battleScreen !== "tower") return;
-    const bounds = frame.getBoundingClientRect();
-    const fit = getObjectCoverRect(
-        bounds.width,
-        bounds.height,
-        BATTLE_HUB_COVER_ART.w,
-        BATTLE_HUB_COVER_ART.h
-    );
-    stage.style.left = `${fit.left}px`;
-    stage.style.top = `${fit.top}px`;
-    stage.style.width = `${fit.width}px`;
-    stage.style.height = `${fit.height}px`;
-}
+registerCoverStage("main-scene-viewport", "main-scene-cover-stage", {
+    isActive: () => {
+        const viewport = document.getElementById("main-scene-viewport");
+        return viewport && viewport.style.display !== "none";
+    },
+});
 
-function ensureBattleHubCoverSync() {
-    syncBattleHubCoverStage();
-    if (battleHubCoverObserver) return;
-    const frame = document.querySelector(".battle-scene-frame");
-    if (!frame) return;
-    battleHubCoverObserver = new ResizeObserver(() => syncBattleHubCoverStage());
-    battleHubCoverObserver.observe(frame);
-    window.addEventListener("resize", syncBattleHubCoverStage);
-}
+registerCoverStage("battle-scene-viewport", "battle-scene-cover-stage", {
+    isActive: () => document.getElementById("battle-scene")?.classList.contains("open"),
+});
 
 const BATTLE_HUB_MAIN_BUTTONS = [
     { alt: "Adventure", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_adventure.png`, left: 3, top: 32, onclick: "launchAdventureFromHub()", leftRail: true },
@@ -6455,9 +6498,8 @@ function renderBattleHubButtons(buttons) {
     if (!content) return;
     content.className = "battle-scene-ui battle-scene-ui--hub";
     content.innerHTML = `
-        <div class="battle-hub-cover-stage" id="battle-hub-cover-stage">
-            <div class="battle-hub-layer" id="battle-hub-layer">
-            ${buttons.map((btn) => {
+        <div class="battle-hub-layer" id="battle-hub-layer">
+        ${buttons.map((btn) => {
                 const extraClass = [
                     btn.back ? "battle-hub-btn--back" : "",
                     btn.leftRail ? "battle-hub-btn--left-rail" : "",
@@ -6470,10 +6512,9 @@ function renderBattleHubButtons(buttons) {
                     <img src="${btn.src}" alt="${btn.alt}">
                 </button>`;
             }).join("")}
-            </div>
         </div>
     `;
-    ensureBattleHubCoverSync();
+    syncCoverStages();
 }
 
 function openBattleHub() {
@@ -6485,7 +6526,7 @@ function openBattleHub() {
     closeAllModals();
     stopSceneIdleBattle();
     battleScreen = "menu";
-    document.getElementById("main-scene").style.display = "none";
+    setMainSceneVisible(false);
     document.getElementById("battle-scene").classList.add("open");
     setAdventureMode(false);
     setBattleFightingUI(false);
@@ -6493,6 +6534,7 @@ function openBattleHub() {
     document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
     document.getElementById("rail-battle")?.classList.add("active");
     renderBattleHubMenu();
+    ensureCoverStagesSync();
 }
 
 function renderBattleHubMenu() {
@@ -6611,7 +6653,7 @@ function closeBattleScene() {
     setBattleSceneBackground("");
     battleScreen = "main";
     document.getElementById("battle-scene").classList.remove("open");
-    document.getElementById("main-scene").style.display = "flex";
+    setMainSceneVisible(true);
     document.getElementById("rail-battle")?.classList.remove("active");
     const content = document.getElementById("battle-content");
     if (content) {
@@ -6619,6 +6661,7 @@ function closeBattleScene() {
         content.className = "battle-scene-ui";
     }
     renderMainScene();
+    syncCoverStages();
 }
 
 function switchTab(tab) {
@@ -6656,6 +6699,7 @@ window.onload = async function() {
         openGameModal("profile");
     }
     clearGameUrlHash();
+    ensureCoverStagesSync();
 };
 // ==================== ADVENTURE MODE ====================
 
@@ -6673,8 +6717,9 @@ function saveAdventureProgress() {
 
 function ensureBattleSceneOpen() {
     stopSceneIdleBattle();
-    document.getElementById("main-scene").style.display = "none";
+    setMainSceneVisible(false);
     document.getElementById("battle-scene").classList.add("open");
+    ensureCoverStagesSync();
 }
 
 function enterAdventureMode() {
@@ -6701,6 +6746,7 @@ function startStageSelection() {
     `;
 
     renderTeamArrangement();
+    syncCoverStages();
 }
 
 function renderTeamArrangement() {
@@ -6888,6 +6934,7 @@ function renderBattleScene() {
         </div>
     `;
     applyBattleStageChapterBackground(currentChapter);
+    requestAnimationFrame(() => syncCoverStages());
 }
 
 function setFighter(side, f) {
