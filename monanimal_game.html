@@ -11,9 +11,9 @@
     --purple-light: #A855F7;
     --game-max-width: 1400px;
     --game-side-pad: 30px;
-    --scene-battle-path-height: calc(var(--scene-fighter-size, 88px) * 1.62);
+    --scene-battle-path-height: calc(var(--scene-fighter-size, 88px) * 2.106);
     --monad-purple: #200052;
-    --scene-fighter-size: 101px;
+    --scene-fighter-size: 141px;
     --modal-drop: 10vh;
 }
 
@@ -1578,8 +1578,8 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-idle-stage {
     position: relative;
     width: 100%;
-    max-width: 598px;
-    min-height: calc(var(--scene-fighter-size, 101px) * 2.05);
+    max-width: 837px;
+    min-height: calc(var(--scene-fighter-size, 141px) * 2.05);
     transform: scale(0.92);
     transform-origin: center bottom;
 }
@@ -1590,8 +1590,8 @@ body.afk-layout .currency-pill .currency-tip {
     justify-content: flex-end;
     gap: 0;
     width: 100%;
-    max-width: 598px;
-    min-height: calc(var(--scene-fighter-size, 101px) * 1.15);
+    max-width: 837px;
+    min-height: calc(var(--scene-fighter-size, 141px) * 1.15);
     position: relative;
     z-index: 1;
 }
@@ -1604,19 +1604,19 @@ body.afk-layout .currency-pill .currency-tip {
     overflow: visible;
 }
 .scene-idle-row + .scene-idle-row {
-    margin-top: -54px;
+    margin-top: -76px;
 }
 .scene-idle-row.row-left {
     justify-content: flex-start;
 }
 .scene-idle-row.row-slot-0 .scene-idle-pair {
-    transform: translateX(83px);
+    transform: translateX(116px);
 }
 .scene-idle-row.row-slot-2 .scene-idle-pair {
-    transform: translateX(-21px);
+    transform: translateX(-29px);
 }
 .scene-idle-row.row-right .scene-idle-pair {
-    transform: translateX(51px);
+    transform: translateX(71px);
 }
 .scene-idle-row.row-right {
     justify-content: flex-end;
@@ -1629,7 +1629,7 @@ body.afk-layout .currency-pill .currency-tip {
     overflow: visible;
 }
 .scene-idle-pair .scene-idle-fighter.enemy {
-    margin-left: -18px;
+    margin-left: -25px;
 }
 .scene-idle-team {
     display: none;
@@ -2962,21 +2962,21 @@ body.afk-layout .currency-pill .currency-tip {
         min-height: calc(var(--scene-fighter-size, 76px) * 1.15);
     }
     .scene-idle-row + .scene-idle-row {
-        margin-top: -40px;
+        margin-top: -56px;
     }
     .scene-idle-row.row-slot-0 .scene-idle-pair {
-        transform: translateX(60px);
+        transform: translateX(84px);
     }
     .scene-idle-row.row-slot-2 .scene-idle-pair {
-        transform: translateX(-16px);
+        transform: translateX(-22px);
     }
     .scene-idle-row.row-right .scene-idle-pair {
-        transform: translateX(37px);
+        transform: translateX(52px);
     }
     .scene-idle-pair .scene-idle-fighter.enemy {
-        margin-left: -14px;
+        margin-left: -20px;
     }
-    :root { --scene-fighter-size: 87px; }
+    :root { --scene-fighter-size: 122px; }
     .side-rail,
     .left-rail {
         position: absolute;
@@ -4172,9 +4172,9 @@ function getSceneIdleBattleSignature(heroes) {
 }
 
 function getSceneIdlePairOffset(idx) {
-    if (idx === 0) return "transform:translateX(83px);";
-    if (idx === 1) return "transform:translateX(51px);";
-    if (idx === 2) return "transform:translateX(-21px);";
+    if (idx === 0) return "transform:translateX(116px);";
+    if (idx === 1) return "transform:translateX(71px);";
+    if (idx === 2) return "transform:translateX(-29px);";
     return "";
 }
 
