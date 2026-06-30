@@ -980,7 +980,7 @@ button,
     overflow: hidden;
     background-color: #1a0a2e;
     background-position: center;
-    background-size: cover;
+    background-size: 100% 100%;
     background-repeat: no-repeat;
     box-sizing: border-box;
 }
@@ -1014,8 +1014,8 @@ button,
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: calc(6px * var(--battle-fighter-scale, 1));
-    width: calc(170px * var(--battle-fighter-scale, 1));
+    gap: 6px;
+    width: 170px;
     z-index: 4;
 }
 .fighter-wrap.player { left: 10%; bottom: 32%; top: auto; }
@@ -1124,8 +1124,8 @@ button,
     box-shadow: 0 0 12px rgba(245,158,11,0.8); transform: rotate(-8deg);
 }
 .bsprite {
-    width: calc(150px * var(--battle-fighter-scale, 1));
-    height: calc(150px * var(--battle-fighter-scale, 1));
+    width: 150px;
+    height: 150px;
     object-fit: contain;
     filter: drop-shadow(0 6px 5px rgba(0,0,0,0.45));
 }
@@ -1403,19 +1403,19 @@ body.afk-layout .currency-pill .currency-tip {
     isolation: isolate;
 }
 
-/* Shared cover-art stage: UI % coords map to 1920×1080 design boards */
+/* Shared cover-art stage: UI % coords map to 1920×1080 design boards (stretched to viewport) */
 .cover-viewport {
     position: absolute;
     inset: 0;
     overflow: hidden;
 }
-/* Full-bleed background — fills viewport with no letterbox bars */
+/* Full-bleed background — stretch to fill viewport (no letterbox, no crop) */
 .cover-viewport-bg {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: fill;
     object-position: center center;
     z-index: 0;
     pointer-events: none;
@@ -1440,7 +1440,7 @@ body.afk-layout .currency-pill .currency-tip {
     inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: fill;
     object-position: center center;
     z-index: 0;
     pointer-events: none;
@@ -1459,10 +1459,6 @@ body.afk-layout .currency-pill .currency-tip {
     pointer-events: auto;
 }
 
-#main-scene-cover-stage {
-    --scene-fighter-size: calc(88px * var(--cover-scale));
-}
-
 .main-scene {
     position: relative;
     display: flex;
@@ -1470,7 +1466,7 @@ body.afk-layout .currency-pill .currency-tip {
     justify-content: flex-end;
     width: 100%;
     height: 100%;
-    min-height: 0;
+    min-height: 100%;
     box-sizing: border-box;
     z-index: 1;
 }
@@ -1490,7 +1486,7 @@ body.afk-layout .currency-pill .currency-tip {
     right: 0;
     bottom: 0;
     width: 100%;
-    height: 26.6%;
+    height: var(--scene-battle-path-height);
     object-fit: fill;
     object-position: center bottom;
     z-index: 1;
@@ -1505,16 +1501,14 @@ body.afk-layout .currency-pill .currency-tip {
     z-index: 0;
 }
 .scene-battle-dock {
-    position: absolute;
-    left: 50%;
-    bottom: 7%;
-    transform: translateX(-50%);
-    width: 52%;
+    flex: 0 0 auto;
+    width: 100%;
     display: flex;
     justify-content: center;
     align-items: flex-end;
-    padding: 0;
+    padding: 0 80px 10px;
     box-sizing: border-box;
+    position: relative;
     z-index: 2;
     background: none;
 }
@@ -1527,8 +1521,8 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .scene-stage-label {
     position: absolute;
-    top: 1.5%;
-    left: 1%;
+    top: 16px;
+    left: 20px;
     background: rgba(0,0,0,0.55);
     border: 2px solid #facc15;
     color: #fde68a;
@@ -1552,8 +1546,9 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-idle-stage {
     position: relative;
     width: 100%;
-    min-height: 19%;
-    transform: none;
+    max-width: 520px;
+    min-height: calc(var(--scene-fighter-size, 88px) * 2.05);
+    transform: scale(0.92);
     transform-origin: center bottom;
 }
 .scene-idle-arena {
@@ -1563,7 +1558,8 @@ body.afk-layout .currency-pill .currency-tip {
     justify-content: flex-end;
     gap: 0;
     width: 100%;
-    min-height: 100%;
+    max-width: 520px;
+    min-height: calc(var(--scene-fighter-size, 88px) * 1.15);
     position: relative;
     z-index: 1;
 }
@@ -1576,19 +1572,19 @@ body.afk-layout .currency-pill .currency-tip {
     overflow: visible;
 }
 .scene-idle-row + .scene-idle-row {
-    margin-top: -43%;
+    margin-top: -47px;
 }
 .scene-idle-row.row-left {
     justify-content: flex-start;
 }
 .scene-idle-row.row-slot-0 .scene-idle-pair {
-    transform: translateX(3.75%);
+    transform: translateX(72px);
 }
 .scene-idle-row.row-slot-2 .scene-idle-pair {
-    transform: translateX(-0.94%);
+    transform: translateX(-18px);
 }
 .scene-idle-row.row-right .scene-idle-pair {
-    transform: translateX(2.29%);
+    transform: translateX(44px);
 }
 .scene-idle-row.row-right {
     justify-content: flex-end;
@@ -1601,7 +1597,7 @@ body.afk-layout .currency-pill .currency-tip {
     overflow: visible;
 }
 .scene-idle-pair .scene-idle-fighter.enemy {
-    margin-left: calc(-16px * var(--cover-scale, 1));
+    margin-left: -16px;
 }
 .scene-idle-team {
     display: none;
@@ -2183,9 +2179,6 @@ body.afk-layout .currency-pill .currency-tip {
     border: none;
     box-shadow: none;
     background: transparent;
-}
-#battle-scene-cover-stage {
-    --battle-fighter-scale: var(--cover-scale);
 }
 
 .game-modal {
@@ -2909,11 +2902,9 @@ body.afk-layout .currency-pill .currency-tip {
         flex-direction: column;
         min-height: min(420px, calc(100vh - 110px));
     }
-    #main-scene-cover-stage {
-        --scene-fighter-size: calc(76px * var(--cover-scale));
-    }
+    .main-scene { min-height: min(420px, calc(100vh - 110px)); }
     .scene-battle-dock {
-        padding: 0;
+        padding: 0 10px 88px;
     }
     .scene-battle-path {
         height: var(--scene-battle-path-height);
@@ -2923,21 +2914,28 @@ body.afk-layout .currency-pill .currency-tip {
         height: 10%;
         bottom: 22%;
     }
+    .scene-idle-stage {
+        transform: scale(0.84);
+    }
+    .scene-idle-arena {
+        min-height: calc(var(--scene-fighter-size, 76px) * 1.15);
+    }
     .scene-idle-row + .scene-idle-row {
-        margin-top: -39%;
+        margin-top: -35px;
     }
     .scene-idle-row.row-slot-0 .scene-idle-pair {
-        transform: translateX(3.75%);
+        transform: translateX(52px);
     }
     .scene-idle-row.row-slot-2 .scene-idle-pair {
-        transform: translateX(-0.94%);
+        transform: translateX(-14px);
     }
     .scene-idle-row.row-right .scene-idle-pair {
-        transform: translateX(2.29%);
+        transform: translateX(32px);
     }
     .scene-idle-pair .scene-idle-fighter.enemy {
-        margin-left: calc(-16px * var(--cover-scale));
+        margin-left: -12px;
     }
+    :root { --scene-fighter-size: 76px; }
     .side-rail,
     .left-rail {
         position: absolute;
@@ -3538,13 +3536,12 @@ function registerCoverStage(viewportId, stageId, options = {}) {
 
 function applyCoverFit(viewportEl, stageEl, art) {
     const bounds = viewportEl.getBoundingClientRect();
-    const fit = getObjectCoverRect(bounds.width, bounds.height, art.w, art.h);
-    stageEl.style.left = `${fit.left}px`;
-    stageEl.style.top = `${fit.top}px`;
-    stageEl.style.width = `${fit.width}px`;
-    stageEl.style.height = `${fit.height}px`;
-    stageEl.style.setProperty("--cover-scale", (fit.width / art.w).toFixed(4));
-    return fit;
+    stageEl.style.left = "0";
+    stageEl.style.top = "0";
+    stageEl.style.width = "100%";
+    stageEl.style.height = "100%";
+    stageEl.style.setProperty("--cover-scale", (bounds.width / art.w).toFixed(4));
+    return { left: 0, top: 0, width: bounds.width, height: bounds.height };
 }
 
 function syncCoverStages() {
@@ -3600,7 +3597,7 @@ const STAGES_PER_CHAPTER = 40;
 let sceneIdleEnemyTeam = [];
 let sceneIdleBattleToken = 0;
 let sceneIdleBattleSignature = "";
-const SCENE_IDLE_LAYOUT_REV = 8;
+const SCENE_IDLE_LAYOUT_REV = 9;
 
 // Ground shadow footprint (fraction of --scene-fighter-size), tuned to each species' body at the feet.
 const SCENE_IDLE_BODY_SHADOW = {
@@ -4134,9 +4131,9 @@ function getSceneIdleBattleSignature(heroes) {
 }
 
 function getSceneIdlePairOffset(idx) {
-    if (idx === 0) return "transform:translateX(3.75%);";
-    if (idx === 1) return "transform:translateX(2.29%);";
-    if (idx === 2) return "transform:translateX(-0.94%);";
+    if (idx === 0) return "transform:translateX(72px);";
+    if (idx === 1) return "transform:translateX(44px);";
+    if (idx === 2) return "transform:translateX(-18px);";
     return "";
 }
 
