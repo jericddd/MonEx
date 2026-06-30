@@ -3727,9 +3727,17 @@ const JOHNW_SWING_SPRITES = [
     "128x128/johnw-swing1.gif",
     "128x128/johnw-swing2.gif"
 ];
+const ANAGO_SWING_SPRITES = [
+    "128x128/anago-swing1.gif",
+    "128x128/anago-swing2.gif"
+];
 
 function isJohnw(name) {
     return String(name || "").toLowerCase() === "johnw";
+}
+
+function isAnago(name) {
+    return String(name || "").toLowerCase() === "anago";
 }
 
 function getJohnwIdleSprite() {
@@ -3738,6 +3746,10 @@ function getJohnwIdleSprite() {
 
 function pickJohnwSwingSprite() {
     return JOHNW_SWING_SPRITES[Math.floor(Math.random() * JOHNW_SWING_SPRITES.length)];
+}
+
+function pickAnagoSwingSprite() {
+    return ANAGO_SWING_SPRITES[Math.floor(Math.random() * ANAGO_SWING_SPRITES.length)];
 }
 
 const ATTACK_SPRITE_MAP = {
@@ -3749,14 +3761,16 @@ const ATTACK_SPRITE_MAP = {
 const ATTACK_SPRITE_DURATION_MS = {
     Molandak: 960,
     Chog: 960,
-    Johnw: 1920
+    Johnw: 1920,
+    Anago: 1920
 };
 
 // Swing GIF frames 8-15 from source; hit near frame 2-3 of swing clip.
 const ATTACK_HIT_AT_MS = {
     Molandak: 360,
     Chog: 360,
-    Johnw: 720
+    Johnw: 720,
+    Anago: 720
 };
 
 // Full measured GIF loop lengths for main-scene idle fighting (ffprobe).
@@ -3764,6 +3778,8 @@ const SCENE_SPRITE_DURATION_MS = {
     "128x128/johnw-idle.gif": 1920,
     "128x128/johnw-swing1.gif": 1920,
     "128x128/johnw-swing2.gif": 1920,
+    "128x128/anago-swing1.gif": 1920,
+    "128x128/anago-swing2.gif": 1920,
     "128x128/chog1-swing.gif": 960,
     "128x128/molandak1-swing.gif": 960,
     "128x128/chog.gif": 1440,
@@ -3813,6 +3829,7 @@ const MELEE_DASH_FALLBACK_PX = 180;
 
 function getAttackSpritePath(name) {
     if (isJohnw(name)) return pickJohnwSwingSprite();
+    if (isAnago(name)) return pickAnagoSwingSprite();
     return ATTACK_SPRITE_MAP[name] || null;
 }
 
@@ -4057,7 +4074,7 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
 
     sceneIdleFighterBusy.add(busyKey);
     try {
-        const attackPath = isJohnw(atkMon.name) ? pickJohnwSwingSprite() : getAttackSpritePath(atkMon.name);
+        const attackPath = getAttackSpritePath(atkMon.name);
         const idleSprite = getSceneIdleHomeSprite(atkMon);
         if (attackPath) {
             if (atkMon.name === "Chog") {
