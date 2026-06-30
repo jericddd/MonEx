@@ -11,7 +11,7 @@
     --purple-light: #A855F7;
     --game-max-width: 1400px;
     --game-side-pad: 30px;
-    --scene-battle-path-height: calc(var(--scene-fighter-size, 88px) * 2.106);
+    --scene-battle-path-height: calc(var(--scene-fighter-size, 88px) * 1.895);
     --monad-purple: #200052;
     --scene-fighter-size: 141px;
     --modal-drop: 10vh;
@@ -1610,7 +1610,7 @@ body.afk-layout .currency-pill .currency-tip {
     justify-content: flex-start;
 }
 .scene-idle-row.row-slot-0 .scene-idle-pair {
-    transform: translateX(116px);
+    transform: translateX(116px) translateY(-5%);
 }
 .scene-idle-row.row-slot-2 .scene-idle-pair {
     transform: translateX(-29px);
@@ -2968,7 +2968,7 @@ body.afk-layout .currency-pill .currency-tip {
         margin-top: -56px;
     }
     .scene-idle-row.row-slot-0 .scene-idle-pair {
-        transform: translateX(84px);
+        transform: translateX(84px) translateY(-5%);
     }
     .scene-idle-row.row-slot-2 .scene-idle-pair {
         transform: translateX(-22px);
@@ -4175,7 +4175,7 @@ function getSceneIdleBattleSignature(heroes) {
 }
 
 function getSceneIdlePairOffset(idx) {
-    if (idx === 0) return "transform:translateX(116px);";
+    if (idx === 0) return "transform:translateX(116px) translateY(-5%);";
     if (idx === 1) return "transform:translateX(71px);";
     if (idx === 2) return "transform:translateX(-29px);";
     return "";
