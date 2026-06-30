@@ -1907,16 +1907,29 @@ body.afk-layout .currency-pill .currency-tip {
     padding: 48px 10px 10px;
 }
 .battle-scene-ui--hub {
-    padding: 56px 0 0;
+    position: absolute;
+    inset: 0;
+    padding: 0;
     align-items: stretch;
     justify-content: stretch;
     overflow: hidden;
 }
-.battle-hub-layer {
-    position: relative;
-    flex: 1;
+.battle-hub-cover-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
     width: 100%;
-    min-height: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+.battle-hub-cover-stage .battle-hub-btn {
+    pointer-events: auto;
+}
+.battle-hub-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
 }
 .battle-hub-btn {
     position: absolute;
@@ -1927,7 +1940,7 @@ body.afk-layout .currency-pill .currency-tip {
     background: transparent;
     padding: 0;
     cursor: pointer;
-    width: clamp(118px, 15vw, 196px);
+    width: 9.17%;
     box-shadow: none !important;
     color: inherit;
 }
@@ -1970,7 +1983,7 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .battle-hub-btn--left-rail {
     transform: translate(0, -50%);
-    width: clamp(108px, 13vw, 176px);
+    width: 9.17%;
 }
 .battle-hub-btn--left-rail:hover,
 .battle-hub-btn--left-rail:focus,
@@ -1988,12 +2001,12 @@ body.afk-layout .currency-pill .currency-tip {
 .battle-hub-btn--scene-house-tower {
     left: 70%;
     top: 45%;
-    width: clamp(128px, 17.6vw, 224px);
+    width: 11.67%;
 }
 .battle-hub-btn--scene-arena {
     left: 35%;
     top: 65%;
-    width: clamp(135px, 21.6vw, 270px);
+    width: 14.06%;
 }
 .battle-hub-btn--scene-house-tower:hover img,
 .battle-hub-btn--scene-arena:hover img {
@@ -2015,7 +2028,7 @@ body.afk-layout .currency-pill .currency-tip {
         brightness(1.08);
 }
 .battle-hub-btn--back {
-    width: clamp(96px, 11vw, 140px);
+    width: 7.3%;
 }
 .adventure-panel {
     text-align: center;
@@ -3450,6 +3463,9 @@ const ADVENTURE_CHAPTER_PLACEHOLDER = BANNER_DIR + "/adventure_chapter_placehold
 const CHAPTER_BG_FALLBACK = ADVENTURE_CHAPTER_PLACEHOLDER;
 const BATTLE_HUB_BTN_DIR = BANNER_DIR + "/battle_hub";
 const BATTLE_ICONS_DIR = "game_icons/battle";
+// battlescene_background.png artboard — hub hotspots use % of this rect
+const BATTLE_HUB_COVER_ART = { w: 1920, h: 1080 };
+let battleHubCoverObserver = null;
 
 function getChapterBackgroundPath(chapter) {
     const ch = Math.max(1, Math.floor(chapter) || 1);
@@ -6348,6 +6364,47 @@ function enterAdventureFullMode(bgUrl) {
     setBattleSceneBackground(bgUrl);
 }
 
+function getObjectCoverRect(containerW, containerH, imgW, imgH) {
+    const containerAspect = containerW / containerH;
+    const imageAspect = imgW / imgH;
+    if (containerAspect > imageAspect) {
+        const height = containerH;
+        const width = height * imageAspect;
+        return { left: (containerW - width) / 2, top: 0, width, height };
+    }
+    const width = containerW;
+    const height = width / imageAspect;
+    return { left: 0, top: (containerH - height) / 2, width, height };
+}
+
+function syncBattleHubCoverStage() {
+    const stage = document.getElementById("battle-hub-cover-stage");
+    const frame = document.querySelector(".battle-scene-frame");
+    if (!stage || !frame) return;
+    if (battleScreen !== "menu" && battleScreen !== "tower") return;
+    const bounds = frame.getBoundingClientRect();
+    const fit = getObjectCoverRect(
+        bounds.width,
+        bounds.height,
+        BATTLE_HUB_COVER_ART.w,
+        BATTLE_HUB_COVER_ART.h
+    );
+    stage.style.left = `${fit.left}px`;
+    stage.style.top = `${fit.top}px`;
+    stage.style.width = `${fit.width}px`;
+    stage.style.height = `${fit.height}px`;
+}
+
+function ensureBattleHubCoverSync() {
+    syncBattleHubCoverStage();
+    if (battleHubCoverObserver) return;
+    const frame = document.querySelector(".battle-scene-frame");
+    if (!frame) return;
+    battleHubCoverObserver = new ResizeObserver(() => syncBattleHubCoverStage());
+    battleHubCoverObserver.observe(frame);
+    window.addEventListener("resize", syncBattleHubCoverStage);
+}
+
 const BATTLE_HUB_MAIN_BUTTONS = [
     { alt: "Adventure", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_adventure.png`, left: 3, top: 32, onclick: "launchAdventureFromHub()", leftRail: true },
     { alt: "PVP Wager", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_pvp_wager.png`, left: 3, top: 52, onclick: "alert('PVP Wager coming soon!')", leftRail: true },
@@ -6367,7 +6424,8 @@ function renderBattleHubButtons(buttons) {
     if (!content) return;
     content.className = "battle-scene-ui battle-scene-ui--hub";
     content.innerHTML = `
-        <div class="battle-hub-layer" id="battle-hub-layer">
+        <div class="battle-hub-cover-stage" id="battle-hub-cover-stage">
+            <div class="battle-hub-layer" id="battle-hub-layer">
             ${buttons.map((btn) => {
                 const extraClass = [
                     btn.back ? "battle-hub-btn--back" : "",
@@ -6381,8 +6439,10 @@ function renderBattleHubButtons(buttons) {
                     <img src="${btn.src}" alt="${btn.alt}">
                 </button>`;
             }).join("")}
+            </div>
         </div>
     `;
+    ensureBattleHubCoverSync();
 }
 
 function openBattleHub() {
