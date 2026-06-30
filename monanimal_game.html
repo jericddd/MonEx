@@ -1996,6 +1996,17 @@ body.afk-layout .currency-pill .currency-tip {
     border-bottom: none;
     padding-bottom: 6px;
 }
+#modal-box .game-modal-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+#modal-box .box-capacity-label {
+    color: #666;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+}
 #modal-party .game-modal-body,
 #modal-box .game-modal-body,
 #modal-inventory .game-modal-body {
@@ -2041,6 +2052,65 @@ body.afk-layout .currency-pill .currency-tip {
     overflow: visible;
     width: 100%;
     padding-bottom: 4px;
+}
+.box-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin: 0 0 10px;
+}
+.box-sort-wrap {
+    position: relative;
+}
+.box-sort-btn {
+    border: 2px solid #6B21A8;
+    background: #fff;
+    color: #6B21A8;
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    line-height: 1.4;
+}
+.box-sort-btn:hover,
+.box-sort-btn.is-open {
+    background: #f3e8ff;
+}
+.box-sort-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 168px;
+    background: #fff;
+    border: 2px solid #6B21A8;
+    box-shadow: 0 8px 20px rgba(107, 33, 168, 0.18);
+    z-index: 40;
+}
+.box-sort-menu.open {
+    display: block;
+}
+.box-sort-menu button {
+    display: block;
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid #e9d5ff;
+    background: #fff;
+    color: #4c1d95;
+    font-family: "Lato", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 12px;
+    cursor: pointer;
+}
+.box-sort-menu button:last-child {
+    border-bottom: none;
+}
+.box-sort-menu button:hover,
+.box-sort-menu button.is-active {
+    background: #f3e8ff;
+    color: #6B21A8;
 }
 
 /* Party switch picker — box avatars over party modal */
@@ -2777,11 +2847,23 @@ body.afk-layout .currency-pill .currency-tip {
 <div id="modal-box" class="game-modal" onclick="if(event.target===this)closeGameModal('box')">
     <div class="game-modal-panel game-modal-wide">
         <div class="game-modal-header">
-            <h2>BOX</h2>
+            <div class="game-modal-title-row">
+                <h2>BOX</h2>
+                <span id="box-capacity-label" class="box-capacity-label"></span>
+            </div>
             <button type="button" class="game-modal-close" onclick="closeGameModal('box')">×</button>
         </div>
         <div class="game-modal-body">
-            <p id="box-capacity-label" style="text-align:center; color:#666; font-size:12px; margin:0 0 10px;"></p>
+            <div class="box-toolbar">
+                <div class="box-sort-wrap" id="box-sort-wrap">
+                    <button type="button" class="box-sort-btn" id="box-sort-btn" onclick="toggleBoxSortMenu(event)">SORT</button>
+                    <div class="box-sort-menu" id="box-sort-menu">
+                        <button type="button" data-sort="power" onclick="setBoxSort('power')">Sort by Power</button>
+                        <button type="button" data-sort="level" onclick="setBoxSort('level')">Sort by Level</button>
+                        <button type="button" data-sort="rarity" onclick="setBoxSort('rarity')">Sort by Rarity</button>
+                    </div>
+                </div>
+            </div>
             <div class="box-scroll-wrap">
                 <div id="box-content" class="box-content-grid"></div>
             </div>
@@ -3139,6 +3221,7 @@ function getSkillIconPath(skill) {
 let currentUser = null;
 let party = [];
 let box = [];
+let boxSortMode = "rarity";
 let monballs = 15;
 let money = 5000;
 let essence = 0;
@@ -4047,8 +4130,76 @@ function getRarityRank(rarity) {
     return i >= 0 ? i : -1;
 }
 
-function sortBoxByRarity() {
-    box.sort((a, b) => getRarityRank(b.rarity) - getRarityRank(a.rarity));
+function getMonPower(mon) {
+    ensureMonReady(mon);
+    const eff = getEffectiveStats(mon);
+    return eff.atk + mon.max_hp + eff.spd + eff.crit + eff.dodge + eff.block + eff.hit + eff.pierce;
+}
+
+function sortBox() {
+    const tieName = (a, b) => a.name.localeCompare(b.name);
+    if (boxSortMode === "level") {
+        box.sort((a, b) => {
+            const levelDiff = Math.floor(b.level) - Math.floor(a.level);
+            if (levelDiff) return levelDiff;
+            const rarityDiff = getRarityRank(b.rarity) - getRarityRank(a.rarity);
+            if (rarityDiff) return rarityDiff;
+            return tieName(a, b);
+        });
+        return;
+    }
+    if (boxSortMode === "power") {
+        box.sort((a, b) => {
+            const powerDiff = getMonPower(b) - getMonPower(a);
+            if (powerDiff) return powerDiff;
+            const levelDiff = Math.floor(b.level) - Math.floor(a.level);
+            if (levelDiff) return levelDiff;
+            return tieName(a, b);
+        });
+        return;
+    }
+    box.sort((a, b) => {
+        const rarityDiff = getRarityRank(b.rarity) - getRarityRank(a.rarity);
+        if (rarityDiff) return rarityDiff;
+        const levelDiff = Math.floor(b.level) - Math.floor(a.level);
+        if (levelDiff) return levelDiff;
+        return tieName(a, b);
+    });
+}
+
+function updateBoxSortMenu() {
+    const menu = document.getElementById("box-sort-menu");
+    if (!menu) return;
+    menu.querySelectorAll("button[data-sort]").forEach((btn) => {
+        btn.classList.toggle("is-active", btn.dataset.sort === boxSortMode);
+    });
+}
+
+function closeBoxSortMenu() {
+    document.getElementById("box-sort-menu")?.classList.remove("open");
+    document.getElementById("box-sort-btn")?.classList.remove("is-open");
+}
+
+function toggleBoxSortMenu(event) {
+    event.stopPropagation();
+    const menu = document.getElementById("box-sort-menu");
+    const btn = document.getElementById("box-sort-btn");
+    if (!menu || !btn) return;
+    const open = !menu.classList.contains("open");
+    closeBoxSortMenu();
+    if (open) {
+        menu.classList.add("open");
+        btn.classList.add("is-open");
+        updateBoxSortMenu();
+    }
+}
+
+function setBoxSort(mode) {
+    if (!["power", "level", "rarity"].includes(mode)) return;
+    boxSortMode = mode;
+    closeBoxSortMenu();
+    sortBox();
+    renderBox();
 }
 
 function getRarityRoll() {
@@ -5057,7 +5208,7 @@ async function loadData() {
         xHandle = data.xHandle || xHandle || "";
 
         [...party, ...box].forEach(ensureMonReady);
-        sortBoxByRarity();
+        sortBox();
     } else {
         party = [];
         box = [];
@@ -5183,8 +5334,9 @@ function renderParty() {
 function renderBox() {
     const content = document.getElementById("box-content");
     const capLabel = document.getElementById("box-capacity-label");
-    if (capLabel) capLabel.textContent = `Box: ${box.length}`;
-    sortBoxByRarity();
+    if (capLabel) capLabel.textContent = String(box.length);
+    sortBox();
+    updateBoxSortMenu();
     content.innerHTML = "";
 
     if (!box || box.length === 0) {
@@ -5716,7 +5868,7 @@ function grantTestChogToBox() {
         return;
     }
     box.push(createMonanimal("Chog", "Rare", 15));
-    sortBoxByRarity();
+    sortBox();
     localStorage.setItem(flagKey, "1");
     saveData();
 }
@@ -5741,7 +5893,7 @@ function ensureLegendaryBoxRoster() {
         inBox.add(name);
         added = true;
     }
-    if (added) sortBoxByRarity();
+    if (added) sortBox();
     saveData();
 }
 
@@ -5893,6 +6045,7 @@ function openGameModal(name) {
 function closeGameModal(name) {
     const modal = document.getElementById("modal-" + name);
     if (modal) modal.classList.remove("open");
+    if (name === "box") closeBoxSortMenu();
     if (name === "profile" && profileActivityTimer) {
         clearInterval(profileActivityTimer);
         profileActivityTimer = null;
@@ -6117,6 +6270,10 @@ document.addEventListener("keydown", function(e) {
 });
 
 window.onload = async function() {
+    document.addEventListener("click", (e) => {
+        const wrap = document.getElementById("box-sort-wrap");
+        if (wrap && !wrap.contains(e.target)) closeBoxSortMenu();
+    });
     await checkLogin();
     if (location.hash === "#profile") openGameModal("profile");
 };
