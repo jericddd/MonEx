@@ -1266,14 +1266,19 @@ body.afk-layout .game-shell {
 body.afk-layout .header {
     background: linear-gradient(180deg, #ffffff 0%, #f7f4ff 100%);
     border-bottom: none;
-    box-shadow: 0 2px 18px rgba(107, 33, 168, 0.08);
+    box-shadow: none;
     padding: 12px 0;
     flex-shrink: 0;
+    position: relative;
+    z-index: 30;
+}
+body.afk-layout .game-container > .header {
+    border-bottom: 1px solid rgba(107, 33, 168, 0.12);
 }
 body.afk-layout .header-inner {
-    max-width: var(--game-max-width);
-    margin: 0 auto;
-    padding: 0 var(--game-side-pad);
+    max-width: none;
+    margin: 0;
+    padding: 0 16px;
     width: 100%;
     box-sizing: border-box;
     display: flex;
@@ -1392,15 +1397,22 @@ body.afk-layout .currency-pill .currency-tip {
 }
 
 .game-container {
-    display: block;
+    display: flex;
+    flex-direction: column;
     border: 3px solid #6B21A8;
     background: #1a1028;
     flex: 1;
-    min-height: calc(100vh - 110px);
+    min-height: calc(100vh - 32px);
     position: relative;
     overflow: hidden;
     box-sizing: border-box;
     isolation: isolate;
+}
+.game-container-stage {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
 }
 
 /* Shared cover-art stage: UI % coords map to 1920×1080 design boards (stretched to viewport) */
@@ -2899,10 +2911,8 @@ body.afk-layout .currency-pill .currency-tip {
         justify-content: center;
     }
     .game-container {
-        flex-direction: column;
-        min-height: min(420px, calc(100vh - 110px));
+        min-height: min(480px, calc(100vh - 32px));
     }
-    .main-scene { min-height: min(420px, calc(100vh - 110px)); }
     .scene-battle-dock {
         padding: 0 10px 88px;
     }
@@ -2964,45 +2974,46 @@ body.afk-layout .currency-pill .currency-tip {
 </head>
 <body class="afk-layout">
 
-<div class="header">
-    <div class="header-inner">
-        <div class="header-left">
-            <div class="header-avatar"></div>
-            <div class="header-trainer-block">
-                <div class="header-name-row">
-                    <div id="trainer-name" style="font-weight:700;font-size:15px;"></div>
-                    <button type="button" class="header-logout-btn" onclick="logout()">Logout</button>
-                </div>
-                <div class="trainer-meta" id="trainer-meta">Trainer Lv.1 • Highest Stage: 0</div>
-            </div>
-        </div>
-        <div class="header-currencies currency-row">
-            <div class="currency-pill">
-                <img class="cur-ico-img" src="game_icons/monball.png" alt="">
-                <span class="cur-qty" id="monball-count">12</span>
-                <span class="currency-tip">Monball</span>
-            </div>
-            <div class="currency-pill">
-                <img class="cur-ico-img" src="game_icons/gold.png" alt="">
-                <span class="cur-qty" id="gold-count">0</span>
-                <span class="currency-tip">Gold</span>
-            </div>
-            <div class="currency-pill">
-                <img class="cur-ico-img" src="game_icons/onion.png" alt="">
-                <span class="cur-qty" id="essence-count">0</span>
-                <span class="currency-tip">KB's Onion</span>
-            </div>
-            <div class="currency-pill">
-                <img class="cur-ico-img" src="game_icons/shard.png" alt="">
-                <span class="cur-qty" id="shard-count">0</span>
-                <span class="currency-tip">Mon Shards</span>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="game-shell">
 <div class="game-container">
+    <header class="header" aria-label="Trainer status">
+        <div class="header-inner">
+            <div class="header-left">
+                <div class="header-avatar"></div>
+                <div class="header-trainer-block">
+                    <div class="header-name-row">
+                        <div id="trainer-name" style="font-weight:700;font-size:15px;"></div>
+                        <button type="button" class="header-logout-btn" onclick="logout()">Logout</button>
+                    </div>
+                    <div class="trainer-meta" id="trainer-meta">Trainer Lv.1 • Highest Stage: 0</div>
+                </div>
+            </div>
+            <div class="header-currencies currency-row">
+                <div class="currency-pill">
+                    <img class="cur-ico-img" src="game_icons/monball.png" alt="">
+                    <span class="cur-qty" id="monball-count">12</span>
+                    <span class="currency-tip">Monball</span>
+                </div>
+                <div class="currency-pill">
+                    <img class="cur-ico-img" src="game_icons/gold.png" alt="">
+                    <span class="cur-qty" id="gold-count">0</span>
+                    <span class="currency-tip">Gold</span>
+                </div>
+                <div class="currency-pill">
+                    <img class="cur-ico-img" src="game_icons/onion.png" alt="">
+                    <span class="cur-qty" id="essence-count">0</span>
+                    <span class="currency-tip">KB's Onion</span>
+                </div>
+                <div class="currency-pill">
+                    <img class="cur-ico-img" src="game_icons/shard.png" alt="">
+                    <span class="cur-qty" id="shard-count">0</span>
+                    <span class="currency-tip">Mon Shards</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="game-container-stage">
     <div id="main-scene-viewport" class="cover-viewport">
         <img class="cover-viewport-bg scene-bg" src="for%20result%20banner/mainscene_background.png" alt="">
         <div id="main-scene-cover-stage" class="cover-art-stage">
@@ -3080,6 +3091,7 @@ body.afk-layout .currency-pill .currency-tip {
             <span class="rail-tip">CATCH ON X</span>
         </button>
     </nav>
+    </div>
 </div>
 </div>
 
@@ -3558,7 +3570,7 @@ function syncCoverStages() {
 function ensureCoverStagesSync() {
     syncCoverStages();
     if (coverStagesObserver) return;
-    const container = document.querySelector(".game-container");
+    const container = document.querySelector(".game-container-stage");
     if (!container) return;
     coverStagesObserver = new ResizeObserver(() => syncCoverStages());
     coverStagesObserver.observe(container);
