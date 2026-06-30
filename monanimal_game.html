@@ -6320,7 +6320,22 @@ function showBattleTowerInModal() {
 
 function launchAdventureFromModal() {
     closeGameModal("battle");
-    enterAdventureMode();
+    openAdventureStagePrep();
+}
+
+function prepareAdventureBattleScene() {
+    loadAdventureProgress();
+    closeAllModals();
+    stopSceneIdleBattle();
+    ensureBattleSceneOpen();
+    enterAdventureFullMode(getChapterBackgroundPath(currentChapter));
+    document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
+    document.getElementById("rail-battle")?.classList.add("active");
+}
+
+function openAdventureStagePrep() {
+    prepareAdventureBattleScene();
+    startStageSelection();
 }
 
 function renderBattleMenu() {
@@ -6344,7 +6359,8 @@ function requestLeaveBattle() {
         return;
     }
     if (battleScreen === "chapter") {
-        enterAdventureMode();
+        closeBattleScene();
+        openGameModal("battle");
         return;
     }
     if (battleScreen === "adventure" || battleScreen === "tower" || battleScreen === "menu") {
@@ -6353,7 +6369,8 @@ function requestLeaveBattle() {
         return;
     }
     if (battleScreen === "result") {
-        enterAdventureMode();
+        closeBattleScene();
+        openGameModal("battle");
         return;
     }
     closeBattleScene();
@@ -6468,26 +6485,7 @@ function ensureBattleSceneOpen() {
 }
 
 function enterAdventureMode() {
-    loadAdventureProgress();
-    battleScreen = "adventure";
-    closeAllModals();
-    stopSceneIdleBattle();
-    ensureBattleSceneOpen();
-    enterAdventureFullMode(getChapterBackgroundPath(currentChapter));
-    document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
-    document.getElementById("rail-battle")?.classList.add("active");
-
-    const content = document.getElementById("battle-content");
-    content.className = "battle-scene-ui";
-    content.innerHTML = `
-        <div class="adventure-panel">
-            <h2>ADVENTURE</h2>
-            <button id="current-stage-btn" onclick="startStageSelection()"
-                style="font-size: 22px; padding: 22px 70px; background: #6B21A8; color: white; border: none; cursor: pointer;">
-                CHAPTER ${currentChapter}-${currentStage}
-            </button>
-        </div>
-    `;
+    openAdventureStagePrep();
 }
 
 function startStageSelection() {
@@ -7150,7 +7148,7 @@ function showBattleResult(win, reward) {
         <div class="adventure-panel">
             <h2 style="color:${win ? '#16a34a' : '#ef4444'};">${win ? 'VICTORY!' : 'DEFEAT'}</h2>
             ${drops}
-            <button onclick="enterAdventureMode()" style="margin-top:10px; padding:14px 45px; background:#6B21A8; color:white; border:none; cursor:pointer;">
+            <button onclick="openAdventureStagePrep()" style="margin-top:10px; padding:14px 45px; background:#6B21A8; color:white; border:none; cursor:pointer;">
                 CONTINUE
             </button>
         </div>
