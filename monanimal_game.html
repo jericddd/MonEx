@@ -1796,7 +1796,8 @@ body.afk-layout .currency-pill .currency-tip {
     inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: fill;
+    object-fit: cover;
+    object-position: center center;
     z-index: 0;
     pointer-events: none;
     display: none;
@@ -1904,6 +1905,45 @@ body.afk-layout .currency-pill .currency-tip {
     align-items: stretch;
     justify-content: flex-start;
     padding: 48px 10px 10px;
+}
+.battle-scene-ui--hub {
+    padding: 56px 0 0;
+    align-items: stretch;
+    justify-content: stretch;
+    overflow: hidden;
+}
+.battle-hub-layer {
+    position: relative;
+    flex: 1;
+    width: 100%;
+    min-height: 100%;
+}
+.battle-hub-btn {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    width: clamp(118px, 15vw, 196px);
+    transition: transform 0.16s ease, filter 0.16s ease;
+}
+.battle-hub-btn img {
+    width: 100%;
+    height: auto;
+    display: block;
+    filter: drop-shadow(0 8px 18px rgba(15, 6, 30, 0.45));
+}
+.battle-hub-btn:hover {
+    transform: translate(-50%, -50%) scale(1.07);
+    filter: brightness(1.06);
+}
+.battle-hub-btn:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 4px;
+}
+.battle-hub-btn--back {
+    width: clamp(96px, 11vw, 140px);
 }
 .adventure-panel {
     text-align: center;
@@ -2422,52 +2462,6 @@ body.afk-layout .currency-pill .currency-tip {
 #modal-inventory .skill-square:hover {
     z-index: 30;
 }
-#modal-battle .battle-modal-panel {
-    max-width: min(420px, 92vw);
-    overflow: visible;
-}
-#modal-battle .game-modal-header {
-    border-bottom: none;
-    padding-bottom: 6px;
-}
-#modal-battle .game-modal-body {
-    padding-top: 0;
-}
-.battle-menu-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    align-items: center;
-    width: 100%;
-}
-.battle-menu-btn {
-    padding: 18px 24px;
-    font-size: 11px;
-    font-weight: bold;
-    cursor: pointer;
-    background: white;
-    color: #6B21A8;
-    border: 4px solid #6B21A8;
-    width: min(320px, 100%);
-    font-family: "Press Start 2P", monospace;
-    line-height: 1.5;
-}
-.battle-menu-btn:hover {
-    background: #f3e8ff;
-}
-.battle-menu-btn--back {
-    padding: 14px 24px;
-    font-size: 10px;
-    background: #f3e8ff;
-    border-width: 3px;
-}
-.battle-menu-desc {
-    margin: 0 0 20px;
-    font-size: 14px;
-    color: #555;
-    text-align: center;
-    font-family: "Lato", sans-serif;
-}
 .game-modal-header {
     display: flex;
     justify-content: space-between;
@@ -2873,7 +2867,7 @@ body.afk-layout .currency-pill .currency-tip {
 
 <div class="game-shell">
 <div class="game-container">
-    <img class="scene-bg" src="for%20result%20banner/adventure_chapter1.png" alt="">
+    <img class="scene-bg" src="for%20result%20banner/mainscene_background.png" alt="">
     <div id="main-scene" class="main-scene">
         <div class="scene-stage-label" id="scene-stage-label">Chapter 1-1</div>
         <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions"></div>
@@ -2935,7 +2929,7 @@ body.afk-layout .currency-pill .currency-tip {
             <span class="side-icon-emoji">🎒</span>
             <span class="rail-tip">INVENTORY</span>
         </button>
-        <button type="button" class="side-icon-btn" id="rail-battle" onclick="openGameModal('battle')">
+        <button type="button" class="side-icon-btn" id="rail-battle" onclick="openBattleHub()">
             <img src="animated gif/header tab/battle.gif" alt="">
             <span class="rail-tip">BATTLE</span>
         </button>
@@ -3014,17 +3008,6 @@ body.afk-layout .currency-pill .currency-tip {
         <div class="game-modal-body">
             <div id="inventory-grid" class="inventory-grid"></div>
         </div>
-    </div>
-</div>
-
-<!-- Battle menu modal -->
-<div id="modal-battle" class="game-modal" onclick="if(event.target===this)closeGameModal('battle')">
-    <div class="game-modal-panel battle-modal-panel" onclick="event.stopPropagation()">
-        <div class="game-modal-header">
-            <h2 id="battle-modal-title">BATTLE</h2>
-            <button type="button" class="game-modal-close" onclick="closeGameModal('battle')">×</button>
-        </div>
-        <div class="game-modal-body" id="battle-modal-body"></div>
     </div>
 </div>
 
@@ -3384,16 +3367,21 @@ let adventureForfeitNotice = false;
 let battlePaused = false;
 let pendingBattleLeaveTab = "main";
 let battleScreen = "main";
-const BATTLE_BG_MENU = "for%20result%20banner/battlebackground.jpg";
-const BATTLE_BG_MAP = "for%20result%20banner/map1.gif";
-const BATTLE_STAGE_PATH = "for%20result%20banner/mainscene_battlepath.jpg";
-const MAIN_SCENE_BG = "for%20result%20banner/adventure_chapter1.png";
-const CHAPTER_BG_MAX = 4;
-const CHAPTER_BG_FALLBACK = BATTLE_BG_MENU;
+const BANNER_DIR = "for%20result%20banner";
+const BATTLE_BG_MENU = BANNER_DIR + "/battlebackground.jpg";
+const BATTLE_BG_MAP = BANNER_DIR + "/map1.gif";
+const BATTLE_STAGE_PATH = BANNER_DIR + "/mainscene_battlepath.jpg";
+const MAIN_SCENE_BG = BANNER_DIR + "/mainscene_background.png";
+const BATTLE_HUB_BG = BANNER_DIR + "/battlescene_background.png";
+const CHAPTER_BG_MAX = 2;
+const ADVENTURE_CHAPTER_PLACEHOLDER = BANNER_DIR + "/adventure_chapter_placeholder.png";
+const CHAPTER_BG_FALLBACK = ADVENTURE_CHAPTER_PLACEHOLDER;
+const BATTLE_HUB_BTN_DIR = BANNER_DIR + "/battle_hub";
 
 function getChapterBackgroundPath(chapter) {
-    const ch = Math.max(1, Math.min(CHAPTER_BG_MAX, Math.floor(chapter) || 1));
-    return `for%20result%20banner/adventure_chapter${ch}.png`;
+    const ch = Math.max(1, Math.floor(chapter) || 1);
+    if (ch <= CHAPTER_BG_MAX) return `${BANNER_DIR}/adventure_chapter${ch}.png`;
+    return ADVENTURE_CHAPTER_PLACEHOLDER;
 }
 
 function applyBattleStageChapterBackground(chapter) {
@@ -6238,11 +6226,6 @@ function openGameModal(name) {
     if (name === "party") { syncXWildMons(true); renderPartyGrid(); }
     if (name === "box") { syncXWildMons(true); renderBox(); }
     if (name === "inventory") renderInventory();
-    if (name === "battle") {
-        document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
-        document.getElementById("rail-battle")?.classList.add("active");
-        renderBattleModalMenu();
-    }
     if (name === "shop") renderShop();
     if (name === "profile") renderProfile();
     if (name === "daily-quest") renderDailyQuest();
@@ -6252,7 +6235,6 @@ function closeGameModal(name) {
     const modal = document.getElementById("modal-" + name);
     if (modal) modal.classList.remove("open");
     if (name === "box") closeBoxSortMenu();
-    if (name === "battle") document.getElementById("rail-battle")?.classList.remove("active");
     if (name === "profile" && profileActivityTimer) {
         clearInterval(profileActivityTimer);
         profileActivityTimer = null;
@@ -6284,42 +6266,67 @@ function enterAdventureFullMode(bgUrl) {
     setBattleSceneBackground(bgUrl);
 }
 
-function renderBattleModalMenu() {
-    const body = document.getElementById("battle-modal-body");
-    const title = document.getElementById("battle-modal-title");
-    if (!body) return;
+const BATTLE_HUB_MAIN_BUTTONS = [
+    { alt: "Adventure", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_adventure.png`, left: 22, top: 46, onclick: "launchAdventureFromHub()" },
+    { alt: "House Tower", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_house_tower.png`, left: 50, top: 34, onclick: "showBattleTowerHub()" },
+    { alt: "Arena", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_arena.png`, left: 78, top: 46, onclick: "alert('Arena coming soon!')" },
+    { alt: "PVP Wager", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_pvp_wager.png`, left: 35, top: 70, onclick: "alert('PVP Wager coming soon!')" },
+    { alt: "Training", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_training.png`, left: 65, top: 70, onclick: "alert('Training coming soon!')" },
+];
+const BATTLE_HUB_TOWER_BUTTONS = [
+    { alt: "Tower of Chog", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_tower_chog.png`, left: 28, top: 42, onclick: "alert('Tower of Chog coming soon!')" },
+    { alt: "Tower of Molandak", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_tower_molandak.png`, left: 50, top: 34, onclick: "alert('Tower of Molandak coming soon!')" },
+    { alt: "Tower of Moyaki", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_tower_moyaki.png`, left: 72, top: 42, onclick: "alert('Tower of Moyaki coming soon!')" },
+    { alt: "Back", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_back.png`, left: 50, top: 72, onclick: "renderBattleHubMenu()", back: true },
+];
+
+function renderBattleHubButtons(buttons) {
+    const content = document.getElementById("battle-content");
+    if (!content) return;
+    content.className = "battle-scene-ui battle-scene-ui--hub";
+    content.innerHTML = `
+        <div class="battle-hub-layer" id="battle-hub-layer">
+            ${buttons.map((btn) => `
+                <button type="button" class="battle-hub-btn${btn.back ? " battle-hub-btn--back" : ""}" style="left:${btn.left}%;top:${btn.top}%;" onclick="${btn.onclick}" aria-label="${btn.alt}">
+                    <img src="${btn.src}" alt="${btn.alt}">
+                </button>
+            `).join("")}
+        </div>
+    `;
+}
+
+function openBattleHub() {
+    if (isInAdventureBattle) {
+        pendingBattleLeaveTab = "battle";
+        openBattlePauseMenu();
+        return;
+    }
+    closeAllModals();
+    stopSceneIdleBattle();
     battleScreen = "menu";
-    if (title) title.textContent = "BATTLE";
-    body.innerHTML = `
-        <div class="battle-menu-stack">
-            <button type="button" class="battle-menu-btn" onclick="launchAdventureFromModal()">ADVENTURE</button>
-            <button type="button" class="battle-menu-btn" onclick="showBattleTowerInModal()">HOUSE TOWER</button>
-            <button type="button" class="battle-menu-btn" onclick="alert('Arena coming soon!')">ARENA</button>
-            <button type="button" class="battle-menu-btn" onclick="alert('PVP Wager coming soon!')">PVP WAGER</button>
-            <button type="button" class="battle-menu-btn" onclick="alert('Training coming soon!')">TRAINING</button>
-        </div>
-    `;
+    document.getElementById("main-scene").style.display = "none";
+    document.getElementById("battle-scene").classList.add("open");
+    setAdventureMode(false);
+    setBattleFightingUI(false);
+    setBattleSceneBackground(BATTLE_HUB_BG);
+    document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
+    document.getElementById("rail-battle")?.classList.add("active");
+    renderBattleHubMenu();
 }
 
-function showBattleTowerInModal() {
-    const body = document.getElementById("battle-modal-body");
-    const title = document.getElementById("battle-modal-title");
-    if (!body) return;
+function renderBattleHubMenu() {
+    battleScreen = "menu";
+    setBattleSceneBackground(BATTLE_HUB_BG);
+    renderBattleHubButtons(BATTLE_HUB_MAIN_BUTTONS);
+}
+
+function showBattleTowerHub() {
     battleScreen = "tower";
-    if (title) title.textContent = "HOUSE TOWER";
-    body.innerHTML = `
-        <p class="battle-menu-desc">Choose a tower — coming soon</p>
-        <div class="battle-menu-stack">
-            <button type="button" class="battle-menu-btn" onclick="alert('Tower of Chog coming soon!')">TOWER OF CHOG</button>
-            <button type="button" class="battle-menu-btn" onclick="alert('Tower of Molandak coming soon!')">TOWER OF MOLANDAK</button>
-            <button type="button" class="battle-menu-btn" onclick="alert('Tower of Moyaki coming soon!')">TOWER OF MOYAKI</button>
-            <button type="button" class="battle-menu-btn battle-menu-btn--back" onclick="renderBattleModalMenu()">BACK</button>
-        </div>
-    `;
+    setBattleSceneBackground(BATTLE_HUB_BG);
+    renderBattleHubButtons(BATTLE_HUB_TOWER_BUTTONS);
 }
 
-function launchAdventureFromModal() {
-    closeGameModal("battle");
+function launchAdventureFromHub() {
     openAdventureStagePrep();
 }
 
@@ -6340,16 +6347,16 @@ function openAdventureStagePrep() {
 
 function renderBattleMenu() {
     closeBattleScene();
-    openGameModal("battle");
+    openBattleHub();
 }
 
 function enterHouseTowerMode() {
-    openGameModal("battle");
-    showBattleTowerInModal();
+    openBattleHub();
+    showBattleTowerHub();
 }
 
 function openBattleScene() {
-    openGameModal("battle");
+    openBattleHub();
 }
 
 function requestLeaveBattle() {
@@ -6359,18 +6366,15 @@ function requestLeaveBattle() {
         return;
     }
     if (battleScreen === "chapter") {
-        closeBattleScene();
-        openGameModal("battle");
+        openBattleHub();
         return;
     }
     if (battleScreen === "adventure" || battleScreen === "tower" || battleScreen === "menu") {
         closeBattleScene();
-        openGameModal("battle");
         return;
     }
     if (battleScreen === "result") {
-        closeBattleScene();
-        openGameModal("battle");
+        openBattleHub();
         return;
     }
     closeBattleScene();
@@ -6437,7 +6441,7 @@ function closeBattleScene() {
 }
 
 function switchTab(tab) {
-    if (tab === "battle") { openGameModal("battle"); return; }
+    if (tab === "battle") { openBattleHub(); return; }
     if (tab === "catch") { openCatch(); return; }
     if (tab === "main" || tab === "party") { showMainScene(); if (tab === "party") openGameModal("party"); return; }
     openGameModal(tab);
@@ -7237,7 +7241,7 @@ function confirmLeaveBattle(targetTab) {
     if (targetTab === "main") {
         closeBattleScene();
     } else if (targetTab === "battle") {
-        openGameModal("battle");
+        openBattleHub();
     } else {
         closeBattleScene();
         openGameModal(targetTab);
