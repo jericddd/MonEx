@@ -1252,12 +1252,18 @@ button,
 /* ===== AFK LAYOUT ===== */
 body.afk-layout {
     background: #fff;
+    height: 100vh;
     min-height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
 }
 body.afk-layout .game-shell {
     flex: 1;
+    height: 100vh;
+    min-height: 100vh;
+    max-height: 100vh;
     background: #fff;
     display: flex;
     flex-direction: column;
@@ -1402,7 +1408,7 @@ body.afk-layout .currency-pill .currency-tip {
 .game-shell {
     max-width: var(--game-max-width);
     margin: 0 auto;
-    padding: 12px var(--game-side-pad) 20px;
+    padding: 0 var(--game-side-pad);
     width: 100%;
     box-sizing: border-box;
 }
@@ -1413,7 +1419,10 @@ body.afk-layout .currency-pill .currency-tip {
     border: 3px solid #6B21A8;
     background: #1a1028;
     flex: 1;
-    min-height: calc(100vh - 32px);
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
     position: relative;
     overflow: hidden;
     box-sizing: border-box;
@@ -2930,7 +2939,9 @@ body.afk-layout .currency-pill .currency-tip {
         justify-content: center;
     }
     .game-container {
-        min-height: min(480px, calc(100vh - 32px));
+        height: 100%;
+        min-height: 0;
+        max-height: 100%;
     }
     .scene-battle-dock {
         padding: 0 10px 88px;
