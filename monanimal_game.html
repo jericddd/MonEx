@@ -2063,6 +2063,13 @@ body.afk-layout .currency-pill .currency-tip {
     flex-shrink: 0;
     position: relative;
     z-index: 3;
+    overflow: visible;
+}
+.box-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
 }
 #modal-box .game-modal-title-row {
     display: flex;
@@ -2128,15 +2135,9 @@ body.afk-layout .currency-pill .currency-tip {
     padding-bottom: 4px;
     -webkit-overflow-scrolling: touch;
 }
-.box-toolbar {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    margin: 0 0 10px;
-    flex-shrink: 0;
-}
 .box-sort-wrap {
     position: relative;
+    flex-shrink: 0;
 }
 .box-sort-btn {
     border: 2px solid #6B21A8;
@@ -2156,7 +2157,7 @@ body.afk-layout .currency-pill .currency-tip {
     display: none;
     position: absolute;
     top: calc(100% + 6px);
-    right: 0;
+    left: 0;
     min-width: 168px;
     background: #fff;
     border: 2px solid #6B21A8;
@@ -2984,14 +2985,7 @@ body.afk-layout .currency-pill .currency-tip {
 <div id="modal-box" class="game-modal" onclick="if(event.target===this)closeGameModal('box')">
     <div class="game-modal-panel game-modal-wide">
         <div class="game-modal-header">
-            <div class="game-modal-title-row">
-                <h2>BOX</h2>
-                <span id="box-capacity-label" class="box-capacity-label"></span>
-            </div>
-            <button type="button" class="game-modal-close" onclick="closeGameModal('box')">×</button>
-        </div>
-        <div class="game-modal-body">
-            <div class="box-toolbar">
+            <div class="box-header-left">
                 <div class="box-sort-wrap" id="box-sort-wrap">
                     <button type="button" class="box-sort-btn" id="box-sort-btn" onclick="toggleBoxSortMenu(event)">SORT</button>
                     <div class="box-sort-menu" id="box-sort-menu">
@@ -3000,7 +2994,14 @@ body.afk-layout .currency-pill .currency-tip {
                         <button type="button" data-sort="rarity" onclick="setBoxSort('rarity')">Sort by Rarity</button>
                     </div>
                 </div>
+                <div class="game-modal-title-row">
+                    <h2>BOX</h2>
+                    <span id="box-capacity-label" class="box-capacity-label"></span>
+                </div>
             </div>
+            <button type="button" class="game-modal-close" onclick="closeGameModal('box')">×</button>
+        </div>
+        <div class="game-modal-body">
             <div class="box-scroll-wrap">
                 <div id="box-content" class="box-content-grid"></div>
             </div>
