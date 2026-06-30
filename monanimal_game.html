@@ -1259,6 +1259,9 @@ body.afk-layout {
 body.afk-layout .game-shell {
     flex: 1;
     background: #fff;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 body.afk-layout .header {
     background: linear-gradient(180deg, #ffffff 0%, #f7f4ff 100%);
@@ -1392,6 +1395,7 @@ body.afk-layout .currency-pill .currency-tip {
     display: block;
     border: 3px solid #6B21A8;
     background: #1a1028;
+    flex: 1;
     min-height: calc(100vh - 110px);
     position: relative;
     overflow: hidden;
@@ -1405,6 +1409,18 @@ body.afk-layout .currency-pill .currency-tip {
     inset: 0;
     overflow: hidden;
 }
+/* Full-bleed background — fills viewport with no letterbox bars */
+.cover-viewport-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+    z-index: 0;
+    pointer-events: none;
+    display: block;
+}
 .cover-art-stage {
     position: absolute;
     left: 0;
@@ -1413,13 +1429,18 @@ body.afk-layout .currency-pill .currency-tip {
     height: 100%;
     overflow: hidden;
     --cover-scale: 1;
+    z-index: 1;
+    pointer-events: none;
+}
+.cover-art-stage > .cover-art-layer {
+    pointer-events: none;
 }
 .cover-art-bg {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: fill;
+    object-fit: cover;
     object-position: center center;
     z-index: 0;
     pointer-events: none;
@@ -1799,7 +1820,7 @@ body.afk-layout .currency-pill .currency-tip {
 .battle-scene {
     position: absolute;
     inset: 0;
-    background: #fff;
+    background: #1a1028;
     display: none;
     flex-direction: column;
     z-index: 4;
@@ -2888,7 +2909,6 @@ body.afk-layout .currency-pill .currency-tip {
         flex-direction: column;
         min-height: min(420px, calc(100vh - 110px));
     }
-    .main-scene { min-height: min(420px, calc(100vh - 110px)); }
     #main-scene-cover-stage {
         --scene-fighter-size: calc(76px * var(--cover-scale));
     }
@@ -2986,8 +3006,8 @@ body.afk-layout .currency-pill .currency-tip {
 <div class="game-shell">
 <div class="game-container">
     <div id="main-scene-viewport" class="cover-viewport">
+        <img class="cover-viewport-bg scene-bg" src="for%20result%20banner/mainscene_background.png" alt="">
         <div id="main-scene-cover-stage" class="cover-art-stage">
-            <img class="cover-art-bg scene-bg" src="for%20result%20banner/mainscene_background.png" alt="">
             <div id="main-scene" class="main-scene cover-art-layer">
                 <div class="scene-stage-label" id="scene-stage-label">Chapter 1-1</div>
                 <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions"></div>
@@ -3006,8 +3026,8 @@ body.afk-layout .currency-pill .currency-tip {
 
     <div id="battle-scene" class="battle-scene">
         <div class="battle-scene-frame cover-viewport" id="battle-scene-viewport">
+            <img id="battle-scene-bg" class="cover-viewport-bg battle-scene-bg" alt="">
             <div id="battle-scene-cover-stage" class="cover-art-stage">
-                <img id="battle-scene-bg" class="cover-art-bg battle-scene-bg" alt="">
                 <div id="battle-content" class="battle-scene-ui cover-art-layer"></div>
             </div>
             <button type="button" class="battle-back-btn" id="battle-back-btn" onclick="requestLeaveBattle()">← BACK</button>
