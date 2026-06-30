@@ -3422,6 +3422,7 @@ const SCENE_IDLE_BODY_SHADOW = {
     Molandak: { w: 0.60, h: 0.115 },
     Mopo:     { w: 0.40, h: 0.078 },
     Anago:    { w: 0.42, h: 0.082 },
+    Moyaki:   { w: 0.48, h: 0.095 },
 };
 const SCENE_IDLE_BODY_SHADOW_DEFAULT = { w: 0.56, h: 0.105 };
 
@@ -3433,6 +3434,7 @@ const SCENE_IDLE_SPRITE_SCALE = {
     Mopo: 0.90,
     Anago: 0.92,
     Mouch: 0.92,
+    Moyaki: 0.94,
     Montiger: 0.86,
     Mondigrade: 0.86,
     Mosferatu: 0.88,
@@ -3686,6 +3688,8 @@ function getMonAvatarPath(mon) {
     const name = mon?.name || mon;
     const rarity = mon?.rarity;
     if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
+    const lower = String(name || "").toLowerCase();
+    if (MONS_WITH_IDLE_GIF.has(lower)) return getMonIdleGifPath(name);
     if (rarity && isLegendaryOrAbove(rarity)) return getMonLegendaryGifPath(name);
     return getMonPngPath(name);
 }
@@ -3697,7 +3701,7 @@ function getMonAvatarFallbackPath(mon) {
 }
 
 // Only these species have battle idle GIFs in 128x128/ — others use PNG even when Legendary+.
-const MONS_WITH_BATTLE_GIF = new Set(["molandak", "chog", "mopo", "anago", "mouch"]);
+const MONS_WITH_BATTLE_GIF = new Set(["molandak", "chog", "mopo", "anago", "mouch", "moyaki"]);
 
 function getSpritePath(name, rarity) {
     if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
@@ -3791,7 +3795,8 @@ const SCENE_SPRITE_DURATION_MS = {
     "128x128/mopo.gif": 5800,
     "128x128/anago.gif": 960,
     "128x128/anago-idle.gif": 960,
-    "128x128/mouch-idle.gif": 960
+    "128x128/mouch-idle.gif": 960,
+    "128x128/main-moyaki.gif": 960
 };
 
 const sceneIdleFighterBusy = new Set();
