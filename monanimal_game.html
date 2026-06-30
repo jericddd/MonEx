@@ -1279,7 +1279,7 @@ body.afk-layout .header {
     z-index: 30;
 }
 body.afk-layout .game-container > .header {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    border-bottom: none;
 }
 body.afk-layout .game-container > .header .header-trainer #trainer-name {
     color: #fff;
@@ -1562,18 +1562,6 @@ body.afk-layout .currency-pill .currency-tip {
     inset: 0;
     background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.12) 100%);
     pointer-events: none;
-}
-.scene-stage-label {
-    position: absolute;
-    top: 16px;
-    left: 20px;
-    background: rgba(0,0,0,0.55);
-    border: 2px solid #facc15;
-    color: #fde68a;
-    padding: 8px 14px;
-    font-family: "Press Start 2P", sans-serif;
-    font-size: 9px;
-    z-index: 2;
 }
 .scene-battle-row {
     display: flex;
@@ -3061,7 +3049,6 @@ body.afk-layout .currency-pill .currency-tip {
     <div id="main-scene-viewport" class="cover-viewport">
         <div id="main-scene-cover-stage" class="cover-art-stage">
             <div id="main-scene" class="main-scene cover-art-layer">
-                <div class="scene-stage-label" id="scene-stage-label">Chapter 1-1</div>
                 <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions"></div>
                 <img class="scene-battle-path" src="for%20result%20banner/mainscene_battlepath.jpg" alt="" aria-hidden="true">
                 <div class="scene-battle-dock">
@@ -5731,9 +5718,6 @@ function renderPartyGrid() {
 }
 
 function renderMainScene() {
-    const label = document.getElementById("scene-stage-label");
-    if (label) label.textContent = `Chapter ${currentChapter}-${currentStage}`;
-
     ensureSceneIdleEnemies();
     const heroes = party.slice(0, 3);
     const enemies = sceneIdleEnemyTeam.slice(0, 3);
