@@ -724,7 +724,7 @@ button.green:hover {
 }
 
 /* Hover symbol */
-button:not(.side-icon-btn):hover::before,
+button:not(.side-icon-btn):not(.battle-hub-btn):hover::before,
 .tab-btn:hover::before,
 .mon-actions button:hover::before {
     content: "▸";
@@ -743,8 +743,8 @@ button,
     font-family: "Press Start 2P", sans-serif;
 }
 
-/* Battle hover */
-#battle-content button:hover {
+/* Battle hover — adventure panels only; hub scene buttons stay fixed */
+#battle-content button:not(.battle-hub-btn):hover {
     background: #6B21A8 !important;
     color: white !important;
     border-color: #6B21A8 !important;
@@ -1926,6 +1926,17 @@ body.afk-layout .currency-pill .currency-tip {
     padding: 0;
     cursor: pointer;
     width: clamp(118px, 15vw, 196px);
+    box-shadow: none !important;
+}
+.battle-hub-btn:hover {
+    transform: translate(-50%, -50%) !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+.battle-hub-btn:hover::before {
+    display: none !important;
+    content: none !important;
 }
 .battle-hub-btn img {
     width: 100%;
