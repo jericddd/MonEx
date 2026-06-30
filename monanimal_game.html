@@ -5261,7 +5261,15 @@ async function loadData() {
 
     if (!data) {
         const saved = localStorage.getItem("monex_" + currentUser);
-        if (saved) data = JSON.parse(saved);
+        if (saved) {
+            try {
+                data = JSON.parse(saved);
+            } catch (e) {
+                console.error("Corrupt local save — resetting:", e);
+                localStorage.removeItem("monex_" + currentUser);
+                data = null;
+            }
+        }
     }
 
     if (data) {
@@ -5281,7 +5289,9 @@ async function loadData() {
         lastResetDate = data.lastResetDate || null;
         xHandle = data.xHandle || xHandle || "";
 
-        [...party, ...box].forEach(ensureMonReady);
+        [...party, ...box].forEach((mon) => {
+            try { ensureMonReady(mon); } catch (e) { console.error("Skipped invalid mon on load:", e); }
+        });
         sortBox();
     } else {
         party = [];
@@ -6020,13 +6030,28 @@ async function logout() {
     window.location.href = 'home.html';
 }
 
+async function runPostLoginBootstrap() {
+    try { grantTestBattleParty(); } catch (e) { console.error("grantTestBattleParty failed:", e); }
+    try { grantTestChogToBox(); } catch (e) { console.error("grantTestChogToBox failed:", e); }
+    try { ensureLegendaryBoxRoster(); } catch (e) { console.error("ensureLegendaryBoxRoster failed:", e); }
+    try { resolveAbandonedAdventureBattle(); } catch (e) { console.error("resolveAbandonedAdventureBattle failed:", e); }
+    if (adventureForfeitNotice) {
+        adventureForfeitNotice = false;
+        alert("Your adventure battle was abandoned. It counts as a defeat — your team was restored to full HP.");
+    }
+    try { await syncXWildMons(true); } catch (_) {}
+}
+
 async function checkLogin() {
     if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
         window.location.href = 'home.html';
         return;
     }
     try {
-        const user = await MonExAuth.ensureUser();
+        const user = await Promise.race([
+            MonExAuth.ensureUser(),
+            delay(10000).then(() => readCachedUserFallback()),
+        ]);
         if (!user) {
             window.location.href = 'home.html';
             return;
@@ -6034,29 +6059,19 @@ async function checkLogin() {
         currentUser = user.username || MonExAuth.getDisplayName();
         resetToMainSceneUI();
         await loadData();
-        grantTestBattleParty();
-        grantTestChogToBox();
-        ensureLegendaryBoxRoster();
-        resolveAbandonedAdventureBattle();
-        if (adventureForfeitNotice) {
-            adventureForfeitNotice = false;
-            alert("Your adventure battle was abandoned. It counts as a defeat — your team was restored to full HP.");
-        }
-        try { await syncXWildMons(true); } catch (_) {}
+        await runPostLoginBootstrap();
         showMainScene();
     } catch (e) {
         console.error("checkLogin failed:", e);
         const cached = readCachedUserFallback();
         if (cached?.username && MonExAuth.isLoggedIn()) {
             currentUser = cached.username;
-            await loadData();
-            grantTestBattleParty();
-        grantTestChogToBox();
-        ensureLegendaryBoxRoster();
-            resolveAbandonedAdventureBattle();
-            if (adventureForfeitNotice) {
-                adventureForfeitNotice = false;
-                alert("Your adventure battle was abandoned. It counts as a defeat — your team was restored to full HP.");
+            resetToMainSceneUI();
+            try {
+                await loadData();
+                await runPostLoginBootstrap();
+            } catch (inner) {
+                console.error("checkLogin fallback load failed:", inner);
             }
             showMainScene();
             return;
