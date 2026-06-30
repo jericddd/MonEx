@@ -6491,7 +6491,11 @@ function switchTab(tab) {
 
 function goToProfile() {
     openGameModal("profile");
-    location.hash = "profile";
+}
+
+function clearGameUrlHash() {
+    if (!location.hash) return;
+    history.replaceState(null, "", location.pathname + location.search);
 }
 
 // ==================== BOOT ==================== 
@@ -6508,7 +6512,11 @@ window.onload = async function() {
         if (wrap && !wrap.contains(e.target)) closeBoxSortMenu();
     });
     await checkLogin();
-    if (location.hash === "#profile") openGameModal("profile");
+    if (sessionStorage.getItem("monex_open_profile")) {
+        sessionStorage.removeItem("monex_open_profile");
+        openGameModal("profile");
+    }
+    clearGameUrlHash();
 };
 // ==================== ADVENTURE MODE ====================
 

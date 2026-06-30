@@ -515,7 +515,8 @@ function showCustomModal(message) {
 }
 
 function goToProfile() {
-    window.location.href = 'monanimal_game.html#profile';
+    sessionStorage.setItem("monex_open_profile", "1");
+    window.location.href = "monanimal_game.html";
 }
 
 async function logout() {
