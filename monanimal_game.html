@@ -14,6 +14,7 @@
     --scene-battle-path-height: calc(var(--scene-fighter-size, 88px) * 1.62);
     --monad-purple: #200052;
     --scene-fighter-size: 88px;
+    --modal-drop: 10vh;
 }
 
 body {
@@ -644,8 +645,10 @@ button.green:hover {
     inset: 0;
     background: rgba(0,0,0,0.65);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
+    padding: var(--modal-drop) 20px 20px;
+    box-sizing: border-box;
     z-index: 300;
 }
 .equip-modal {
@@ -1826,7 +1829,11 @@ body.afk-layout .currency-pill .currency-tip {
     padding: 20px;
     box-sizing: border-box;
 }
-.battle-pause-menu.open { display: flex; }
+.battle-pause-menu.open {
+    display: flex;
+    align-items: flex-start;
+    padding-top: var(--modal-drop);
+}
 .battle-pause-panel {
     background: rgba(255, 255, 255, 0.96);
     border: 4px solid #6B21A8;
@@ -1990,7 +1997,18 @@ body.afk-layout .currency-pill .currency-tip {
     display: flex;
     overflow-y: auto;
     align-items: flex-start;
-    padding: 32px 20px;
+    justify-content: center;
+    padding: calc(32px + var(--modal-drop)) 20px 32px;
+}
+.popup-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: var(--modal-drop) 20px 20px;
+    box-sizing: border-box;
+    z-index: 500;
 }
 .game-modal-panel {
     background: white;
@@ -5824,18 +5842,8 @@ function swapPartyWithBox(partyIndex, boxIndex) {
 
 function showConfirmModal(message, onConfirm) {
     const modal = document.createElement("div");
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 200;
-    `;
+    modal.className = "popup-overlay";
+    modal.style.background = "rgba(0,0,0,0.6)";
 
     modal.innerHTML = `
         <div style="
@@ -6277,8 +6285,12 @@ function pauseMenuLeave() {
     showBattleLeaveWarning(pendingBattleLeaveTab || "main");
 }
 
+function closePopupOverlays() {
+    document.querySelectorAll(".popup-overlay").forEach(m => m.remove());
+}
+
 function stayInBattleFromWarning() {
-    document.querySelectorAll('div[style*="z-index: 500"]').forEach(m => m.remove());
+    closePopupOverlays();
     openBattlePauseMenu();
 }
 
@@ -7099,11 +7111,8 @@ function renderInventory() {
 // Warning when trying to leave during battle
 function showBattleLeaveWarning(targetTab) {
     const modal = document.createElement("div");
-    modal.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.75); display: flex; align-items: center;
-        justify-content: center; z-index: 500;
-    `;
+    modal.className = "popup-overlay";
+    modal.style.background = "rgba(0,0,0,0.75)";
     modal.innerHTML = `
         <div class="battle-leave-panel">
             <p>Leaving the battle now will count as a loss.<br>Are you sure you want to leave?</p>
