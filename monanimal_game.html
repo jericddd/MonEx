@@ -1921,22 +1921,44 @@ body.afk-layout .currency-pill .currency-tip {
 .battle-hub-btn {
     position: absolute;
     transform: translate(-50%, -50%);
+    appearance: none;
+    -webkit-appearance: none;
     border: none;
     background: transparent;
     padding: 0;
     cursor: pointer;
     width: clamp(118px, 15vw, 196px);
     box-shadow: none !important;
+    color: inherit;
 }
-.battle-hub-btn:hover {
+.battle-hub-btn:hover,
+.battle-hub-btn:focus,
+.battle-hub-btn:active,
+.battle-hub-btn:focus-visible {
     transform: translate(-50%, -50%) !important;
+    appearance: none;
+    -webkit-appearance: none;
     background: transparent !important;
+    background-color: transparent !important;
     border: none !important;
+    outline: none !important;
     box-shadow: none !important;
+    color: inherit !important;
 }
-.battle-hub-btn:hover::before {
+.battle-hub-btn:hover::before,
+.battle-hub-btn:focus::before,
+.battle-hub-btn:active::before {
     display: none !important;
     content: none !important;
+}
+#battle-content .battle-hub-btn:hover,
+#battle-content .battle-hub-btn:focus,
+#battle-content .battle-hub-btn:active {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    transform: translate(-50%, -50%) !important;
 }
 .battle-hub-btn img {
     width: 100%;
@@ -1944,9 +1966,7 @@ body.afk-layout .currency-pill .currency-tip {
     display: block;
     filter: drop-shadow(0 8px 18px rgba(15, 6, 30, 0.45));
     transition: filter 0.2s ease;
-}
-.battle-hub-btn:hover img {
-    filter: drop-shadow(0 8px 18px rgba(15, 6, 30, 0.45)) brightness(1.05);
+    pointer-events: none;
 }
 .battle-hub-btn--statue {
     width: clamp(150px, 24vw, 300px);
@@ -1963,9 +1983,15 @@ body.afk-layout .currency-pill .currency-tip {
         drop-shadow(0 0 28px rgba(255, 180, 80, 0.35))
         brightness(1.08);
 }
-.battle-hub-btn:focus-visible {
-    outline: 3px solid #fff;
-    outline-offset: 4px;
+.battle-hub-btn:focus-visible img {
+    filter: drop-shadow(0 8px 18px rgba(15, 6, 30, 0.45));
+}
+.battle-hub-btn--arena:focus-visible img {
+    filter:
+        drop-shadow(0 10px 22px rgba(15, 6, 30, 0.5))
+        drop-shadow(0 0 14px rgba(255, 214, 120, 0.65))
+        drop-shadow(0 0 28px rgba(255, 180, 80, 0.35))
+        brightness(1.08);
 }
 .battle-hub-btn--back {
     width: clamp(96px, 11vw, 140px);
