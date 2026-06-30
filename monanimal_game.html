@@ -3627,9 +3627,13 @@ function getMonIdleGifPath(name) {
 
 // Species with [name]-idle.gif assets (Legendary+ avatars / battle idle).
 const MONS_WITH_IDLE_GIF = new Set(["anago", "mouch"]);
+const MON_LEGENDARY_GIF_OVERRIDES = {
+    moyaki: "128x128/main-moyaki.gif",
+};
 
 function getMonLegendaryGifPath(name) {
     const lower = String(name || "").toLowerCase();
+    if (MON_LEGENDARY_GIF_OVERRIDES[lower]) return MON_LEGENDARY_GIF_OVERRIDES[lower];
     if (MONS_WITH_IDLE_GIF.has(lower)) return getMonIdleGifPath(name);
     return getMonGifPath(name);
 }
@@ -5985,6 +5989,23 @@ function grantTestChogToBox() {
     saveData();
 }
 
+function ensureLegendaryMoyakiInBox() {
+    if (!currentUser) return;
+    const findMoyaki = (list) => list.find((m) => m?.name === "Moyaki");
+    let moyaki = findMoyaki(party) || findMoyaki(box);
+    if (moyaki) {
+        moyaki.rarity = "Legendary";
+        if (Math.floor(moyaki.level) < 15) moyaki.level = 15;
+        ensureMonReady(moyaki);
+        refreshMonDerivedStats(moyaki);
+        saveData();
+        return;
+    }
+    box.push(createMonanimal("Moyaki", "Legendary", 15));
+    sortBox();
+    saveData();
+}
+
 function ensureLegendaryBoxRoster() {
     if (!currentUser) return;
 
@@ -6062,6 +6083,7 @@ async function runPostLoginBootstrap() {
     try { grantTestBattleParty(); } catch (e) { console.error("grantTestBattleParty failed:", e); }
     try { grantTestChogToBox(); } catch (e) { console.error("grantTestChogToBox failed:", e); }
     try { ensureLegendaryBoxRoster(); } catch (e) { console.error("ensureLegendaryBoxRoster failed:", e); }
+    try { ensureLegendaryMoyakiInBox(); } catch (e) { console.error("ensureLegendaryMoyakiInBox failed:", e); }
     try { resolveAbandonedAdventureBattle(); } catch (e) { console.error("resolveAbandonedAdventureBattle failed:", e); }
     if (adventureForfeitNotice) {
         adventureForfeitNotice = false;
