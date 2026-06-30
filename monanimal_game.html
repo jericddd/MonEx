@@ -498,6 +498,25 @@ button.green:hover {
     bottom: auto;
     top: calc(100% + 6px);
 }
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+    padding: 15px;
+    background: #f8f8f8;
+    border: 3px solid #6B21A8;
+    overflow: visible;
+    position: relative;
+}
+#modal-inventory .gear-inv-slot.has-hover-tip {
+    z-index: 1;
+}
+#modal-inventory .gear-inv-slot.has-hover-tip:hover {
+    z-index: 100;
+}
+#modal-inventory .gear-inv-slot.has-hover-tip:hover::after {
+    z-index: 1001;
+}
 
 /* X activity feed (profile + shared) */
 .activity-feed {
@@ -2341,6 +2360,57 @@ body.afk-layout .currency-pill .currency-tip {
 #modal-inventory .skill-square:hover {
     z-index: 30;
 }
+#modal-battle.game-modal {
+    background: rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+}
+#modal-battle .battle-modal-panel {
+    max-width: min(420px, 92vw);
+    overflow: visible;
+}
+#modal-battle .game-modal-header {
+    border-bottom: none;
+    padding-bottom: 6px;
+}
+#modal-battle .game-modal-body {
+    padding-top: 0;
+}
+.battle-menu-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    align-items: center;
+    width: 100%;
+}
+.battle-menu-btn {
+    padding: 18px 24px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    background: white;
+    color: #6B21A8;
+    border: 4px solid #6B21A8;
+    width: min(320px, 100%);
+    font-family: "Press Start 2P", monospace;
+    line-height: 1.5;
+}
+.battle-menu-btn:hover {
+    background: #f3e8ff;
+}
+.battle-menu-btn--back {
+    padding: 14px 24px;
+    font-size: 10px;
+    background: #f3e8ff;
+    border-width: 3px;
+}
+.battle-menu-desc {
+    margin: 0 0 20px;
+    font-size: 14px;
+    color: #555;
+    text-align: center;
+    font-family: "Lato", sans-serif;
+}
 .game-modal-header {
     display: flex;
     justify-content: space-between;
@@ -2802,7 +2872,7 @@ body.afk-layout .currency-pill .currency-tip {
             <span class="side-icon-emoji">🎒</span>
             <span class="rail-tip">INVENTORY</span>
         </button>
-        <button type="button" class="side-icon-btn" id="rail-battle" onclick="openBattleScene()">
+        <button type="button" class="side-icon-btn" id="rail-battle" onclick="openGameModal('battle')">
             <img src="animated gif/header tab/battle.gif" alt="">
             <span class="rail-tip">BATTLE</span>
         </button>
@@ -2879,15 +2949,19 @@ body.afk-layout .currency-pill .currency-tip {
             <button type="button" class="game-modal-close" onclick="closeGameModal('inventory')">×</button>
         </div>
         <div class="game-modal-body">
-            <div id="inventory-grid" style="
-                display: grid;
-                grid-template-columns: repeat(8, 1fr);
-                gap: 8px;
-                padding: 15px;
-                background: #f8f8f8;
-                border: 3px solid #6B21A8;">
-            </div>
+            <div id="inventory-grid" class="inventory-grid"></div>
         </div>
+    </div>
+</div>
+
+<!-- Battle menu modal -->
+<div id="modal-battle" class="game-modal game-modal-battle" onclick="if(event.target===this)closeGameModal('battle')">
+    <div class="game-modal-panel battle-modal-panel" onclick="event.stopPropagation()">
+        <div class="game-modal-header">
+            <h2 id="battle-modal-title">BATTLE</h2>
+            <button type="button" class="game-modal-close" onclick="closeGameModal('battle')">×</button>
+        </div>
+        <div class="game-modal-body" id="battle-modal-body"></div>
     </div>
 </div>
 
@@ -6021,6 +6095,7 @@ function showMainScene() {
 function closeAllModals() {
     closePartySwitchPicker();
     document.querySelectorAll(".game-modal").forEach(el => el.classList.remove("open"));
+    document.getElementById("rail-battle")?.classList.remove("active");
 }
 
 function openGameModal(name) {
@@ -6037,6 +6112,11 @@ function openGameModal(name) {
     if (name === "party") { syncXWildMons(true); renderPartyGrid(); }
     if (name === "box") { syncXWildMons(true); renderBox(); }
     if (name === "inventory") renderInventory();
+    if (name === "battle") {
+        document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
+        document.getElementById("rail-battle")?.classList.add("active");
+        renderBattleModalMenu();
+    }
     if (name === "shop") renderShop();
     if (name === "profile") renderProfile();
     if (name === "daily-quest") renderDailyQuest();
@@ -6046,6 +6126,7 @@ function closeGameModal(name) {
     const modal = document.getElementById("modal-" + name);
     if (modal) modal.classList.remove("open");
     if (name === "box") closeBoxSortMenu();
+    if (name === "battle") document.getElementById("rail-battle")?.classList.remove("active");
     if (name === "profile" && profileActivityTimer) {
         clearInterval(profileActivityTimer);
         profileActivityTimer = null;
@@ -6077,93 +6158,57 @@ function enterAdventureFullMode(bgUrl) {
     setBattleSceneBackground(bgUrl);
 }
 
-function renderBattleMenu() {
-    const content = document.getElementById("battle-content");
-    if (!content) return;
+function renderBattleModalMenu() {
+    const body = document.getElementById("battle-modal-body");
+    const title = document.getElementById("battle-modal-title");
+    if (!body) return;
     battleScreen = "menu";
-    content.className = "battle-scene-ui";
-    content.innerHTML = `
-        <div class="adventure-panel">
-            <h2>BATTLE</h2>
-            <div style="display:flex; flex-direction:column; gap:18px; align-items:center; width:100%;">
-                <button onclick="enterAdventureMode()"
-                    style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
-                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
-                    ADVENTURE
-                </button>
-                <button onclick="enterHouseTowerMode()"
-                    style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
-                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
-                    HOUSE TOWER
-                </button>
-                <button onclick="alert('Arena coming soon!')"
-                    style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
-                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
-                    ARENA
-                </button>
-                <button onclick="alert('PVP Wager coming soon!')"
-                    style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
-                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
-                    PVP WAGER
-                </button>
-                <button onclick="alert('Training coming soon!')"
-                    style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
-                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
-                    TRAINING
-                </button>
-            </div>
+    if (title) title.textContent = "BATTLE";
+    body.innerHTML = `
+        <div class="battle-menu-stack">
+            <button type="button" class="battle-menu-btn" onclick="launchAdventureFromModal()">ADVENTURE</button>
+            <button type="button" class="battle-menu-btn" onclick="showBattleTowerInModal()">HOUSE TOWER</button>
+            <button type="button" class="battle-menu-btn" onclick="alert('Arena coming soon!')">ARENA</button>
+            <button type="button" class="battle-menu-btn" onclick="alert('PVP Wager coming soon!')">PVP WAGER</button>
+            <button type="button" class="battle-menu-btn" onclick="alert('Training coming soon!')">TRAINING</button>
         </div>
     `;
+}
+
+function showBattleTowerInModal() {
+    const body = document.getElementById("battle-modal-body");
+    const title = document.getElementById("battle-modal-title");
+    if (!body) return;
+    battleScreen = "tower";
+    if (title) title.textContent = "HOUSE TOWER";
+    body.innerHTML = `
+        <p class="battle-menu-desc">Choose a tower — coming soon</p>
+        <div class="battle-menu-stack">
+            <button type="button" class="battle-menu-btn" onclick="alert('Tower of Chog coming soon!')">TOWER OF CHOG</button>
+            <button type="button" class="battle-menu-btn" onclick="alert('Tower of Molandak coming soon!')">TOWER OF MOLANDAK</button>
+            <button type="button" class="battle-menu-btn" onclick="alert('Tower of Moyaki coming soon!')">TOWER OF MOYAKI</button>
+            <button type="button" class="battle-menu-btn battle-menu-btn--back" onclick="renderBattleModalMenu()">BACK</button>
+        </div>
+    `;
+}
+
+function launchAdventureFromModal() {
+    closeGameModal("battle");
+    enterAdventureMode();
+}
+
+function renderBattleMenu() {
+    closeBattleScene();
+    openGameModal("battle");
 }
 
 function enterHouseTowerMode() {
-    battleScreen = "tower";
-    ensureBattleSceneOpen();
-    enterAdventureFullMode(BATTLE_BG_MENU);
-    const content = document.getElementById("battle-content");
-    content.className = "battle-scene-ui";
-    content.innerHTML = `
-        <div class="adventure-panel">
-            <h2>HOUSE TOWER</h2>
-            <p class="adv-desc" style="margin:0 0 20px; font-size:14px; color:#555; text-align:center;">
-                Choose a tower — coming soon
-            </p>
-            <div style="display:flex; flex-direction:column; gap:18px; align-items:center; width:100%;">
-                <button onclick="alert('Tower of Chog coming soon!')"
-                    style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
-                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
-                    TOWER OF CHOG
-                </button>
-                <button onclick="alert('Tower of Molandak coming soon!')"
-                    style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
-                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
-                    TOWER OF MOLANDAK
-                </button>
-                <button onclick="alert('Tower of Moyaki coming soon!')"
-                    style="padding: 18px 70px; font-size: 18px; font-weight: bold; cursor: pointer;
-                           background: white; color: #6B21A8; border: 4px solid #6B21A8; width: min(320px, 100%);">
-                    TOWER OF MOYAKI
-                </button>
-                <button onclick="renderBattleMenu()"
-                    style="padding: 14px 50px; font-size: 15px; font-weight: bold; cursor: pointer;
-                           background: #f3e8ff; color: #6B21A8; border: 3px solid #6B21A8; width: min(320px, 100%);">
-                    BACK
-                </button>
-            </div>
-        </div>
-    `;
+    openGameModal("battle");
+    showBattleTowerInModal();
 }
 
 function openBattleScene() {
-    if (isInAdventureBattle) return;
-    closeAllModals();
-    stopSceneIdleBattle();
-    enterAdventureFullMode(BATTLE_BG_MENU);
-    document.getElementById("main-scene").style.display = "none";
-    document.getElementById("battle-scene").classList.add("open");
-    document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
-    document.getElementById("rail-battle")?.classList.add("active");
-    renderBattleMenu();
+    openGameModal("battle");
 }
 
 function requestLeaveBattle() {
@@ -6176,14 +6221,9 @@ function requestLeaveBattle() {
         enterAdventureMode();
         return;
     }
-    if (battleScreen === "adventure") {
-        enterAdventureFullMode(BATTLE_BG_MENU);
-        renderBattleMenu();
-        return;
-    }
-    if (battleScreen === "tower") {
-        enterAdventureFullMode(BATTLE_BG_MENU);
-        renderBattleMenu();
+    if (battleScreen === "adventure" || battleScreen === "tower" || battleScreen === "menu") {
+        closeBattleScene();
+        openGameModal("battle");
         return;
     }
     if (battleScreen === "result") {
@@ -6250,7 +6290,7 @@ function closeBattleScene() {
 }
 
 function switchTab(tab) {
-    if (tab === "battle") { openBattleScene(); return; }
+    if (tab === "battle") { openGameModal("battle"); return; }
     if (tab === "catch") { openCatch(); return; }
     if (tab === "main" || tab === "party") { showMainScene(); if (tab === "party") openGameModal("party"); return; }
     openGameModal(tab);
@@ -6300,8 +6340,12 @@ function ensureBattleSceneOpen() {
 function enterAdventureMode() {
     loadAdventureProgress();
     battleScreen = "adventure";
+    closeAllModals();
+    stopSceneIdleBattle();
     ensureBattleSceneOpen();
     enterAdventureFullMode(getChapterBackgroundPath(currentChapter));
+    document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
+    document.getElementById("rail-battle")?.classList.add("active");
 
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui";
@@ -7068,7 +7112,7 @@ function confirmLeaveBattle(targetTab) {
     if (targetTab === "main") {
         closeBattleScene();
     } else if (targetTab === "battle") {
-        openBattleScene();
+        openGameModal("battle");
     } else {
         closeBattleScene();
         openGameModal(targetTab);
