@@ -1985,11 +1985,18 @@ body.afk-layout .currency-pill .currency-tip {
     width: clamp(150px, 24vw, 300px);
     z-index: 2;
 }
-.battle-hub-btn--arena {
+.battle-hub-btn--scene-house-tower {
     left: 74%;
     top: 38%;
+    width: clamp(160px, 22vw, 280px);
 }
-.battle-hub-btn--arena:hover img {
+.battle-hub-btn--scene-arena {
+    left: 32%;
+    top: 40%;
+    width: clamp(150px, 24vw, 300px);
+}
+.battle-hub-btn--scene-house-tower:hover img,
+.battle-hub-btn--scene-arena:hover img {
     filter:
         drop-shadow(0 10px 22px rgba(15, 6, 30, 0.5))
         drop-shadow(0 0 14px rgba(255, 214, 120, 0.65))
@@ -1999,7 +2006,8 @@ body.afk-layout .currency-pill .currency-tip {
 .battle-hub-btn:focus-visible img {
     filter: drop-shadow(0 8px 18px rgba(15, 6, 30, 0.45));
 }
-.battle-hub-btn--arena:focus-visible img {
+.battle-hub-btn--scene-house-tower:focus-visible img,
+.battle-hub-btn--scene-arena:focus-visible img {
     filter:
         drop-shadow(0 10px 22px rgba(15, 6, 30, 0.5))
         drop-shadow(0 0 14px rgba(255, 214, 120, 0.65))
@@ -6341,11 +6349,11 @@ function enterAdventureFullMode(bgUrl) {
 }
 
 const BATTLE_HUB_MAIN_BUTTONS = [
-    { alt: "Adventure", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_adventure.png`, left: 3, top: 30, onclick: "launchAdventureFromHub()", leftRail: true },
-    { alt: "House Tower", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_house_tower.png`, left: 3, top: 44, onclick: "showBattleTowerHub()", leftRail: true },
-    { alt: "PVP Wager", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_pvp_wager.png`, left: 3, top: 58, onclick: "alert('PVP Wager coming soon!')", leftRail: true },
+    { alt: "Adventure", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_adventure.png`, left: 3, top: 32, onclick: "launchAdventureFromHub()", leftRail: true },
+    { alt: "PVP Wager", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_pvp_wager.png`, left: 3, top: 52, onclick: "alert('PVP Wager coming soon!')", leftRail: true },
     { alt: "Training", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_training.png`, left: 3, top: 72, onclick: "alert('Training coming soon!')", leftRail: true },
-    { alt: "Arena", src: `${BATTLE_ICONS_DIR}/arena/arena.png`, onclick: "alert('Arena coming soon!')", statue: true, arena: true },
+    { alt: "House Tower", src: `${BATTLE_ICONS_DIR}/house%20tower/housetower.png`, onclick: "showBattleTowerHub()", statue: true, scene: "house-tower" },
+    { alt: "Arena", src: `${BATTLE_ICONS_DIR}/arena/arena.png`, onclick: "alert('Arena coming soon!')", statue: true, scene: "arena" },
 ];
 const BATTLE_HUB_TOWER_BUTTONS = [
     { alt: "Tower of Chog", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_tower_chog.png`, left: 28, top: 42, onclick: "alert('Tower of Chog coming soon!')" },
@@ -6365,9 +6373,9 @@ function renderBattleHubButtons(buttons) {
                     btn.back ? "battle-hub-btn--back" : "",
                     btn.leftRail ? "battle-hub-btn--left-rail" : "",
                     btn.statue ? "battle-hub-btn--statue" : "",
-                    btn.arena ? "battle-hub-btn--arena" : "",
+                    btn.scene ? `battle-hub-btn--scene-${btn.scene}` : "",
                 ].filter(Boolean).join(" ");
-                const posStyle = btn.arena ? "" : `left:${btn.left}%;top:${btn.top}%;`;
+                const posStyle = btn.scene ? "" : `left:${btn.left}%;top:${btn.top}%;`;
                 return `
                 <button type="button" class="battle-hub-btn ${extraClass}" style="${posStyle}" onclick="${btn.onclick}" aria-label="${btn.alt}">
                     <img src="${btn.src}" alt="${btn.alt}">
