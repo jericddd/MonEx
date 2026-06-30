@@ -3447,7 +3447,8 @@ function getSceneIdleBodyShadowHtml(monName) {
 }
 let sceneIdleBattleRunning = false;
 let xHandle = "";
-let profileActivityTimer = null;
+let profileActivitySignature = "";
+let profileActivityHandle = "";
 
 const PARTY_MAX = 3;
 const BOX_MAX = Infinity;
@@ -5643,7 +5644,7 @@ function saveXHandle() {
     saveData();
     alert("@" + xHandle + " linked — X catches will auto-sync to Party/Box");
     syncXWildMons(true);
-    refreshProfileActivity();
+    refreshProfileActivity({ force: true });
 }
 
 async function syncXWildMons(silent) {
@@ -5703,33 +5704,45 @@ function renderProfile() {
         if (input) input.value = xHandle ? "@" + xHandle : "";
     }
 
+    const feedEl = document.getElementById("profile-activity-feed");
+    const alreadyLoaded = feedEl?.dataset.profileActivityLoaded === "1";
     syncXWildMons(true);
-    refreshProfileActivity();
-    if (profileActivityTimer) clearInterval(profileActivityTimer);
-    profileActivityTimer = setInterval(() => {
-        if (document.getElementById("modal-profile")?.classList.contains("open")) {
-            syncXWildMons(true);
-            refreshProfileActivity();
-        }
-    }, 8000);
+    refreshProfileActivity({ silent: alreadyLoaded });
 }
 
-async function refreshProfileActivity() {
+async function refreshProfileActivity(opts = {}) {
+    const silent = !!opts.silent;
+    const force = !!opts.force;
     const el = document.getElementById("profile-activity-feed");
     if (!el || typeof MonExActivity === "undefined") return;
     if (!xHandle) {
         el.innerHTML = '<div class="activity-empty">Link your X @handle above to see your catch history.</div>';
+        el.removeAttribute("data-profile-activity-loaded");
+        profileActivitySignature = "";
+        profileActivityHandle = "";
         return;
     }
-    el.innerHTML = '<div class="activity-empty">Loading your log…</div>';
+    const handleChanged = profileActivityHandle !== xHandle;
+    profileActivityHandle = xHandle;
+    const hasLoadedFeed = el.dataset.profileActivityLoaded === "1";
+    if (!silent && (!hasLoadedFeed || handleChanged || force)) {
+        el.innerHTML = '<div class="activity-empty">Loading your log…</div>';
+    }
     try {
         const items = await MonExActivity.fetchMine(xHandle);
+        const sig = JSON.stringify(items.map((entry) => entry.id || `${entry.at}:${entry.spend}:${entry.caughtCount}`));
+        if (!force && !handleChanged && sig === profileActivitySignature) return;
+        profileActivitySignature = sig;
         MonExActivity.renderFeed(el, items, {
             emptyText: "No successful @monexmonad catches yet. Tweet @monexmonad catch 10 monanimals on X!",
             showUser: false,
         });
+        el.dataset.profileActivityLoaded = "1";
     } catch (e) {
-        el.innerHTML = '<div class="activity-empty">Could not reach activity server. Run <code>npm run server</code> in x-bot/</div>';
+        if (!hasLoadedFeed || handleChanged || force) {
+            el.innerHTML = '<div class="activity-empty">Could not reach activity server. Run <code>npm run server</code> in x-bot/</div>';
+            el.removeAttribute("data-profile-activity-loaded");
+        }
     }
 }
 
@@ -6235,10 +6248,6 @@ function closeGameModal(name) {
     const modal = document.getElementById("modal-" + name);
     if (modal) modal.classList.remove("open");
     if (name === "box") closeBoxSortMenu();
-    if (name === "profile" && profileActivityTimer) {
-        clearInterval(profileActivityTimer);
-        profileActivityTimer = null;
-    }
 }
 
 function openCatch() {
