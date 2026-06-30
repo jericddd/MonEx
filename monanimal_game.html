@@ -2020,9 +2020,8 @@ body.afk-layout .currency-pill .currency-tip {
     max-width: 480px;
 }
 .game-modal-wide { max-width: 960px; }
-/* Party / Box / Inventory — no header divider, tooltips float above */
+/* Party / Inventory — tooltips float above; Box scrolls inside its grid */
 #modal-party .game-modal-panel,
-#modal-box .game-modal-panel,
 #modal-inventory .game-modal-panel {
     overflow: visible;
     max-height: none;
@@ -2032,6 +2031,19 @@ body.afk-layout .currency-pill .currency-tip {
 #modal-inventory .game-modal-header {
     border-bottom: none;
     padding-bottom: 6px;
+}
+#modal-box .game-modal-panel {
+    width: min(1120px, 96vw);
+    max-width: min(1120px, 96vw);
+    max-height: min(88vh, 920px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+#modal-box .game-modal-header {
+    flex-shrink: 0;
+    position: relative;
+    z-index: 3;
 }
 #modal-box .game-modal-title-row {
     display: flex;
@@ -2045,14 +2057,17 @@ body.afk-layout .currency-pill .currency-tip {
     line-height: 1;
 }
 #modal-party .game-modal-body,
-#modal-box .game-modal-body,
 #modal-inventory .game-modal-body {
     padding-top: 0;
     overflow: visible;
 }
-#modal-box .game-modal-panel {
-    width: min(1120px, 96vw);
-    max-width: min(1120px, 96vw);
+#modal-box .game-modal-body {
+    padding: 0 18px 18px;
+    overflow: hidden;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 .box-content-grid {
     display: grid;
@@ -2086,15 +2101,20 @@ body.afk-layout .currency-pill .currency-tip {
     line-height: 1.4;
 }
 .box-scroll-wrap {
-    overflow: visible;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
     width: 100%;
     padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
 }
 .box-toolbar {
     display: flex;
     justify-content: flex-end;
     align-items: center;
     margin: 0 0 10px;
+    flex-shrink: 0;
 }
 .box-sort-wrap {
     position: relative;
@@ -7126,7 +7146,7 @@ function showBattleLeaveWarning(targetTab) {
 }
 
 function confirmLeaveBattle(targetTab) {
-    document.querySelectorAll('div[style*="z-index: 500"]').forEach(m => m.remove());
+    closePopupOverlays();
     closeBattlePauseMenu();
     const wasInBattle = isInAdventureBattle;
     forfeitAdventureBattle({ showResult: wasInBattle });
