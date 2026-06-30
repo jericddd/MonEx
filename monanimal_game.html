@@ -13,7 +13,7 @@
     --game-side-pad: 30px;
     --scene-battle-path-height: calc(var(--scene-fighter-size, 88px) * 1.62);
     --monad-purple: #200052;
-    --scene-fighter-size: 88px;
+    --scene-fighter-size: 101px;
     --modal-drop: 10vh;
 }
 
@@ -1546,8 +1546,8 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-idle-stage {
     position: relative;
     width: 100%;
-    max-width: 520px;
-    min-height: calc(var(--scene-fighter-size, 88px) * 2.05);
+    max-width: 598px;
+    min-height: calc(var(--scene-fighter-size, 101px) * 2.05);
     transform: scale(0.92);
     transform-origin: center bottom;
 }
@@ -1558,8 +1558,8 @@ body.afk-layout .currency-pill .currency-tip {
     justify-content: flex-end;
     gap: 0;
     width: 100%;
-    max-width: 520px;
-    min-height: calc(var(--scene-fighter-size, 88px) * 1.15);
+    max-width: 598px;
+    min-height: calc(var(--scene-fighter-size, 101px) * 1.15);
     position: relative;
     z-index: 1;
 }
@@ -1572,19 +1572,19 @@ body.afk-layout .currency-pill .currency-tip {
     overflow: visible;
 }
 .scene-idle-row + .scene-idle-row {
-    margin-top: -47px;
+    margin-top: -54px;
 }
 .scene-idle-row.row-left {
     justify-content: flex-start;
 }
 .scene-idle-row.row-slot-0 .scene-idle-pair {
-    transform: translateX(72px);
+    transform: translateX(83px);
 }
 .scene-idle-row.row-slot-2 .scene-idle-pair {
-    transform: translateX(-18px);
+    transform: translateX(-21px);
 }
 .scene-idle-row.row-right .scene-idle-pair {
-    transform: translateX(44px);
+    transform: translateX(51px);
 }
 .scene-idle-row.row-right {
     justify-content: flex-end;
@@ -1597,7 +1597,7 @@ body.afk-layout .currency-pill .currency-tip {
     overflow: visible;
 }
 .scene-idle-pair .scene-idle-fighter.enemy {
-    margin-left: -16px;
+    margin-left: -18px;
 }
 .scene-idle-team {
     display: none;
@@ -2037,17 +2037,17 @@ body.afk-layout .currency-pill .currency-tip {
     height: auto;
     z-index: 2;
 }
-/* Uniform scale shrinks width + height together (arena −10%, house tower −20%). */
+/* Statue GUIs — width % of 1920×1080 artboard */
 .battle-hub-btn--scene-house-tower {
     left: 65%;
     top: 57%;
-    width: 3%;
+    width: 3.75%;
     transform: translate(-50%, -50%);
 }
 .battle-hub-btn--scene-arena {
     left: 33%;
     top: 75%;
-    width: 3%;
+    width: 3.75%;
     transform: translate(-50%, -50%);
 }
 .battle-hub-btn--scene-house-tower:hover,
@@ -2921,21 +2921,21 @@ body.afk-layout .currency-pill .currency-tip {
         min-height: calc(var(--scene-fighter-size, 76px) * 1.15);
     }
     .scene-idle-row + .scene-idle-row {
-        margin-top: -35px;
+        margin-top: -40px;
     }
     .scene-idle-row.row-slot-0 .scene-idle-pair {
-        transform: translateX(52px);
+        transform: translateX(60px);
     }
     .scene-idle-row.row-slot-2 .scene-idle-pair {
-        transform: translateX(-14px);
+        transform: translateX(-16px);
     }
     .scene-idle-row.row-right .scene-idle-pair {
-        transform: translateX(32px);
+        transform: translateX(37px);
     }
     .scene-idle-pair .scene-idle-fighter.enemy {
-        margin-left: -12px;
+        margin-left: -14px;
     }
-    :root { --scene-fighter-size: 76px; }
+    :root { --scene-fighter-size: 87px; }
     .side-rail,
     .left-rail {
         position: absolute;
@@ -4131,9 +4131,9 @@ function getSceneIdleBattleSignature(heroes) {
 }
 
 function getSceneIdlePairOffset(idx) {
-    if (idx === 0) return "transform:translateX(72px);";
-    if (idx === 1) return "transform:translateX(44px);";
-    if (idx === 2) return "transform:translateX(-18px);";
+    if (idx === 0) return "transform:translateX(83px);";
+    if (idx === 1) return "transform:translateX(51px);";
+    if (idx === 2) return "transform:translateX(-21px);";
     return "";
 }
 
