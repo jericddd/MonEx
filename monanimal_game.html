@@ -1794,8 +1794,12 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .side-icon-btn:hover::before { display: none !important; }
 .side-icon-btn img {
-    width: 40px;
-    height: 40px;
+    display: block;
+    max-width: 50px;
+    max-height: 50px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
     image-rendering: pixelated;
     filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.35));
     position: relative;
