@@ -1883,6 +1883,7 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .battle-scene-bg.visible {
     display: block;
+    pointer-events: none;
 }
 .battle-back-btn {
     position: absolute;
@@ -1991,7 +1992,13 @@ body.afk-layout .currency-pill .currency-tip {
     justify-content: stretch;
     pointer-events: auto;
 }
+#battle-content.battle-scene-ui {
+    pointer-events: auto;
+}
 #battle-content.battle-scene-ui--hub {
+    pointer-events: auto;
+}
+.battle-scene-ui--fight {
     pointer-events: auto;
 }
 .battle-scene-ui:not(.battle-scene-ui--hub):not(.battle-scene-ui--fight) {
@@ -2205,6 +2212,9 @@ body.afk-layout .currency-pill .currency-tip {
     width: 100%;
     box-sizing: border-box;
     font-family: 'Lato', sans-serif;
+    pointer-events: auto;
+    position: relative;
+    z-index: 2;
 }
 .adventure-panel h2 {
     margin: 0 0 20px;
@@ -2254,6 +2264,8 @@ body.afk-layout .currency-pill .currency-tip {
     cursor: grab;
     user-select: none;
     font-family: 'Lato', sans-serif;
+    pointer-events: auto;
+    touch-action: none;
 }
 .team-slot-name {
     font-family: 'Press Start 2P', monospace;
@@ -6658,7 +6670,7 @@ const BATTLE_HUB_TOWER_BUTTONS = [
 function renderBattleHubButtons(buttons) {
     const content = document.getElementById("battle-content");
     if (!content) return;
-    content.className = "battle-scene-ui battle-scene-ui--hub";
+    content.className = "battle-scene-ui battle-scene-ui--hub cover-art-layer";
     content.innerHTML = `
         <div class="battle-hub-layer" id="battle-hub-layer">
         ${buttons.map((btn) => {
@@ -6824,7 +6836,7 @@ function closeBattleScene() {
     const content = document.getElementById("battle-content");
     if (content) {
         content.innerHTML = "";
-        content.className = "battle-scene-ui";
+        content.className = "battle-scene-ui cover-art-layer";
     }
     renderMainScene();
     syncCoverStages();
@@ -6899,7 +6911,7 @@ function startStageSelection() {
     setAdventureMode(true);
     refreshAdventureChapterBackground();
     const content = document.getElementById("battle-content");
-    content.className = "battle-scene-ui";
+    content.className = "battle-scene-ui cover-art-layer";
     content.innerHTML = `
         <div class="adventure-panel">
             <h2>CHAPTER ${currentChapter} - STAGE ${currentStage}${boss ? ' <span class="boss-label">BOSS</span>' : ''}</h2>
@@ -7053,7 +7065,7 @@ function start3v3Battle(playerParty) {
 function renderBattleScene() {
     const boss = isBossStage(currentStage);
     const content = document.getElementById("battle-content");
-    content.className = "battle-scene-ui battle-scene-ui--fight";
+    content.className = "battle-scene-ui battle-scene-ui--fight cover-art-layer";
     content.innerHTML = `
         <div class="battle-stage" id="battle-stage">
             <div class="battle-hud">
@@ -7539,7 +7551,7 @@ function showBattleResult(win, reward) {
     battleScreen = "result";
     refreshAdventureChapterBackground();
     const content = document.getElementById("battle-content");
-    content.className = "battle-scene-ui";
+    content.className = "battle-scene-ui cover-art-layer";
     const drops = win
         ? `<div class="result-drops" style="margin:18px 0; font-size:15px;">
                <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("gold", 20)} <b>+${reward.gold}</b></div>
