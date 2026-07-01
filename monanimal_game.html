@@ -11,7 +11,6 @@
     --purple-light: #A855F7;
     --game-max-width: 1400px;
     --game-side-pad: 30px;
-    --game-header-height: 64px;
     --scene-battle-path-height: calc(var(--scene-fighter-size, 88px) * 1.71);
     --monad-purple: #200052;
     --scene-fighter-size: 141px;
@@ -1475,19 +1474,6 @@ body.afk-layout .currency-pill .currency-tip {
     z-index: 0;
     pointer-events: none;
     display: block;
-}
-/* Main scene: bg + path share one viewport (stage bleeds under transparent header) */
-#main-scene-viewport.main-scene-viewport {
-    top: calc(-1 * var(--game-header-height));
-    bottom: 0;
-    height: auto;
-}
-.main-scene-bg {
-    object-position: center bottom;
-}
-.game-container.main-scene-active .game-container-bg {
-    opacity: 0;
-    visibility: hidden;
 }
 .cover-art-stage {
     position: absolute;
@@ -3065,8 +3051,7 @@ body.afk-layout .currency-pill .currency-tip {
     </header>
 
     <div class="game-container-stage">
-    <div id="main-scene-viewport" class="cover-viewport main-scene-viewport">
-        <img id="main-scene-bg" class="cover-viewport-bg main-scene-bg" src="for%20result%20banner/mainscene_background.png" alt="" aria-hidden="true">
+    <div id="main-scene-viewport" class="cover-viewport">
         <div id="main-scene-cover-stage" class="cover-art-stage">
             <div id="main-scene" class="main-scene cover-art-layer">
                 <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions"></div>
@@ -3629,35 +3614,13 @@ function syncCoverStages() {
 }
 
 function ensureCoverStagesSync() {
-    syncGameHeaderHeight();
     syncCoverStages();
     if (coverStagesObserver) return;
     const container = document.querySelector(".game-container-stage");
     if (!container) return;
-    coverStagesObserver = new ResizeObserver(() => {
-        syncGameHeaderHeight();
-        syncCoverStages();
-    });
+    coverStagesObserver = new ResizeObserver(() => syncCoverStages());
     coverStagesObserver.observe(container);
-    const header = document.querySelector(".game-container > .header");
-    if (header) coverStagesObserver.observe(header);
-    window.addEventListener("resize", () => {
-        syncGameHeaderHeight();
-        syncCoverStages();
-    });
-}
-
-function syncGameHeaderHeight() {
-    const header = document.querySelector(".game-container > .header");
-    if (header) {
-        document.documentElement.style.setProperty("--game-header-height", `${header.offsetHeight}px`);
-    }
-}
-
-function setMainSceneBackground(url) {
-    const bg = document.getElementById("main-scene-bg");
-    if (!bg) return;
-    bg.src = url || MAIN_SCENE_BG;
+    window.addEventListener("resize", syncCoverStages);
 }
 
 function setMainSceneVisible(visible) {
@@ -3668,8 +3631,7 @@ function setMainSceneVisible(visible) {
     if (main) main.style.display = visible ? "flex" : "none";
     document.querySelector(".game-container")?.classList.toggle("main-scene-active", !!visible);
     if (visible) {
-        setMainSceneBackground(MAIN_SCENE_BG);
-        syncGameHeaderHeight();
+        setGameContainerBackground(MAIN_SCENE_BG);
         syncCoverStages();
     }
 }
@@ -6551,7 +6513,6 @@ function openCatch() {
 function setGameContainerBackground(url) {
     const bg = document.getElementById("game-container-bg");
     if (!bg) return;
-    if (document.querySelector(".game-container")?.classList.contains("main-scene-active")) return;
     bg.src = url || MAIN_SCENE_BG;
 }
 
