@@ -2048,10 +2048,10 @@ body.afk-layout .currency-pill .currency-tip {
     box-shadow: none !important;
     color: inherit !important;
 }
-.battle-hub-btn:not(.battle-hub-btn--scene-arena):not(.battle-hub-btn--scene-house-tower):hover,
-.battle-hub-btn:not(.battle-hub-btn--scene-arena):not(.battle-hub-btn--scene-house-tower):focus,
-.battle-hub-btn:not(.battle-hub-btn--scene-arena):not(.battle-hub-btn--scene-house-tower):active,
-.battle-hub-btn:not(.battle-hub-btn--scene-arena):not(.battle-hub-btn--scene-house-tower):focus-visible {
+.battle-hub-btn:not(.battle-hub-btn--statue):hover,
+.battle-hub-btn:not(.battle-hub-btn--statue):focus,
+.battle-hub-btn:not(.battle-hub-btn--statue):active,
+.battle-hub-btn:not(.battle-hub-btn--statue):focus-visible {
     transform: translate(-50%, -50%) !important;
 }
 .battle-hub-btn:hover::before,
@@ -2068,9 +2068,9 @@ body.afk-layout .currency-pill .currency-tip {
     border: none !important;
     box-shadow: none !important;
 }
-#battle-content .battle-hub-btn:not(.battle-hub-btn--scene-arena):not(.battle-hub-btn--scene-house-tower):hover,
-#battle-content .battle-hub-btn:not(.battle-hub-btn--scene-arena):not(.battle-hub-btn--scene-house-tower):focus,
-#battle-content .battle-hub-btn:not(.battle-hub-btn--scene-arena):not(.battle-hub-btn--scene-house-tower):active {
+#battle-content .battle-hub-btn:not(.battle-hub-btn--statue):hover,
+#battle-content .battle-hub-btn:not(.battle-hub-btn--statue):focus,
+#battle-content .battle-hub-btn:not(.battle-hub-btn--statue):active {
     transform: translate(-50%, -50%) !important;
 }
 .battle-hub-btn img {
@@ -2101,24 +2101,39 @@ body.afk-layout .currency-pill .currency-tip {
     touch-action: manipulation;
 }
 /* Statue placement — left/top anchor + translate offset (see BATTLE_HUB_STATUE_ANCHORS) */
-.battle-hub-btn--scene-house-tower {
-    left: var(--hub-house-tower-left, 31%);
-    top: var(--hub-house-tower-top, 50%);
+.battle-hub-btn--scene-adventure {
+    left: var(--hub-adventure-left, 12%);
+    top: var(--hub-adventure-top, 58%);
     width: 9.76%;
     min-width: 128px;
     min-height: 128px;
-    transform: translate(var(--hub-house-tower-tx, -50%), var(--hub-house-tower-ty, -50%));
+    transform: translate(var(--hub-adventure-tx, -50%), var(--hub-adventure-ty, -100%));
+}
+.battle-hub-btn--scene-house-tower {
+    left: var(--hub-house-tower-left, 31%);
+    top: var(--hub-house-tower-top, 58%);
+    width: 9.76%;
+    min-width: 128px;
+    min-height: 128px;
+    transform: translate(var(--hub-house-tower-tx, -50%), var(--hub-house-tower-ty, -100%));
 }
 .battle-hub-btn--scene-arena {
     left: var(--hub-arena-left, 50%);
-    top: var(--hub-arena-top, 50%);
+    top: var(--hub-arena-top, 58%);
     width: 9.76%;
     min-width: 128px;
     min-height: 128px;
-    transform: translate(var(--hub-arena-tx, -50%), var(--hub-arena-ty, -50%));
+    transform: translate(var(--hub-arena-tx, -50%), var(--hub-arena-ty, -100%));
 }
-.battle-hub-btn--scene-house-tower:hover img,
-.battle-hub-btn--scene-arena:hover img {
+.battle-hub-btn--scene-pvp-wager {
+    left: var(--hub-pvp-wager-left, 69%);
+    top: var(--hub-pvp-wager-top, 58%);
+    width: 9.76%;
+    min-width: 128px;
+    min-height: 128px;
+    transform: translate(var(--hub-pvp-wager-tx, -50%), var(--hub-pvp-wager-ty, -100%));
+}
+.battle-hub-btn--statue:hover img {
     filter:
         drop-shadow(0 10px 22px rgba(15, 6, 30, 0.5))
         drop-shadow(0 0 14px rgba(255, 214, 120, 0.65))
@@ -2128,8 +2143,7 @@ body.afk-layout .currency-pill .currency-tip {
 .battle-hub-btn:focus-visible img {
     filter: drop-shadow(0 8px 18px rgba(15, 6, 30, 0.45));
 }
-.battle-hub-btn--scene-house-tower:focus-visible img,
-.battle-hub-btn--scene-arena:focus-visible img {
+.battle-hub-btn--statue:focus-visible img {
     filter:
         drop-shadow(0 10px 22px rgba(15, 6, 30, 0.5))
         drop-shadow(0 0 14px rgba(255, 214, 120, 0.65))
@@ -3578,8 +3592,10 @@ const BATTLE_HUB_BTN_DIR = BANNER_DIR + "/battle_hub";
 const BATTLE_ICONS_DIR = "game_icons/battle";
 // Statue placement on battlescene_background.png — left/top anchor + translate offset
 const BATTLE_HUB_STATUE_ANCHORS = {
-    "house-tower": { left: 31, top: 50, translateX: -50, translateY: -50 },
-    arena: { left: 50, top: 50, translateX: -50, translateY: -50 },
+    adventure: { left: 12, top: 58, translateX: -50, translateY: -100 },
+    "house-tower": { left: 31, top: 58, translateX: -50, translateY: -100 },
+    arena: { left: 50, top: 58, translateX: -50, translateY: -100 },
+    "pvp-wager": { left: 69, top: 58, translateX: -50, translateY: -100 },
 };
 // 1920×1080 design boards — UI hotspots use % inside .cover-art-stage
 const COVER_ART_1920_1080 = { w: 1920, h: 1080 };
@@ -6576,10 +6592,10 @@ registerCoverStage("battle-scene-viewport", "battle-scene-cover-stage", {
 });
 
 const BATTLE_HUB_MAIN_BUTTONS = [
-    { alt: "Adventure", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_adventure.png`, left: 12, top: 50, onclick: "launchAdventureFromHub()", leftRail: true },
+    { alt: "Adventure", src: `${BATTLE_ICONS_DIR}/adventure/adventure.png`, onclick: "launchAdventureFromHub()", statue: true, scene: "adventure" },
     { alt: "House Tower", src: `${BATTLE_ICONS_DIR}/house%20tower/housetower.png`, onclick: "alert('Arena coming soon!')", statue: true, scene: "house-tower" },
     { alt: "Arena", src: `${BATTLE_ICONS_DIR}/arena/arena.png`, onclick: "showBattleTowerHub()", statue: true, scene: "arena" },
-    { alt: "PVP Wager", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_pvp_wager.png`, left: 69, top: 50, onclick: "alert('PVP Wager coming soon!')", leftRail: true },
+    { alt: "PVP Wager", src: `${BATTLE_ICONS_DIR}/pvp%20wager/pvpwager.png`, onclick: "alert('PVP Wager coming soon!')", statue: true, scene: "pvp-wager" },
     { alt: "Training", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_training.png`, left: 88, top: 50, onclick: "alert('Training coming soon!')", leftRail: true },
 ];
 const BATTLE_HUB_TOWER_BUTTONS = [
