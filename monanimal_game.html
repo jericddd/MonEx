@@ -2071,13 +2071,15 @@ body.afk-layout .currency-pill .currency-tip {
     position: relative;
     z-index: 1;
     filter: drop-shadow(0 3px 8px rgba(15, 6, 30, 0.22));
+    transition: filter 0.2s ease;
 }
 .battle-hub-statue-figure {
     display: block;
     position: relative;
     width: 100%;
-    transition: transform 0.2s ease;
+    transition: transform 0.22s ease;
     transform-origin: center bottom;
+    will-change: transform;
 }
 .battle-hub-statue-shadow {
     position: absolute;
@@ -2095,8 +2097,8 @@ body.afk-layout .currency-pill .currency-tip {
     );
     pointer-events: none;
     z-index: 0;
-    transition: transform 0.2s ease, opacity 0.2s ease;
-    opacity: 0.92;
+    transition: transform 0.22s ease, opacity 0.22s ease;
+    opacity: 0.88;
 }
 .battle-hub-btn--left-rail {
     width: 9.17%;
@@ -2129,10 +2131,6 @@ body.afk-layout .currency-pill .currency-tip {
     min-height: 128px;
     transform: translate(var(--hub-adventure-tx, -50%), var(--hub-adventure-ty, -100%));
 }
-.battle-hub-btn--scene-adventure:hover,
-.battle-hub-btn--scene-adventure:focus-visible {
-    transform: translate(var(--hub-adventure-tx, -50%), var(--hub-adventure-ty, -100%)) scale(1.03);
-}
 .battle-hub-btn--scene-house-tower {
     --hub-statue-shadow-w: var(--hub-house-tower-shadow-w, 76%);
     --hub-statue-shadow-h: var(--hub-house-tower-shadow-h, 11%);
@@ -2143,10 +2141,6 @@ body.afk-layout .currency-pill .currency-tip {
     min-width: 128px;
     min-height: 128px;
     transform: translate(var(--hub-house-tower-tx, -50%), var(--hub-house-tower-ty, -100%));
-}
-.battle-hub-btn--scene-house-tower:hover,
-.battle-hub-btn--scene-house-tower:focus-visible {
-    transform: translate(var(--hub-house-tower-tx, -50%), var(--hub-house-tower-ty, -100%)) scale(1.03);
 }
 .battle-hub-btn--scene-arena {
     --hub-statue-shadow-w: var(--hub-arena-shadow-w, 74%);
@@ -2159,10 +2153,6 @@ body.afk-layout .currency-pill .currency-tip {
     min-height: 128px;
     transform: translate(var(--hub-arena-tx, -50%), var(--hub-arena-ty, -100%));
 }
-.battle-hub-btn--scene-arena:hover,
-.battle-hub-btn--scene-arena:focus-visible {
-    transform: translate(var(--hub-arena-tx, -50%), var(--hub-arena-ty, -100%)) scale(1.03);
-}
 .battle-hub-btn--scene-pvp-wager {
     --hub-statue-shadow-w: var(--hub-pvp-wager-shadow-w, 68%);
     --hub-statue-shadow-h: var(--hub-pvp-wager-shadow-h, 10%);
@@ -2174,22 +2164,30 @@ body.afk-layout .currency-pill .currency-tip {
     min-height: 128px;
     transform: translate(var(--hub-pvp-wager-tx, -50%), var(--hub-pvp-wager-ty, -100%));
 }
-.battle-hub-btn--scene-pvp-wager:hover,
-.battle-hub-btn--scene-pvp-wager:focus-visible {
-    transform: translate(var(--hub-pvp-wager-tx, -50%), var(--hub-pvp-wager-ty, -100%)) scale(1.03);
-}
 .battle-hub-btn--statue:hover .battle-hub-statue-figure,
 .battle-hub-btn--statue:focus-visible .battle-hub-statue-figure {
-    transform: translateY(-3px);
+    transform: translateY(-10px) scale(1.07);
 }
 .battle-hub-btn--statue:hover .battle-hub-statue-shadow,
 .battle-hub-btn--statue:focus-visible .battle-hub-statue-shadow {
-    transform: translateX(-50%) scale(1.1);
+    transform: translateX(-50%) scale(1.28);
     opacity: 1;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(12, 32, 10, 0.48) 0%,
+        rgba(0, 0, 0, 0.3) 50%,
+        transparent 76%
+    );
 }
 .battle-hub-btn--statue:hover img,
 .battle-hub-btn--statue:focus-visible img {
-    filter: drop-shadow(0 5px 12px rgba(15, 6, 30, 0.3));
+    filter:
+        drop-shadow(0 10px 20px rgba(15, 6, 30, 0.45))
+        brightness(1.07);
+}
+.battle-hub-btn--statue:active .battle-hub-statue-figure {
+    transform: translateY(-4px) scale(1.03);
+    transition-duration: 0.08s;
 }
 .battle-hub-btn:not(.battle-hub-btn--statue):focus-visible img {
     filter: drop-shadow(0 8px 18px rgba(15, 6, 30, 0.45));
