@@ -22,7 +22,8 @@
     --rail-column-width: 118px;
     --rail-pad-y: 7px;
     --rail-pad-x: 10px;
-    --rail-gap: 6px;
+    --rail-gap: 3px;
+    --rail-offset-top: 12px;
     --rail-diamond-bg: #ffffffeb;
     --rail-diamond-bg-hover: #ffffff;
     --rail-diamond-bg-active: #ffffff;
@@ -1755,8 +1756,8 @@ body.afk-layout .currency-pill .currency-tip {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: var(--rail-pad-y) var(--rail-pad-x);
+    justify-content: flex-start;
+    padding: var(--rail-offset-top) var(--rail-pad-x) var(--rail-pad-y);
     gap: var(--rail-gap);
     z-index: 10;
     box-sizing: border-box;
@@ -3004,7 +3005,7 @@ body.afk-layout .currency-pill .currency-tip {
     .scene-idle-pair .scene-idle-fighter.enemy {
         margin-left: -20px;
     }
-    :root { --scene-fighter-size: 122px; --rail-icon-max: 36px; --rail-btn-size: 49px; --rail-diamond-inset: 7px; --rail-pad-y: 3px; --rail-pad-x: 3px; --rail-gap: 3px; }
+    :root { --scene-fighter-size: 122px; --rail-icon-max: 36px; --rail-btn-size: 49px; --rail-diamond-inset: 7px; --rail-pad-y: 3px; --rail-pad-x: 3px; --rail-gap: 2px; }
     .side-rail,
     .left-rail {
         position: absolute;
@@ -6551,8 +6552,10 @@ function setBattleSceneBackground(url) {
     setGameContainerBackground(resolved);
     const stageBg = document.getElementById("battle-scene-bg");
     const battleOpen = document.getElementById("battle-scene")?.classList.contains("open");
+    const adventureMode = document.querySelector(".game-container")?.classList.contains("adventure-mode");
     if (!stageBg) return;
-    if (battleOpen && url) {
+    // Hub uses game-container-bg only so header + scene share one stretched image (no seam).
+    if (battleOpen && url && adventureMode) {
         stageBg.src = url;
         stageBg.classList.add("visible");
     } else {
