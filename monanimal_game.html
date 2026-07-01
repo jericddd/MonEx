@@ -18,6 +18,7 @@
     --rail-icon-max: 72px;
     --rail-btn-size: 98px;
     --rail-diamond-inset: 13px;
+    --rail-diamond-scale: 0.75;
     --rail-column-width: 118px;
     --rail-pad-y: 7px;
     --rail-pad-x: 10px;
@@ -1794,6 +1795,8 @@ body.afk-layout .currency-pill .currency-tip {
     mask-size: 100% 100%;
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
+    transform: scale(var(--rail-diamond-scale));
+    transform-origin: center;
     filter: drop-shadow(0 4px 14px var(--rail-diamond-shadow));
     transition: background-color 0.15s ease, filter 0.15s ease, transform 0.15s ease;
     z-index: 0;
@@ -1807,7 +1810,7 @@ body.afk-layout .currency-pill .currency-tip {
 .side-icon-btn:hover::after {
     background-color: var(--rail-diamond-bg-hover);
     filter: drop-shadow(0 6px 18px rgba(107, 33, 168, 0.28));
-    transform: scale(1.04);
+    transform: scale(calc(var(--rail-diamond-scale) * 1.04));
 }
 .side-icon-btn:hover::before { display: none !important; }
 .side-icon-btn img {
