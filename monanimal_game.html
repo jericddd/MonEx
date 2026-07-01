@@ -2081,20 +2081,20 @@ body.afk-layout .currency-pill .currency-tip {
 }
 /* Statue placement — left/top anchor + translate offset (see BATTLE_HUB_STATUE_ANCHORS) */
 .battle-hub-btn--scene-house-tower {
-    left: var(--hub-house-tower-left, 73%);
+    left: var(--hub-house-tower-left, 50%);
     top: var(--hub-house-tower-top, 40%);
     width: 9.76%;
     min-width: 128px;
     min-height: 128px;
-    transform: translate(var(--hub-house-tower-tx, -40%), var(--hub-house-tower-ty, 70%));
+    transform: translate(var(--hub-house-tower-tx, -50%), var(--hub-house-tower-ty, 70%));
 }
 .battle-hub-btn--scene-arena {
-    left: var(--hub-arena-left, 40%);
+    left: var(--hub-arena-left, 50%);
     top: var(--hub-arena-top, 40%);
     width: 9.76%;
     min-width: 128px;
     min-height: 128px;
-    transform: translate(var(--hub-arena-tx, -190%), var(--hub-arena-ty, -20%));
+    transform: translate(var(--hub-arena-tx, -50%), var(--hub-arena-ty, -20%));
 }
 .battle-hub-btn--scene-house-tower:hover img,
 .battle-hub-btn--scene-arena:hover img {
@@ -3554,8 +3554,8 @@ const BATTLE_HUB_BTN_DIR = BANNER_DIR + "/battle_hub";
 const BATTLE_ICONS_DIR = "game_icons/battle";
 // Statue placement on battlescene_background.png — left/top anchor + translate offset
 const BATTLE_HUB_STATUE_ANCHORS = {
-    arena: { left: 40, top: 40, translateX: -190, translateY: -20 },
-    "house-tower": { left: 73, top: 40, translateX: -40, translateY: 70 },
+    arena: { left: 50, top: 40, translateX: -50, translateY: -20 },
+    "house-tower": { left: 50, top: 40, translateX: -50, translateY: 70 },
 };
 // 1920×1080 design boards — UI hotspots use % inside .cover-art-stage
 const COVER_ART_1920_1080 = { w: 1920, h: 1080 };
@@ -6552,9 +6552,9 @@ registerCoverStage("battle-scene-viewport", "battle-scene-cover-stage", {
 });
 
 const BATTLE_HUB_MAIN_BUTTONS = [
-    { alt: "Adventure", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_adventure.png`, left: 3, top: 32, onclick: "launchAdventureFromHub()", leftRail: true },
-    { alt: "PVP Wager", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_pvp_wager.png`, left: 3, top: 52, onclick: "alert('PVP Wager coming soon!')", leftRail: true },
-    { alt: "Training", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_training.png`, left: 3, top: 72, onclick: "alert('Training coming soon!')", leftRail: true },
+    { alt: "Adventure", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_adventure.png`, left: 50, top: 32, onclick: "launchAdventureFromHub()", leftRail: true },
+    { alt: "PVP Wager", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_pvp_wager.png`, left: 50, top: 52, onclick: "alert('PVP Wager coming soon!')", leftRail: true },
+    { alt: "Training", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_training.png`, left: 50, top: 72, onclick: "alert('Training coming soon!')", leftRail: true },
     { alt: "House Tower", src: `${BATTLE_ICONS_DIR}/house%20tower/housetower.png`, onclick: "alert('Arena coming soon!')", statue: true, scene: "house-tower" },
     { alt: "Arena", src: `${BATTLE_ICONS_DIR}/arena/arena.png`, onclick: "showBattleTowerHub()", statue: true, scene: "arena" },
 ];
