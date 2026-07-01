@@ -22,10 +22,6 @@
     --rail-pad-x: 10px;
     --rail-gap: 0px;
     --rail-offset-top: 54px;
-    --rail-tab-bg: rgba(255, 255, 255, 0.72);
-    --rail-tab-bg-hover: rgba(255, 255, 255, 0.88);
-    --rail-tab-bg-active: rgba(255, 255, 255, 0.92);
-    --rail-tab-shadow: 0 4px 18px rgba(107, 33, 168, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 body {
@@ -1770,23 +1766,22 @@ body.afk-layout .currency-pill .currency-tip {
     width: var(--rail-btn-size);
     height: var(--rail-btn-size);
     border: none;
-    border-radius: 999px;
-    background: var(--rail-tab-bg);
-    box-shadow: var(--rail-tab-shadow);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 6px;
-    box-sizing: border-box;
+    padding: 0;
     position: relative;
-    transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    transition: transform 0.15s ease, filter 0.15s ease;
     flex-shrink: 0;
 }
 .side-icon-btn:hover {
     transform: scale(1.06) translateY(-2px);
-    background: var(--rail-tab-bg-hover);
-    box-shadow: 0 6px 20px rgba(107, 33, 168, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    background: transparent;
+    box-shadow: none;
 }
 .side-icon-btn:hover img {
     filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4)) brightness(1.06);
@@ -2983,7 +2978,7 @@ body.afk-layout .currency-pill .currency-tip {
     .scene-idle-pair .scene-idle-fighter.enemy {
         margin-left: -20px;
     }
-    :root { --scene-fighter-size: 122px; --rail-icon-max: 36px; --rail-btn-size: 36px; --rail-pad-y: 3px; --rail-pad-x: 3px; --rail-gap: 0px; }
+    :root { --scene-fighter-size: 122px; --rail-icon-max: 30px; --rail-btn-size: 36px; --rail-pad-y: 3px; --rail-pad-x: 3px; --rail-gap: 0px; }
     .side-rail,
     .left-rail {
         position: absolute;
