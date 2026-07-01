@@ -12,6 +12,7 @@
     --game-max-width: 1400px;
     --game-side-pad: 30px;
     --scene-battle-path-height: calc(var(--scene-fighter-size, 88px) * 1.71);
+    --scene-pixel-scale: 0.42;
     --monad-purple: #200052;
     --scene-fighter-size: 141px;
     --modal-drop: 10vh;
@@ -1449,6 +1450,14 @@ body.afk-layout .currency-pill .currency-tip {
     pointer-events: none;
     display: block;
 }
+.game-container.main-scene-active .game-container-bg {
+    width: calc(100% / var(--scene-pixel-scale));
+    height: calc(100% / var(--scene-pixel-scale));
+    transform: scale(var(--scene-pixel-scale));
+    transform-origin: top left;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
 .game-container-stage {
     flex: 1;
     position: relative;
@@ -1537,12 +1546,15 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-battle-path {
     position: absolute;
     left: 0;
-    right: 0;
     bottom: 0;
-    width: 100%;
-    height: var(--scene-battle-path-height);
+    width: calc(100% / var(--scene-pixel-scale));
+    height: calc(var(--scene-battle-path-height) / var(--scene-pixel-scale));
     object-fit: fill;
     object-position: center bottom;
+    transform: scale(var(--scene-pixel-scale));
+    transform-origin: bottom left;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
     z-index: 1;
     pointer-events: none;
     display: block;
@@ -1787,7 +1799,7 @@ body.afk-layout .currency-pill .currency-tip {
     box-shadow: none;
 }
 .side-icon-btn:hover img {
-    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4)) brightness(1.06);
+    filter: var(--rail-tab-shadow-hover);
 }
 .side-icon-btn:hover::before { display: none !important; }
 .side-icon-btn img {
@@ -1798,7 +1810,7 @@ body.afk-layout .currency-pill .currency-tip {
     height: auto;
     object-fit: contain;
     image-rendering: pixelated;
-    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.35));
+    filter: var(--rail-tab-shadow);
     transition: filter 0.15s ease;
     position: relative;
     z-index: 1;
@@ -1843,7 +1855,7 @@ body.afk-layout .currency-pill .currency-tip {
     box-shadow: none;
 }
 .side-icon-btn.active img {
-    filter: drop-shadow(0 2px 8px rgba(107, 33, 168, 0.45)) brightness(1.08);
+    filter: var(--rail-tab-shadow-active);
 }
 
 .battle-scene {
@@ -3011,7 +3023,7 @@ body.afk-layout .currency-pill .currency-tip {
 <body class="afk-layout">
 
 <div class="game-shell">
-<div class="game-container">
+<div class="game-container main-scene-active">
     <img id="game-container-bg" class="game-container-bg" src="for%20result%20banner/mainscene_background.png" alt="" aria-hidden="true">
     <header class="header" aria-label="Trainer status">
         <div class="header-inner">
@@ -3629,6 +3641,7 @@ function setMainSceneVisible(visible) {
     const display = visible ? "block" : "none";
     if (viewport) viewport.style.display = display;
     if (main) main.style.display = visible ? "flex" : "none";
+    document.querySelector(".game-container")?.classList.toggle("main-scene-active", !!visible);
     if (visible) syncCoverStages();
 }
 
