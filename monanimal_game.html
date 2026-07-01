@@ -1765,6 +1765,10 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .left-rail { left: 0; }
 .side-rail { right: 0; }
+.battle-scene.open ~ .left-rail,
+.battle-scene.open ~ .side-rail {
+    --rail-offset-top: 54px;
+}
 .side-rail .side-icon-btn,
 .left-rail .side-icon-btn {
     pointer-events: auto;
