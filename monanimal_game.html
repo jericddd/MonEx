@@ -1794,8 +1794,8 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .side-icon-btn:hover::before { display: none !important; }
 .side-icon-btn img {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     image-rendering: pixelated;
     filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.35));
     position: relative;
@@ -3072,42 +3072,42 @@ body.afk-layout .currency-pill .currency-tip {
 
     <nav class="left-rail" aria-label="Quick actions">
         <button type="button" class="side-icon-btn" id="rail-daily-quest" onclick="openGameModal('daily-quest')">
-            <span class="side-icon-emoji">📜</span>
+            <img src="game_icons/button%20tabs/dailyquest.png" alt="">
             <span class="rail-tip">DAILY QUEST</span>
         </button>
         <button type="button" class="side-icon-btn" onclick="buyMonball()">
             <img src="game_icons/monball.png" alt="">
             <span class="rail-tip">BUY BALL (500G)</span>
         </button>
-        <button type="button" class="side-icon-btn" onclick="openGameModal('shop')">
-            <img src="game_icons/gold.png" alt="">
+        <button type="button" class="side-icon-btn" id="rail-shop" onclick="openGameModal('shop')">
+            <img src="game_icons/button%20tabs/shop.png" alt="">
             <span class="rail-tip">SHOP</span>
         </button>
-        <button type="button" class="side-icon-btn" onclick="goToProfile()">
-            <span class="side-icon-emoji">👤</span>
+        <button type="button" class="side-icon-btn" id="rail-profile" onclick="goToProfile()">
+            <img src="game_icons/button%20tabs/profile.png" alt="">
             <span class="rail-tip">PROFILE</span>
         </button>
     </nav>
 
     <nav class="side-rail" aria-label="Game menu">
         <button type="button" class="side-icon-btn" id="rail-party" onclick="openGameModal('party')">
-            <img src="animated gif/header tab/party.gif" alt="">
+            <img src="game_icons/button%20tabs/party.png" alt="">
             <span class="rail-tip">PARTY</span>
         </button>
         <button type="button" class="side-icon-btn" id="rail-box" onclick="openGameModal('box')">
-            <img src="animated gif/header tab/box.gif" alt="">
+            <img src="game_icons/button%20tabs/box.png" alt="">
             <span class="rail-tip">BOX</span>
         </button>
         <button type="button" class="side-icon-btn" id="rail-inventory" onclick="openGameModal('inventory')">
-            <span class="side-icon-emoji">🎒</span>
+            <img src="game_icons/button%20tabs/inventory.png" alt="">
             <span class="rail-tip">INVENTORY</span>
         </button>
         <button type="button" class="side-icon-btn" id="rail-battle" onclick="openBattleHub()">
-            <img src="animated gif/header tab/battle.gif" alt="">
+            <img src="game_icons/button%20tabs/battle.png" alt="">
             <span class="rail-tip">BATTLE</span>
         </button>
         <button type="button" class="side-icon-btn" id="rail-catch" onclick="openCatch()">
-            <img src="animated gif/header tab/catch.gif" alt="">
+            <img src="game_icons/button%20tabs/catch.png" alt="">
             <span class="rail-tip">CATCH ON X</span>
         </button>
     </nav>
@@ -3253,6 +3253,8 @@ body.afk-layout .currency-pill .currency-tip {
 
 // ==================== CONSTANTS ====================
 const KBS_ONION_NAME = "KB's Onion";
+
+const BUTTON_TAB_ICON_DIR = "game_icons/button%20tabs";
 
 const GAME_ICONS = {
     monball: { src: "game_icons/monball.png", name: "Monball" },
