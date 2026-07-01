@@ -1872,6 +1872,12 @@ body.afk-layout .currency-pill .currency-tip {
     display: flex;
     flex-direction: column;
 }
+.battle-scene-bg {
+    display: none;
+}
+.battle-scene-bg.visible {
+    display: block;
+}
 .battle-back-btn {
     position: absolute;
     top: 14px;
@@ -2074,18 +2080,18 @@ body.afk-layout .currency-pill .currency-tip {
     pointer-events: auto;
     touch-action: manipulation;
 }
-/* Statue GUIs — width % of 1920×1080 artboard */
+/* Statue GUIs — glued to 1920×1080 art via % (see BATTLE_HUB_STATUE_ANCHORS) */
 .battle-hub-btn--scene-house-tower {
-    left: 65%;
-    top: 77%;
+    left: var(--hub-house-tower-left, 73%);
+    top: var(--hub-house-tower-top, 50%);
     width: 9.76%;
     min-width: 128px;
     min-height: 128px;
     transform: translate(-50%, -50%);
 }
 .battle-hub-btn--scene-arena {
-    left: 30%;
-    top: 95%;
+    left: var(--hub-arena-left, 37%);
+    top: var(--hub-arena-top, 56%);
     width: 9.76%;
     min-width: 128px;
     min-height: 128px;
@@ -3068,6 +3074,7 @@ body.afk-layout .currency-pill .currency-tip {
 
     <div id="battle-scene" class="battle-scene">
         <div class="battle-scene-frame cover-viewport" id="battle-scene-viewport">
+            <img id="battle-scene-bg" class="cover-viewport-bg battle-scene-bg" alt="" aria-hidden="true">
             <div id="battle-scene-cover-stage" class="cover-art-stage">
                 <div id="battle-content" class="battle-scene-ui cover-art-layer"></div>
             </div>
@@ -3564,6 +3571,11 @@ const ADVENTURE_CHAPTER_PLACEHOLDER = BANNER_DIR + "/adventure_chapter_placehold
 const CHAPTER_BG_FALLBACK = ADVENTURE_CHAPTER_PLACEHOLDER;
 const BATTLE_HUB_BTN_DIR = BANNER_DIR + "/battle_hub";
 const BATTLE_ICONS_DIR = "game_icons/battle";
+// Peak anchors on battlescene_background.png (1920×1080) — % of artboard
+const BATTLE_HUB_STATUE_ANCHORS = {
+    arena: { left: 37, top: 56 },
+    "house-tower": { left: 73, top: 50 },
+};
 // 1920×1080 design boards — UI hotspots use % inside .cover-art-stage
 const COVER_ART_1920_1080 = { w: 1920, h: 1080 };
 const coverStageRegistry = new Map();
@@ -3596,6 +3608,7 @@ function syncCoverStages() {
         if (!viewport || !stage) return;
         const fit = applyCoverFit(viewport, stage, cfg.art);
         cfg.onSync?.(stage, fit, cfg.art);
+        if (viewportId === "battle-scene-viewport") applyBattleHubStatueAnchors();
     });
 }
 
@@ -6498,8 +6511,28 @@ function setGameContainerBackground(url) {
     bg.src = url || MAIN_SCENE_BG;
 }
 
+function applyBattleHubStatueAnchors() {
+    const stage = document.getElementById("battle-scene-cover-stage");
+    if (!stage) return;
+    Object.entries(BATTLE_HUB_STATUE_ANCHORS).forEach(([scene, pos]) => {
+        stage.style.setProperty(`--hub-${scene}-left`, `${pos.left}%`);
+        stage.style.setProperty(`--hub-${scene}-top`, `${pos.top}%`);
+    });
+}
+
 function setBattleSceneBackground(url) {
-    setGameContainerBackground(url || MAIN_SCENE_BG);
+    const resolved = url || MAIN_SCENE_BG;
+    setGameContainerBackground(resolved);
+    const stageBg = document.getElementById("battle-scene-bg");
+    const battleOpen = document.getElementById("battle-scene")?.classList.contains("open");
+    if (!stageBg) return;
+    if (battleOpen && url) {
+        stageBg.src = url;
+        stageBg.classList.add("visible");
+    } else {
+        stageBg.src = "";
+        stageBg.classList.remove("visible");
+    }
 }
 
 function setAdventureMode(active) {
@@ -6570,6 +6603,7 @@ function renderBattleHubButtons(buttons) {
             }).join("")}
         </div>
     `;
+    applyBattleHubStatueAnchors();
     syncCoverStages();
 }
 
