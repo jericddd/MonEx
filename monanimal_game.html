@@ -15,6 +15,13 @@
     --monad-purple: #200052;
     --scene-fighter-size: 141px;
     --modal-drop: 10vh;
+    --rail-icon-max: 60px;
+    --rail-btn-size: 82px;
+    --rail-diamond-inset: 17px;
+    --rail-column-width: 91px;
+    --rail-pad-y: 14px;
+    --rail-pad-x: 10px;
+    --rail-gap: 12px;
 }
 
 body {
@@ -1736,15 +1743,15 @@ body.afk-layout .currency-pill .currency-tip {
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 228px;
+    width: var(--rail-column-width);
     background: transparent;
     border: none;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 36px 24px;
-    gap: 30px;
+    padding: var(--rail-pad-y) var(--rail-pad-x);
+    gap: var(--rail-gap);
     z-index: 10;
     box-sizing: border-box;
     pointer-events: none;
@@ -1756,8 +1763,8 @@ body.afk-layout .currency-pill .currency-tip {
     pointer-events: auto;
 }
 .side-icon-btn {
-    width: 204px;
-    height: 204px;
+    width: var(--rail-btn-size);
+    height: var(--rail-btn-size);
     border: none;
     border-radius: 0;
     background: transparent;
@@ -1774,7 +1781,7 @@ body.afk-layout .currency-pill .currency-tip {
 .side-icon-btn::after {
     content: "";
     position: absolute;
-    inset: 42px;
+    inset: var(--rail-diamond-inset);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='translate(32 32) rotate(45) translate(-32 -32)'%3E%3Cpath fill='rgba(32%2C0%2C82%2C0.72)' d='M12 4h40a8 8 0 0 1 8 8v40a8 8 0 0 1-8 8H12a8 8 0 0 1-8-8V12a8 8 0 0 1 8-8z'/%3E%3C/g%3E%3C/svg%3E");
     background-size: 100% 100%;
     background-repeat: no-repeat;
@@ -1796,8 +1803,8 @@ body.afk-layout .currency-pill .currency-tip {
 .side-icon-btn:hover::before { display: none !important; }
 .side-icon-btn img {
     display: block;
-    max-width: 150px;
-    max-height: 150px;
+    max-width: var(--rail-icon-max);
+    max-height: var(--rail-icon-max);
     width: auto;
     height: auto;
     object-fit: contain;
@@ -2971,7 +2978,7 @@ body.afk-layout .currency-pill .currency-tip {
     .scene-idle-pair .scene-idle-fighter.enemy {
         margin-left: -20px;
     }
-    :root { --scene-fighter-size: 122px; }
+    :root { --scene-fighter-size: 122px; --rail-icon-max: 30px; --rail-btn-size: 41px; --rail-diamond-inset: 8px; --rail-pad-y: 5px; --rail-pad-x: 5px; --rail-gap: 5px; }
     .side-rail,
     .left-rail {
         position: absolute;
@@ -2984,19 +2991,8 @@ body.afk-layout .currency-pill .currency-tip {
         flex-direction: row;
         justify-content: center;
         flex-wrap: wrap;
-        padding: 12px;
-        gap: 12px;
-    }
-    .side-icon-btn {
-        width: 102px;
-        height: 102px;
-    }
-    .side-icon-btn::after {
-        inset: 21px;
-    }
-    .side-icon-btn img {
-        max-width: 75px;
-        max-height: 75px;
+        padding: var(--rail-pad-y) var(--rail-pad-x);
+        gap: var(--rail-gap);
     }
     .battle-scene { bottom: 0; }
     .side-icon-btn .rail-tip {
