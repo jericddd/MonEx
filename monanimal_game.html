@@ -17,7 +17,6 @@
     --modal-drop: 10vh;
     --rail-icon-max: 72px;
     --rail-btn-size: 98px;
-    --rail-diamond-inset: 13px;
     --rail-column-width: 118px;
     --rail-pad-y: 7px;
     --rail-pad-x: 10px;
@@ -1778,27 +1777,13 @@ body.afk-layout .currency-pill .currency-tip {
     transition: transform 0.15s ease;
     flex-shrink: 0;
 }
-.side-icon-btn::after {
-    content: "";
-    position: absolute;
-    inset: var(--rail-diamond-inset);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='translate(32 32) rotate(45) translate(-32 -32)'%3E%3Cpath fill='rgba(32%2C0%2C82%2C0.72)' d='M12 4h40a8 8 0 0 1 8 8v40a8 8 0 0 1-8 8H12a8 8 0 0 1-8-8V12a8 8 0 0 1 8-8z'/%3E%3C/g%3E%3C/svg%3E");
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
-    filter: drop-shadow(0 4px 14px rgba(32, 0, 82, 0.4));
-    transition: filter 0.15s ease, transform 0.15s ease;
-    z-index: 0;
-    pointer-events: none;
-}
 .side-icon-btn:hover {
     transform: scale(1.06) translateY(-2px);
     background: transparent;
     box-shadow: none;
 }
-.side-icon-btn:hover::after {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='translate(32 32) rotate(45) translate(-32 -32)'%3E%3Cpath fill='rgba(32%2C0%2C82%2C0.88)' d='M12 4h40a8 8 0 0 1 8 8v40a8 8 0 0 1-8 8H12a8 8 0 0 1-8-8V12a8 8 0 0 1 8-8z'/%3E%3C/g%3E%3C/svg%3E");
-    filter: drop-shadow(0 6px 18px rgba(107, 33, 168, 0.55));
-    transform: scale(1.04);
+.side-icon-btn:hover img {
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4)) brightness(1.06);
 }
 .side-icon-btn:hover::before { display: none !important; }
 .side-icon-btn img {
@@ -1810,6 +1795,7 @@ body.afk-layout .currency-pill .currency-tip {
     object-fit: contain;
     image-rendering: pixelated;
     filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.35));
+    transition: filter 0.15s ease;
     position: relative;
     z-index: 1;
 }
@@ -1852,9 +1838,8 @@ body.afk-layout .currency-pill .currency-tip {
     background: transparent;
     box-shadow: none;
 }
-.side-icon-btn.active::after {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='translate(32 32) rotate(45) translate(-32 -32)'%3E%3Cpath fill='rgba(107%2C33%2C168%2C0.92)' d='M12 4h40a8 8 0 0 1 8 8v40a8 8 0 0 1-8 8H12a8 8 0 0 1-8-8V12a8 8 0 0 1 8-8z'/%3E%3C/g%3E%3C/svg%3E");
-    filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.7)) drop-shadow(0 4px 14px rgba(32, 0, 82, 0.45));
+.side-icon-btn.active img {
+    filter: drop-shadow(0 2px 8px rgba(107, 33, 168, 0.45)) brightness(1.08);
 }
 
 .battle-scene {
@@ -2978,7 +2963,7 @@ body.afk-layout .currency-pill .currency-tip {
     .scene-idle-pair .scene-idle-fighter.enemy {
         margin-left: -20px;
     }
-    :root { --scene-fighter-size: 122px; --rail-icon-max: 36px; --rail-btn-size: 49px; --rail-diamond-inset: 7px; --rail-pad-y: 3px; --rail-pad-x: 3px; --rail-gap: 3px; }
+    :root { --scene-fighter-size: 122px; --rail-icon-max: 36px; --rail-btn-size: 49px; --rail-pad-y: 3px; --rail-pad-x: 3px; --rail-gap: 3px; }
     .side-rail,
     .left-rail {
         position: absolute;
