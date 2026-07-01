@@ -2067,6 +2067,37 @@ body.afk-layout .currency-pill .currency-tip {
     transition: filter 0.2s ease;
     pointer-events: none;
 }
+.battle-hub-btn--statue img {
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 3px 8px rgba(15, 6, 30, 0.22));
+}
+.battle-hub-statue-figure {
+    display: block;
+    position: relative;
+    width: 100%;
+    transition: transform 0.2s ease;
+    transform-origin: center bottom;
+}
+.battle-hub-statue-shadow {
+    position: absolute;
+    left: 50%;
+    bottom: var(--hub-statue-shadow-bottom, 2%);
+    width: var(--hub-statue-shadow-w, 72%);
+    height: var(--hub-statue-shadow-h, 11%);
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(18, 42, 16, 0.36) 0%,
+        rgba(0, 0, 0, 0.22) 52%,
+        transparent 74%
+    );
+    pointer-events: none;
+    z-index: 0;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    opacity: 0.92;
+}
 .battle-hub-btn--left-rail {
     width: 9.17%;
 }
@@ -2084,9 +2115,13 @@ body.afk-layout .currency-pill .currency-tip {
     z-index: 12;
     pointer-events: auto;
     touch-action: manipulation;
+    transition: transform 0.2s ease;
 }
 /* Statue placement — left/top anchor + translate offset (see BATTLE_HUB_STATUE_ANCHORS) */
 .battle-hub-btn--scene-adventure {
+    --hub-statue-shadow-w: var(--hub-adventure-shadow-w, 70%);
+    --hub-statue-shadow-h: var(--hub-adventure-shadow-h, 10%);
+    --hub-statue-shadow-bottom: var(--hub-adventure-shadow-bottom, 2%);
     left: var(--hub-adventure-left, 12%);
     top: var(--hub-adventure-top, 70%);
     width: 9.76%;
@@ -2094,15 +2129,29 @@ body.afk-layout .currency-pill .currency-tip {
     min-height: 128px;
     transform: translate(var(--hub-adventure-tx, -50%), var(--hub-adventure-ty, -100%));
 }
+.battle-hub-btn--scene-adventure:hover,
+.battle-hub-btn--scene-adventure:focus-visible {
+    transform: translate(var(--hub-adventure-tx, -50%), var(--hub-adventure-ty, -100%)) scale(1.03);
+}
 .battle-hub-btn--scene-house-tower {
+    --hub-statue-shadow-w: var(--hub-house-tower-shadow-w, 76%);
+    --hub-statue-shadow-h: var(--hub-house-tower-shadow-h, 11%);
+    --hub-statue-shadow-bottom: var(--hub-house-tower-shadow-bottom, 1%);
     left: var(--hub-house-tower-left, 31%);
-    top: var(--hub-house-tower-top, 70%);
+    top: var(--hub-house-tower-top, 69%);
     width: 9.76%;
     min-width: 128px;
     min-height: 128px;
     transform: translate(var(--hub-house-tower-tx, -50%), var(--hub-house-tower-ty, -100%));
 }
+.battle-hub-btn--scene-house-tower:hover,
+.battle-hub-btn--scene-house-tower:focus-visible {
+    transform: translate(var(--hub-house-tower-tx, -50%), var(--hub-house-tower-ty, -100%)) scale(1.03);
+}
 .battle-hub-btn--scene-arena {
+    --hub-statue-shadow-w: var(--hub-arena-shadow-w, 74%);
+    --hub-statue-shadow-h: var(--hub-arena-shadow-h, 11%);
+    --hub-statue-shadow-bottom: var(--hub-arena-shadow-bottom, 2%);
     left: var(--hub-arena-left, 50%);
     top: var(--hub-arena-top, 70%);
     width: 9.76%;
@@ -2110,7 +2159,14 @@ body.afk-layout .currency-pill .currency-tip {
     min-height: 128px;
     transform: translate(var(--hub-arena-tx, -50%), var(--hub-arena-ty, -100%));
 }
+.battle-hub-btn--scene-arena:hover,
+.battle-hub-btn--scene-arena:focus-visible {
+    transform: translate(var(--hub-arena-tx, -50%), var(--hub-arena-ty, -100%)) scale(1.03);
+}
 .battle-hub-btn--scene-pvp-wager {
+    --hub-statue-shadow-w: var(--hub-pvp-wager-shadow-w, 68%);
+    --hub-statue-shadow-h: var(--hub-pvp-wager-shadow-h, 10%);
+    --hub-statue-shadow-bottom: var(--hub-pvp-wager-shadow-bottom, 2%);
     left: var(--hub-pvp-wager-left, 69%);
     top: var(--hub-pvp-wager-top, 70%);
     width: 9.76%;
@@ -2118,22 +2174,25 @@ body.afk-layout .currency-pill .currency-tip {
     min-height: 128px;
     transform: translate(var(--hub-pvp-wager-tx, -50%), var(--hub-pvp-wager-ty, -100%));
 }
-.battle-hub-btn--statue:hover img {
-    filter:
-        drop-shadow(0 10px 22px rgba(15, 6, 30, 0.5))
-        drop-shadow(0 0 14px rgba(255, 214, 120, 0.65))
-        drop-shadow(0 0 28px rgba(255, 180, 80, 0.35))
-        brightness(1.08);
+.battle-hub-btn--scene-pvp-wager:hover,
+.battle-hub-btn--scene-pvp-wager:focus-visible {
+    transform: translate(var(--hub-pvp-wager-tx, -50%), var(--hub-pvp-wager-ty, -100%)) scale(1.03);
 }
-.battle-hub-btn:focus-visible img {
-    filter: drop-shadow(0 8px 18px rgba(15, 6, 30, 0.45));
+.battle-hub-btn--statue:hover .battle-hub-statue-figure,
+.battle-hub-btn--statue:focus-visible .battle-hub-statue-figure {
+    transform: translateY(-3px);
 }
+.battle-hub-btn--statue:hover .battle-hub-statue-shadow,
+.battle-hub-btn--statue:focus-visible .battle-hub-statue-shadow {
+    transform: translateX(-50%) scale(1.1);
+    opacity: 1;
+}
+.battle-hub-btn--statue:hover img,
 .battle-hub-btn--statue:focus-visible img {
-    filter:
-        drop-shadow(0 10px 22px rgba(15, 6, 30, 0.5))
-        drop-shadow(0 0 14px rgba(255, 214, 120, 0.65))
-        drop-shadow(0 0 28px rgba(255, 180, 80, 0.35))
-        brightness(1.08);
+    filter: drop-shadow(0 5px 12px rgba(15, 6, 30, 0.3));
+}
+.battle-hub-btn:not(.battle-hub-btn--statue):focus-visible img {
+    filter: drop-shadow(0 8px 18px rgba(15, 6, 30, 0.45));
 }
 .battle-hub-btn--back {
     width: 7.3%;
@@ -3575,12 +3634,12 @@ const ADVENTURE_CHAPTER_PLACEHOLDER = BANNER_DIR + "/adventure_chapter_placehold
 const CHAPTER_BG_FALLBACK = ADVENTURE_CHAPTER_PLACEHOLDER;
 const BATTLE_HUB_BTN_DIR = BANNER_DIR + "/battle_hub";
 const BATTLE_ICONS_DIR = "game_icons/battle";
-// Statue placement on battlescene_background.png — left/top anchor + translate offset
+// Statue placement on battlescene_background.png — left/top anchor + translate + ground shadow
 const BATTLE_HUB_STATUE_ANCHORS = {
-    adventure: { left: 12, top: 70, translateX: -50, translateY: -100 },
-    "house-tower": { left: 31, top: 70, translateX: -50, translateY: -100 },
-    arena: { left: 50, top: 70, translateX: -50, translateY: -100 },
-    "pvp-wager": { left: 69, top: 70, translateX: -50, translateY: -100 },
+    adventure: { left: 12, top: 70, translateX: -50, translateY: -100, shadowW: 70, shadowH: 10, shadowBottom: 2 },
+    "house-tower": { left: 31, top: 69, translateX: -50, translateY: -100, shadowW: 76, shadowH: 11, shadowBottom: 1 },
+    arena: { left: 50, top: 70, translateX: -50, translateY: -100, shadowW: 74, shadowH: 11, shadowBottom: 2 },
+    "pvp-wager": { left: 69, top: 70, translateX: -50, translateY: -100, shadowW: 68, shadowH: 10, shadowBottom: 2 },
 };
 // 1920×1080 design boards — UI hotspots use % inside .cover-art-stage
 const COVER_ART_1920_1080 = { w: 1920, h: 1080 };
@@ -6529,6 +6588,9 @@ function applyBattleHubStatueAnchors() {
         stage.style.setProperty(`--hub-${scene}-top`, `${pos.top}%`);
         stage.style.setProperty(`--hub-${scene}-tx`, `${pos.translateX}%`);
         stage.style.setProperty(`--hub-${scene}-ty`, `${pos.translateY}%`);
+        stage.style.setProperty(`--hub-${scene}-shadow-w`, `${pos.shadowW ?? 72}%`);
+        stage.style.setProperty(`--hub-${scene}-shadow-h`, `${pos.shadowH ?? 11}%`);
+        stage.style.setProperty(`--hub-${scene}-shadow-bottom`, `${pos.shadowBottom ?? 2}%`);
     });
 }
 
@@ -6609,9 +6671,12 @@ function renderBattleHubButtons(buttons) {
                     btn.scene ? `battle-hub-btn--scene-${btn.scene}` : "",
                 ].filter(Boolean).join(" ");
                 const posStyle = btn.scene ? "" : `left:${btn.left}%;top:${btn.top}%;`;
+                const imgMarkup = btn.statue
+                    ? `<span class="battle-hub-statue-figure"><span class="battle-hub-statue-shadow" aria-hidden="true"></span><img src="${btn.src}" alt="${btn.alt}"></span>`
+                    : `<img src="${btn.src}" alt="${btn.alt}">`;
                 return `
                 <button type="button" class="battle-hub-btn ${extraClass}" style="${posStyle}" onclick="${btn.onclick}" aria-label="${btn.alt}">
-                    <img src="${btn.src}" alt="${btn.alt}">
+                    ${imgMarkup}
                 </button>`;
             }).join("")}
         </div>
