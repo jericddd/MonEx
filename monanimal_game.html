@@ -2080,14 +2080,14 @@ body.afk-layout .currency-pill .currency-tip {
     pointer-events: auto;
     touch-action: manipulation;
 }
-/* Statue GUIs — glued to 1920×1080 art via % (see BATTLE_HUB_STATUE_ANCHORS) */
+/* Statue placement — left/top anchor + translate offset (see BATTLE_HUB_STATUE_ANCHORS) */
 .battle-hub-btn--scene-house-tower {
     left: var(--hub-house-tower-left, 73%);
     top: var(--hub-house-tower-top, 40%);
     width: 9.76%;
     min-width: 128px;
     min-height: 128px;
-    transform: translate(-40%, 50%);
+    transform: translate(var(--hub-house-tower-tx, -40%), var(--hub-house-tower-ty, 50%));
 }
 .battle-hub-btn--scene-arena {
     left: var(--hub-arena-left, 40%);
@@ -2095,25 +2095,7 @@ body.afk-layout .currency-pill .currency-tip {
     width: 9.76%;
     min-width: 128px;
     min-height: 128px;
-    transform: translate(-170%, -20%) !important;
-}
-.battle-hub-btn--scene-house-tower:hover,
-.battle-hub-btn--scene-house-tower:focus,
-.battle-hub-btn--scene-house-tower:active,
-.battle-hub-btn--scene-house-tower:focus-visible,
-#battle-content .battle-hub-btn--scene-house-tower:hover,
-#battle-content .battle-hub-btn--scene-house-tower:focus,
-#battle-content .battle-hub-btn--scene-house-tower:active {
-    transform: translate(-40%, 50%) !important;
-}
-.battle-hub-btn--scene-arena:hover,
-.battle-hub-btn--scene-arena:focus,
-.battle-hub-btn--scene-arena:active,
-.battle-hub-btn--scene-arena:focus-visible,
-#battle-content .battle-hub-btn--scene-arena:hover,
-#battle-content .battle-hub-btn--scene-arena:focus,
-#battle-content .battle-hub-btn--scene-arena:active {
-    transform: translate(-170%, -20%) !important;
+    transform: translate(var(--hub-arena-tx, -170%), var(--hub-arena-ty, -20%));
 }
 .battle-hub-btn--scene-house-tower:hover img,
 .battle-hub-btn--scene-arena:hover img {
@@ -3571,10 +3553,10 @@ const ADVENTURE_CHAPTER_PLACEHOLDER = BANNER_DIR + "/adventure_chapter_placehold
 const CHAPTER_BG_FALLBACK = ADVENTURE_CHAPTER_PLACEHOLDER;
 const BATTLE_HUB_BTN_DIR = BANNER_DIR + "/battle_hub";
 const BATTLE_ICONS_DIR = "game_icons/battle";
-// Peak anchors on battlescene_background.png (1920×1080) — % of artboard
+// Statue placement on battlescene_background.png — left/top anchor + translate offset
 const BATTLE_HUB_STATUE_ANCHORS = {
-    arena: { left: 40, top: 40 },
-    "house-tower": { left: 73, top: 40 },
+    arena: { left: 40, top: 40, translateX: -170, translateY: -20 },
+    "house-tower": { left: 73, top: 40, translateX: -40, translateY: 50 },
 };
 // 1920×1080 design boards — UI hotspots use % inside .cover-art-stage
 const COVER_ART_1920_1080 = { w: 1920, h: 1080 };
@@ -6517,6 +6499,8 @@ function applyBattleHubStatueAnchors() {
     Object.entries(BATTLE_HUB_STATUE_ANCHORS).forEach(([scene, pos]) => {
         stage.style.setProperty(`--hub-${scene}-left`, `${pos.left}%`);
         stage.style.setProperty(`--hub-${scene}-top`, `${pos.top}%`);
+        stage.style.setProperty(`--hub-${scene}-tx`, `${pos.translateX}%`);
+        stage.style.setProperty(`--hub-${scene}-ty`, `${pos.translateY}%`);
     });
 }
 
