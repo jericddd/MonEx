@@ -22,6 +22,9 @@
     --rail-pad-x: 10px;
     --rail-gap: 0px;
     --rail-offset-top: 54px;
+    --rail-tab-chip-bg: rgba(31, 18, 53, 0.45);
+    --rail-tab-chip-radius: 12px;
+    --rail-tab-chip-blur: 4px;
     --rail-tab-shadow: drop-shadow(0 3px 8px rgba(32, 0, 82, 0.35));
     --rail-tab-shadow-hover: drop-shadow(0 4px 12px rgba(32, 0, 82, 0.48));
     --rail-tab-shadow-active: drop-shadow(0 4px 14px rgba(107, 33, 168, 0.55));
@@ -1769,8 +1772,10 @@ body.afk-layout .currency-pill .currency-tip {
     width: var(--rail-btn-size);
     height: var(--rail-btn-size);
     border: none;
-    border-radius: 0;
-    background: transparent;
+    border-radius: var(--rail-tab-chip-radius);
+    background: var(--rail-tab-chip-bg);
+    backdrop-filter: blur(var(--rail-tab-chip-blur));
+    -webkit-backdrop-filter: blur(var(--rail-tab-chip-blur));
     box-shadow: none;
     cursor: pointer;
     display: flex;
@@ -1778,12 +1783,12 @@ body.afk-layout .currency-pill .currency-tip {
     justify-content: center;
     padding: 0;
     position: relative;
-    transition: transform 0.15s ease, filter 0.15s ease;
+    transition: transform 0.15s ease, filter 0.15s ease, background 0.15s ease;
     flex-shrink: 0;
 }
 .side-icon-btn:hover {
     transform: scale(1.06) translateY(-2px);
-    background: transparent;
+    background: rgba(31, 18, 53, 0.58);
     box-shadow: none;
 }
 .side-icon-btn:hover img {
@@ -1839,7 +1844,7 @@ body.afk-layout .currency-pill .currency-tip {
 .side-icon-btn:hover .rail-tip { display: block; }
 .side-icon-btn.active {
     transform: scale(1.04);
-    background: transparent;
+    background: rgba(31, 18, 53, 0.62);
     box-shadow: none;
 }
 .side-icon-btn.active img {
@@ -2981,7 +2986,7 @@ body.afk-layout .currency-pill .currency-tip {
     .scene-idle-pair .scene-idle-fighter.enemy {
         margin-left: -20px;
     }
-    :root { --scene-fighter-size: 122px; --rail-icon-max: 30px; --rail-btn-size: 36px; --rail-pad-y: 3px; --rail-pad-x: 3px; --rail-gap: 0px; }
+    :root { --scene-fighter-size: 122px; --rail-icon-max: 30px; --rail-btn-size: 36px; --rail-pad-y: 3px; --rail-pad-x: 3px; --rail-gap: 0px; --rail-tab-chip-radius: 8px; }
     .side-rail,
     .left-rail {
         position: absolute;
