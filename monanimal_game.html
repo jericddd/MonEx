@@ -2329,30 +2329,6 @@ body.afk-layout .currency-pill .currency-tip {
     box-shadow: none;
     background: transparent;
 }
-.battle-canvas-wrap {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    overflow: hidden;
-    pointer-events: none;
-}
-.battle-canvas-wrap canvas.battle-canvas-layer {
-    display: block;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-}
-.battle-stage .battle-hud,
-.battle-stage .stage-label,
-.battle-stage .skill-banner,
-.battle-stage .screen-flash {
-    z-index: 6;
-}
-.battle-stage--canvas .battle-stage-path,
-.battle-stage--canvas .fighter-wrap,
-.battle-stage--canvas #fx-layer {
-    display: none !important;
-}
 
 .game-modal {
     display: none;
@@ -3386,7 +3362,6 @@ body.afk-layout .currency-pill .currency-tip {
     </div>
 </div>
 
-<script src="js/battle_canvas.js"></script>
 <script src="js/staging-banner.js"></script>
 <script src="js/monex-config.js"></script>
 <script src="js/activity-client.js"></script>
@@ -3685,8 +3660,6 @@ let highestStageCleared = 0;
 let adventureGlobalBest = 0;
 let lastResetDate = null;
 let isInAdventureBattle = false;
-let battleCanvas = null;
-const USE_BATTLE_CANVAS = true;
 let adventureBattleToken = 0;
 let adventureForfeitNotice = false;
 let battlePaused = false;
@@ -3780,34 +3753,7 @@ function applyBattleStageChapterBackground(chapter) {
     const stage = document.getElementById("battle-stage");
     if (!stage) return;
     const path = getChapterBackgroundPath(chapter ?? currentChapter);
-    if (USE_BATTLE_CANVAS && battleCanvas) {
-        battleCanvas.setBackground(path);
-        return;
-    }
     stage.style.backgroundImage = `url('${path}')`;
-}
-
-function initBattleCanvas(stageEl) {
-    if (!USE_BATTLE_CANVAS || !stageEl || typeof BattleCanvasStage === "undefined") return null;
-    disposeBattleCanvas();
-    const canvas = document.createElement("canvas");
-    canvas.className = "battle-canvas-layer";
-    canvas.setAttribute("aria-hidden", "true");
-    const inst = new BattleCanvasStage(canvas);
-    stageEl.classList.add("battle-stage--canvas");
-    inst.mount(stageEl);
-    inst.setPath(BATTLE_STAGE_PATH);
-    inst.setBackground(getChapterBackgroundPath(currentChapter));
-    battleCanvas = inst;
-    return inst;
-}
-
-function disposeBattleCanvas() {
-    if (battleCanvas) {
-        battleCanvas.unmount();
-        battleCanvas = null;
-    }
-    document.getElementById("battle-stage")?.classList.remove("battle-stage--canvas");
 }
 
 function refreshAdventureChapterBackground() {
@@ -4584,11 +4530,6 @@ function beginAttackAnim(side) {
 }
 
 function endAttackAnim(side, atk) {
-    if (battleCanvas) {
-        battleCanvas.resetFighterTransform(side);
-        setBattleSprite(side, atk.sprite, atk.name, false);
-        return;
-    }
     const wrap = document.getElementById("wrap-" + side);
     const stage = document.getElementById("battle-stage");
     const scene = document.querySelector(".battle-scene.open");
@@ -4604,7 +4545,6 @@ function endAttackAnim(side, atk) {
 
 // Dash until attacker/defender sprite boxes are edge-to-edge (just touching).
 function getMeleeDashDistance(atkSide, defSide) {
-    if (battleCanvas) return battleCanvas.getMeleeDashGap(atkSide, defSide);
     const atkSprite = document.getElementById("sprite-" + atkSide);
     const defSprite = document.getElementById("sprite-" + defSide);
     if (!atkSprite || !defSprite) return MELEE_DASH_FALLBACK_PX;
@@ -4624,7 +4564,6 @@ async function measureMeleeDashDistance(atkSide, defSide) {
 }
 
 async function dashHorizontal(side, distancePx, durationMs) {
-    if (battleCanvas) return battleCanvas.dashHorizontal(side, distancePx, durationMs);
     const wrap = document.getElementById("wrap-" + side);
     if (!wrap) return;
     const dx = side === "player" ? distancePx : -distancePx;
@@ -4636,7 +4575,6 @@ async function dashHorizontal(side, distancePx, durationMs) {
 }
 
 async function dashHome(side, durationMs) {
-    if (battleCanvas) return battleCanvas.dashHome(side, durationMs);
     const wrap = document.getElementById("wrap-" + side);
     if (!wrap) return;
     wrap.classList.add("dash-sweep");
@@ -4665,12 +4603,6 @@ async function completeGifAttackReturn(atkSide, atk, animStart) {
 }
 
 function setBattleSprite(side, src, name, replayGif) {
-    if (battleCanvas) {
-        if (!src) return;
-        const url = replayGif && src.endsWith(".gif") ? src + "?t=" + Date.now() : src;
-        battleCanvas.setFighterSprite(side, url, name, shouldMirrorBattleSprite(side, name));
-        return;
-    }
     const sprite = document.getElementById("sprite-" + side);
     if (!sprite || !src) return;
     sprite.style.visibility = "visible";
@@ -6936,7 +6868,6 @@ function closeBattleScene() {
     document.getElementById("rail-battle")?.classList.remove("active");
     const content = document.getElementById("battle-content");
     if (content) {
-        disposeBattleCanvas();
         content.innerHTML = "";
         content.className = "battle-scene-ui cover-art-layer";
     }
@@ -7213,20 +7144,12 @@ function renderBattleScene() {
             <div class="screen-flash" id="screen-flash"></div>
         </div>
     `;
-    const stageEl = document.getElementById("battle-stage");
-    initBattleCanvas(stageEl);
     applyBattleStageChapterBackground(currentChapter);
     requestAnimationFrame(() => syncCoverStages());
 }
 
 function setFighter(side, f) {
-    const mirrored = shouldMirrorBattleSprite(side, f.name);
-    if (battleCanvas) {
-        battleCanvas.resetFighterTransform(side);
-        battleCanvas.setFighterSprite(side, f.sprite, f.name, mirrored);
-    } else {
-        setBattleSprite(side, f.sprite, f.name, false);
-    }
+    setBattleSprite(side, f.sprite, f.name, false);
     const portrait = document.getElementById("portrait-" + side);
     if (portrait) {
         bindBattleImgFallback(portrait, f.name);
@@ -7263,10 +7186,6 @@ function renderTeam(side, team, curIdx) {
 }
 
 function playEffect(side, element, isUltimate) {
-    if (battleCanvas) {
-        battleCanvas.spawnEffect(side, ELEMENT_GLYPH[element] || "\uD83D\uDCA5", isUltimate);
-        return;
-    }
     const stage = document.getElementById("battle-stage");
     const sprite = document.getElementById("sprite-" + side);
     const sR = sprite.getBoundingClientRect(), stR = stage.getBoundingClientRect();
@@ -7280,16 +7199,6 @@ function playEffect(side, element, isUltimate) {
 }
 
 function showDamage(side, amount, kind) {
-    if (battleCanvas) {
-        let text;
-        if (kind === "miss") text = "MISS";
-        else if (kind === "heal") text = "+" + amount;
-        else if (kind === "poison") text = amount > 0 ? "-" + amount + " PSN" : "POISON";
-        else if (kind === "burn") text = amount > 0 ? "-" + amount + " BRN" : "BURN";
-        else text = "-" + amount + (kind === "crit" ? " CRIT" : kind === "block" ? " BLOCK" : "");
-        battleCanvas.spawnDamage(side, text, kind);
-        return;
-    }
     const stage = document.getElementById("battle-stage");
     const sprite = document.getElementById("sprite-" + side);
     const sR = sprite.getBoundingClientRect(), stR = stage.getBoundingClientRect();
@@ -7314,10 +7223,6 @@ function showBanner(text, isUlt) {
 }
 
 function screenFlash() {
-    if (battleCanvas) {
-        battleCanvas.triggerScreenFlash();
-        return;
-    }
     const f = document.getElementById("screen-flash");
     f.classList.add("on");
     setTimeout(() => f.classList.remove("on"), 350);
@@ -7333,10 +7238,6 @@ async function recoil(side) {
 }
 
 async function faintAnim(side) {
-    if (battleCanvas) {
-        await battleCanvas.faint(side);
-        return;
-    }
     const wrap = document.getElementById("wrap-" + side);
     wrap.style.transform = "translate(0,0)";
     wrap.classList.add("fainted");
@@ -7344,10 +7245,6 @@ async function faintAnim(side) {
 }
 
 async function slideIn(side) {
-    if (battleCanvas) {
-        await battleCanvas.slideIn(side);
-        return;
-    }
     const wrap = document.getElementById("wrap-" + side);
     wrap.classList.remove("fainted");
     wrap.style.transition = "none";
@@ -7553,13 +7450,9 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         dmg = Math.max(1, dmg);
 
         def.hp = Math.max(0, def.hp - dmg);
-        if (battleCanvas) {
-            battleCanvas.shakeFighter(defSide, blocked ? "block" : "hit");
-        } else {
-            const dw = document.getElementById("wrap-" + defSide);
-            dw.classList.add(blocked ? "block-shake" : "hit-shake");
-            setTimeout(() => dw.classList.remove(blocked ? "block-shake" : "hit-shake"), 300);
-        }
+        const dw = document.getElementById("wrap-" + defSide);
+        dw.classList.add(blocked ? "block-shake" : "hit-shake");
+        setTimeout(() => dw.classList.remove(blocked ? "block-shake" : "hit-shake"), 300);
         showDamage(defSide, dmg, crit ? "crit" : blocked ? "block" : "");
         if (blocked) showBanner("BLOCKED!", false);
         breakFrozenOnHit(def, dmg);
@@ -7689,7 +7582,6 @@ function endBattle(win, player) {
 
 function showBattleResult(win, reward) {
     battleScreen = "result";
-    disposeBattleCanvas();
     refreshAdventureChapterBackground();
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui cover-art-layer";
