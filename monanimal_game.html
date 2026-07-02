@@ -8270,7 +8270,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     if (Math.random() * 100 < effDodge) {
         await playDodgeEvade(defSide);
         showDamage(defSide, 0, "miss");
-        showSkillCallout(defSide, "EVADED!", { status: true });
+        showSkillCallout(defSide, "DODGE!", { status: true });
         finishTurn();
         if (attackPath) await completeGifAttackReturn(atkSide, atk, animStart);
         else { await delay(250); await recoil(atkSide); await delay(120); }
