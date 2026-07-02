@@ -2078,15 +2078,12 @@ body.afk-layout .currency-pill .currency-tip {
     position: relative;
     z-index: 1;
     filter: drop-shadow(0 3px 8px rgba(15, 6, 30, 0.22));
-    transition: filter 0.2s ease;
 }
 .battle-hub-statue-figure {
     display: block;
     position: relative;
     width: 100%;
-    transition: transform 0.22s ease;
     transform-origin: center bottom;
-    will-change: transform;
 }
 .battle-hub-statue-shadow {
     position: absolute;
@@ -2104,7 +2101,7 @@ body.afk-layout .currency-pill .currency-tip {
     );
     pointer-events: none;
     z-index: 0;
-    transition: transform 0.22s ease, opacity 0.22s ease;
+    transition: opacity 0.2s ease;
     opacity: 0.88;
 }
 .battle-hub-btn--left-rail {
@@ -2124,7 +2121,7 @@ body.afk-layout .currency-pill .currency-tip {
     z-index: 12;
     pointer-events: auto;
     touch-action: manipulation;
-    transition: transform 0.2s ease;
+    cursor: pointer;
 }
 /* Statue placement — left/top anchor + translate offset (see BATTLE_HUB_STATUE_ANCHORS) */
 .battle-hub-btn--scene-adventure {
@@ -2170,31 +2167,6 @@ body.afk-layout .currency-pill .currency-tip {
     min-width: 128px;
     min-height: 128px;
     transform: translate(var(--hub-pvp-wager-tx, -50%), var(--hub-pvp-wager-ty, -100%));
-}
-.battle-hub-btn--statue:hover .battle-hub-statue-figure,
-.battle-hub-btn--statue:focus-visible .battle-hub-statue-figure {
-    transform: translateY(-10px) scale(1.07);
-}
-.battle-hub-btn--statue:hover .battle-hub-statue-shadow,
-.battle-hub-btn--statue:focus-visible .battle-hub-statue-shadow {
-    transform: translateX(-50%) scale(1.28);
-    opacity: 1;
-    background: radial-gradient(
-        ellipse at center,
-        rgba(12, 32, 10, 0.48) 0%,
-        rgba(0, 0, 0, 0.3) 50%,
-        transparent 76%
-    );
-}
-.battle-hub-btn--statue:hover img,
-.battle-hub-btn--statue:focus-visible img {
-    filter:
-        drop-shadow(0 10px 20px rgba(15, 6, 30, 0.45))
-        brightness(1.07);
-}
-.battle-hub-btn--statue:active .battle-hub-statue-figure {
-    transform: translateY(-4px) scale(1.03);
-    transition-duration: 0.08s;
 }
 .battle-hub-btn:not(.battle-hub-btn--statue):focus-visible img {
     filter: drop-shadow(0 8px 18px rgba(15, 6, 30, 0.45));
