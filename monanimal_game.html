@@ -1133,23 +1133,25 @@ button,
 /* ===== Pockie-style battle meter (side panels) ===== */
 .battle-meter-panel {
     position: absolute;
-    top: 19%;
-    bottom: 6%;
-    width: 172px;
-    z-index: 5;
+    top: 17%;
+    bottom: 5%;
+    width: 15%;
+    min-width: 148px;
+    max-width: 188px;
+    z-index: 8;
     display: flex;
     flex-direction: column;
     gap: 6px;
     padding: 8px 9px 10px;
     box-sizing: border-box;
-    background: rgba(24, 16, 16, 0.72);
-    border: 2px solid rgba(255, 255, 255, 0.22);
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35), 0 4px 14px rgba(0, 0, 0, 0.35);
+    background: linear-gradient(180deg, rgba(18, 10, 32, 0.92), rgba(12, 8, 20, 0.88));
+    border: 2px solid rgba(250, 204, 21, 0.45);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 6px 18px rgba(0, 0, 0, 0.45);
     pointer-events: auto;
     overflow: visible;
 }
-.battle-meter-panel--player { left: 6px; }
-.battle-meter-panel--enemy { right: 6px; }
+.battle-meter-panel--player { left: 0.6%; }
+.battle-meter-panel--enemy { right: 0.6%; }
 .bm-head {
     border-bottom: 1px solid rgba(255, 255, 255, 0.14);
     padding-bottom: 5px;
@@ -3276,13 +3278,15 @@ body.afk-layout .currency-pill .currency-tip {
     }
     .battle-scene { bottom: 0; }
     .battle-meter-panel {
-        width: 128px;
-        top: 21%;
-        bottom: 5%;
+        width: 30%;
+        min-width: 118px;
+        max-width: 140px;
+        top: 19%;
+        bottom: 4%;
         padding: 6px 6px 8px;
     }
-    .battle-meter-panel--player { left: 2px; }
-    .battle-meter-panel--enemy { right: 2px; }
+    .battle-meter-panel--player { left: 0.4%; }
+    .battle-meter-panel--enemy { right: 0.4%; }
     .bm-trainer { font-size: 6px; }
     .bm-mon { font-size: 10px; }
     .bm-bar-row { grid-template-columns: 28px 1fr; }
@@ -7330,7 +7334,7 @@ function makeFighter(mon, isPlayer, options = {}) {
     const trainerName = options.trainerName != null
         ? options.trainerName
         : (isPlayer
-            ? (currentUser ? String(currentUser).replace(/^@/, "") : "Trainer")
+            ? (currentUser ? "@" + String(currentUser).replace(/^@/, "") : "Trainer")
             : "Enemy");
     return {
         ref: isPlayer ? mon : null,
