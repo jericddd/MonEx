@@ -723,6 +723,185 @@ button.green:hover {
     font-size: 12px;
 }
 .equip-option:hover { border-color: #6B21A8; background: #faf5ff; }
+
+/* ===== Pockie-style gear synthesis ===== */
+.gear-synth-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+}
+.gear-synth-open-btn {
+    padding: 8px 12px;
+    border: 2px solid #f59e0b;
+    background: linear-gradient(180deg, #fde68a 0%, #f59e0b 100%);
+    color: #451a03;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 #92400e;
+}
+.gear-synth-open-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+.gear-synth-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.gear-synth-recipe-bar {
+    background: linear-gradient(180deg, #faf5ff 0%, #ede9fe 100%);
+    border: 3px solid #6B21A8;
+    box-shadow: 3px 3px 0 #4c1d95;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: #4c1d95;
+    line-height: 1.5;
+}
+.gear-synth-recipe-bar b { color: #6B21A8; }
+.gear-synth-recipe-bar.invalid { border-color: #cbd5e1; background: #f8fafc; color: #64748b; box-shadow: none; }
+.gear-synth-workbench {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.gear-synth-slot-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 88px;
+}
+.gear-synth-slot-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: #6B21A8;
+    text-align: center;
+    line-height: 1.4;
+}
+.gear-synth-slot {
+    width: 78px;
+    height: 78px;
+    border: 3px solid #6B21A8;
+    background: #fff;
+    box-shadow: inset 0 0 0 2px #ede9fe, 3px 3px 0 #4c1d95;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    padding: 4px;
+    box-sizing: border-box;
+}
+.gear-synth-slot.main-slot { border-color: #f59e0b; box-shadow: inset 0 0 0 2px #fef3c7, 3px 3px 0 #b45309; }
+.gear-synth-slot.filled { background: #faf5ff; }
+.gear-synth-slot:hover { transform: scale(1.03); }
+.gear-synth-slot .gear-slot-emoji { font-size: 26px; line-height: 1; }
+.gear-synth-slot .gear-slot-tier {
+    font-size: 8px;
+    font-weight: 700;
+    margin-top: 4px;
+    text-align: center;
+    line-height: 1.2;
+}
+.gear-synth-slot .gear-slot-clear {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 10px;
+    color: #94a3b8;
+    line-height: 1;
+}
+.gear-synth-op {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    color: #a855f7;
+    padding: 0 2px;
+}
+.gear-synth-result {
+    width: 78px;
+    height: 78px;
+    border: 3px dashed #a855f7;
+    background: rgba(250, 245, 255, 0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    color: #7c3aed;
+    text-align: center;
+    line-height: 1.35;
+    padding: 6px;
+    box-sizing: border-box;
+}
+.gear-synth-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.gear-synth-cost {
+    font-size: 12px;
+    color: #444;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.gear-synth-btn {
+    padding: 12px 22px;
+    border: 3px solid #6B21A8;
+    background: linear-gradient(180deg, #c084fc 0%, #7c3aed 100%);
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 #4c1d95;
+}
+.gear-synth-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+.gear-synth-pick-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 10px;
+    border: 2px solid #ddd;
+    background: #fff;
+}
+.gear-synth-pick-item {
+    width: 72px;
+    height: 72px;
+    border: 2px solid #6B21A8;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    box-shadow: 2px 2px 0 #6B21A8;
+}
+.gear-synth-pick-item.used { opacity: 0.35; pointer-events: none; }
+.gear-synth-pick-item:hover:not(.used) { transform: scale(1.04); background: #faf5ff; }
+.gear-synth-pick-item .gear-slot-emoji { font-size: 22px; }
+.gear-synth-pick-item .gear-slot-tier { font-size: 7px; font-weight: 700; margin-top: 2px; }
+.gear-synth-note {
+    font-size: 11px;
+    color: #666;
+    margin: 0;
+    line-height: 1.45;
+}
+
 .ascend-btn {
     width: 100%;
     margin-top: 6px;
@@ -4011,11 +4190,25 @@ body.afk-layout .currency-pill .currency-tip {
     <div class="game-modal-panel game-modal-wide">
         <div class="game-modal-header">
             <h2>INVENTORY</h2>
+            <div class="gear-synth-header-actions">
+                <button type="button" class="gear-synth-open-btn" id="inventory-synth-btn" onclick="openGearSynthModal()">SYNTHESIZE</button>
+            </div>
             <button type="button" class="game-modal-close" onclick="closeGameModal('inventory')">×</button>
         </div>
         <div class="game-modal-body">
             <div id="inventory-grid" class="inventory-grid"></div>
         </div>
+    </div>
+</div>
+
+<!-- Gear synthesis modal -->
+<div id="modal-gear-synth" class="game-modal" onclick="if(event.target===this)closeGameModal('gear-synth')">
+    <div class="game-modal-panel game-modal-wide" onclick="event.stopPropagation()">
+        <div class="game-modal-header">
+            <h2>GEAR SYNTHESIS</h2>
+            <button type="button" class="game-modal-close" onclick="closeGameModal('gear-synth')">×</button>
+        </div>
+        <div class="game-modal-body" id="gear-synth-body"></div>
     </div>
 </div>
 
@@ -4963,10 +5156,17 @@ const GEAR_TIERS = [
     { name: "Epic",      color: "#a855f7" },
     { name: "Legendary", color: "#ca8a04" },
 ];
+const GEAR_SYNTH_UPGRADE_RATE = 0.40;
+const GEAR_SYNTH_REROLL_RATE = 0.99;
+const GEAR_SYNTH_REROLL_LOW_RATE = 0.75;
+const GEAR_SYNTH_UPGRADE_GOLD = [0, 1000, 2500, 6000, 15000];
+const GEAR_SYNTH_REROLL_GOLD = [0, 500, 1200, 3000, 8000, 20000];
+const GEAR_SYNTH_SLOT_LABELS = ["Main Item", "Catalyst", "Catalyst"];
 const RARITY_ORDER = ["Common", "Uncommon", "Rare", "Legendary", "Mythic"];
 const ASCEND_SHARD_COST = { Common: 5, Uncommon: 10, Rare: 20, Legendary: 40 };
 let gearInventory = [];
 let _gearIdSeq = 0;
+let gearSynthSlots = [null, null, null];
 
 // ==================== HELPER FUNCTIONS ====================
 function getMonPngPath(name) {
@@ -6515,6 +6715,232 @@ function openEquipModal(location, monIndex, slot) {
     });
     bg.onclick = (e) => { if (e.target === bg) bg.remove(); };
 }
+
+function getGearSynthCatalystTier(mainTier) {
+    return mainTier >= 4 ? 2 : 1;
+}
+
+function getGearSynthUsedIds() {
+    return gearSynthSlots.filter(Boolean).map(g => g.id);
+}
+
+function isGearSelectedForSynth(gearId) {
+    return getGearSynthUsedIds().includes(gearId);
+}
+
+function analyzeGearSynthRecipe(slots) {
+    const main = slots[0];
+    const cat1 = slots[1];
+    const cat2 = slots[2];
+    if (!main || !cat1 || !cat2) return null;
+
+    const allSameTier = main.tier === cat1.tier && main.tier === cat2.tier;
+    if (allSameTier && main.tier < 5) {
+        return {
+            type: "upgrade",
+            mainTier: main.tier,
+            resultTier: main.tier + 1,
+            rate: GEAR_SYNTH_UPGRADE_RATE,
+            gold: GEAR_SYNTH_UPGRADE_GOLD[main.tier] || 0,
+        };
+    }
+
+    if (main.tier >= 2) {
+        const catalystTier = getGearSynthCatalystTier(main.tier);
+        if (cat1.tier === catalystTier && cat2.tier === catalystTier) {
+            return {
+                type: "reroll",
+                mainTier: main.tier,
+                resultTier: main.tier,
+                slot: main.slot,
+                rate: GEAR_SYNTH_REROLL_RATE,
+                gold: GEAR_SYNTH_REROLL_GOLD[main.tier] || 0,
+            };
+        }
+        if (main.tier === 4 && cat1.tier === 1 && cat2.tier === 1) {
+            return {
+                type: "reroll",
+                mainTier: 4,
+                resultTier: 4,
+                slot: main.slot,
+                rate: GEAR_SYNTH_REROLL_LOW_RATE,
+                gold: GEAR_SYNTH_REROLL_GOLD[4] || 0,
+            };
+        }
+    }
+
+    return { type: "invalid" };
+}
+
+function describeGearSynthRecipe(recipe) {
+    if (!recipe) return "Place gear in all three slots: <b>Main Item</b> + <b>Catalyst</b> + <b>Catalyst</b>.";
+    if (recipe.type === "invalid") {
+        return "Invalid recipe. Try <b>3× same tier</b> to upgrade, or <b>Main + 2 catalysts</b> to reroll (Pockie rules).";
+    }
+    const resultName = GEAR_TIERS[recipe.resultTier].name;
+    const pct = Math.round(recipe.rate * 100);
+    if (recipe.type === "upgrade") {
+        const fromName = GEAR_TIERS[recipe.mainTier].name;
+        return `<b>${fromName} Upgrade</b> — 3× ${fromName} → <b>${resultName}</b> (random slot) · <b>${pct}%</b> success · fail consumes all 3`;
+    }
+    const slotLabel = GEAR_SLOT_LABELS[recipe.slot];
+    const mainName = GEAR_TIERS[recipe.mainTier].name;
+    const catName = GEAR_TIERS[getGearSynthCatalystTier(recipe.mainTier)].name;
+    const catNote = (recipe.mainTier === 4 && recipe.rate < 0.9) ? "Worn" : catName;
+    return `<b>${mainName} Reroll</b> — ${mainName} ${slotLabel} + 2× ${catNote} → new <b>${resultName} ${slotLabel}</b> · <b>${pct}%</b> success · fail consumes all 3`;
+}
+
+function describeGearSynthResult(recipe) {
+    if (!recipe || recipe.type === "invalid") return "?";
+    if (recipe.type === "upgrade") {
+        return `${GEAR_TIERS[recipe.resultTier].name}\n(random)`;
+    }
+    return `${GEAR_TIERS[recipe.resultTier].name}\n${GEAR_SLOT_LABELS[recipe.slot]}`;
+}
+
+function clearGearSynthSlots() {
+    gearSynthSlots = [null, null, null];
+}
+
+function gearSynthAssignNext(gearId) {
+    const gear = gearInventory.find(g => g.id === gearId);
+    if (!gear || isGearSelectedForSynth(gearId)) return;
+    const idx = gearSynthSlots.findIndex(s => !s);
+    if (idx < 0) return;
+    gearSynthSlots[idx] = gear;
+    renderGearSynthModal();
+}
+
+function gearSynthClearSlot(index) {
+    if (index < 0 || index > 2) return;
+    gearSynthSlots[index] = null;
+    renderGearSynthModal();
+}
+
+function executeGearSynth() {
+    if (!isEquipmentUnlocked()) {
+        alert("Gear synthesis unlocks at Chapter 2 (Stage 9+).");
+        return;
+    }
+    const recipe = analyzeGearSynthRecipe(gearSynthSlots);
+    if (!recipe || recipe.type === "invalid") {
+        alert("Invalid synthesis recipe. Check the recipe hint above your slots.");
+        return;
+    }
+    const ids = getGearSynthUsedIds();
+    if (ids.length !== 3 || ids.some(id => gearInventory.findIndex(g => g.id === id) < 0)) {
+        alert("Selected gear is no longer in your inventory.");
+        renderGearSynthModal();
+        return;
+    }
+    if (money < recipe.gold) {
+        alert("Need " + recipe.gold + " Gold to synthesize.\nYou have: " + money);
+        return;
+    }
+    const preview = describeGearSynthRecipe(recipe).replace(/<[^>]+>/g, "");
+    if (!confirm("Synthesize now?\n\n" + preview + "\n\nCost: " + recipe.gold + " Gold\nOn failure, all 3 items are lost.")) return;
+
+    money -= recipe.gold;
+    gearInventory = gearInventory.filter(g => !ids.includes(g.id));
+    clearGearSynthSlots();
+
+    const success = Math.random() < recipe.rate;
+    let result = null;
+    if (success) {
+        if (recipe.type === "upgrade") {
+            const slot = GEAR_SLOTS[randInt(0, GEAR_SLOTS.length - 1)];
+            result = generateGear(recipe.resultTier, slot);
+        } else {
+            result = generateGear(recipe.resultTier, recipe.slot);
+        }
+        gearInventory.push(result);
+    }
+
+    saveData();
+    updateUI();
+    renderGearSynthModal();
+    renderInventory();
+
+    if (success) {
+        alert("Synthesis success!\nObtained: " + result.name + "\n" + formatGearBonuses(result.bonuses));
+    } else {
+        alert("Synthesis failed.\nAll materials were consumed.");
+    }
+}
+
+function renderGearSynthSlotHtml(gear, index) {
+    const label = GEAR_SYNTH_SLOT_LABELS[index];
+    const slotCls = "gear-synth-slot" + (index === 0 ? " main-slot" : "") + (gear ? " filled" : "");
+    if (!gear) {
+        return `<div class="gear-synth-slot-wrap">
+            <div class="gear-synth-slot-label">${label}</div>
+            <div class="${slotCls}" onclick="gearSynthClearSlot(${index})"><span style="font-size:20px;opacity:0.35;">+</span></div>
+        </div>`;
+    }
+    const tier = GEAR_TIERS[gear.tier];
+    return `<div class="gear-synth-slot-wrap">
+        <div class="gear-synth-slot-label">${label}</div>
+        <div class="${slotCls}" onclick="gearSynthClearSlot(${index})" title="${gear.name}">
+            <span class="gear-slot-clear">×</span>
+            <span class="gear-slot-emoji">${GEAR_SLOT_ICONS[gear.slot]}</span>
+            <span class="gear-slot-tier" style="color:${tier.color}">${tier.name}</span>
+        </div>
+    </div>`;
+}
+
+function renderGearSynthModal() {
+    const el = document.getElementById("gear-synth-body");
+    if (!el) return;
+    const recipe = analyzeGearSynthRecipe(gearSynthSlots);
+    const recipeCls = recipe && recipe.type !== "invalid" ? "" : " invalid";
+    const canSynth = recipe && recipe.type !== "invalid" && money >= (recipe.gold || 0);
+    const usedIds = getGearSynthUsedIds();
+
+    const pickItems = gearInventory.length
+        ? gearInventory.map(g => {
+            const tier = GEAR_TIERS[g.tier];
+            const used = usedIds.includes(g.id);
+            return `<button type="button" class="gear-synth-pick-item${used ? " used" : ""}" onclick="gearSynthAssignNext('${g.id}')" title="${g.name}\n${formatGearBonuses(g.bonuses)}">
+                <span class="gear-slot-emoji">${GEAR_SLOT_ICONS[g.slot]}</span>
+                <span class="gear-slot-tier" style="color:${tier.color}">${tier.name}</span>
+            </button>`;
+        }).join("")
+        : `<p style="grid-column:1/-1;text-align:center;color:#888;font-size:12px;margin:0;">No gear in inventory. Win adventure battles to find materials.</p>`;
+
+    el.innerHTML = `
+        <div class="gear-synth-panel">
+            <p class="gear-synth-note">Pockie-style synthesis: <b>Main Item + Catalyst + Catalyst</b>. Upgrade with 3× same tier, or reroll stats with main + lower-tier catalysts.</p>
+            <div class="gear-synth-recipe-bar${recipeCls}">${describeGearSynthRecipe(recipe)}</div>
+            <div class="gear-synth-workbench">
+                ${renderGearSynthSlotHtml(gearSynthSlots[0], 0)}
+                <span class="gear-synth-op">+</span>
+                ${renderGearSynthSlotHtml(gearSynthSlots[1], 1)}
+                <span class="gear-synth-op">+</span>
+                ${renderGearSynthSlotHtml(gearSynthSlots[2], 2)}
+                <span class="gear-synth-op">=</span>
+                <div class="gear-synth-result">${describeGearSynthResult(recipe)}</div>
+            </div>
+            <div class="gear-synth-actions">
+                <div class="gear-synth-cost">${currencyIcon("gold", 18)} <span>${recipe?.gold || 0} Gold</span></div>
+                <button type="button" class="gear-synth-btn" onclick="executeGearSynth()" ${canSynth ? "" : "disabled"}>SYNTHESIZE</button>
+                <button type="button" class="gear-synth-open-btn" onclick="clearGearSynthSlots(); renderGearSynthModal();">CLEAR</button>
+            </div>
+            <div>
+                <p class="gear-synth-note" style="margin-bottom:8px;"><b>Inventory gear</b> — click to fill the next empty slot (Main → Catalyst → Catalyst).</p>
+                <div class="gear-synth-pick-grid">${pickItems}</div>
+            </div>
+        </div>
+    `;
+}
+
+function openGearSynthModal() {
+    if (!isEquipmentUnlocked()) {
+        alert("Gear synthesis unlocks at Chapter 2 (Stage 9+). Keep progressing!");
+        return;
+    }
+    openGameModal("gear-synth");
+}
+
 function getNextRarity(rarity) {
     const i = RARITY_ORDER.indexOf(rarity);
     return i >= 0 && i < RARITY_ORDER.length - 1 ? RARITY_ORDER[i + 1] : null;
@@ -7777,6 +8203,7 @@ function openGameModal(name) {
     if (name === "party") { syncXWildMons(true); renderPartyGrid(); }
     if (name === "box") { syncXWildMons(true); renderBox(); }
     if (name === "inventory") renderInventory();
+    if (name === "gear-synth") renderGearSynthModal();
     if (name === "shop") renderShop();
     if (name === "profile") renderProfile();
     if (name === "daily-quest") renderDailyQuest();
@@ -9169,6 +9596,8 @@ function showBattleResult(win, reward) {
 }
 function renderInventory() {
     const grid = document.getElementById("inventory-grid");
+    const synthBtn = document.getElementById("inventory-synth-btn");
+    if (synthBtn) synthBtn.disabled = !isEquipmentUnlocked();
     grid.innerHTML = "";
 
     const materials = [
