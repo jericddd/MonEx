@@ -1111,9 +1111,9 @@ button,
 .fighter-block-shield {
     position: absolute;
     left: 50%;
-    top: 42%;
-    width: 78px;
-    height: 78px;
+    top: 40%;
+    width: 88px;
+    height: 108px;
     transform: translate(-50%, -50%) scale(0.4);
     opacity: 0;
     z-index: 14;
@@ -1121,27 +1121,16 @@ button,
     display: flex;
     align-items: center;
     justify-content: center;
-    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.35), rgba(147,197,253,0.15) 45%, rgba(59,130,246,0.5) 100%);
-    border: 3px solid #fbbf24;
-    border-radius: 50% 50% 45% 45%;
-    box-shadow: 0 0 16px rgba(251, 191, 36, 0.65), inset 0 0 12px rgba(255,255,255,0.25);
 }
-.fighter-block-shield::before {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: 18%;
-    width: 3px;
-    height: 42%;
-    transform: translateX(-50%);
-    background: rgba(255, 255, 255, 0.55);
-    border-radius: 2px;
+.fighter-block-shield .block-shield-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.75)) drop-shadow(0 3px 4px rgba(0, 0, 0, 0.45));
 }
-.fighter-block-shield::after {
-    content: "🛡";
-    font-size: 28px;
-    line-height: 1;
-    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.35));
+.fighter-wrap.enemy .fighter-block-shield .block-shield-img {
+    transform: scaleX(-1);
 }
 .fighter-block-shield.show {
     animation: block-shield-pop 0.55s ease-out forwards;
@@ -3947,6 +3936,7 @@ const ELEMENT_GLYPH = {
 };
 
 const SKILL_ICON_DIR = "game_icons/skill/";
+const BLOCK_FX_ICON = SKILL_ICON_DIR + "block.png";
 
 const SKILL_ICON_MAP = {
     "Slash": "slash.png",
@@ -7645,12 +7635,12 @@ function renderBattleScene() {
             <img class="battle-stage-path" src="${BATTLE_STAGE_PATH}" alt="" aria-hidden="true">
             <div class="fighter-wrap enemy" id="wrap-enemy">
                 <div class="fighter-skill-callout" id="skill-callout-enemy" aria-hidden="true"></div>
-                <div class="fighter-block-shield" id="block-shield-enemy" aria-hidden="true"></div>
+                <div class="fighter-block-shield" id="block-shield-enemy" aria-hidden="true"><img class="block-shield-img" src="${BLOCK_FX_ICON}" alt=""></div>
                 <img class="bsprite" id="sprite-enemy" alt="">
             </div>
             <div class="fighter-wrap player" id="wrap-player">
                 <div class="fighter-skill-callout" id="skill-callout-player" aria-hidden="true"></div>
-                <div class="fighter-block-shield" id="block-shield-player" aria-hidden="true"></div>
+                <div class="fighter-block-shield" id="block-shield-player" aria-hidden="true"><img class="block-shield-img" src="${BLOCK_FX_ICON}" alt=""></div>
                 <img class="bsprite" id="sprite-player" alt="">
             </div>
             <div class="fx-layer" id="fx-layer"></div>
