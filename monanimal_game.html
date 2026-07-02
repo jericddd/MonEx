@@ -15,19 +15,18 @@
     --monad-purple: #200052;
     --scene-fighter-size: 141px;
     --modal-drop: 10vh;
-    --rail-icon-max: 60px;
-    --rail-btn-size: 72px;
-    --rail-column-width: 92px;
+    --rail-icon-max: 74px;
+    --rail-btn-size: 88px;
+    --rail-column-width: 104px;
     --rail-pad-y: 7px;
     --rail-pad-x: 10px;
-    --rail-gap: 0px;
+    --rail-gap: 6px;
     --rail-offset-top: 54px;
-    --rail-tab-chip-bg: rgba(31, 18, 53, 0.45);
-    --rail-tab-chip-radius: 12px;
-    --rail-tab-chip-blur: 4px;
-    --rail-tab-shadow: drop-shadow(0 3px 8px rgba(32, 0, 82, 0.35));
-    --rail-tab-shadow-hover: drop-shadow(0 4px 12px rgba(32, 0, 82, 0.48));
-    --rail-tab-shadow-active: drop-shadow(0 4px 14px rgba(107, 33, 168, 0.55));
+    --rail-tab-border: #92400e;
+    --rail-tab-bg: linear-gradient(180deg, #fde68a 0%, #f59e0b 55%, #d97706 100%);
+    --rail-tab-shadow: 4px 4px 0 #78350f;
+    --rail-tab-shadow-hover: 5px 5px 0 #78350f;
+    --rail-tab-shadow-active: 3px 3px 0 #78350f;
 }
 
 body {
@@ -2616,40 +2615,35 @@ body.afk-layout .currency-pill .currency-tip {
 .side-icon-btn {
     width: var(--rail-btn-size);
     height: var(--rail-btn-size);
-    border: none;
-    border-radius: var(--rail-tab-chip-radius);
-    background: var(--rail-tab-chip-bg);
-    backdrop-filter: blur(var(--rail-tab-chip-blur));
-    -webkit-backdrop-filter: blur(var(--rail-tab-chip-blur));
-    box-shadow: none;
+    border: 3px solid var(--rail-tab-border);
+    border-radius: 0;
+    background: var(--rail-tab-bg);
+    box-shadow: var(--rail-tab-shadow);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
+    padding: 4px;
     position: relative;
-    transition: transform 0.15s ease, filter 0.15s ease, background 0.15s ease;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
     flex-shrink: 0;
+    box-sizing: border-box;
 }
 .side-icon-btn:hover {
-    transform: scale(1.06) translateY(-2px);
-    background: rgba(31, 18, 53, 0.58);
-    box-shadow: none;
-}
-.side-icon-btn:hover img {
-    filter: var(--rail-tab-shadow-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--rail-tab-shadow-hover);
 }
 .side-icon-btn:hover::before { display: none !important; }
 .side-icon-btn img {
     display: block;
+    width: 100%;
+    height: 100%;
     max-width: var(--rail-icon-max);
     max-height: var(--rail-icon-max);
-    width: auto;
-    height: auto;
     object-fit: contain;
     image-rendering: pixelated;
-    filter: var(--rail-tab-shadow);
-    transition: filter 0.15s ease;
+    filter: none;
+    transition: none;
     position: relative;
     z-index: 1;
 }
@@ -2688,12 +2682,11 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .side-icon-btn:hover .rail-tip { display: block; }
 .side-icon-btn.active {
-    transform: scale(1.04);
-    background: rgba(31, 18, 53, 0.62);
-    box-shadow: none;
+    transform: translateY(1px);
+    box-shadow: var(--rail-tab-shadow-active);
 }
 .side-icon-btn.active img {
-    filter: var(--rail-tab-shadow-active);
+    filter: none;
 }
 
 .battle-scene {
@@ -3948,7 +3941,7 @@ body.afk-layout .currency-pill .currency-tip {
     .resource-chest-timer-mini {
         font-size: 6px;
     }
-    :root { --scene-fighter-size: 122px; --rail-icon-max: 30px; --rail-btn-size: 36px; --rail-pad-y: 3px; --rail-pad-x: 3px; --rail-gap: 0px; --rail-tab-chip-radius: 8px; }
+    :root { --scene-fighter-size: 122px; --rail-icon-max: 40px; --rail-btn-size: 48px; --rail-pad-y: 4px; --rail-pad-x: 4px; --rail-gap: 4px; }
     .side-rail,
     .left-rail {
         position: absolute;
@@ -4085,42 +4078,42 @@ body.afk-layout .currency-pill .currency-tip {
 
     <nav class="left-rail" aria-label="Quick actions">
         <button type="button" class="side-icon-btn" id="rail-daily-quest" onclick="openGameModal('daily-quest')">
-            <img src="game_icons/button%20tabs/dailyquest.png?v=3" alt="">
+            <img src="game_icons/button%20tabs/dailyquest.png?v=4" alt="">
             <span class="rail-tip">DAILY QUEST</span>
         </button>
         <button type="button" class="side-icon-btn" onclick="buyMonball()">
-            <img src="game_icons/monball.png" alt="">
+            <img src="game_icons/button%20tabs/monball.png?v=4" alt="">
             <span class="rail-tip">BUY BALL (500G)</span>
         </button>
         <button type="button" class="side-icon-btn" id="rail-shop" onclick="openGameModal('shop')">
-            <img src="game_icons/button%20tabs/shop.png?v=3" alt="">
+            <img src="game_icons/button%20tabs/shop.png?v=4" alt="">
             <span class="rail-tip">SHOP</span>
         </button>
         <button type="button" class="side-icon-btn" id="rail-profile" onclick="goToProfile()">
-            <img src="game_icons/button%20tabs/profile.png?v=3" alt="">
+            <img src="game_icons/button%20tabs/profile.png?v=4" alt="">
             <span class="rail-tip">PROFILE</span>
         </button>
     </nav>
 
     <nav class="side-rail" aria-label="Game menu">
         <button type="button" class="side-icon-btn" id="rail-party" onclick="openGameModal('party')">
-            <img src="game_icons/button%20tabs/party.png?v=3" alt="">
+            <img src="game_icons/button%20tabs/party.png?v=4" alt="">
             <span class="rail-tip">PARTY</span>
         </button>
         <button type="button" class="side-icon-btn" id="rail-box" onclick="openGameModal('box')">
-            <img src="game_icons/button%20tabs/box.png?v=3" alt="">
+            <img src="game_icons/button%20tabs/box.png?v=4" alt="">
             <span class="rail-tip">BOX</span>
         </button>
         <button type="button" class="side-icon-btn" id="rail-inventory" onclick="openGameModal('inventory')">
-            <img src="game_icons/button%20tabs/inventory.png?v=3" alt="">
+            <img src="game_icons/button%20tabs/inventory.png?v=4" alt="">
             <span class="rail-tip">INVENTORY</span>
         </button>
         <button type="button" class="side-icon-btn" id="rail-battle" onclick="openBattleHub()">
-            <img src="game_icons/button%20tabs/battle.png?v=3" alt="">
+            <img src="game_icons/button%20tabs/battle.png?v=4" alt="">
             <span class="rail-tip">BATTLE</span>
         </button>
         <button type="button" class="side-icon-btn" id="rail-catch" onclick="openCatch()">
-            <img src="game_icons/button%20tabs/catch.png?v=3" alt="">
+            <img src="game_icons/button%20tabs/catch.png?v=4" alt="">
             <span class="rail-tip">CATCH ON X</span>
         </button>
     </nav>
@@ -4293,7 +4286,11 @@ body.afk-layout .currency-pill .currency-tip {
 const KBS_ONION_NAME = "KB's Onion";
 
 const BUTTON_TAB_ICON_DIR = "game_icons/button%20tabs";
-const BUTTON_TAB_ICON_VER = 3;
+const BUTTON_TAB_ICON_VER = 4;
+
+function buttonTabIconSrc(file) {
+    return `${BUTTON_TAB_ICON_DIR}/${file}?v=${BUTTON_TAB_ICON_VER}`;
+}
 
 const GAME_ICONS = {
     monball: { src: "game_icons/monball.png", name: "Monball" },
