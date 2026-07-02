@@ -1902,9 +1902,10 @@ body.afk-layout .currency-pill .currency-tip {
 .resource-chest-wrap {
     position: absolute;
     right: 108px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 5;
+    bottom: calc(var(--scene-battle-path-height, 240px) + 28px);
+    top: auto;
+    transform: none;
+    z-index: 6;
     overflow: visible;
 }
 .resource-chest-fx-layer {
@@ -3661,8 +3662,8 @@ body.afk-layout .currency-pill .currency-tip {
         margin-left: -20px;
     }
     .resource-chest-wrap {
-        right: 52px;
-        top: 28%;
+        right: 14px;
+        bottom: calc(var(--scene-battle-path-height, 200px) + 96px);
     }
     .resource-chest-btn {
         padding: 6px 8px 5px;
@@ -3771,16 +3772,15 @@ body.afk-layout .currency-pill .currency-tip {
     <div id="main-scene-viewport" class="cover-viewport">
         <div id="main-scene-cover-stage" class="cover-art-stage">
             <div id="main-scene" class="main-scene cover-art-layer">
-                <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions">
-                    <div class="resource-chest-wrap" id="resource-chest-wrap">
-                        <div class="resource-chest-fx-layer" id="resource-chest-fx-layer" aria-hidden="true"></div>
-                        <button type="button" class="resource-chest-btn" id="resource-chest-btn" onclick="openResourceChestModal()" aria-label="Collect resources">
-                            <span class="resource-chest-full-badge">FULL</span>
-                            <span class="resource-chest-icon" aria-hidden="true"></span>
-                            <span class="resource-chest-label">Collect</span>
-                            <span class="resource-chest-timer-mini" id="resource-chest-timer-mini">00:00:00</span>
-                        </button>
-                    </div>
+                <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions"></div>
+                <div class="resource-chest-wrap" id="resource-chest-wrap">
+                    <div class="resource-chest-fx-layer" id="resource-chest-fx-layer" aria-hidden="true"></div>
+                    <button type="button" class="resource-chest-btn" id="resource-chest-btn" onclick="openResourceChestModal()" aria-label="Collect resources">
+                        <span class="resource-chest-full-badge">FULL</span>
+                        <span class="resource-chest-icon" aria-hidden="true"></span>
+                        <span class="resource-chest-label">Collect</span>
+                        <span class="resource-chest-timer-mini" id="resource-chest-timer-mini">00:00:00</span>
+                    </button>
                 </div>
                 <img class="scene-battle-path" src="for%20result%20banner/mainscene_battlepath.jpg" alt="" aria-hidden="true">
                 <div class="scene-battle-dock">
