@@ -1957,6 +1957,9 @@ body.afk-layout .currency-pill .currency-tip {
     opacity: 1;
     animation: resource-chest-burst 0.82s cubic-bezier(0.2, 0.75, 0.3, 1) forwards;
 }
+.resource-chest-particle.xp-particle {
+    filter: drop-shadow(0 0 5px rgba(250, 204, 21, 0.85));
+}
 @keyframes resource-chest-burst {
     0% {
         transform: translate(-50%, -50%) scale(0.35) rotate(0deg);
@@ -4045,6 +4048,7 @@ const GAME_ICONS = {
     gold:    { src: "game_icons/gold.png", name: "Gold" },
     essence: { src: "game_icons/onion.png", name: KBS_ONION_NAME },
     shards:  { src: "game_icons/shard.png", name: "Mon Shards" },
+    trainerXp: { src: "game_icons/xp_essence.png", name: "Trainer XP" },
 };
 
 function currencyIcon(key, size = 16) {
@@ -4633,19 +4637,20 @@ function playResourceChestCollectFx(preview) {
 
     layer.innerHTML = "";
     const rewardScale = Math.min(1.4, 0.65 + preview.progress * 0.75);
-    const count = Math.max(10, Math.round(12 * rewardScale));
+    const count = Math.max(12, Math.round(15 * rewardScale));
+    const particleIcons = [GAME_ICONS.gold, GAME_ICONS.essence, GAME_ICONS.trainerXp];
     for (let i = 0; i < count; i++) {
-        const isGold = i % 2 === 0;
+        const icon = particleIcons[i % particleIcons.length];
         const particle = document.createElement("img");
-        particle.className = "resource-chest-particle";
-        particle.src = isGold ? GAME_ICONS.gold.src : GAME_ICONS.essence.src;
+        particle.className = "resource-chest-particle" + (icon === GAME_ICONS.trainerXp ? " xp-particle" : "");
+        particle.src = icon.src;
         particle.alt = "";
         const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.55;
         const dist = (42 + Math.random() * 58) * rewardScale;
         const tx = Math.cos(angle) * dist;
         const ty = Math.sin(angle) * dist - (18 + Math.random() * 22);
         const rot = (Math.random() - 0.5) * 280;
-        const size = (16 + Math.random() * 14) * rewardScale;
+        const size = (16 + Math.random() * 14) * rewardScale * (icon === GAME_ICONS.trainerXp ? 1.08 : 1);
         particle.style.width = size + "px";
         particle.style.height = size + "px";
         particle.style.setProperty("--rc-tx", tx + "px");
@@ -4719,6 +4724,7 @@ function renderResourceChestModal() {
                 <span class="rc-reward-val">+${preview.essence}</span>
             </div>
             <div class="resource-chest-reward-row wide">
+                <img src="${GAME_ICONS.trainerXp.src}" alt="">
                 <span>Trainer XP</span>
                 <span class="rc-reward-val">+${preview.trainerXp}</span>
             </div>
