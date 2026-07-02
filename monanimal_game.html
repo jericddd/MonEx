@@ -1294,13 +1294,41 @@ button,
     width: 24px;
     height: 24px;
 }
-.battle-meter-panel--player .battle-meter-skills-grid .skill-square .skill-tip,
-.battle-meter-panel--enemy .battle-meter-skills-grid .skill-square .skill-tip {
+.battle-meter-skills-grid .skill-square .skill-tip {
+    display: none !important;
+}
+.battle-meter-skill-tip-float {
+    display: none;
+    position: fixed;
     left: 0;
-    right: auto;
-    bottom: auto;
-    top: 50%;
-    transform: translate(calc(-100% - 8px), -50%);
+    top: 0;
+    transform: none;
+    background: #1a1a2e;
+    color: #e0e0ff;
+    padding: 8px 11px;
+    border-radius: 0;
+    font-family: 'Lato', system-ui, sans-serif;
+    font-weight: 400;
+    white-space: normal;
+    width: max-content;
+    max-width: 260px;
+    text-align: left;
+    line-height: 1.4;
+    box-shadow: 3px 3px 0 #6b21a8;
+    border: 2px solid #6b21a8;
+    z-index: 600;
+    pointer-events: none;
+}
+.battle-meter-skill-tip-float.skill-tip-locked {
+    border-color: #6b7280;
+    box-shadow: 3px 3px 0 #374151;
+}
+.battle-meter-skill-tip-float.is-visible {
+    display: block;
+}
+.battle-meter-skills-grid .skill-square.is-bm-tip-open {
+    transform: scale(1.12);
+    z-index: 20;
 }
 .battle-meter-skills-grid .skill-square:hover {
     transform: scale(1.12);
@@ -3286,8 +3314,7 @@ body.afk-layout .currency-pill .currency-tip {
         width: 30%;
         min-width: 118px;
         max-width: 140px;
-        top: 19%;
-        max-height: 58%;
+        max-height: min(68%, calc(100% - 100px));
         padding: 6px 6px 7px;
     }
     .battle-meter-panel--player { left: 0.4%; }
@@ -7513,9 +7540,81 @@ function renderBattleMeterLockedSlot(slotIndex) {
     </div>`;
 }
 
+function clearBattleMeterSkillTip(square) {
+    if (!square) return;
+    if (square._bmTipFloat) {
+        square._bmTipFloat.remove();
+        square._bmTipFloat = null;
+    }
+    square.classList.remove("is-bm-tip-open");
+}
+
+function clearAllBattleMeterSkillTips() {
+    document.querySelectorAll(".battle-meter-skill-tip-float").forEach(el => el.remove());
+    document.querySelectorAll(".battle-meter-skills-grid .skill-square.is-bm-tip-open")
+        .forEach(sq => sq.classList.remove("is-bm-tip-open"));
+}
+
+function positionBattleMeterSkillTip(square) {
+    clearBattleMeterSkillTip(square);
+    const tip = square.querySelector(".skill-tip");
+    if (!tip) return;
+
+    const floatTip = tip.cloneNode(true);
+    floatTip.classList.add("battle-meter-skill-tip-float");
+    floatTip.style.display = "block";
+    floatTip.style.visibility = "hidden";
+    document.body.appendChild(floatTip);
+    square._bmTipFloat = floatTip;
+
+    const pad = 8;
+    const gap = 8;
+    const tipRect = floatTip.getBoundingClientRect();
+    const cellRect = square.getBoundingClientRect();
+    const prefer = square.dataset.tipSide || "right";
+
+    let left;
+    if (prefer === "right") {
+        left = cellRect.right + gap;
+        if (left + tipRect.width > window.innerWidth - pad) {
+            left = cellRect.left - tipRect.width - gap;
+        }
+    } else {
+        left = cellRect.left - tipRect.width - gap;
+        if (left < pad) {
+            left = cellRect.right + gap;
+        }
+    }
+    left = Math.max(pad, Math.min(left, window.innerWidth - tipRect.width - pad));
+
+    let top = cellRect.top + cellRect.height / 2 - tipRect.height / 2;
+    top = Math.max(pad, Math.min(top, window.innerHeight - tipRect.height - pad));
+
+    floatTip.style.top = `${top}px`;
+    floatTip.style.left = `${left}px`;
+    floatTip.style.visibility = "visible";
+    floatTip.classList.add("is-visible");
+    square.classList.add("is-bm-tip-open");
+}
+
+function bindBattleMeterSkillTips(gridEl, side) {
+    if (!gridEl) return;
+    const prefer = side === "player" ? "right" : "left";
+    gridEl.querySelectorAll(".skill-square").forEach(square => {
+        square.dataset.tipSide = prefer;
+        if (square._bmTipBound) return;
+        square._bmTipBound = true;
+        square.addEventListener("mouseenter", () => positionBattleMeterSkillTip(square));
+        square.addEventListener("mouseleave", () => clearBattleMeterSkillTip(square));
+        square.addEventListener("focus", () => positionBattleMeterSkillTip(square));
+        square.addEventListener("blur", () => clearBattleMeterSkillTip(square));
+    });
+}
+
 function renderBattleMeterSkills(side, fighter) {
     const el = document.getElementById("bm-skills-" + side);
     if (!el || !fighter) return;
+    clearAllBattleMeterSkillTips();
     const skills = fighter.skills || [];
     const squares = [];
     for (let i = 0; i < BATTLE_METER_SKILL_SLOTS; i++) {
@@ -7531,6 +7630,7 @@ function renderBattleMeterSkills(side, fighter) {
         }
     }
     el.innerHTML = `<div class="battle-meter-skills-grid">${squares.join("")}</div>`;
+    bindBattleMeterSkillTips(el.querySelector(".battle-meter-skills-grid"), side);
 }
 
 function updateBattleMeterVitals(side, fighter) {
