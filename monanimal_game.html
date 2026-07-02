@@ -4423,16 +4423,13 @@ function getMonAvatarFallbackPath(mon) {
     return getMonPngPath(name);
 }
 
-// Only these species have battle idle GIFs in 128x128/ — others use PNG even when Legendary+.
-const MONS_WITH_BATTLE_GIF = new Set(["molandak", "chog", "anago", "mouch", "moyaki"]);
+// Battle idle: always use animated GIF when the species has one (rarity only affects party/box avatars).
+function getBattleIdleSpritePath(name) {
+    return getSceneIdleDisplaySprite(name);
+}
 
 function getSpritePath(name, rarity) {
-    if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
-    const lower = String(name || "").toLowerCase();
-    if (MONS_WITH_BATTLE_GIF.has(lower) && rarity && isLegendaryOrAbove(rarity)) {
-        return getMonLegendaryGifPath(name);
-    }
-    return getMonPngPath(name);
+    return getBattleIdleSpritePath(name);
 }
 
 function bindBattleImgFallback(img, name) {
@@ -4496,12 +4493,22 @@ const ATTACK_SPRITE_DURATION_MS = {
     Anago: 1920
 };
 
+// Per-swing GIF impact timing (ms from first painted frame after replay).
+const BATTLE_ATTACK_HIT_AT_MS = {
+    "128x128/molandak1-swing.gif": 480,
+    "128x128/chog1-swing.gif": 480,
+    "128x128/anago-swing1.gif": 1080,
+    "128x128/anago-swing2.gif": 1080,
+    "128x128/johnw-swing1.gif": 960,
+    "128x128/johnw-swing2.gif": 960
+};
+
 // Swing GIF frames 8-15 from source; hit near frame 2-3 of swing clip.
 const ATTACK_HIT_AT_MS = {
-    Molandak: 360,
-    Chog: 360,
-    Johnw: 720,
-    Anago: 720
+    Molandak: 480,
+    Chog: 480,
+    Johnw: 960,
+    Anago: 1080
 };
 
 // Full measured GIF loop lengths for main-scene idle fighting (ffprobe).
@@ -4953,22 +4960,63 @@ async function dashHome(side, durationMs) {
     wrap.classList.remove("dash-sweep");
 }
 
+function getBattleAttackDurationMs(attackPath, monName) {
+    const key = normalizeSpritePath(attackPath);
+    if (SCENE_SPRITE_DURATION_MS[key]) return SCENE_SPRITE_DURATION_MS[key];
+    if (monName && ATTACK_SPRITE_DURATION_MS[monName]) return ATTACK_SPRITE_DURATION_MS[monName];
+    return 960;
+}
+
+function getBattleAttackHitAtMs(attackPath, monName) {
+    const key = normalizeSpritePath(attackPath);
+    if (BATTLE_ATTACK_HIT_AT_MS[key]) return BATTLE_ATTACK_HIT_AT_MS[key];
+    if (monName && ATTACK_HIT_AT_MS[monName]) return ATTACK_HIT_AT_MS[monName];
+    return Math.floor(getBattleAttackDurationMs(attackPath, monName) * 0.5);
+}
+
 async function delayUntil(animStart, targetMs) {
     const wait = targetMs - (Date.now() - animStart);
     if (wait > 0) await delay(wait);
 }
 
-async function finishSwingGif(animStart, name) {
-    const totalMs = ATTACK_SPRITE_DURATION_MS[name] || 960;
+async function finishSwingGif(animStart, attackPath, name) {
+    const totalMs = getBattleAttackDurationMs(attackPath, name);
     await delayUntil(animStart, totalMs);
 }
 
-async function completeGifAttackReturn(atkSide, atk, animStart) {
-    await finishSwingGif(animStart, atk.name);
+async function completeGifAttackReturn(atkSide, atk, attackPath, animStart) {
+    await finishSwingGif(animStart, attackPath, atk.name);
     setBattleSprite(atkSide, atk.sprite, atk.name, false);
     await dashHome(atkSide, ATTACK_DASH_MS);
     endAttackAnim(atkSide, atk);
     await delay(120);
+}
+
+async function replayBattleAttackGif(side, src, name) {
+    const sprite = document.getElementById("sprite-" + side);
+    if (!sprite || !src) return;
+    sprite.style.visibility = "visible";
+    bindBattleImgFallback(sprite, name);
+    applyBattleSpriteFacing(sprite, side, name);
+    if (!src.endsWith(".gif")) {
+        sprite.src = src;
+        return;
+    }
+    await new Promise(resolve => {
+        const url = src + "?t=" + Date.now();
+        let settled = false;
+        const finish = () => {
+            if (settled) return;
+            settled = true;
+            sprite.removeEventListener("load", finish);
+            sprite.removeEventListener("error", finish);
+            requestAnimationFrame(() => requestAnimationFrame(resolve));
+        };
+        sprite.addEventListener("load", finish);
+        sprite.addEventListener("error", finish);
+        sprite.src = url;
+        if (sprite.complete && sprite.naturalWidth > 0) finish();
+    });
 }
 
 function setBattleSprite(side, src, name, replayGif) {
@@ -8254,25 +8302,26 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     const poisonOnly = skill.effect?.type === "poison" && (skill.power || 0) <= 0;
     const attackPath = getAttackSpritePath(atk.name);
     let animStart = 0;
+    const defenderCanEvade = !isUlt && !hasStatus(def, "stun");
     if (attackPath) {
         beginAttackAnim(atkSide);
         const dashDist = await measureMeleeDashDistance(atkSide, defSide);
         await dashHorizontal(atkSide, dashDist, ATTACK_DASH_MS);
-        setBattleSprite(atkSide, attackPath, atk.name, true);
+        await replayBattleAttackGif(atkSide, attackPath, atk.name);
         animStart = Date.now();
-        await delayUntil(animStart, ATTACK_HIT_AT_MS[atk.name] || 360);
+        await delayUntil(animStart, getBattleAttackHitAtMs(attackPath, atk.name));
     } else {
         await approach(atkSide, defSide);
     }
     playEffect(defSide, skill.element, isUlt);
 
-    const effDodge = getEffectiveDodge(def, atk);
-    if (Math.random() * 100 < effDodge) {
+    const effDodge = defenderCanEvade ? getEffectiveDodge(def, atk) : 0;
+    if (effDodge > 0 && Math.random() * 100 < effDodge) {
         await playDodgeEvade(defSide);
         showDamage(defSide, 0, "miss");
         showSkillCallout(defSide, "DODGE!", { status: true });
         finishTurn();
-        if (attackPath) await completeGifAttackReturn(atkSide, atk, animStart);
+        if (attackPath) await completeGifAttackReturn(atkSide, atk, attackPath, animStart);
         else { await delay(250); await recoil(atkSide); await delay(120); }
         return;
     }
@@ -8284,8 +8333,8 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
             dmg = Math.floor(dmg + getCritDamageRating(atk) * CRIT_DAMAGE_MULT);
             crit = true;
         }
-        const effBlock = getEffectiveBlock(def, atk);
-        if (Math.random() * 100 < effBlock) { dmg = Math.floor(dmg * 0.5); blocked = true; }
+        const effBlock = defenderCanEvade ? getEffectiveBlock(def, atk) : 0;
+        if (effBlock > 0 && Math.random() * 100 < effBlock) { dmg = Math.floor(dmg * 0.5); blocked = true; }
         dmg = Math.max(1, dmg);
 
         def.hp = Math.max(0, def.hp - dmg);
@@ -8308,7 +8357,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     finishTurn();
 
     if (attackPath) {
-        await completeGifAttackReturn(atkSide, atk, animStart);
+        await completeGifAttackReturn(atkSide, atk, attackPath, animStart);
     } else {
         await delay(250);
         await recoil(atkSide);
