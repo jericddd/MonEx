@@ -1325,8 +1325,8 @@ button,
     position: absolute;
     left: 50%;
     top: 46%;
-    width: 92px;
-    height: 92px;
+    width: 138px;
+    height: 138px;
     transform: translate(-50%, -50%);
     z-index: 18;
     pointer-events: none;
@@ -5369,6 +5369,7 @@ const BATTLE_METER_SKILL_SLOTS = 12;
 const POISON_TICK_PCT = 0.03;
 const BURN_TICK_PCT = 0.06;
 const BURN_TURNS = 3;
+const BURN_GIF_LOOP_MS = 1200;
 const FREEZE_DMG_BOOST = 1.3;
 const MELEE_DASH_FALLBACK_PX = 180;
 
@@ -7122,15 +7123,49 @@ function breakFrozenOnHit(defender, damage) {
     if (damage > 0 && hasStatus(defender, "frozen")) removeStatus(defender, "frozen");
 }
 
+function restartBurnGif(img) {
+    if (!img) return;
+    img.src = DEBUFF_BURN_FX + "?t=" + Date.now();
+}
+
+function stopBurnGifLoop(side) {
+    const burnEl = document.getElementById("debuff-burn-" + side);
+    if (!burnEl?._burnGifLoop) return;
+    clearInterval(burnEl._burnGifLoop);
+    burnEl._burnGifLoop = null;
+}
+
+function stopAllBurnGifLoops() {
+    ["player", "enemy"].forEach(stopBurnGifLoop);
+}
+
+function startBurnGifLoop(side, img) {
+    stopBurnGifLoop(side);
+    const burnEl = document.getElementById("debuff-burn-" + side);
+    if (!burnEl || !img) return;
+    restartBurnGif(img);
+    burnEl._burnGifLoop = setInterval(() => {
+        if (!burnEl.classList.contains("show")) {
+            stopBurnGifLoop(side);
+            return;
+        }
+        restartBurnGif(img);
+    }, BURN_GIF_LOOP_MS);
+}
+
 function syncFighterStatusFx(side, fighter) {
     const burnEl = document.getElementById("debuff-burn-" + side);
     if (!burnEl) return;
     const burning = hasStatus(fighter, "burn");
+    const wasBurning = burnEl.classList.contains("show");
     burnEl.classList.toggle("show", burning);
     burnEl.setAttribute("aria-hidden", burning ? "false" : "true");
+    const img = burnEl.querySelector(".debuff-burn-img");
+    if (!img) return;
     if (burning) {
-        const img = burnEl.querySelector(".debuff-burn-img");
-        if (img) img.src = DEBUFF_BURN_FX;
+        if (!wasBurning) startBurnGifLoop(side, img);
+    } else {
+        stopBurnGifLoop(side);
     }
 }
 
@@ -8701,6 +8736,7 @@ function start3v3Battle(playerParty) {
 }
 
 function renderBattleScene() {
+    stopAllBurnGifLoops();
     const boss = isBossStage(currentStage);
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui battle-scene-ui--fight cover-art-layer";
