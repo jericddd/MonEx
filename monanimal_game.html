@@ -1143,6 +1143,36 @@ button,
 .fighter-block-shield.show {
     animation: block-shield-pop 0.62s ease-out forwards;
 }
+.fighter-debuff-burn {
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    width: 92px;
+    height: 92px;
+    transform: translate(-50%, -50%);
+    z-index: 18;
+    pointer-events: none;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+}
+.fighter-debuff-burn.show {
+    display: flex;
+    opacity: 1;
+    animation: debuff-burn-flicker 0.9s ease-in-out infinite;
+}
+.fighter-debuff-burn .debuff-burn-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.75));
+}
+@keyframes debuff-burn-flicker {
+    0%, 100% { opacity: 0.88; transform: translate(-50%, -50%) scale(0.96); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
+}
 @keyframes block-shield-pop {
     0% { opacity: 0; transform: translate(-50%, -50%) scale(0.45); }
     30% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
@@ -4199,6 +4229,7 @@ const ELEMENT_GLYPH = {
 
 const SKILL_ICON_DIR = "game_icons/skill/";
 const BLOCK_FX_ICON = SKILL_ICON_DIR + "block.png";
+const DEBUFF_BURN_FX = SKILL_ICON_DIR + "debuff-burn.gif";
 
 const SKILL_ICON_MAP = {
     "Slash": "slash.png",
@@ -6603,6 +6634,18 @@ function breakFrozenOnHit(defender, damage) {
     if (damage > 0 && hasStatus(defender, "frozen")) removeStatus(defender, "frozen");
 }
 
+function syncFighterStatusFx(side, fighter) {
+    const burnEl = document.getElementById("debuff-burn-" + side);
+    if (!burnEl) return;
+    const burning = hasStatus(fighter, "burn");
+    burnEl.classList.toggle("show", burning);
+    burnEl.setAttribute("aria-hidden", burning ? "false" : "true");
+    if (burning) {
+        const img = burnEl.querySelector(".debuff-burn-img");
+        if (img) img.src = DEBUFF_BURN_FX;
+    }
+}
+
 function renderStatusRow(side, fighter) {
     const el = document.getElementById("status-" + side);
     if (!el) return;
@@ -6610,6 +6653,7 @@ function renderStatusRow(side, fighter) {
     el.innerHTML = (fighter.status || []).map(st =>
         `<span class="status-pill ${st.id}">${labels[st.id] || st.id.toUpperCase()}</span>`
     ).join("");
+    syncFighterStatusFx(side, fighter);
     updateBattleMeterStats(side, fighter);
     const sh = document.getElementById("bm-shield-" + side);
     if (sh) sh.textContent = String(getBattleShield(fighter));
@@ -8210,11 +8254,13 @@ function renderBattleScene() {
             <div class="fighter-wrap enemy" id="wrap-enemy">
                 <div class="fighter-skill-callout" id="skill-callout-enemy" aria-hidden="true"></div>
                 <img class="bsprite" id="sprite-enemy" alt="">
+                <div class="fighter-debuff-burn" id="debuff-burn-enemy" aria-hidden="true"><img class="debuff-burn-img" src="${DEBUFF_BURN_FX}" alt=""></div>
                 <div class="fighter-block-shield" id="block-shield-enemy" aria-hidden="true"><img class="block-shield-img" src="${BLOCK_FX_ICON}" alt=""></div>
             </div>
             <div class="fighter-wrap player" id="wrap-player">
                 <div class="fighter-skill-callout" id="skill-callout-player" aria-hidden="true"></div>
                 <img class="bsprite" id="sprite-player" alt="">
+                <div class="fighter-debuff-burn" id="debuff-burn-player" aria-hidden="true"><img class="debuff-burn-img" src="${DEBUFF_BURN_FX}" alt=""></div>
                 <div class="fighter-block-shield" id="block-shield-player" aria-hidden="true"><img class="block-shield-img" src="${BLOCK_FX_ICON}" alt=""></div>
             </div>
             <div class="fx-layer" id="fx-layer"></div>
@@ -8888,6 +8934,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     }
 
     tryApplySkillEffect(atk, def, skill);
+    renderStatusRow(defSide, def);
 
     if (def.hp > 0) def.energy = Math.min(100, def.energy + 15);
     finishTurn();
