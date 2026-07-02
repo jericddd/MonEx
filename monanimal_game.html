@@ -1490,7 +1490,6 @@ button,
     object-fit: contain;
     filter: drop-shadow(0 6px 5px rgba(0,0,0,0.45));
 }
-.bsprite.mirrored { transform: scaleX(-1); }
 .nameplate {
     background: rgba(255,255,255,0.92);
     border: 3px solid #6B21A8;
@@ -4371,14 +4370,25 @@ const SCENE_IDLE_SPRITE_SCALE = {
 };
 const SCENE_IDLE_SPRITE_SCALE_DEFAULT = 1.0;
 
-function getSceneIdleSpriteTransform(monName, mirrored) {
-    const scale = SCENE_IDLE_SPRITE_SCALE[monName] ?? SCENE_IDLE_SPRITE_SCALE_DEFAULT;
+// Extra scale for GIFs with larger canvas padding so they match in-scene size of sibling swings.
+const SPRITE_PATH_SCALE = {
+    "128x128/chog-swing2.gif": 1.16,
+};
+
+function getSpritePathScale(spritePath) {
+    const key = normalizeSpritePath(spritePath);
+    return SPRITE_PATH_SCALE[key] ?? 1;
+}
+
+function getSceneIdleSpriteTransform(monName, mirrored, spritePath) {
+    const speciesScale = SCENE_IDLE_SPRITE_SCALE[monName] ?? SCENE_IDLE_SPRITE_SCALE_DEFAULT;
+    const scale = speciesScale * getSpritePathScale(spritePath);
     return mirrored ? `scale(${scale}) scaleX(-1)` : `scale(${scale})`;
 }
 
-function applySceneIdleSpriteTransform(imgEl, monName, mirrored) {
+function applySceneIdleSpriteTransform(imgEl, monName, mirrored, spritePath) {
     if (!imgEl) return;
-    imgEl.style.transform = getSceneIdleSpriteTransform(monName, mirrored);
+    imgEl.style.transform = getSceneIdleSpriteTransform(monName, mirrored, spritePath || imgEl.src);
 }
 
 function getSceneIdleBodyShadowHtml(monName) {
@@ -5020,6 +5030,9 @@ function setSceneIdleSprite(imgEl, spritePath) {
     if (current === base) return;
     imgEl.dataset.spriteBase = base;
     imgEl.src = spritePath + "?t=" + Date.now();
+    const monName = imgEl.dataset.mon;
+    const mirrored = imgEl.classList.contains("mirrored");
+    applySceneIdleSpriteTransform(imgEl, monName, mirrored, spritePath);
 }
 
 async function waitSceneGifMs(ms, token) {
@@ -5092,7 +5105,7 @@ function renderSceneIdleFighter(team, index, mon) {
     const fallback = getMonAvatarFallbackPath(mon);
     const isMirrored = shouldMirrorBattleSprite(team === "hero" ? "player" : "enemy", mon.name);
     const mirrored = isMirrored ? " mirrored" : "";
-    const spriteTransform = getSceneIdleSpriteTransform(mon.name, isMirrored);
+    const spriteTransform = getSceneIdleSpriteTransform(mon.name, isMirrored, sprite);
     return `
         <div class="scene-idle-fighter ${side} ${slotClass}" id="scene-idle-${team}-${index}" data-team="${team}" data-index="${index}">
             ${getSceneIdleBodyShadowHtml(mon.name)}
@@ -5388,7 +5401,7 @@ async function replayBattleAttackGif(side, src, name) {
     if (!sprite || !src) return;
     sprite.style.visibility = "visible";
     bindBattleImgFallback(sprite, name);
-    applyBattleSpriteFacing(sprite, side, name);
+    applyBattleSpritePresentation(sprite, side, name, src);
     if (!src.endsWith(".gif")) {
         sprite.src = src;
         return;
@@ -5420,7 +5433,22 @@ function setBattleSprite(side, src, name, replayGif) {
     } else {
         sprite.src = src;
     }
-    applyBattleSpriteFacing(sprite, side, name);
+    applyBattleSpritePresentation(sprite, side, name, src);
+}
+
+function getBattleSpriteTransform(side, name, spritePath) {
+    const pathScale = getSpritePathScale(spritePath);
+    const mirror = shouldMirrorBattleSprite(side, name);
+    const parts = [];
+    if (pathScale !== 1) parts.push(`scale(${pathScale})`);
+    if (mirror) parts.push("scaleX(-1)");
+    return parts.length ? parts.join(" ") : "";
+}
+
+function applyBattleSpritePresentation(spriteEl, side, name, spritePath) {
+    if (!spriteEl) return;
+    spriteEl.style.transform = getBattleSpriteTransform(side, name, spritePath || spriteEl.src);
+    spriteEl.classList.toggle("mirrored", shouldMirrorBattleSprite(side, name));
 }
 
 // Natural facing of each sprite asset (scan of 128x128 png/gif art).
@@ -5457,9 +5485,8 @@ function shouldMirrorBattleSprite(side, name) {
     return natural !== wanted;
 }
 
-function applyBattleSpriteFacing(spriteEl, side, name) {
-    if (!spriteEl) return;
-    spriteEl.classList.toggle("mirrored", shouldMirrorBattleSprite(side, name));
+function applyBattleSpriteFacing(spriteEl, side, name, spritePath) {
+    applyBattleSpritePresentation(spriteEl, side, name, spritePath);
 }
 
 function getRarityRank(rarity) {
@@ -8381,7 +8408,7 @@ function setFighter(side, f) {
         bindBattleImgFallback(portrait, f.name);
         portrait.style.visibility = "visible";
         portrait.src = f.sprite;
-        applyBattleSpriteFacing(portrait, side, f.name);
+        applyBattleSpritePresentation(portrait, side, f.name, f.sprite);
     }
     document.getElementById("np-name-" + side).textContent = f.name;
     document.getElementById("np-lv-" + side).textContent = "Lv." + f.level;
