@@ -1172,60 +1172,79 @@ button,
     color: #fde68a;
 }
 .bm-mon {
-    margin-top: 3px;
-    font-family: 'Lato', sans-serif;
-    font-size: 12px;
-    font-weight: 700;
-    color: #e9d5ff;
-    text-transform: capitalize;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
 }
-.battle-meter-panel--enemy .bm-head { text-align: right; }
+.bm-mon .type-tag {
+    font-size: 8px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+.bm-mon-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    line-height: 1.45;
+    color: #f5f3ff;
+    text-transform: uppercase;
+}
 .bm-vitals {
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    padding-bottom: 2px;
+    gap: 2px;
+    padding-bottom: 4px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.battle-meter-panel .bm-vitals.mon-stats {
+    padding: 0 2px 4px;
+}
+.battle-meter-panel .bm-vitals .stat-row {
+    margin: 2px 0;
+    color: #e2e8f0;
+}
+.battle-meter-panel .bm-vitals .stat-row span:first-child {
+    color: #e9d5ff;
+    font-size: 10px;
+}
+.battle-meter-panel .bm-vitals .stat-row span:last-child {
+    color: #fff;
+    font-size: 11px;
 }
 .bm-stats {
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    padding-top: 2px;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    gap: 2px;
+    padding-top: 3px;
 }
-.bm-stat-row,
-.bm-stat-pair {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 6px;
+.bm-atk-line {
+    text-align: center;
     font-family: 'Lato', sans-serif;
-    font-size: 10px;
-    line-height: 1.35;
-    color: #f8fafc;
-}
-.bm-stat-pair { gap: 8px; }
-.bm-stat-half {
-    flex: 1;
-    display: flex;
-    justify-content: space-between;
-    gap: 4px;
-    min-width: 0;
-}
-.bm-stat-label {
-    color: #cbd5e1;
-    font-weight: 400;
-    white-space: nowrap;
-}
-.bm-stat-val {
+    font-size: 11px;
     font-weight: 700;
-    color: #fff;
-    text-align: right;
+    color: #c4b5fd;
+    margin-bottom: 2px;
 }
-.battle-meter-panel--enemy .bm-stat-row { flex-direction: row-reverse; }
-.battle-meter-panel--enemy .bm-stat-half { flex-direction: row-reverse; }
-.battle-meter-panel--enemy .bm-stat-val { text-align: left; }
+.battle-meter-panel .st-pair-row {
+    gap: 4px;
+    padding: 4px 0;
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+.battle-meter-panel .st-cell {
+    padding: 2px;
+    gap: 3px;
+}
+.battle-meter-panel .st-label {
+    font-size: 6px;
+}
+.battle-meter-panel .st-value {
+    font-size: 11px;
+    padding: 3px 4px;
+    border-radius: 6px;
+    border-color: rgba(196, 181, 253, 0.45);
+}
 .bm-skills {
     flex: 0 0 auto;
     overflow: visible;
@@ -1248,18 +1267,13 @@ button,
     width: 24px;
     height: 24px;
 }
-.battle-meter-panel--player .battle-meter-skills-grid .skill-square .skill-tip {
+.battle-meter-panel--player .battle-meter-skills-grid .skill-square .skill-tip,
+.battle-meter-panel--enemy .battle-meter-skills-grid .skill-square .skill-tip {
     left: 0;
+    right: auto;
     bottom: auto;
     top: 50%;
     transform: translate(calc(-100% - 8px), -50%);
-}
-.battle-meter-panel--enemy .battle-meter-skills-grid .skill-square .skill-tip {
-    left: auto;
-    right: 0;
-    bottom: auto;
-    top: 50%;
-    transform: translate(calc(100% + 8px), -50%);
 }
 .battle-meter-skills-grid .skill-square:hover {
     transform: scale(1.12);
@@ -3252,9 +3266,11 @@ body.afk-layout .currency-pill .currency-tip {
     .battle-meter-panel--player { left: 0.4%; }
     .battle-meter-panel--enemy { right: 0.4%; }
     .bm-trainer { font-size: 6px; }
-    .bm-mon { font-size: 10px; }
-    .bm-bar-row { grid-template-columns: 28px 1fr; }
-    .bm-stat-row, .bm-stat-pair, .bm-shield { font-size: 9px; }
+    .bm-mon-name { font-size: 7px; }
+    .bm-mon .type-tag { font-size: 7px; padding: 2px 5px; }
+    .battle-meter-panel .bm-vitals .stat-row span:first-child,
+    .battle-meter-panel .bm-vitals .stat-row span:last-child { font-size: 9px; }
+    .battle-meter-panel .st-value { font-size: 10px; }
     .battle-meter-skills-grid { grid-template-columns: repeat(3, 1fr); gap: 3px; }
     .battle-meter-skills-grid .skill-square { width: 26px; height: 26px; }
     .battle-meter-skills-grid .skill-square .skill-icon-img { width: 20px; height: 20px; }
@@ -7406,24 +7422,29 @@ function renderBattleMeterPanelHtml(side) {
         <aside class="battle-meter-panel battle-meter-panel--${align}" id="battle-meter-${side}" aria-label="${align} battle meter">
             <div class="bm-head">
                 <div class="bm-trainer" id="bm-trainer-${side}"></div>
-                <div class="bm-mon" id="bm-mon-${side}"></div>
+                <div class="bm-mon">
+                    <span class="type-tag bm-rarity" id="bm-rarity-${side}">COMMON</span>
+                    <span class="bm-mon-name" id="bm-mon-name-${side}"></span>
+                </div>
             </div>
-            <div class="bm-vitals">
-                <div class="bm-stat-row"><span class="bm-stat-label">Hp:</span><span class="bm-stat-val" id="bm-hp-${side}">0 / 0</span></div>
-                <div class="bm-stat-row"><span class="bm-stat-label">Mana:</span><span class="bm-stat-val" id="bm-mana-${side}">0 / 0</span></div>
-                <div class="bm-stat-row"><span class="bm-stat-label">Shield:</span><span class="bm-stat-val" id="bm-shield-${side}">0</span></div>
+            <div class="bm-vitals mon-stats">
+                <div class="stat-row"><span><strong>HP</strong></span><span id="bm-hp-${side}">0 / 0</span></div>
+                <div class="stat-row"><span><strong>MANA</strong></span><span id="bm-mana-${side}">0 / 0</span></div>
+                <div class="stat-row"><span><strong>SHIELD</strong></span><span id="bm-shield-${side}">0</span></div>
             </div>
             <div class="bm-stats">
-                <div class="bm-stat-row"><span class="bm-stat-label">Attack:</span><span class="bm-stat-val" id="bm-atk-${side}">0</span></div>
-                <div class="bm-stat-row"><span class="bm-stat-label">Speed:</span><span class="bm-stat-val" id="bm-spd-${side}">0</span></div>
-                <div class="bm-stat-row"><span class="bm-stat-label">Crit:</span><span class="bm-stat-val" id="bm-crit-${side}">0</span></div>
-                <div class="bm-stat-pair">
-                    <div class="bm-stat-half"><span class="bm-stat-label">Pierce:</span><span class="bm-stat-val" id="bm-pierce-${side}">0</span></div>
-                    <div class="bm-stat-half"><span class="bm-stat-label">Block:</span><span class="bm-stat-val" id="bm-block-${side}">0</span></div>
+                <div class="bm-atk-line" id="bm-atk-${side}">ATK 0</div>
+                <div class="st-pair-row">
+                    <div class="st-cell" data-stat="spd"><span class="st-label">SPD</span><span class="st-value" id="bm-spd-${side}">0</span></div>
+                    <div class="st-cell" data-stat="crit"><span class="st-label">CRIT</span><span class="st-value" id="bm-crit-${side}">0</span></div>
                 </div>
-                <div class="bm-stat-pair">
-                    <div class="bm-stat-half"><span class="bm-stat-label">Hit:</span><span class="bm-stat-val" id="bm-hit-${side}">0</span></div>
-                    <div class="bm-stat-half"><span class="bm-stat-label">Dodge:</span><span class="bm-stat-val" id="bm-dodge-${side}">0</span></div>
+                <div class="st-pair-row counter">
+                    <div class="st-cell" data-stat="pierce"><span class="st-label">PIERCE</span><span class="st-value" id="bm-pierce-${side}">0</span></div>
+                    <div class="st-cell" data-stat="block"><span class="st-label">BLOCK</span><span class="st-value" id="bm-block-${side}">0</span></div>
+                </div>
+                <div class="st-pair-row counter">
+                    <div class="st-cell" data-stat="hit"><span class="st-label">HIT</span><span class="st-value" id="bm-hit-${side}">0</span></div>
+                    <div class="st-cell" data-stat="dodge"><span class="st-label">DODGE</span><span class="st-value" id="bm-dodge-${side}">0</span></div>
                 </div>
             </div>
             <div class="bm-skills" id="bm-skills-${side}"></div>
@@ -7481,9 +7502,17 @@ function updateBattleMeterStats(side, fighter) {
     const range = getBattleAttackRange(fighter);
     const atkEl = document.getElementById("bm-atk-" + side);
     if (atkEl) {
-        atkEl.textContent = range.min === range.max
+        const atkText = range.min === range.max
             ? String(range.max)
             : (range.min + " - " + range.max);
+        atkEl.textContent = "ATK " + atkText;
+    }
+    const sp = fighter.stats?.specialty;
+    const panel = document.getElementById("battle-meter-" + side);
+    if (panel) {
+        panel.querySelectorAll(".st-cell[data-stat]").forEach(cell => {
+            cell.classList.toggle("gold", cell.dataset.stat === sp);
+        });
     }
     const setStat = (prefix, val) => {
         const el = document.getElementById(prefix + side);
@@ -7507,8 +7536,13 @@ function updateBattleMeterIdentity(side, fighter) {
             Object.assign(document.createElement("span"), { className: "bm-lv", textContent: "LV: " + fighter.level })
         );
     }
-    const monEl = document.getElementById("bm-mon-" + side);
-    if (monEl) monEl.textContent = fighter.name;
+    const rarityEl = document.getElementById("bm-rarity-" + side);
+    if (rarityEl) {
+        rarityEl.textContent = String(fighter.rarity || "Common").toUpperCase();
+        rarityEl.className = "type-tag bm-rarity " + getRarityClass(fighter.rarity);
+    }
+    const monNameEl = document.getElementById("bm-mon-name-" + side);
+    if (monNameEl) monNameEl.textContent = fighter.name;
 }
 
 function updateBattleMeter(side, fighter) {
