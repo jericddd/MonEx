@@ -2628,6 +2628,7 @@ body.afk-layout .currency-pill .currency-tip {
     transition: transform 0.12s ease, box-shadow 0.12s ease;
     flex-shrink: 0;
     box-sizing: border-box;
+    overflow: visible;
 }
 .side-icon-btn:hover {
     transform: translateY(-2px);
@@ -2636,16 +2637,16 @@ body.afk-layout .currency-pill .currency-tip {
 .side-icon-btn:hover::before { display: none !important; }
 .side-icon-btn img {
     display: block;
-    width: 100%;
-    height: 100%;
-    max-width: var(--rail-icon-max);
-    max-height: var(--rail-icon-max);
+    width: var(--rail-icon-max);
+    height: var(--rail-icon-max);
     object-fit: contain;
+    object-position: center;
     image-rendering: pixelated;
     filter: none;
     transition: none;
     position: relative;
     z-index: 1;
+    transform-origin: center center;
 }
 .side-icon-btn > span:not(.rail-tip) {
     position: relative;
@@ -4290,6 +4291,43 @@ const BUTTON_TAB_ICON_VER = 4;
 
 function buttonTabIconSrc(file) {
     return `${BUTTON_TAB_ICON_DIR}/${file}?v=${BUTTON_TAB_ICON_VER}`;
+}
+
+const MONBALL_TAB_ICON_DIMS = { w: 512, h: 487 };
+
+function getRailIconMaxBox() {
+    const v = getComputedStyle(document.documentElement).getPropertyValue("--rail-icon-max").trim();
+    return parseFloat(v) || 74;
+}
+
+function getIconContainMin(nw, nh, box) {
+    const s = Math.min(box / nw, box / nh);
+    return Math.min(nw, nh) * s;
+}
+
+function normalizeRailTabIconSizes() {
+    const box = getRailIconMaxBox();
+    const targetMin = getIconContainMin(MONBALL_TAB_ICON_DIMS.w, MONBALL_TAB_ICON_DIMS.h, box);
+    document.querySelectorAll(".side-icon-btn img").forEach(img => {
+        const src = img.getAttribute("src") || "";
+        if (!src.includes("button%20tabs") && !src.includes("button tabs")) return;
+        const apply = () => {
+            const nw = img.naturalWidth;
+            const nh = img.naturalHeight;
+            if (!nw || !nh) return;
+            const iconMin = getIconContainMin(nw, nh, box);
+            const extra = targetMin / iconMin;
+            img.style.transform = Math.abs(extra - 1) < 0.02 ? "" : `scale(${extra.toFixed(3)})`;
+        };
+        if (img.complete && img.naturalWidth) apply();
+        else img.addEventListener("load", apply, { once: true });
+    });
+}
+
+let _railTabIconResizeTimer = null;
+function scheduleRailTabIconNormalize() {
+    clearTimeout(_railTabIconResizeTimer);
+    _railTabIconResizeTimer = setTimeout(normalizeRailTabIconSizes, 80);
 }
 
 const GAME_ICONS = {
@@ -8545,6 +8583,8 @@ window.onload = async function() {
     }
     clearGameUrlHash();
     ensureCoverStagesSync();
+    normalizeRailTabIconSizes();
+    window.addEventListener("resize", scheduleRailTabIconNormalize);
 };
 // ==================== ADVENTURE MODE ====================
 
