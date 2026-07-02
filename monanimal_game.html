@@ -1246,6 +1246,36 @@ button,
     border-radius: 6px;
     border-color: rgba(196, 181, 253, 0.45);
 }
+.battle-meter-panel .bm-atk-line,
+.battle-meter-panel .bm-vitals .stat-row,
+.battle-meter-panel .bm-stats .st-cell {
+    cursor: help;
+}
+.battle-meter-stat-tip-float {
+    display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    transform: none;
+    background: #1a1a2e;
+    color: #e0e0ff;
+    padding: 7px 10px;
+    font-family: 'Lato', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 3px 3px 0 #6b21a8;
+    border: 2px solid #6b21a8;
+    z-index: 600;
+    pointer-events: none;
+}
+.battle-meter-stat-tip-float.is-visible {
+    display: block;
+}
+.battle-meter-stat-tip-float .bm-specialty-name {
+    color: #facc15;
+    text-transform: uppercase;
+}
 .bm-skills {
     flex: 0 0 auto;
     overflow: visible;
@@ -7469,6 +7499,8 @@ function renderBattleScene() {
         </div>
     `;
     applyBattleStageChapterBackground(currentChapter);
+    bindBattleMeterStatTips(document.getElementById("battle-meter-player"), "player");
+    bindBattleMeterStatTips(document.getElementById("battle-meter-enemy"), "enemy");
     requestAnimationFrame(() => syncCoverStages());
 }
 
@@ -7550,28 +7582,30 @@ function clearBattleMeterSkillTip(square) {
 }
 
 function clearAllBattleMeterSkillTips() {
-    document.querySelectorAll(".battle-meter-skill-tip-float").forEach(el => el.remove());
+    document.querySelectorAll(".battle-meter-skill-tip-float, .battle-meter-stat-tip-float").forEach(el => el.remove());
     document.querySelectorAll(".battle-meter-skills-grid .skill-square.is-bm-tip-open")
         .forEach(sq => sq.classList.remove("is-bm-tip-open"));
+    document.querySelectorAll(".battle-meter-panel .is-bm-stat-tip-open")
+        .forEach(el => el.classList.remove("is-bm-stat-tip-open"));
 }
 
-function positionBattleMeterSkillTip(square) {
-    clearBattleMeterSkillTip(square);
-    const tip = square.querySelector(".skill-tip");
-    if (!tip) return;
+function getBattleSpecialtyLabel(key) {
+    const labels = {
+        spd: "SPD", crit: "CRIT", pierce: "PIERCE",
+        block: "BLOCK", hit: "HIT", dodge: "DODGE"
+    };
+    return labels[key] || String(key || "").toUpperCase();
+}
 
-    const floatTip = tip.cloneNode(true);
-    floatTip.classList.add("battle-meter-skill-tip-float");
+function positionBattleMeterFloatTip(anchorEl, floatTip, prefer) {
+    const pad = 8;
+    const gap = 8;
     floatTip.style.display = "block";
     floatTip.style.visibility = "hidden";
     document.body.appendChild(floatTip);
-    square._bmTipFloat = floatTip;
 
-    const pad = 8;
-    const gap = 8;
     const tipRect = floatTip.getBoundingClientRect();
-    const cellRect = square.getBoundingClientRect();
-    const prefer = square.dataset.tipSide || "right";
+    const cellRect = anchorEl.getBoundingClientRect();
 
     let left;
     if (prefer === "right") {
@@ -7594,6 +7628,50 @@ function positionBattleMeterSkillTip(square) {
     floatTip.style.left = `${left}px`;
     floatTip.style.visibility = "visible";
     floatTip.classList.add("is-visible");
+    return floatTip;
+}
+
+function clearBattleMeterStatTip(el) {
+    if (!el) return;
+    if (el._bmStatTipFloat) {
+        el._bmStatTipFloat.remove();
+        el._bmStatTipFloat = null;
+    }
+    el.classList.remove("is-bm-stat-tip-open");
+}
+
+function positionBattleMeterStatTip(el, panel) {
+    clearBattleMeterStatTip(el);
+    const spec = panel?.dataset?.specialty;
+    if (!spec) return;
+
+    const floatTip = document.createElement("div");
+    floatTip.className = "battle-meter-stat-tip-float";
+    floatTip.innerHTML = `Specializes: <span class="bm-specialty-name">${getBattleSpecialtyLabel(spec)}</span>`;
+    el._bmStatTipFloat = positionBattleMeterFloatTip(el, floatTip, el.dataset.tipSide || "right");
+    el.classList.add("is-bm-stat-tip-open");
+}
+
+function bindBattleMeterStatTips(panel, side) {
+    if (!panel) return;
+    const prefer = side === "player" ? "right" : "left";
+    panel.querySelectorAll(".bm-atk-line, .bm-vitals .stat-row, .bm-stats .st-cell").forEach(el => {
+        el.dataset.tipSide = prefer;
+        if (el._bmStatTipBound) return;
+        el._bmStatTipBound = true;
+        el.addEventListener("mouseenter", () => positionBattleMeterStatTip(el, panel));
+        el.addEventListener("mouseleave", () => clearBattleMeterStatTip(el));
+    });
+}
+
+function positionBattleMeterSkillTip(square) {
+    clearBattleMeterSkillTip(square);
+    const tip = square.querySelector(".skill-tip");
+    if (!tip) return;
+
+    const floatTip = tip.cloneNode(true);
+    floatTip.classList.add("battle-meter-skill-tip-float");
+    square._bmTipFloat = positionBattleMeterFloatTip(square, floatTip, square.dataset.tipSide || "right");
     square.classList.add("is-bm-tip-open");
 }
 
@@ -7656,6 +7734,7 @@ function updateBattleMeterStats(side, fighter) {
     const sp = fighter.stats?.specialty;
     const panel = document.getElementById("battle-meter-" + side);
     if (panel) {
+        panel.dataset.specialty = sp || "";
         panel.querySelectorAll(".st-cell[data-stat]").forEach(cell => {
             cell.classList.toggle("gold", cell.dataset.stat === sp);
         });
