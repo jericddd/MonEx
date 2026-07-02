@@ -1499,6 +1499,11 @@ button,
     position: relative;
     z-index: 2;
     filter: drop-shadow(0 6px 5px rgba(0,0,0,0.45));
+    transform-origin: center bottom;
+}
+.bsprite.battle-sprite-chog-swing2 {
+    width: 166px;
+    height: 166px;
 }
 .nameplate {
     background: rgba(255,255,255,0.92);
@@ -2249,6 +2254,10 @@ body.afk-layout .currency-pill .currency-tip {
     display: block;
     flex-shrink: 0;
     transform-origin: center bottom;
+}
+.scene-idle-sprite.scene-sprite-chog-swing2 {
+    width: calc(var(--scene-fighter-size, 88px) * 1.11);
+    height: calc(var(--scene-fighter-size, 88px) * 1.11);
 }
 .scene-idle-fighter.dash-sweep .scene-idle-sprite {
     filter: brightness(1.15);
@@ -4420,25 +4429,28 @@ const SCENE_IDLE_SPRITE_SCALE = {
 };
 const SCENE_IDLE_SPRITE_SCALE_DEFAULT = 1.0;
 
-// Extra scale for GIFs with larger canvas padding so they match in-scene size of sibling swings.
-const SPRITE_PATH_SCALE = {
-    "128x128/chog-swing2.gif": 1.16,
-};
+const CHOG_SWING2_PATH = "128x128/chog-swing2.gif";
 
-function getSpritePathScale(spritePath) {
-    const key = normalizeSpritePath(spritePath);
-    return SPRITE_PATH_SCALE[key] ?? 1;
+function isChogSwing2Path(spritePath) {
+    return normalizeSpritePath(spritePath) === CHOG_SWING2_PATH;
+}
+
+function syncSpritePathClasses(imgEl, spritePath) {
+    if (!imgEl) return;
+    const isSwing2 = isChogSwing2Path(spritePath || imgEl.src);
+    imgEl.classList.toggle("battle-sprite-chog-swing2", isSwing2 && imgEl.classList.contains("bsprite"));
+    imgEl.classList.toggle("scene-sprite-chog-swing2", isSwing2 && imgEl.classList.contains("scene-idle-sprite"));
 }
 
 function getSceneIdleSpriteTransform(monName, mirrored, spritePath) {
     const speciesScale = SCENE_IDLE_SPRITE_SCALE[monName] ?? SCENE_IDLE_SPRITE_SCALE_DEFAULT;
-    const scale = speciesScale * getSpritePathScale(spritePath);
-    return mirrored ? `scale(${scale}) scaleX(-1)` : `scale(${scale})`;
+    return mirrored ? `scale(${speciesScale}) scaleX(-1)` : `scale(${speciesScale})`;
 }
 
 function applySceneIdleSpriteTransform(imgEl, monName, mirrored, spritePath) {
     if (!imgEl) return;
-    imgEl.style.transform = getSceneIdleSpriteTransform(monName, mirrored, spritePath || imgEl.src);
+    syncSpritePathClasses(imgEl, spritePath);
+    imgEl.style.transform = getSceneIdleSpriteTransform(monName, mirrored, spritePath);
 }
 
 function getSceneIdleBodyShadowHtml(monName) {
@@ -5490,9 +5502,9 @@ async function replayBattleAttackGif(side, src, name) {
     if (!sprite || !src) return;
     sprite.style.visibility = "visible";
     bindBattleImgFallback(sprite, name);
-    applyBattleSpritePresentation(sprite, side, name, src);
     if (!src.endsWith(".gif")) {
         sprite.src = src;
+        applyBattleSpritePresentation(sprite, side, name, src);
         return;
     }
     await new Promise(resolve => {
@@ -5503,6 +5515,8 @@ async function replayBattleAttackGif(side, src, name) {
             settled = true;
             sprite.removeEventListener("load", finish);
             sprite.removeEventListener("error", finish);
+            sprite.src = url;
+            applyBattleSpritePresentation(sprite, side, name, src);
             requestAnimationFrame(() => requestAnimationFrame(resolve));
         };
         sprite.addEventListener("load", finish);
@@ -5526,16 +5540,13 @@ function setBattleSprite(side, src, name, replayGif) {
 }
 
 function getBattleSpriteTransform(side, name, spritePath) {
-    const pathScale = getSpritePathScale(spritePath);
     const mirror = shouldMirrorBattleSprite(side, name);
-    const parts = [];
-    if (pathScale !== 1) parts.push(`scale(${pathScale})`);
-    if (mirror) parts.push("scaleX(-1)");
-    return parts.length ? parts.join(" ") : "";
+    return mirror ? "scaleX(-1)" : "";
 }
 
 function applyBattleSpritePresentation(spriteEl, side, name, spritePath) {
     if (!spriteEl) return;
+    syncSpritePathClasses(spriteEl, spritePath);
     spriteEl.style.transform = getBattleSpriteTransform(side, name, spritePath || spriteEl.src);
     spriteEl.classList.toggle("mirrored", shouldMirrorBattleSprite(side, name));
 }
