@@ -1031,8 +1031,8 @@ button,
     width: 170px;
     z-index: 4;
 }
-.fighter-wrap.player { left: 10%; bottom: 32%; top: auto; }
-.fighter-wrap.enemy { right: 10%; bottom: 32%; top: auto; }
+.fighter-wrap.player { left: 21%; bottom: 32%; top: auto; }
+.fighter-wrap.enemy { right: 21%; bottom: 32%; top: auto; }
 .battle-stage.attack-anim-active,
 .battle-scene.attack-anim-active {
     overflow: visible;
@@ -1129,6 +1129,177 @@ button,
 .status-pill.burn { background: #dc2626; }
 .status-pill.renew { background: #ea580c; }
 .status-pill.lifebloom { background: #16a34a; }
+
+/* ===== Pockie-style battle meter (side panels) ===== */
+.battle-meter-panel {
+    position: absolute;
+    top: 19%;
+    bottom: 6%;
+    width: 172px;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 9px 10px;
+    box-sizing: border-box;
+    background: rgba(24, 16, 16, 0.72);
+    border: 2px solid rgba(255, 255, 255, 0.22);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35), 0 4px 14px rgba(0, 0, 0, 0.35);
+    pointer-events: auto;
+    overflow: visible;
+}
+.battle-meter-panel--player { left: 6px; }
+.battle-meter-panel--enemy { right: 6px; }
+.bm-head {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+    padding-bottom: 5px;
+}
+.bm-trainer {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    line-height: 1.45;
+    color: #f8fafc;
+    text-shadow: 0 1px 2px #000;
+    word-break: break-word;
+}
+.bm-lv {
+    font-family: 'Lato', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    color: #fde68a;
+}
+.bm-mon {
+    margin-top: 3px;
+    font-family: 'Lato', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: #e9d5ff;
+    text-transform: capitalize;
+}
+.battle-meter-panel--enemy .bm-head { text-align: right; }
+.bm-vitals { display: flex; flex-direction: column; gap: 4px; }
+.bm-bar-row {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    align-items: center;
+    gap: 5px;
+}
+.bm-bar-label {
+    font-family: 'Lato', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: #f1f5f9;
+    text-transform: capitalize;
+}
+.bm-bar {
+    position: relative;
+    min-width: 0;
+    height: 14px;
+}
+.bm-bar.manbar { height: 10px; }
+.bm-bar .hptext,
+.bm-bar .bm-mantext {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Lato', sans-serif;
+    font-size: 8px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 0 2px #000;
+    line-height: 1;
+    pointer-events: none;
+}
+.bm-shield {
+    font-family: 'Lato', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: #cbd5e1;
+    padding-left: 2px;
+}
+.battle-meter-panel--enemy .bm-shield { text-align: right; padding-right: 2px; padding-left: 0; }
+.bm-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding-top: 2px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.bm-stat-row,
+.bm-stat-pair {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px;
+    font-family: 'Lato', sans-serif;
+    font-size: 10px;
+    line-height: 1.35;
+    color: #f8fafc;
+}
+.bm-stat-pair { gap: 8px; }
+.bm-stat-half {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+    min-width: 0;
+}
+.bm-stat-label {
+    color: #cbd5e1;
+    font-weight: 400;
+    white-space: nowrap;
+}
+.bm-stat-val {
+    font-weight: 700;
+    color: #fff;
+    text-align: right;
+}
+.battle-meter-panel--enemy .bm-stat-row { flex-direction: row-reverse; }
+.battle-meter-panel--enemy .bm-stat-half { flex-direction: row-reverse; }
+.battle-meter-panel--enemy .bm-stat-val { text-align: left; }
+.bm-skills {
+    flex: 1;
+    min-height: 0;
+    overflow: visible;
+    margin-top: 2px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.battle-meter-skills-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    justify-items: center;
+}
+.battle-meter-skills-grid .skill-square {
+    width: 30px;
+    height: 30px;
+    cursor: help;
+}
+.battle-meter-skills-grid .skill-square .skill-icon-img {
+    width: 24px;
+    height: 24px;
+}
+.battle-meter-panel--player .battle-meter-skills-grid .skill-square .skill-tip {
+    left: 0;
+    bottom: auto;
+    top: 50%;
+    transform: translate(calc(-100% - 8px), -50%);
+}
+.battle-meter-panel--enemy .battle-meter-skills-grid .skill-square .skill-tip {
+    left: auto;
+    right: 0;
+    bottom: auto;
+    top: 50%;
+    transform: translate(calc(100% + 8px), -50%);
+}
+.battle-meter-skills-grid .skill-square:hover {
+    transform: scale(1.12);
+    z-index: 20;
+}
+
 .vs-badge {
     flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%;
     background: radial-gradient(circle at 30% 30%, #fde68a, #f59e0b);
@@ -3104,6 +3275,24 @@ body.afk-layout .currency-pill .currency-tip {
         gap: var(--rail-gap);
     }
     .battle-scene { bottom: 0; }
+    .battle-meter-panel {
+        width: 128px;
+        top: 21%;
+        bottom: 5%;
+        padding: 6px 6px 8px;
+    }
+    .battle-meter-panel--player { left: 2px; }
+    .battle-meter-panel--enemy { right: 2px; }
+    .bm-trainer { font-size: 6px; }
+    .bm-mon { font-size: 10px; }
+    .bm-bar-row { grid-template-columns: 28px 1fr; }
+    .bm-stat-row, .bm-stat-pair, .bm-shield { font-size: 9px; }
+    .battle-meter-skills-grid { grid-template-columns: repeat(3, 1fr); gap: 3px; }
+    .battle-meter-skills-grid .skill-square { width: 26px; height: 26px; }
+    .battle-meter-skills-grid .skill-square .skill-icon-img { width: 20px; height: 20px; }
+    .fighter-wrap.player { left: 18%; }
+    .fighter-wrap.enemy { right: 18%; }
+    .bsprite { width: 118px; height: 118px; }
     .side-icon-btn .rail-tip {
         right: auto;
         top: auto;
@@ -4184,6 +4373,7 @@ const NORMAL_ATTACK_SKILL = {
     manaGain: NORMAL_ATTACK_MANA_GAIN,
     desc: "A basic strike. Damage scales with level and gear. Restores mana."
 };
+const BATTLE_METER_DUMMY_DEFENDER = { skills: [], status: [], battleId: "__meter__" };
 const POISON_TICK_PCT = 0.03;
 const BURN_TICK_PCT = 0.06;
 const BURN_TURNS = 3;
@@ -4983,6 +5173,89 @@ function renderSkillTip(mon, skill) {
     </div>`;
 }
 
+function formatHealSkillDetailForFighter(fighter, skill) {
+    const atk = getEffectiveAtkPower(fighter);
+    const heal = calculateHealAmount(fighter, skill);
+    const parts = [];
+    if (skill.healPower > 0) {
+        parts.push("Heal: " + heal + " HP (ATK " + atk + " × " + skill.healPower + ")");
+    }
+    const buff = skill.selfBuff;
+    if (buff?.statMods?.atkPct != null) {
+        parts.push("+" + Math.round(buff.statMods.atkPct * 100) + "% ATK for " + buff.turns + (buff.turns === 1 ? " turn" : " turns"));
+    }
+    if (buff?.statMods?.critChance != null) {
+        parts.push("+" + buff.statMods.critChance + "% crit chance for " + buff.turns + (buff.turns === 1 ? " turn" : " turns"));
+    }
+    return parts.join(" · ");
+}
+
+function getSkillStatsLineForFighter(fighter, skill) {
+    if (skill.type === "passive") return formatPassiveDetail(skill);
+    const manaPart = (skill.type === "active" || skill.type === "heal" || skill.type === "ultimate")
+        ? "Mana: " + getSkillManaCost(skill) : "";
+    if (skill.type === "normal") {
+        const dmg = calculateDamage(fighter, BATTLE_METER_DUMMY_DEFENDER, skill);
+        const dmgPart = "DMG: " + dmg + " (basic strike)";
+        return [dmgPart, "Restores " + (skill.manaGain || NORMAL_ATTACK_MANA_GAIN) + " mana"].join(" · ");
+    }
+    if (skill.cleanse) {
+        const cleansePart = "Removes Frozen, Poison & Burn (not Stun)";
+        return manaPart ? manaPart + " · " + cleansePart : cleansePart;
+    }
+    if (skill.effect?.type === "poison") {
+        const poisonPart = "Poison: " + Math.round(POISON_TICK_PCT * 100) + "% max HP/turn until faint";
+        return manaPart ? manaPart + " · " + poisonPart : poisonPart;
+    }
+    if (skill.effect?.type === "burn") {
+        const turns = skill.effect.turns ?? BURN_TURNS;
+        const burnPart = "Burn: " + Math.round(BURN_TICK_PCT * 100) + "% max HP/turn for " + turns + " turns";
+        return manaPart ? manaPart + " · " + burnPart : burnPart;
+    }
+    if (skill.effect) {
+        const fx = skill.effect.type === "stun" ? "Stuns (skip turn)"
+            : skill.effect.type === "frozen" ? "Freezes (heal/cleanse only)"
+            : "";
+        if (skill.type === "heal") {
+            const healPart = formatHealSkillDetailForFighter(fighter, skill);
+            return [manaPart, healPart, fx].filter(Boolean).join(" · ");
+        }
+        if (skill.type === "ultimate" || skill.type === "active") {
+            const dmg = calculateDamage(fighter, BATTLE_METER_DUMMY_DEFENDER, skill);
+            const dmgPart = skill.power > 0
+                ? "DMG: " + dmg + " (ATK " + getEffectiveAtkPower(fighter) + " × " + skill.power + ")"
+                : "No direct damage";
+            return [manaPart, dmgPart, fx].filter(Boolean).join(" · ");
+        }
+    }
+    if (skill.type === "heal") {
+        const healPart = formatHealSkillDetailForFighter(fighter, skill) || "No HP restore";
+        return manaPart ? manaPart + " · " + healPart : healPart;
+    }
+    if (skill.type === "ultimate" || skill.type === "active") {
+        const dmg = calculateDamage(fighter, BATTLE_METER_DUMMY_DEFENDER, skill);
+        const dmgPart = skill.power > 0
+            ? "DMG: " + dmg + " (ATK " + getEffectiveAtkPower(fighter) + " × " + skill.power + ")"
+            : "No direct damage";
+        return manaPart ? manaPart + " · " + dmgPart : dmgPart;
+    }
+    return manaPart;
+}
+
+function renderSkillTipForFighter(fighter, skill) {
+    const typeLabel = skill.type === "heal" ? "HEAL"
+        : skill.type === "normal" ? "NORMAL"
+        : (skill.type || "active").toUpperCase();
+    const elem = skill.element && skill.element !== "passive" ? skill.element.toUpperCase() : "";
+    const stats = getSkillStatsLineForFighter(fighter, skill);
+    return `<div class="skill-tip">
+        <div class="skill-tip-name">${skill.name}</div>
+        <div class="skill-tip-type">${typeLabel}${elem ? " · " + elem : ""}</div>
+        <div class="skill-tip-desc">${skill.desc || ""}</div>
+        ${stats ? `<div class="skill-tip-stats">${stats}</div>` : ""}
+    </div>`;
+}
+
 // Card "i" info icon: hover to reveal paired combat stats (includes gear bonuses).
 function renderStatsInfo(mon) {
     const eff = getEffectiveStats(mon);
@@ -5593,6 +5866,9 @@ function renderStatusRow(side, fighter) {
     el.innerHTML = (fighter.status || []).map(st =>
         `<span class="status-pill ${st.id}">${labels[st.id] || st.id.toUpperCase()}</span>`
     ).join("");
+    updateBattleMeterStats(side, fighter);
+    const sh = document.getElementById("bm-shield-" + side);
+    if (sh) sh.textContent = "Shield: " + getBattleShield(fighter);
 }
 
 function calculateDamage(attacker, defender, skill) {
@@ -7044,16 +7320,22 @@ function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // Build an in-battle fighter. Player fighters reference the real party mon so
 // their HP can be written back (it persists after the battle).
-function makeFighter(mon, isPlayer) {
+function makeFighter(mon, isPlayer, options = {}) {
     ensureMonReady(mon);
     const eff = isPlayer ? getEffectiveStats(mon) : null;
     const stats = isPlayer ? {
         spd: eff.spd, crit: eff.crit, dodge: eff.dodge, block: eff.block,
         hit: eff.hit, pierce: eff.pierce, specialty: eff.specialty
     } : { ...mon.stats };
+    const trainerName = options.trainerName != null
+        ? options.trainerName
+        : (isPlayer
+            ? (currentUser ? String(currentUser).replace(/^@/, "") : "Trainer")
+            : "Enemy");
     return {
         ref: isPlayer ? mon : null,
         name: mon.name, rarity: mon.rarity, level: Math.floor(mon.level),
+        trainerName,
         maxHp: mon.max_hp,
         hp: isPlayer ? Math.max(0, mon.current_hp) : mon.max_hp,
         atkPower: isPlayer ? eff.atk : getBaseAtk(Math.floor(mon.level), mon.rarity),
@@ -7131,6 +7413,8 @@ function renderBattleScene() {
                     <button type="button" class="battle-pause-btn" id="battle-pause-btn" onclick="openBattlePauseMenu()">⏸ PAUSE</button>
                 </div>
             </div>
+            ${renderBattleMeterPanelHtml("player")}
+            ${renderBattleMeterPanelHtml("enemy")}
             <div class="stage-label${boss ? ' boss-label' : ''}">${boss ? 'BOSS — ' : ''}CH.${currentChapter} STAGE ${currentStage}</div>
             <img class="battle-stage-path" src="${BATTLE_STAGE_PATH}" alt="" aria-hidden="true">
             <div class="fighter-wrap enemy" id="wrap-enemy">
@@ -7148,6 +7432,140 @@ function renderBattleScene() {
     requestAnimationFrame(() => syncCoverStages());
 }
 
+function renderBattleMeterPanelHtml(side) {
+    const align = side === "player" ? "player" : "enemy";
+    return `
+        <aside class="battle-meter-panel battle-meter-panel--${align}" id="battle-meter-${side}" aria-label="${align} battle meter">
+            <div class="bm-head">
+                <div class="bm-trainer" id="bm-trainer-${side}"></div>
+                <div class="bm-mon" id="bm-mon-${side}"></div>
+            </div>
+            <div class="bm-vitals">
+                <div class="bm-bar-row">
+                    <span class="bm-bar-label">Hp</span>
+                    <div class="bm-bar hpbar"><div class="hpfill" id="bm-hp-${side}"></div><span class="hptext" id="bm-hptext-${side}"></span></div>
+                </div>
+                <div class="bm-bar-row">
+                    <span class="bm-bar-label">Mana</span>
+                    <div class="bm-bar manbar"><div class="manfill" id="bm-mana-${side}"></div><span class="bm-mantext" id="bm-mantext-${side}"></span></div>
+                </div>
+                <div class="bm-shield" id="bm-shield-${side}">Shield: 0</div>
+            </div>
+            <div class="bm-stats">
+                <div class="bm-stat-row"><span class="bm-stat-label">Attack:</span><span class="bm-stat-val" id="bm-atk-${side}">0</span></div>
+                <div class="bm-stat-row"><span class="bm-stat-label">Speed:</span><span class="bm-stat-val" id="bm-spd-${side}">0</span></div>
+                <div class="bm-stat-row"><span class="bm-stat-label">Crit:</span><span class="bm-stat-val" id="bm-crit-${side}">0</span></div>
+                <div class="bm-stat-pair">
+                    <div class="bm-stat-half"><span class="bm-stat-label">Pierce:</span><span class="bm-stat-val" id="bm-pierce-${side}">0</span></div>
+                    <div class="bm-stat-half"><span class="bm-stat-label">Block:</span><span class="bm-stat-val" id="bm-block-${side}">0</span></div>
+                </div>
+                <div class="bm-stat-pair">
+                    <div class="bm-stat-half"><span class="bm-stat-label">Hit:</span><span class="bm-stat-val" id="bm-hit-${side}">0</span></div>
+                    <div class="bm-stat-half"><span class="bm-stat-label">Dodge:</span><span class="bm-stat-val" id="bm-dodge-${side}">0</span></div>
+                </div>
+            </div>
+            <div class="bm-skills" id="bm-skills-${side}"></div>
+        </aside>`;
+}
+
+function getBattleShield(fighter) {
+    let shield = 0;
+    for (const st of fighter.status || []) {
+        if (st.statMods?.shield != null) shield += st.statMods.shield;
+        if (st.shield != null) shield += st.shield;
+    }
+    return Math.max(0, Math.round(shield));
+}
+
+function getBattleAttackRange(fighter) {
+    const damages = [calculateDamage(fighter, BATTLE_METER_DUMMY_DEFENDER, NORMAL_ATTACK_SKILL)];
+    const skillSources = [fighter.ultimate, ...(fighter.skills || [])];
+    skillSources.forEach(skill => {
+        if (!skill) return;
+        if ((skill.type === "active" || skill.type === "ultimate") && (skill.power || 0) > 0) {
+            damages.push(calculateDamage(fighter, BATTLE_METER_DUMMY_DEFENDER, skill));
+        }
+    });
+    const positive = damages.filter(d => d > 0);
+    if (!positive.length) return { min: 0, max: 0 };
+    return { min: Math.min(...positive), max: Math.max(...positive) };
+}
+
+function renderBattleMeterSkills(side, fighter) {
+    const el = document.getElementById("bm-skills-" + side);
+    if (!el || !fighter) return;
+    const squares = (fighter.skills || []).map((skill, i) => {
+        const cls = getSkillSquareClass(skill, i);
+        return `<div class="skill-square ${cls}" data-type="${skill.type}" data-slot="${i + 1}">
+            ${getSkillIcon(skill)}
+            ${renderSkillTipForFighter(fighter, skill)}
+        </div>`;
+    }).join("");
+    el.innerHTML = `<div class="battle-meter-skills-grid">${squares}</div>`;
+}
+
+function updateBattleMeterVitals(side, fighter) {
+    if (!fighter) return;
+    const pct = Math.max(0, Math.min(100, (fighter.hp / fighter.maxHp) * 100));
+    const hf = document.getElementById("bm-hp-" + side);
+    if (hf) {
+        hf.style.width = pct + "%";
+        hf.style.background = pct > 50 ? "#22c55e" : pct > 25 ? "#f59e0b" : "#ef4444";
+    }
+    const hpt = document.getElementById("bm-hptext-" + side);
+    if (hpt) hpt.textContent = Math.max(0, Math.ceil(fighter.hp)) + " / " + fighter.maxHp;
+    const manaPct = Math.min(100, (fighter.mana / fighter.maxMana) * 100);
+    const mf = document.getElementById("bm-mana-" + side);
+    if (mf) mf.style.width = manaPct + "%";
+    const mt = document.getElementById("bm-mantext-" + side);
+    if (mt) mt.textContent = Math.floor(fighter.mana) + " / " + fighter.maxMana;
+    const sh = document.getElementById("bm-shield-" + side);
+    if (sh) sh.textContent = "Shield: " + getBattleShield(fighter);
+}
+
+function updateBattleMeterStats(side, fighter) {
+    if (!fighter) return;
+    const range = getBattleAttackRange(fighter);
+    const atkEl = document.getElementById("bm-atk-" + side);
+    if (atkEl) {
+        atkEl.textContent = range.min === range.max
+            ? String(range.max)
+            : (range.min + " - " + range.max);
+    }
+    const setStat = (prefix, val) => {
+        const el = document.getElementById(prefix + side);
+        if (el) el.textContent = val;
+    };
+    setStat("bm-spd-", getBattleStat(fighter, "spd"));
+    setStat("bm-crit-", getCritDamageRating(fighter));
+    setStat("bm-pierce-", getBattleStat(fighter, "pierce"));
+    setStat("bm-block-", getBattleStat(fighter, "block"));
+    setStat("bm-hit-", getBattleStat(fighter, "hit"));
+    setStat("bm-dodge-", getBattleStat(fighter, "dodge"));
+}
+
+function updateBattleMeterIdentity(side, fighter) {
+    if (!fighter) return;
+    const trainerEl = document.getElementById("bm-trainer-" + side);
+    if (trainerEl) {
+        trainerEl.textContent = "";
+        trainerEl.append(
+            document.createTextNode(fighter.trainerName || (side === "player" ? "Trainer" : "Enemy") + " "),
+            Object.assign(document.createElement("span"), { className: "bm-lv", textContent: "LV: " + fighter.level })
+        );
+    }
+    const monEl = document.getElementById("bm-mon-" + side);
+    if (monEl) monEl.textContent = fighter.name;
+}
+
+function updateBattleMeter(side, fighter) {
+    if (!fighter || !document.getElementById("battle-meter-" + side)) return;
+    updateBattleMeterIdentity(side, fighter);
+    updateBattleMeterVitals(side, fighter);
+    updateBattleMeterStats(side, fighter);
+    renderBattleMeterSkills(side, fighter);
+}
+
 function setFighter(side, f) {
     setBattleSprite(side, f.sprite, f.name, false);
     const portrait = document.getElementById("portrait-" + side);
@@ -7161,6 +7579,7 @@ function setFighter(side, f) {
     document.getElementById("np-lv-" + side).textContent = "Lv." + f.level;
     updateBars(side, f);
     renderStatusRow(side, f);
+    updateBattleMeter(side, f);
 }
 
 function updateBars(side, f) {
@@ -7172,6 +7591,8 @@ function updateBars(side, f) {
     const manaEl = document.getElementById("mana-" + side);
     if (manaEl) manaEl.style.width = Math.min(100, (f.mana / f.maxMana) * 100) + "%";
     document.getElementById("en-" + side).style.width = Math.min(100, f.energy) + "%";
+    updateBattleMeterVitals(side, f);
+    updateBattleMeterStats(side, f);
 }
 
 function renderTeam(side, team, curIdx) {
