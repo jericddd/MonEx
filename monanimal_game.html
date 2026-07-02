@@ -1595,6 +1595,26 @@ button,
     font-size: 36px;
     box-shadow: 0 0 24px rgba(245, 158, 11, 0.85);
 }
+.fx.fx-skill.fx-skill-small .fx-skill-icon {
+    width: 16px;
+    height: 16px;
+}
+.fx-ultimate.fx-skill-small .fx-skill-icon {
+    width: 24px;
+    height: 24px;
+}
+.fx.fx-skill.fx-skill-small .fx-skill-fallback {
+    width: 16px;
+    height: 16px;
+    font-size: 6px;
+    border-width: 1px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+.fx-ultimate.fx-skill-small .fx-skill-fallback {
+    width: 24px;
+    height: 24px;
+    font-size: 9px;
+}
 .fx-ultimate { font-size: 120px; animation: fxpop 1s ease-out forwards; }
 @keyframes fxpop {
     0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(-15deg); }
@@ -8611,13 +8631,13 @@ function getSkillBodyFxHtml(skill) {
     return `<img class="fx-skill-icon" src="${path}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fx-skill-fallback',textContent:'${fb}'}))">`;
 }
 
-function playSkillBodyFx(side, skill, isUltimate) {
+function playSkillBodyFx(side, skill, isUltimate, options = {}) {
     const stage = document.getElementById("battle-stage");
     const sprite = document.getElementById("sprite-" + side);
     if (!stage || !sprite) return;
     const sR = sprite.getBoundingClientRect(), stR = stage.getBoundingClientRect();
     const fx = document.createElement("div");
-    fx.className = "fx fx-skill" + (isUltimate ? " fx-ultimate" : "");
+    fx.className = "fx fx-skill" + (isUltimate ? " fx-ultimate" : "") + (options.small ? " fx-skill-small" : "");
     fx.innerHTML = getSkillBodyFxHtml(skill);
     fx.style.left = (sR.left - stR.left + sR.width / 2) + "px";
     fx.style.top = (sR.top - stR.top + sR.height / 2) + "px";
@@ -8625,9 +8645,14 @@ function playSkillBodyFx(side, skill, isUltimate) {
     setTimeout(() => fx.remove(), isUltimate ? 1000 : 650);
 }
 
-function showSkillBodyFxForTurn(skill, atkSide, defSide, isUlt) {
+function showSkillBodyFxForTurn(skill, atkSide, defSide, isUlt, options = {}) {
     const isSelfFx = skill.type === "heal" || !!skill.selfBuff;
-    playSkillBodyFx(isSelfFx ? atkSide : defSide, skill, isUlt);
+    playSkillBodyFx(isSelfFx ? atkSide : defSide, skill, isUlt, options);
+}
+
+function showAttackSkillBodyFx(defSide, skill, isUlt, outcome = "hit") {
+    const small = outcome === "block";
+    playSkillBodyFx(defSide, skill, isUlt, { small });
 }
 
 function showDamage(side, amount, kind) {
@@ -8922,11 +8947,11 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     } else {
         await approach(atkSide, defSide);
     }
-    showSkillBodyFxForTurn(skill, atkSide, defSide, isUlt);
 
     const effDodge = defenderCanEvade ? getEffectiveDodge(def, atk) : 0;
     if (effDodge > 0 && Math.random() * 100 < effDodge) {
         await playDodgeEvade(defSide);
+        showAttackSkillBodyFx(defSide, skill, isUlt, "dodge");
         showDamage(defSide, 0, "miss");
         showSkillCallout(defSide, "DODGE!", { status: true });
         finishTurn();
@@ -8946,6 +8971,8 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         if (effBlock > 0 && Math.random() * 100 < effBlock) { dmg = Math.floor(dmg * 0.5); blocked = true; }
         dmg = Math.max(1, dmg);
 
+        showAttackSkillBodyFx(defSide, skill, isUlt, blocked ? "block" : "hit");
+
         def.hp = Math.max(0, def.hp - dmg);
         const dw = document.getElementById("wrap-" + defSide);
         dw.classList.add(blocked ? "block-shake" : "hit-shake");
@@ -8957,6 +8984,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         }
         breakFrozenOnHit(def, dmg);
     } else if (poisonOnly) {
+        showAttackSkillBodyFx(defSide, skill, isUlt, "hit");
         showDamage(defSide, 0, "poison");
     }
 
