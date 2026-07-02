@@ -20,7 +20,8 @@
     --rail-column-width: 104px;
     --rail-pad-y: 7px;
     --rail-pad-x: 10px;
-    --rail-gap: 6px;
+    --rail-panel-pad: 8px;
+    --rail-gap: 4px;
     --rail-offset-top: 54px;
     --rail-tab-border: #92400e;
     --rail-tab-bg: #ffffffb8;
@@ -2594,45 +2595,42 @@ body.afk-layout .currency-pill .currency-tip {
     top: 0;
     bottom: 0;
     width: var(--rail-column-width);
-    background: transparent;
-    border: none;
+    background: var(--rail-tab-bg);
+    border: 3px solid var(--rail-tab-border);
+    box-shadow: var(--rail-tab-shadow);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding: var(--rail-offset-top) var(--rail-pad-x) var(--rail-pad-y);
+    padding: var(--rail-offset-top) var(--rail-panel-pad) var(--rail-panel-pad);
     gap: var(--rail-gap);
     z-index: 10;
     box-sizing: border-box;
-    pointer-events: none;
+    pointer-events: auto;
 }
 .left-rail { left: 0; }
 .side-rail { right: 0; }
-.side-rail .side-icon-btn,
-.left-rail .side-icon-btn {
-    pointer-events: auto;
-}
 .side-icon-btn {
     width: var(--rail-btn-size);
     height: var(--rail-btn-size);
-    border: 3px solid var(--rail-tab-border);
+    border: none;
     border-radius: 0;
-    background: var(--rail-tab-bg);
-    box-shadow: var(--rail-tab-shadow);
+    background: transparent;
+    box-shadow: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
+    padding: 0;
     position: relative;
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
     flex-shrink: 0;
     box-sizing: border-box;
     overflow: visible;
 }
 .side-icon-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--rail-tab-shadow-hover);
+    transform: none;
+    box-shadow: none;
+    background: transparent;
 }
 .side-icon-btn:hover::before { display: none !important; }
 .side-icon-btn img {
@@ -2643,10 +2641,14 @@ body.afk-layout .currency-pill .currency-tip {
     object-position: center;
     image-rendering: pixelated;
     filter: none;
-    transition: none;
+    transition: transform 0.12s ease;
     position: relative;
     z-index: 1;
     transform-origin: center center;
+    transform: scale(var(--rail-icon-scale, 1));
+}
+.side-icon-btn:hover img {
+    transform: scale(calc(var(--rail-icon-scale, 1) * 1.1));
 }
 .side-icon-btn > span:not(.rail-tip) {
     position: relative;
@@ -2683,11 +2685,13 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .side-icon-btn:hover .rail-tip { display: block; }
 .side-icon-btn.active {
-    transform: translateY(1px);
-    box-shadow: var(--rail-tab-shadow-active);
+    transform: none;
+    box-shadow: none;
+    background: transparent;
 }
 .side-icon-btn.active img {
     filter: none;
+    transform: scale(calc(var(--rail-icon-scale, 1) * 1.06));
 }
 
 .battle-scene {
@@ -3942,7 +3946,7 @@ body.afk-layout .currency-pill .currency-tip {
     .resource-chest-timer-mini {
         font-size: 6px;
     }
-    :root { --scene-fighter-size: 122px; --rail-icon-max: 40px; --rail-btn-size: 48px; --rail-pad-y: 4px; --rail-pad-x: 4px; --rail-gap: 4px; }
+    :root { --scene-fighter-size: 122px; --rail-icon-max: 40px; --rail-btn-size: 48px; --rail-pad-y: 4px; --rail-pad-x: 4px; --rail-panel-pad: 6px; --rail-gap: 2px; }
     .side-rail,
     .left-rail {
         position: absolute;
@@ -3950,13 +3954,15 @@ body.afk-layout .currency-pill .currency-tip {
         right: 0;
         top: auto;
         bottom: 0;
-        width: 100%;
+        width: auto;
+        max-width: calc(100% - 16px);
         height: auto;
         flex-direction: row;
         justify-content: center;
-        flex-wrap: wrap;
-        padding: var(--rail-pad-y) var(--rail-pad-x);
+        flex-wrap: nowrap;
+        padding: var(--rail-panel-pad);
         gap: var(--rail-gap);
+        margin: 0 8px 8px;
     }
     .battle-scene { bottom: 0; }
     .battle-meter-panel {
@@ -4317,7 +4323,8 @@ function normalizeRailTabIconSizes() {
             if (!nw || !nh) return;
             const iconMin = getIconContainMin(nw, nh, box);
             const extra = targetMin / iconMin;
-            img.style.transform = Math.abs(extra - 1) < 0.02 ? "" : `scale(${extra.toFixed(3)})`;
+            img.style.setProperty("--rail-icon-scale", Math.abs(extra - 1) < 0.02 ? "1" : extra.toFixed(3));
+            img.style.transform = "";
         };
         if (img.complete && img.naturalWidth) apply();
         else img.addEventListener("load", apply, { once: true });
