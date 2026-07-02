@@ -4562,7 +4562,7 @@ function renderResourceChestModal() {
         <div class="resource-chest-timer-block">
             <div class="resource-chest-timer-label">COLLECTING TIME</div>
             <div class="resource-chest-timer-value">${elapsed} / 24:00:00</div>
-            <div class="resource-chest-timer-cap">${preview.progress >= 1 ? "Chest is full — collect now!" : "Keeps collecting while you play (max 24h)."}</div>
+            <div class="resource-chest-timer-cap">${preview.progress >= 1 ? "Chest is full — collect now!" : "Keeps collecting while idle (max 24h)."}</div>
         </div>
         <p class="resource-chest-chapter-note">Rewards scale by <b>Chapter ${preview.chapter}</b> progress (updates when you advance to the next chapter).</p>
         <div class="resource-chest-rewards">
