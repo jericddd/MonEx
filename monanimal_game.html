@@ -23,7 +23,7 @@
     --rail-panel-pad: 8px;
     --rail-gap: 4px;
     --rail-offset-top: 54px;
-    --rail-tab-shadow: 4px 4px 0 #78350f;
+    --rail-tab-icon-shadow: drop-shadow(4px 4px 0 #78350f);
 }
 
 body {
@@ -2588,17 +2588,19 @@ body.afk-layout .currency-pill .currency-tip {
 .side-rail,
 .left-rail {
     position: absolute;
-    top: 0;
-    bottom: 0;
-    width: var(--rail-column-width);
+    top: var(--rail-offset-top);
+    bottom: auto;
+    height: auto;
+    width: auto;
+    min-width: var(--rail-btn-size);
     background: transparent;
     border: none;
-    box-shadow: var(--rail-tab-shadow);
+    box-shadow: none;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding: var(--rail-offset-top) var(--rail-panel-pad) var(--rail-panel-pad);
+    padding: var(--rail-panel-pad);
     gap: var(--rail-gap);
     z-index: 10;
     box-sizing: border-box;
@@ -2636,7 +2638,7 @@ body.afk-layout .currency-pill .currency-tip {
     object-fit: contain;
     object-position: center;
     image-rendering: pixelated;
-    filter: none;
+    filter: var(--rail-tab-icon-shadow);
     transition: transform 0.12s ease;
     position: relative;
     z-index: 1;
@@ -2644,6 +2646,7 @@ body.afk-layout .currency-pill .currency-tip {
     transform: scale(var(--rail-icon-scale, 1));
 }
 .side-icon-btn:hover img {
+    filter: var(--rail-tab-icon-shadow);
     transform: scale(calc(var(--rail-icon-scale, 1) * 1.1));
 }
 .side-icon-btn > span:not(.rail-tip) {
@@ -2686,7 +2689,7 @@ body.afk-layout .currency-pill .currency-tip {
     background: transparent;
 }
 .side-icon-btn.active img {
-    filter: none;
+    filter: var(--rail-tab-icon-shadow);
     transform: scale(calc(var(--rail-icon-scale, 1) * 1.06));
 }
 
@@ -4302,14 +4305,15 @@ function getRailIconMaxBox() {
     return parseFloat(v) || 74;
 }
 
-function getIconContainMin(nw, nh, box) {
+function getIconContainSize(nw, nh, box) {
     const s = Math.min(box / nw, box / nh);
-    return Math.min(nw, nh) * s;
+    return { w: nw * s, h: nh * s };
 }
 
 function normalizeRailTabIconSizes() {
     const box = getRailIconMaxBox();
-    const targetMin = getIconContainMin(MONBALL_TAB_ICON_DIMS.w, MONBALL_TAB_ICON_DIMS.h, box);
+    const ref = getIconContainSize(MONBALL_TAB_ICON_DIMS.w, MONBALL_TAB_ICON_DIMS.h, box);
+    const targetH = ref.h;
     document.querySelectorAll(".side-icon-btn img").forEach(img => {
         const src = img.getAttribute("src") || "";
         if (!src.includes("button%20tabs") && !src.includes("button tabs")) return;
@@ -4317,8 +4321,8 @@ function normalizeRailTabIconSizes() {
             const nw = img.naturalWidth;
             const nh = img.naturalHeight;
             if (!nw || !nh) return;
-            const iconMin = getIconContainMin(nw, nh, box);
-            const extra = targetMin / iconMin;
+            const size = getIconContainSize(nw, nh, box);
+            const extra = targetH / size.h;
             img.style.setProperty("--rail-icon-scale", Math.abs(extra - 1) < 0.02 ? "1" : extra.toFixed(3));
             img.style.transform = "";
         };
