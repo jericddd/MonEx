@@ -4847,6 +4847,10 @@ const ANAGO_SWING_SPRITES = [
     "128x128/anago-swing1.gif",
     "128x128/anago-swing2.gif"
 ];
+const CHOG_SWING_SPRITES = [
+    "128x128/chog1-swing.gif",
+    "128x128/chog-swing2.gif"
+];
 
 function isJohnw(name) {
     return String(name || "").toLowerCase() === "johnw";
@@ -4854,6 +4858,10 @@ function isJohnw(name) {
 
 function isAnago(name) {
     return String(name || "").toLowerCase() === "anago";
+}
+
+function isChog(name) {
+    return String(name || "").toLowerCase() === "chog";
 }
 
 function getJohnwIdleSprite() {
@@ -4868,9 +4876,12 @@ function pickAnagoSwingSprite() {
     return ANAGO_SWING_SPRITES[Math.floor(Math.random() * ANAGO_SWING_SPRITES.length)];
 }
 
+function pickChogSwingSprite() {
+    return CHOG_SWING_SPRITES[Math.floor(Math.random() * CHOG_SWING_SPRITES.length)];
+}
+
 const ATTACK_SPRITE_MAP = {
     Molandak: "128x128/molandak1-swing.gif",
-    Chog: "128x128/chog1-swing.gif",
     Johnw: JOHNW_SWING_SPRITES[0]
 };
 
@@ -4885,6 +4896,7 @@ const ATTACK_SPRITE_DURATION_MS = {
 const BATTLE_ATTACK_HIT_AT_MS = {
     "128x128/molandak1-swing.gif": 480,
     "128x128/chog1-swing.gif": 480,
+    "128x128/chog-swing2.gif": 1080,
     "128x128/anago-swing1.gif": 1080,
     "128x128/anago-swing2.gif": 1080,
     "128x128/johnw-swing1.gif": 960,
@@ -4907,6 +4919,7 @@ const SCENE_SPRITE_DURATION_MS = {
     "128x128/anago-swing1.gif": 1920,
     "128x128/anago-swing2.gif": 1920,
     "128x128/chog1-swing.gif": 960,
+    "128x128/chog-swing2.gif": 1920,
     "128x128/molandak1-swing.gif": 960,
     "128x128/chog.gif": 1440,
     "128x128/molandak.gif": 960,
@@ -4958,6 +4971,7 @@ const MELEE_DASH_FALLBACK_PX = 180;
 function getAttackSpritePath(name) {
     if (isJohnw(name)) return pickJohnwSwingSprite();
     if (isAnago(name)) return pickAnagoSwingSprite();
+    if (isChog(name)) return pickChogSwingSprite();
     return ATTACK_SPRITE_MAP[name] || null;
 }
 
@@ -4994,6 +5008,7 @@ function getSceneSpriteDurationMs(spritePath, monName) {
 
 function getSceneSpriteHitAtMs(spritePath, monName, durationMs) {
     const key = normalizeSpritePath(spritePath);
+    if (BATTLE_ATTACK_HIT_AT_MS[key]) return BATTLE_ATTACK_HIT_AT_MS[key];
     if (monName && ATTACK_HIT_AT_MS[monName]) return ATTACK_HIT_AT_MS[monName];
     return Math.floor(durationMs * 0.375);
 }
@@ -5204,28 +5219,16 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
         const attackPath = getAttackSpritePath(atkMon.name);
         const idleSprite = getSceneIdleHomeSprite(atkMon);
         if (attackPath) {
-            if (atkMon.name === "Chog") {
-                setSceneIdleSprite(atkImg, attackPath);
-                const hitAtMs = scaleSceneIdleSpriteMs(ATTACK_HIT_AT_MS.Chog || 360);
-                const durationMs = scaleSceneIdleSpriteMs(ATTACK_SPRITE_DURATION_MS.Chog || 960);
-                await delay(hitAtMs);
-                if (token !== sceneIdleBattleToken) return;
-                sceneIdleShakeHit(defEl);
-                const remain = durationMs - hitAtMs;
-                if (remain > 0) await delay(remain);
-                setSceneIdleSprite(atkImg, idleSprite);
-            } else {
-                setSceneIdleSprite(atkImg, attackPath);
-                const durationMs = getSceneIdleSpriteDurationMs(attackPath, atkMon.name);
-                const hitAtMs = getSceneIdleSpriteHitAtMs(attackPath, atkMon.name);
-                await delay(hitAtMs);
-                if (token !== sceneIdleBattleToken) return;
-                sceneIdleShakeHit(defEl);
-                await waitSceneGifMs(durationMs - hitAtMs, token);
-                if (token !== sceneIdleBattleToken) return;
-                setSceneIdleSprite(atkImg, idleSprite);
-                await waitSceneGifMs(getSceneIdleSpriteDurationMs(idleSprite, atkMon.name), token);
-            }
+            setSceneIdleSprite(atkImg, attackPath);
+            const durationMs = getSceneIdleSpriteDurationMs(attackPath, atkMon.name);
+            const hitAtMs = getSceneIdleSpriteHitAtMs(attackPath, atkMon.name);
+            await delay(hitAtMs);
+            if (token !== sceneIdleBattleToken) return;
+            sceneIdleShakeHit(defEl);
+            await waitSceneGifMs(durationMs - hitAtMs, token);
+            if (token !== sceneIdleBattleToken) return;
+            setSceneIdleSprite(atkImg, idleSprite);
+            await waitSceneGifMs(getSceneIdleSpriteDurationMs(idleSprite, atkMon.name), token);
         } else {
             await delay(scaleSceneIdleSpriteMs(280));
             if (token !== sceneIdleBattleToken) return;
