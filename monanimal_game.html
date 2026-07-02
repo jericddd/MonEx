@@ -1110,35 +1110,43 @@ button,
 }
 .fighter-block-shield {
     position: absolute;
-    left: 50%;
     top: 40%;
-    width: 88px;
-    height: 108px;
-    transform: translate(-50%, -50%) scale(0.4);
+    width: 110px;
+    height: 130px;
+    transform: translate(-50%, -50%) scale(0.55);
     opacity: 0;
-    z-index: 14;
+    z-index: 22;
     pointer-events: none;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+.fighter-wrap.player .fighter-block-shield {
+    left: 74%;
+}
+.fighter-wrap.enemy .fighter-block-shield {
+    left: 26%;
 }
 .fighter-block-shield .block-shield-img {
     width: 100%;
     height: 100%;
     object-fit: contain;
     image-rendering: pixelated;
-    filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.75)) drop-shadow(0 3px 4px rgba(0, 0, 0, 0.45));
+    filter: drop-shadow(0 0 12px rgba(96, 165, 250, 0.85)) drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
 }
-.fighter-wrap.enemy .fighter-block-shield .block-shield-img {
+.fighter-wrap.player .fighter-block-shield .block-shield-img {
     transform: scaleX(-1);
 }
+.fighter-wrap.enemy .fighter-block-shield .block-shield-img {
+    transform: none;
+}
 .fighter-block-shield.show {
-    animation: block-shield-pop 0.55s ease-out forwards;
+    animation: block-shield-pop 0.62s ease-out forwards;
 }
 @keyframes block-shield-pop {
-    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.35); }
-    35% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.15); }
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.45); }
+    30% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.2); }
 }
 .fighter-wrap.dodge-evade .bsprite {
     filter: drop-shadow(0 6px 5px rgba(0,0,0,0.45)) brightness(1.08);
@@ -1488,6 +1496,8 @@ button,
     width: 150px;
     height: 150px;
     object-fit: contain;
+    position: relative;
+    z-index: 2;
     filter: drop-shadow(0 6px 5px rgba(0,0,0,0.45));
 }
 .nameplate {
@@ -8188,13 +8198,13 @@ function renderBattleScene() {
             <img class="battle-stage-path" src="${BATTLE_STAGE_PATH}" alt="" aria-hidden="true">
             <div class="fighter-wrap enemy" id="wrap-enemy">
                 <div class="fighter-skill-callout" id="skill-callout-enemy" aria-hidden="true"></div>
-                <div class="fighter-block-shield" id="block-shield-enemy" aria-hidden="true"><img class="block-shield-img" src="${BLOCK_FX_ICON}" alt=""></div>
                 <img class="bsprite" id="sprite-enemy" alt="">
+                <div class="fighter-block-shield" id="block-shield-enemy" aria-hidden="true"><img class="block-shield-img" src="${BLOCK_FX_ICON}" alt=""></div>
             </div>
             <div class="fighter-wrap player" id="wrap-player">
                 <div class="fighter-skill-callout" id="skill-callout-player" aria-hidden="true"></div>
-                <div class="fighter-block-shield" id="block-shield-player" aria-hidden="true"><img class="block-shield-img" src="${BLOCK_FX_ICON}" alt=""></div>
                 <img class="bsprite" id="sprite-player" alt="">
+                <div class="fighter-block-shield" id="block-shield-player" aria-hidden="true"><img class="block-shield-img" src="${BLOCK_FX_ICON}" alt=""></div>
             </div>
             <div class="fx-layer" id="fx-layer"></div>
             <div class="screen-flash" id="screen-flash"></div>
@@ -8603,10 +8613,20 @@ async function playDodgeEvade(side) {
 function showBlockShield(side) {
     const shield = document.getElementById("block-shield-" + side);
     if (!shield) return;
+    const img = shield.querySelector(".block-shield-img");
+    if (img) {
+        img.src = BLOCK_FX_ICON;
+        img.style.visibility = "visible";
+        img.onerror = null;
+    }
+    shield.setAttribute("aria-hidden", "false");
     shield.classList.remove("show");
     void shield.offsetWidth;
     shield.classList.add("show");
-    setTimeout(() => shield.classList.remove("show"), 580);
+    setTimeout(() => {
+        shield.classList.remove("show");
+        shield.setAttribute("aria-hidden", "true");
+    }, 650);
 }
 
 function showBanner(text, isUlt, side) {
