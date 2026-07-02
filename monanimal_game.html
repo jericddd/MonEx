@@ -1030,6 +1030,129 @@ button,
     gap: 6px;
     width: 170px;
     z-index: 4;
+    overflow: visible;
+}
+.fighter-skill-callout {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: rgba(107, 33, 168, 0.94);
+    color: #fff;
+    border: 2px solid #fff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    line-height: 1.35;
+    white-space: nowrap;
+    z-index: 16;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px) scale(0.85);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.fighter-skill-callout.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+}
+.fighter-skill-callout.ult {
+    background: rgba(220, 38, 38, 0.95);
+    font-size: 9px;
+    box-shadow: 0 0 18px rgba(245, 158, 11, 0.75);
+}
+.fighter-skill-callout.status {
+    background: rgba(15, 23, 42, 0.92);
+    border-color: #67e8f9;
+    font-size: 9px;
+}
+.fighter-skill-callout.status.block-status {
+    border-color: #fbbf24;
+    color: #fde68a;
+}
+.skill-callout-icon-wrap {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, #c084fc, #7c3aed);
+    border: 2px solid #6b21a8;
+    box-shadow: 2px 2px 0 #4c1d95;
+    overflow: hidden;
+}
+.skill-callout-icon-wrap .skill-icon-img {
+    position: relative;
+    z-index: 1;
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+.skill-callout-icon-wrap .skill-icon-fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: 700;
+    color: #fff;
+}
+.skill-callout-name {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.fighter-block-shield {
+    position: absolute;
+    left: 50%;
+    top: 42%;
+    width: 78px;
+    height: 78px;
+    transform: translate(-50%, -50%) scale(0.4);
+    opacity: 0;
+    z-index: 14;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.35), rgba(147,197,253,0.15) 45%, rgba(59,130,246,0.5) 100%);
+    border: 3px solid #fbbf24;
+    border-radius: 50% 50% 45% 45%;
+    box-shadow: 0 0 16px rgba(251, 191, 36, 0.65), inset 0 0 12px rgba(255,255,255,0.25);
+}
+.fighter-block-shield::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 18%;
+    width: 3px;
+    height: 42%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.55);
+    border-radius: 2px;
+}
+.fighter-block-shield::after {
+    content: "🛡";
+    font-size: 28px;
+    line-height: 1;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.35));
+}
+.fighter-block-shield.show {
+    animation: block-shield-pop 0.55s ease-out forwards;
+}
+@keyframes block-shield-pop {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.35); }
+    35% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.15); }
+}
+.fighter-wrap.dodge-evade .bsprite {
+    filter: drop-shadow(0 6px 5px rgba(0,0,0,0.45)) brightness(1.08);
 }
 .fighter-wrap.player { left: 21%; bottom: 32%; top: auto; }
 .fighter-wrap.enemy { right: 21%; bottom: 32%; top: auto; }
@@ -7521,13 +7644,16 @@ function renderBattleScene() {
             <div class="stage-label${boss ? ' boss-label' : ''}">${boss ? 'BOSS — ' : ''}CH.${currentChapter} STAGE ${currentStage}</div>
             <img class="battle-stage-path" src="${BATTLE_STAGE_PATH}" alt="" aria-hidden="true">
             <div class="fighter-wrap enemy" id="wrap-enemy">
+                <div class="fighter-skill-callout" id="skill-callout-enemy" aria-hidden="true"></div>
+                <div class="fighter-block-shield" id="block-shield-enemy" aria-hidden="true"></div>
                 <img class="bsprite" id="sprite-enemy" alt="">
             </div>
             <div class="fighter-wrap player" id="wrap-player">
+                <div class="fighter-skill-callout" id="skill-callout-player" aria-hidden="true"></div>
+                <div class="fighter-block-shield" id="block-shield-player" aria-hidden="true"></div>
                 <img class="bsprite" id="sprite-player" alt="">
             </div>
             <div class="fx-layer" id="fx-layer"></div>
-            <div class="skill-banner" id="skill-banner"></div>
             <div class="screen-flash" id="screen-flash"></div>
         </div>
     `;
@@ -7881,11 +8007,67 @@ function showDamage(side, amount, kind) {
     setTimeout(() => d.remove(), 1000);
 }
 
-function showBanner(text, isUlt) {
-    const b = document.getElementById("skill-banner");
-    b.textContent = text;
-    b.className = "skill-banner show" + (isUlt ? " ult" : "");
-    setTimeout(() => { b.className = "skill-banner"; }, 900);
+function getSkillCalloutHtml(skill, isUlt) {
+    const ult = isUlt || skill?.type === "ultimate";
+    const iconHtml = skill && typeof skill === "object"
+        ? `<span class="skill-callout-icon-wrap">${getSkillIcon(skill)}</span>`
+        : "";
+    const label = typeof skill === "string" ? skill : skill.name;
+    const name = ult ? `\u2605 ${label} \u2605` : label;
+    return `${iconHtml}<span class="skill-callout-name">${name}</span>`;
+}
+
+function showSkillCallout(side, skillOrLabel, options = {}) {
+    const el = document.getElementById("skill-callout-" + side);
+    if (!el) return;
+    const isUlt = options.isUlt || (skillOrLabel?.type === "ultimate");
+    const isStatus = !!options.status;
+    el.innerHTML = typeof skillOrLabel === "string"
+        ? `<span class="skill-callout-name">${skillOrLabel}</span>`
+        : getSkillCalloutHtml(skillOrLabel, isUlt);
+    let cls = "fighter-skill-callout show";
+    if (isUlt) cls += " ult";
+    if (isStatus) cls += " status" + (options.block ? " block-status" : "");
+    el.className = cls;
+    clearTimeout(el._hideTimer);
+    el._hideTimer = setTimeout(() => { el.className = "fighter-skill-callout"; }, options.duration || 900);
+}
+
+function hideSkillCallouts() {
+    ["player", "enemy"].forEach(side => {
+        const el = document.getElementById("skill-callout-" + side);
+        if (!el) return;
+        clearTimeout(el._hideTimer);
+        el.className = "fighter-skill-callout";
+    });
+}
+
+async function playDodgeEvade(side) {
+    const wrap = document.getElementById("wrap-" + side);
+    if (!wrap) return;
+    const retreat = side === "player" ? -52 : 52;
+    wrap.classList.add("dodge-evade");
+    wrap.style.transition = "transform 160ms ease-out";
+    wrap.style.transform = `translate(${retreat}px, 0)`;
+    await delay(160);
+    wrap.style.transition = "transform 240ms cubic-bezier(0.34, 1.2, 0.64, 1)";
+    wrap.style.transform = "translate(0, 0)";
+    await delay(240);
+    wrap.classList.remove("dodge-evade");
+    wrap.style.transition = "";
+}
+
+function showBlockShield(side) {
+    const shield = document.getElementById("block-shield-" + side);
+    if (!shield) return;
+    shield.classList.remove("show");
+    void shield.offsetWidth;
+    shield.classList.add("show");
+    setTimeout(() => shield.classList.remove("show"), 580);
+}
+
+function showBanner(text, isUlt, side) {
+    if (side) showSkillCallout(side, text, { isUlt, status: true });
 }
 
 function screenFlash() {
@@ -7972,7 +8154,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
 
     if (hasStatus(atk, "stun")) {
         removeStatus(atk, "stun");
-        showBanner("STUNNED!", false);
+        showSkillCallout(atkSide, "STUNNED!", { status: true });
         renderStatusRow(atkSide, atk);
         await delay(450);
         return;
@@ -8017,13 +8199,13 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     }
 
     if (skill.type === "skip") {
-        showBanner("FROZEN — cannot attack!", false);
+        showSkillCallout(atkSide, "FROZEN!", { status: true });
         renderStatusRow(atkSide, atk);
         await delay(450);
         return;
     }
 
-    showBanner((isUlt ? "\u2605 " : "") + skill.name + (isUlt ? " \u2605" : ""), isUlt);
+    showSkillCallout(atkSide, skill, { isUlt });
     if (isUlt) screenFlash();
     const preAnimMs = isUlt ? 500 : (skill.type === "heal" ? 180 : 300);
     await delay(preAnimMs);
@@ -8072,8 +8254,8 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         if (skill.selfBuff) applySelfBuff(atk, skill.selfBuff);
         playEffect(atkSide, "heal", isUlt);
         showDamage(atkSide, heal, "heal");
-        if (skill.selfBuff?.statMods?.atkPct != null) showBanner("ATK UP!", false);
-        else if (skill.selfBuff?.statMods?.critChance != null) showBanner("CRIT UP!", false);
+        if (skill.selfBuff?.statMods?.atkPct != null) showSkillCallout(atkSide, "ATK UP!", { status: true });
+        else if (skill.selfBuff?.statMods?.critChance != null) showSkillCallout(atkSide, "CRIT UP!", { status: true });
         finishTurn();
         await delay(280);
         return;
@@ -8096,8 +8278,9 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
 
     const effDodge = getEffectiveDodge(def, atk);
     if (Math.random() * 100 < effDodge) {
+        await playDodgeEvade(defSide);
         showDamage(defSide, 0, "miss");
-        showBanner("EVADED!", false);
+        showSkillCallout(defSide, "EVADED!", { status: true });
         finishTurn();
         if (attackPath) await completeGifAttackReturn(atkSide, atk, animStart);
         else { await delay(250); await recoil(atkSide); await delay(120); }
@@ -8120,7 +8303,10 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         dw.classList.add(blocked ? "block-shake" : "hit-shake");
         setTimeout(() => dw.classList.remove(blocked ? "block-shake" : "hit-shake"), 300);
         showDamage(defSide, dmg, crit ? "crit" : blocked ? "block" : "");
-        if (blocked) showBanner("BLOCKED!", false);
+        if (blocked) {
+            showBlockShield(defSide);
+            showSkillCallout(defSide, "BLOCKED!", { status: true, block: true });
+        }
         breakFrozenOnHit(def, dmg);
     } else if (poisonOnly) {
         showDamage(defSide, 0, "poison");
