@@ -8984,9 +8984,8 @@ async function runBattle(player, enemy, battleToken) {
             renderTeam("enemy", enemy, ei);
             ei++;
             if (ei >= enemy.length) return endBattle(true, player);
-            clearStatuses(P);
-            clearStatuses(E);
             setFighter("enemy", enemy[ei]);
+            renderStatusRow("player", P);
             renderTeam("enemy", enemy, ei);
             await slideIn("enemy");
             await delay(250);
@@ -8996,9 +8995,8 @@ async function runBattle(player, enemy, battleToken) {
             renderTeam("player", player, pi);
             pi++;
             if (pi >= player.length) return endBattle(false, player);
-            clearStatuses(P);
-            clearStatuses(E);
             setFighter("player", player[pi]);
+            renderStatusRow("enemy", E);
             renderTeam("player", player, pi);
             await slideIn("player");
             await delay(250);
