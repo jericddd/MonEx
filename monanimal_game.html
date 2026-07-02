@@ -1134,19 +1134,20 @@ button,
 .battle-meter-panel {
     position: absolute;
     top: 17%;
-    bottom: 5%;
     width: 15%;
     min-width: 148px;
     max-width: 188px;
+    height: auto;
+    max-height: 62%;
     z-index: 8;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding: 8px 9px 10px;
+    gap: 5px;
+    padding: 7px 9px 8px;
     box-sizing: border-box;
-    background: linear-gradient(180deg, rgba(18, 10, 32, 0.92), rgba(12, 8, 20, 0.88));
-    border: 2px solid rgba(250, 204, 21, 0.45);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 6px 18px rgba(0, 0, 0, 0.45);
+    background: linear-gradient(180deg, rgba(14, 8, 24, 0.97), rgba(10, 6, 18, 0.96));
+    border: none;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
     pointer-events: auto;
     overflow: visible;
 }
@@ -1179,49 +1180,13 @@ button,
     text-transform: capitalize;
 }
 .battle-meter-panel--enemy .bm-head { text-align: right; }
-.bm-vitals { display: flex; flex-direction: column; gap: 4px; }
-.bm-bar-row {
-    display: grid;
-    grid-template-columns: 34px 1fr;
-    align-items: center;
-    gap: 5px;
-}
-.bm-bar-label {
-    font-family: 'Lato', sans-serif;
-    font-size: 10px;
-    font-weight: 700;
-    color: #f1f5f9;
-    text-transform: capitalize;
-}
-.bm-bar {
-    position: relative;
-    min-width: 0;
-    height: 14px;
-}
-.bm-bar.manbar { height: 10px; }
-.bm-bar .hptext,
-.bm-bar .bm-mantext {
-    position: absolute;
-    inset: 0;
+.bm-vitals {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Lato', sans-serif;
-    font-size: 8px;
-    font-weight: 700;
-    color: #fff;
-    text-shadow: 0 0 2px #000;
-    line-height: 1;
-    pointer-events: none;
+    flex-direction: column;
+    gap: 3px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
-.bm-shield {
-    font-family: 'Lato', sans-serif;
-    font-size: 10px;
-    font-weight: 700;
-    color: #cbd5e1;
-    padding-left: 2px;
-}
-.battle-meter-panel--enemy .bm-shield { text-align: right; padding-right: 2px; padding-left: 0; }
 .bm-stats {
     display: flex;
     flex-direction: column;
@@ -1262,12 +1227,11 @@ button,
 .battle-meter-panel--enemy .bm-stat-half { flex-direction: row-reverse; }
 .battle-meter-panel--enemy .bm-stat-val { text-align: left; }
 .bm-skills {
-    flex: 1;
-    min-height: 0;
+    flex: 0 0 auto;
     overflow: visible;
-    margin-top: 2px;
-    padding-top: 4px;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    margin-top: 1px;
+    padding-top: 3px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 .battle-meter-skills-grid {
     display: grid;
@@ -3282,8 +3246,8 @@ body.afk-layout .currency-pill .currency-tip {
         min-width: 118px;
         max-width: 140px;
         top: 19%;
-        bottom: 4%;
-        padding: 6px 6px 8px;
+        max-height: 58%;
+        padding: 6px 6px 7px;
     }
     .battle-meter-panel--player { left: 0.4%; }
     .battle-meter-panel--enemy { right: 0.4%; }
@@ -5872,7 +5836,7 @@ function renderStatusRow(side, fighter) {
     ).join("");
     updateBattleMeterStats(side, fighter);
     const sh = document.getElementById("bm-shield-" + side);
-    if (sh) sh.textContent = "Shield: " + getBattleShield(fighter);
+    if (sh) sh.textContent = String(getBattleShield(fighter));
 }
 
 function calculateDamage(attacker, defender, skill) {
@@ -7445,15 +7409,9 @@ function renderBattleMeterPanelHtml(side) {
                 <div class="bm-mon" id="bm-mon-${side}"></div>
             </div>
             <div class="bm-vitals">
-                <div class="bm-bar-row">
-                    <span class="bm-bar-label">Hp</span>
-                    <div class="bm-bar hpbar"><div class="hpfill" id="bm-hp-${side}"></div><span class="hptext" id="bm-hptext-${side}"></span></div>
-                </div>
-                <div class="bm-bar-row">
-                    <span class="bm-bar-label">Mana</span>
-                    <div class="bm-bar manbar"><div class="manfill" id="bm-mana-${side}"></div><span class="bm-mantext" id="bm-mantext-${side}"></span></div>
-                </div>
-                <div class="bm-shield" id="bm-shield-${side}">Shield: 0</div>
+                <div class="bm-stat-row"><span class="bm-stat-label">Hp:</span><span class="bm-stat-val" id="bm-hp-${side}">0 / 0</span></div>
+                <div class="bm-stat-row"><span class="bm-stat-label">Mana:</span><span class="bm-stat-val" id="bm-mana-${side}">0 / 0</span></div>
+                <div class="bm-stat-row"><span class="bm-stat-label">Shield:</span><span class="bm-stat-val" id="bm-shield-${side}">0</span></div>
             </div>
             <div class="bm-stats">
                 <div class="bm-stat-row"><span class="bm-stat-label">Attack:</span><span class="bm-stat-val" id="bm-atk-${side}">0</span></div>
@@ -7510,21 +7468,12 @@ function renderBattleMeterSkills(side, fighter) {
 
 function updateBattleMeterVitals(side, fighter) {
     if (!fighter) return;
-    const pct = Math.max(0, Math.min(100, (fighter.hp / fighter.maxHp) * 100));
-    const hf = document.getElementById("bm-hp-" + side);
-    if (hf) {
-        hf.style.width = pct + "%";
-        hf.style.background = pct > 50 ? "#22c55e" : pct > 25 ? "#f59e0b" : "#ef4444";
-    }
-    const hpt = document.getElementById("bm-hptext-" + side);
-    if (hpt) hpt.textContent = Math.max(0, Math.ceil(fighter.hp)) + " / " + fighter.maxHp;
-    const manaPct = Math.min(100, (fighter.mana / fighter.maxMana) * 100);
-    const mf = document.getElementById("bm-mana-" + side);
-    if (mf) mf.style.width = manaPct + "%";
-    const mt = document.getElementById("bm-mantext-" + side);
-    if (mt) mt.textContent = Math.floor(fighter.mana) + " / " + fighter.maxMana;
+    const hpEl = document.getElementById("bm-hp-" + side);
+    if (hpEl) hpEl.textContent = Math.max(0, Math.ceil(fighter.hp)) + " / " + fighter.maxHp;
+    const manaEl = document.getElementById("bm-mana-" + side);
+    if (manaEl) manaEl.textContent = Math.floor(fighter.mana) + " / " + fighter.maxMana;
     const sh = document.getElementById("bm-shield-" + side);
-    if (sh) sh.textContent = "Shield: " + getBattleShield(fighter);
+    if (sh) sh.textContent = String(getBattleShield(fighter));
 }
 
 function updateBattleMeterStats(side, fighter) {
