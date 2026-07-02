@@ -1263,6 +1263,32 @@ button,
     height: 30px;
     cursor: help;
 }
+.battle-meter-skills-grid .skill-square.skill-locked {
+    background: linear-gradient(145deg, #4b5563, #374151);
+    border-color: #6b7280;
+    box-shadow: 2px 2px 0 #1f2937;
+    cursor: help;
+    opacity: 0.85;
+}
+.battle-meter-skills-grid .skill-square.skill-locked:hover {
+    transform: none;
+    box-shadow: 2px 2px 0 #1f2937;
+    z-index: 1;
+}
+.battle-meter-skills-grid .skill-lock-icon {
+    font-size: 13px;
+    line-height: 1;
+    opacity: 0.9;
+    filter: grayscale(0.2);
+    pointer-events: none;
+}
+.battle-meter-skills-grid .skill-square.skill-locked .skill-tip-locked {
+    border-color: #6b7280;
+    box-shadow: 3px 3px 0 #374151;
+}
+.battle-meter-skills-grid .skill-square.skill-locked .skill-tip-desc {
+    color: #d1d5db;
+}
 .battle-meter-skills-grid .skill-square .skill-icon-img {
     width: 24px;
     height: 24px;
@@ -3271,9 +3297,10 @@ body.afk-layout .currency-pill .currency-tip {
     .battle-meter-panel .bm-vitals .stat-row span:first-child,
     .battle-meter-panel .bm-vitals .stat-row span:last-child { font-size: 9px; }
     .battle-meter-panel .st-value { font-size: 10px; }
-    .battle-meter-skills-grid { grid-template-columns: repeat(3, 1fr); gap: 3px; }
+    .battle-meter-skills-grid { grid-template-columns: repeat(4, 1fr); gap: 3px; }
     .battle-meter-skills-grid .skill-square { width: 26px; height: 26px; }
     .battle-meter-skills-grid .skill-square .skill-icon-img { width: 20px; height: 20px; }
+    .battle-meter-skills-grid .skill-lock-icon { font-size: 11px; }
     .fighter-wrap.player { left: 18%; }
     .fighter-wrap.enemy { right: 18%; }
     .bsprite { width: 118px; height: 118px; }
@@ -4358,6 +4385,7 @@ const NORMAL_ATTACK_SKILL = {
     desc: "A basic strike. Damage scales with level and gear. Restores mana."
 };
 const BATTLE_METER_DUMMY_DEFENDER = { skills: [], status: [], battleId: "__meter__" };
+const BATTLE_METER_SKILL_SLOTS = 12;
 const POISON_TICK_PCT = 0.03;
 const BURN_TICK_PCT = 0.06;
 const BURN_TURNS = 3;
@@ -7474,17 +7502,34 @@ function getBattleAttackRange(fighter) {
     return { min: Math.min(...positive), max: Math.max(...positive) };
 }
 
+function renderBattleMeterLockedSlot(slotIndex) {
+    return `<div class="skill-square skill-locked" data-slot="${slotIndex + 1}">
+        <span class="skill-lock-icon" aria-hidden="true">🔒</span>
+        <div class="skill-tip skill-tip-locked">
+            <div class="skill-tip-name">LOCKED</div>
+            <div class="skill-tip-desc">Ascend your Monanimal to unlock more skill slots.</div>
+        </div>
+    </div>`;
+}
+
 function renderBattleMeterSkills(side, fighter) {
     const el = document.getElementById("bm-skills-" + side);
     if (!el || !fighter) return;
-    const squares = (fighter.skills || []).map((skill, i) => {
-        const cls = getSkillSquareClass(skill, i);
-        return `<div class="skill-square ${cls}" data-type="${skill.type}" data-slot="${i + 1}">
-            ${getSkillIcon(skill)}
-            ${renderSkillTipForFighter(fighter, skill)}
-        </div>`;
-    }).join("");
-    el.innerHTML = `<div class="battle-meter-skills-grid">${squares}</div>`;
+    const skills = fighter.skills || [];
+    const squares = [];
+    for (let i = 0; i < BATTLE_METER_SKILL_SLOTS; i++) {
+        const skill = skills[i];
+        if (skill) {
+            const cls = getSkillSquareClass(skill, i);
+            squares.push(`<div class="skill-square ${cls}" data-type="${skill.type}" data-slot="${i + 1}">
+                ${getSkillIcon(skill)}
+                ${renderSkillTipForFighter(fighter, skill)}
+            </div>`);
+        } else {
+            squares.push(renderBattleMeterLockedSlot(i));
+        }
+    }
+    el.innerHTML = `<div class="battle-meter-skills-grid">${squares.join("")}</div>`;
 }
 
 function updateBattleMeterVitals(side, fighter) {
