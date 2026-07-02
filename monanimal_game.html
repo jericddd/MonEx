@@ -1072,37 +1072,6 @@ button,
     border-color: #fbbf24;
     color: #fde68a;
 }
-.skill-callout-icon-wrap {
-    position: relative;
-    width: 28px;
-    height: 28px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(145deg, #c084fc, #7c3aed);
-    border: 2px solid #6b21a8;
-    box-shadow: 2px 2px 0 #4c1d95;
-    overflow: hidden;
-}
-.skill-callout-icon-wrap .skill-icon-img {
-    position: relative;
-    z-index: 1;
-    width: 22px;
-    height: 22px;
-    object-fit: contain;
-    image-rendering: pixelated;
-}
-.skill-callout-icon-wrap .skill-icon-fallback {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 8px;
-    font-weight: 700;
-    color: #fff;
-}
 .skill-callout-name {
     max-width: 140px;
     overflow: hidden;
@@ -1586,6 +1555,45 @@ button,
     transform: translate(-50%, -50%);
     font-size: 64px;
     animation: fxpop .65s ease-out forwards;
+}
+.fx.fx-skill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0;
+}
+.fx-skill-icon {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.55));
+}
+.fx-ultimate .fx-skill-icon {
+    width: 96px;
+    height: 96px;
+}
+.fx-skill-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 2px 2px 0 #000, -1px -1px 0 #000;
+    background: linear-gradient(145deg, #c084fc, #7c3aed);
+    border: 3px solid #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+    border-radius: 6px;
+}
+.fx-ultimate .fx-skill-fallback {
+    width: 96px;
+    height: 96px;
+    font-size: 36px;
+    box-shadow: 0 0 24px rgba(245, 158, 11, 0.85);
 }
 .fx-ultimate { font-size: 120px; animation: fxpop 1s ease-out forwards; }
 @keyframes fxpop {
@@ -8587,17 +8595,33 @@ function renderTeam(side, team, curIdx) {
     });
 }
 
-function playEffect(side, element, isUltimate) {
+function getSkillBodyFxHtml(skill) {
+    if (!skill || skill.type === "ultimate") {
+        return '<span class="fx-skill-fallback fx-skill-ult">\u2605</span>';
+    }
+    const path = getSkillIconPath(skill);
+    const fb = getSkillIconFallbackText(skill);
+    if (!path) return `<span class="fx-skill-fallback">${fb}</span>`;
+    return `<img class="fx-skill-icon" src="${path}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fx-skill-fallback',textContent:'${fb}'}))">`;
+}
+
+function playSkillBodyFx(side, skill, isUltimate) {
     const stage = document.getElementById("battle-stage");
     const sprite = document.getElementById("sprite-" + side);
+    if (!stage || !sprite) return;
     const sR = sprite.getBoundingClientRect(), stR = stage.getBoundingClientRect();
     const fx = document.createElement("div");
-    fx.className = "fx" + (isUltimate ? " fx-ultimate" : "");
-    fx.textContent = ELEMENT_GLYPH[element] || "\uD83D\uDCA5";
+    fx.className = "fx fx-skill" + (isUltimate ? " fx-ultimate" : "");
+    fx.innerHTML = getSkillBodyFxHtml(skill);
     fx.style.left = (sR.left - stR.left + sR.width / 2) + "px";
     fx.style.top = (sR.top - stR.top + sR.height / 2) + "px";
     document.getElementById("fx-layer").appendChild(fx);
     setTimeout(() => fx.remove(), isUltimate ? 1000 : 650);
+}
+
+function showSkillBodyFxForTurn(skill, atkSide, defSide, isUlt) {
+    const isSelfFx = skill.type === "heal" || !!skill.selfBuff;
+    playSkillBodyFx(isSelfFx ? atkSide : defSide, skill, isUlt);
 }
 
 function showDamage(side, amount, kind) {
@@ -8619,12 +8643,9 @@ function showDamage(side, amount, kind) {
 
 function getSkillCalloutHtml(skill, isUlt) {
     const ult = isUlt || skill?.type === "ultimate";
-    const iconHtml = skill && typeof skill === "object"
-        ? `<span class="skill-callout-icon-wrap">${getSkillIcon(skill)}</span>`
-        : "";
     const label = typeof skill === "string" ? skill : skill.name;
     const name = ult ? `\u2605 ${label} \u2605` : label;
-    return `${iconHtml}<span class="skill-callout-name">${name}</span>`;
+    return `<span class="skill-callout-name">${name}</span>`;
 }
 
 function showSkillCallout(side, skillOrLabel, options = {}) {
@@ -8860,7 +8881,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         const removed = cleanseSoftCC(atk);
         const heal = calculateHealAmount(atk, skill);
         if (heal > 0) atk.hp = Math.min(atk.maxHp, atk.hp + heal);
-        playEffect(atkSide, "heal", isUlt);
+        showSkillBodyFxForTurn(skill, atkSide, defSide, isUlt);
         if (heal > 0) showDamage(atkSide, heal, "heal");
         else if (removed) showDamage(atkSide, 0, "heal");
         finishTurn();
@@ -8872,7 +8893,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         const heal = calculateHealAmount(atk, skill);
         atk.hp = Math.min(atk.maxHp, atk.hp + heal);
         if (skill.selfBuff) applySelfBuff(atk, skill.selfBuff);
-        playEffect(atkSide, "heal", isUlt);
+        showSkillBodyFxForTurn(skill, atkSide, defSide, isUlt);
         showDamage(atkSide, heal, "heal");
         if (skill.selfBuff?.statMods?.atkPct != null) showSkillCallout(atkSide, "ATK UP!", { status: true });
         else if (skill.selfBuff?.statMods?.critChance != null) showSkillCallout(atkSide, "CRIT UP!", { status: true });
@@ -8895,7 +8916,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     } else {
         await approach(atkSide, defSide);
     }
-    playEffect(defSide, skill.element, isUlt);
+    showSkillBodyFxForTurn(skill, atkSide, defSide, isUlt);
 
     const effDodge = defenderCanEvade ? getEffectiveDodge(def, atk) : 0;
     if (effDodge > 0 && Math.random() * 100 < effDodge) {
