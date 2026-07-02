@@ -1885,6 +1885,174 @@ body.afk-layout .currency-pill .currency-tip {
 .scene-upper-zone > * {
     pointer-events: auto;
 }
+.resource-chest-wrap {
+    position: absolute;
+    right: 108px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+}
+.resource-chest-btn {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px 8px;
+    border: 3px solid #92400e;
+    background: linear-gradient(180deg, #fde68a 0%, #f59e0b 55%, #d97706 100%);
+    box-shadow: 4px 4px 0 #78350f, 0 0 18px rgba(251, 191, 36, 0.45);
+    cursor: pointer;
+    font-family: 'Press Start 2P', monospace;
+    color: #451a03;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.resource-chest-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 5px 5px 0 #78350f, 0 0 22px rgba(251, 191, 36, 0.6);
+}
+.resource-chest-btn.is-full {
+    animation: resource-chest-glow 1.4s ease-in-out infinite;
+}
+@keyframes resource-chest-glow {
+    0%, 100% { box-shadow: 4px 4px 0 #78350f, 0 0 14px rgba(251, 191, 36, 0.45); }
+    50% { box-shadow: 4px 4px 0 #78350f, 0 0 26px rgba(254, 240, 138, 0.95); }
+}
+.resource-chest-icon {
+    width: 56px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 34px;
+    line-height: 1;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.25));
+}
+.resource-chest-icon::before {
+    content: "🧰";
+}
+.resource-chest-label {
+    font-size: 7px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+.resource-chest-timer-mini {
+    font-size: 7px;
+    color: #7c2d12;
+    background: rgba(255,255,255,0.55);
+    padding: 3px 6px;
+    border: 1px solid #92400e;
+    border-radius: 2px;
+    min-width: 72px;
+    text-align: center;
+}
+.resource-chest-full-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 6px;
+    padding: 3px 5px;
+    border: 2px solid #fff;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+    display: none;
+}
+.resource-chest-btn.is-full .resource-chest-full-badge {
+    display: block;
+}
+#modal-resource-chest .game-modal-panel {
+    max-width: 420px;
+}
+.resource-chest-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.resource-chest-timer-block {
+    text-align: center;
+    padding: 12px;
+    background: linear-gradient(180deg, #f5f3ff 0%, #ede9fe 100%);
+    border: 3px solid #6b21a8;
+    box-shadow: 3px 3px 0 #4c1d95;
+}
+.resource-chest-timer-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #6b21a8;
+    margin-bottom: 8px;
+}
+.resource-chest-timer-value {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    color: #111;
+    letter-spacing: 1px;
+}
+.resource-chest-timer-cap {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: #666;
+    margin-top: 6px;
+}
+.resource-chest-chapter-note {
+    font-size: 11px;
+    color: #555;
+    text-align: center;
+    line-height: 1.5;
+}
+.resource-chest-rewards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.resource-chest-reward-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: #fff;
+    border: 2px solid #d8b4fe;
+    box-shadow: 2px 2px 0 #c4b5fd;
+    font-size: 11px;
+    font-weight: 700;
+    color: #333;
+}
+.resource-chest-reward-row.wide {
+    grid-column: 1 / -1;
+}
+.resource-chest-reward-row img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+.resource-chest-reward-row .rc-reward-val {
+    margin-left: auto;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #6b21a8;
+}
+.resource-chest-collect-btn {
+    width: 100%;
+    padding: 14px 12px;
+    border: 3px solid #15803d;
+    background: linear-gradient(180deg, #4ade80 0%, #22c55e 55%, #16a34a 100%);
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    box-shadow: 4px 4px 0 #14532d;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.25);
+}
+.resource-chest-collect-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 5px 5px 0 #14532d;
+}
+.resource-chest-collect-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: 2px 2px 0 #14532d;
+}
 .scene-battle-path {
     position: absolute;
     left: 0;
@@ -3435,6 +3603,22 @@ body.afk-layout .currency-pill .currency-tip {
     .scene-idle-pair .scene-idle-fighter.enemy {
         margin-left: -20px;
     }
+    .resource-chest-wrap {
+        right: 52px;
+        top: 28%;
+    }
+    .resource-chest-btn {
+        padding: 6px 8px 5px;
+    }
+    .resource-chest-icon {
+        width: 40px;
+        height: 34px;
+        font-size: 24px;
+    }
+    .resource-chest-label,
+    .resource-chest-timer-mini {
+        font-size: 6px;
+    }
     :root { --scene-fighter-size: 122px; --rail-icon-max: 30px; --rail-btn-size: 36px; --rail-pad-y: 3px; --rail-pad-x: 3px; --rail-gap: 0px; --rail-tab-chip-radius: 8px; }
     .side-rail,
     .left-rail {
@@ -3530,7 +3714,16 @@ body.afk-layout .currency-pill .currency-tip {
     <div id="main-scene-viewport" class="cover-viewport">
         <div id="main-scene-cover-stage" class="cover-art-stage">
             <div id="main-scene" class="main-scene cover-art-layer">
-                <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions"></div>
+                <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions">
+                    <div class="resource-chest-wrap" id="resource-chest-wrap">
+                        <button type="button" class="resource-chest-btn" id="resource-chest-btn" onclick="openResourceChestModal()" aria-label="Collect resources">
+                            <span class="resource-chest-full-badge">FULL</span>
+                            <span class="resource-chest-icon" aria-hidden="true"></span>
+                            <span class="resource-chest-label">Collect</span>
+                            <span class="resource-chest-timer-mini" id="resource-chest-timer-mini">00:00:00</span>
+                        </button>
+                    </div>
+                </div>
                 <img class="scene-battle-path" src="for%20result%20banner/mainscene_battlepath.jpg" alt="" aria-hidden="true">
                 <div class="scene-battle-dock">
                     <div class="scene-battle-dock-shade" aria-hidden="true"></div>
@@ -3698,6 +3891,17 @@ body.afk-layout .currency-pill .currency-tip {
             <button type="button" class="game-modal-close" onclick="closeGameModal('daily-quest')">×</button>
         </div>
         <div class="game-modal-body" id="daily-quest-content"></div>
+    </div>
+</div>
+
+<!-- Resource chest modal -->
+<div id="modal-resource-chest" class="game-modal" onclick="if(event.target===this)closeGameModal('resource-chest')">
+    <div class="game-modal-panel" onclick="event.stopPropagation()">
+        <div class="game-modal-header">
+            <h2>RESOURCE CHEST</h2>
+            <button type="button" class="game-modal-close" onclick="closeGameModal('resource-chest')">×</button>
+        </div>
+        <div class="game-modal-body resource-chest-modal-body" id="resource-chest-modal-content"></div>
     </div>
 </div>
 
@@ -4027,6 +4231,8 @@ let money = 5000;
 let essence = 0;
 let monShards = 0;
 let trainerXp = 0;
+let resourceChestLastCollectAt = Date.now();
+let resourceChestTimerInterval = null;
 let highestStageCleared = 0;
 let adventureGlobalBest = 0;
 let lastResetDate = null;
@@ -4239,8 +4445,190 @@ function grantQuestReward(grant) {
     if (grant.essence) essence += grant.essence;
     if (grant.monballs) monballs += grant.monballs;
     if (grant.monShards) monShards += grant.monShards;
+    if (grant.trainerXp) addTrainerXp(grant.trainerXp);
     saveData();
     updateUI();
+}
+
+const RESOURCE_CHEST_MAX_MS = 24 * 60 * 60 * 1000;
+const RESOURCE_CHEST_TIMER_TICK_MS = 1000;
+const RESOURCE_CHEST_RATES = {
+    1: { gold: 1200, essence: 180, trainerXp: 600, gearChance: 0 },
+    2: { gold: 2000, essence: 320, trainerXp: 1000, gearChance: 0.12 },
+    3: { gold: 3000, essence: 480, trainerXp: 1500, gearChance: 0.15 },
+    4: { gold: 4200, essence: 660, trainerXp: 2100, gearChance: 0.18 },
+    5: { gold: 5600, essence: 880, trainerXp: 2800, gearChance: 0.22 },
+};
+
+function getResourceChestChapter() {
+    return Math.max(1, Math.floor(currentChapter || 1));
+}
+
+function getResourceChestRates(chapter) {
+    const ch = Math.max(1, Math.floor(chapter || 1));
+    if (RESOURCE_CHEST_RATES[ch]) return RESOURCE_CHEST_RATES[ch];
+    const base = RESOURCE_CHEST_RATES[5];
+    const extra = ch - 5;
+    return {
+        gold: base.gold + extra * 900,
+        essence: base.essence + extra * 120,
+        trainerXp: base.trainerXp + extra * 450,
+        gearChance: Math.min(0.35, base.gearChance + extra * 0.03),
+    };
+}
+
+function ensureResourceChestTimestamp() {
+    if (!resourceChestLastCollectAt || Number.isNaN(resourceChestLastCollectAt)) {
+        resourceChestLastCollectAt = Date.now();
+    }
+}
+
+function getResourceChestElapsedMs() {
+    ensureResourceChestTimestamp();
+    return Math.min(RESOURCE_CHEST_MAX_MS, Math.max(0, Date.now() - resourceChestLastCollectAt));
+}
+
+function getResourceChestProgress() {
+    return getResourceChestElapsedMs() / RESOURCE_CHEST_MAX_MS;
+}
+
+function formatResourceChestTimer(ms) {
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    const pad = n => String(n).padStart(2, "0");
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
+function previewResourceChestRewards() {
+    const progress = getResourceChestProgress();
+    const chapter = getResourceChestChapter();
+    const rates = getResourceChestRates(chapter);
+    return {
+        chapter,
+        progress,
+        elapsedMs: getResourceChestElapsedMs(),
+        gold: Math.floor(rates.gold * progress),
+        essence: Math.floor(rates.essence * progress),
+        trainerXp: Math.floor(rates.trainerXp * progress),
+        gearChance: rates.gearChance,
+        canCollect: progress > 0,
+    };
+}
+
+function rollResourceChestGear(chapter) {
+    if (chapter < 2) return null;
+    return rollGearDrop(chapter, Math.random() < 0.2);
+}
+
+function collectResourceChest() {
+    const preview = previewResourceChestRewards();
+    if (!preview.canCollect) return;
+
+    const grant = {
+        gold: preview.gold,
+        essence: preview.essence,
+        trainerXp: preview.trainerXp,
+    };
+    let gear = null;
+    if (preview.gearChance > 0 && Math.random() < preview.gearChance) {
+        gear = rollResourceChestGear(preview.chapter);
+    }
+
+    grantQuestReward(grant);
+    if (gear) {
+        gearInventory.push(gear);
+        saveData();
+        alert("Bonus gear found: " + gear.name + "!");
+    }
+
+    resourceChestLastCollectAt = Date.now();
+    saveData();
+    renderResourceChestModal();
+    updateResourceChestWidget();
+}
+
+function renderResourceChestModal() {
+    const el = document.getElementById("resource-chest-modal-content");
+    if (!el) return;
+    const preview = previewResourceChestRewards();
+    const elapsed = formatResourceChestTimer(preview.elapsedMs);
+    const gearNote = preview.chapter < 2
+        ? "Gear unlocks from Chapter 2"
+        : `Bonus gear chance: ${Math.round(preview.gearChance * 100)}% (Ch.${preview.chapter} tier)`;
+
+    el.innerHTML = `
+        <div class="resource-chest-timer-block">
+            <div class="resource-chest-timer-label">COLLECTING TIME</div>
+            <div class="resource-chest-timer-value">${elapsed} / 24:00:00</div>
+            <div class="resource-chest-timer-cap">${preview.progress >= 1 ? "Chest is full — collect now!" : "Keeps collecting while you play (max 24h)."}</div>
+        </div>
+        <p class="resource-chest-chapter-note">Rewards scale by <b>Chapter ${preview.chapter}</b> progress (updates when you advance to the next chapter).</p>
+        <div class="resource-chest-rewards">
+            <div class="resource-chest-reward-row">
+                <img src="${GAME_ICONS.gold.src}" alt="">
+                <span>Gold</span>
+                <span class="rc-reward-val">+${preview.gold}</span>
+            </div>
+            <div class="resource-chest-reward-row">
+                <img src="${GAME_ICONS.essence.src}" alt="">
+                <span>${KBS_ONION_NAME}</span>
+                <span class="rc-reward-val">+${preview.essence}</span>
+            </div>
+            <div class="resource-chest-reward-row wide">
+                <span>Trainer XP</span>
+                <span class="rc-reward-val">+${preview.trainerXp}</span>
+            </div>
+            <div class="resource-chest-reward-row wide">
+                <span>${gearNote}</span>
+            </div>
+        </div>
+        <button type="button" class="resource-chest-collect-btn" onclick="collectResourceChest()" ${preview.canCollect ? "" : "disabled"}>COLLECT</button>
+    `;
+}
+
+function updateResourceChestWidget() {
+    const mini = document.getElementById("resource-chest-timer-mini");
+    const btn = document.getElementById("resource-chest-btn");
+    const wrap = document.getElementById("resource-chest-wrap");
+    if (!mini || !btn || !wrap) return;
+
+    const elapsedMs = getResourceChestElapsedMs();
+    mini.textContent = formatResourceChestTimer(elapsedMs);
+    const isFull = elapsedMs >= RESOURCE_CHEST_MAX_MS;
+    btn.classList.toggle("is-full", isFull);
+
+    const container = document.querySelector(".game-container");
+    const mainVisible = container?.classList.contains("main-scene-active")
+        && !container?.classList.contains("adventure-mode");
+    wrap.style.display = mainVisible ? "" : "none";
+}
+
+function startResourceChestTimer() {
+    if (resourceChestTimerInterval) return;
+    resourceChestTimerInterval = setInterval(() => {
+        updateResourceChestWidget();
+        if (document.getElementById("modal-resource-chest")?.classList.contains("open")) {
+            renderResourceChestModal();
+        }
+    }, RESOURCE_CHEST_TIMER_TICK_MS);
+}
+
+function stopResourceChestTimer() {
+    if (!resourceChestTimerInterval) return;
+    clearInterval(resourceChestTimerInterval);
+    resourceChestTimerInterval = null;
+}
+
+function openResourceChestModal() {
+    if (isInAdventureBattle) return;
+    closeAllModals();
+    const modal = document.getElementById("modal-resource-chest");
+    if (!modal) return;
+    modal.classList.add("open");
+    renderResourceChestModal();
+    updateResourceChestWidget();
 }
 
 function switchQuestTab(tab) {
@@ -6195,7 +6583,8 @@ function saveData() {
         party, box, monballs, money, essence, monShards, trainerXp,
         highestStageCleared, adventureGlobalBest, currentChapter, currentStage,
         gearInventory, lastResetDate, xHandle,
-        adventureBattleActive: isInAdventureBattle
+        adventureBattleActive: isInAdventureBattle,
+        resourceChestLastCollectAt
     };
     localStorage.setItem("monex_" + currentUser, JSON.stringify(payload));
     if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
@@ -6247,6 +6636,8 @@ async function loadData() {
         gearInventory = data.gearInventory || [];
         lastResetDate = data.lastResetDate || null;
         xHandle = data.xHandle || xHandle || "";
+        resourceChestLastCollectAt = data.resourceChestLastCollectAt || Date.now();
+        ensureResourceChestTimestamp();
 
         [...party, ...box].forEach((mon) => {
             try { ensureMonReady(mon); } catch (e) { console.error("Skipped invalid mon on load:", e); }
@@ -6267,10 +6658,12 @@ async function loadData() {
         currentStage = 1;
         gearInventory = [];
         lastResetDate = null;
+        resourceChestLastCollectAt = Date.now();
         if (!xHandle && MonExAuth?.getUsername()) xHandle = MonExAuth.getUsername();
         saveData();
     }
     checkDailyReset();
+    startResourceChestTimer();
     updateUI();
 }
 
@@ -6365,6 +6758,7 @@ function renderMainScene() {
         refreshSceneIdleHeroFighters(heroes);
         ensureSceneIdleBattleRunning();
     }
+    updateResourceChestWidget();
     requestAnimationFrame(() => syncCoverStages());
 }
 
@@ -7036,7 +7430,7 @@ async function logout() {
             await MonExAuth.flushCloudSave({
                 party, box, monballs, money, essence, monShards, trainerXp,
                 highestStageCleared, adventureGlobalBest, currentChapter, currentStage,
-                gearInventory, lastResetDate, xHandle
+                gearInventory, lastResetDate, xHandle, resourceChestLastCollectAt
             });
         } catch (_) {}
         await MonExAuth.logout();
@@ -7119,6 +7513,8 @@ function showMainScene() {
     resetToMainSceneUI();
     document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
     renderMainScene();
+    updateResourceChestWidget();
+    startResourceChestTimer();
     ensureCoverStagesSync();
 }
 

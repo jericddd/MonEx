@@ -130,6 +130,7 @@ function buildSavePayload(state) {
     gearInventory: state.gearInventory,
     lastResetDate: state.lastResetDate,
     xHandle: state.xHandle,
+    resourceChestLastCollectAt: state.resourceChestLastCollectAt,
   };
 }
 
