@@ -4015,7 +4015,7 @@ body.afk-layout .currency-pill .currency-tip {
             </div>
             <div class="header-currencies currency-row">
                 <div class="currency-pill">
-                    <img class="cur-ico-img" src="game_icons/monball.png" alt="">
+                    <img class="cur-ico-img" src="game_icons/button%20tabs/monball.png?v=4" alt="">
                     <span class="cur-qty" id="monball-count">12</span>
                     <span class="currency-tip">Monball</span>
                 </div>
@@ -4338,7 +4338,7 @@ function scheduleRailTabIconNormalize() {
 }
 
 const GAME_ICONS = {
-    monball: { src: "game_icons/monball.png", name: "Monball" },
+    monball: { src: "game_icons/button%20tabs/monball.png", name: "Monball" },
     gold:    { src: "game_icons/gold.png", name: "Gold" },
     essence: { src: "game_icons/onion.png", name: KBS_ONION_NAME },
     shards:  { src: "game_icons/shard.png", name: "Mon Shards" },
@@ -5848,20 +5848,15 @@ async function replayBattleAttackGif(side, src, name) {
     }
     await new Promise(resolve => {
         const url = src + "?t=" + Date.now();
-        let settled = false;
+        const pre = new Image();
         const finish = () => {
-            if (settled) return;
-            settled = true;
-            sprite.removeEventListener("load", finish);
-            sprite.removeEventListener("error", finish);
-            sprite.src = url;
             applyBattleSpritePresentation(sprite, side, name, src);
+            sprite.src = url;
             requestAnimationFrame(() => requestAnimationFrame(resolve));
         };
-        sprite.addEventListener("load", finish);
-        sprite.addEventListener("error", finish);
-        sprite.src = url;
-        if (sprite.complete && sprite.naturalWidth > 0) finish();
+        pre.onload = finish;
+        pre.onerror = finish;
+        pre.src = url;
     });
 }
 
