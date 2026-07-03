@@ -1171,6 +1171,7 @@ button,
     background-size: 100% 100%;
     background-repeat: no-repeat;
     box-sizing: border-box;
+    --battle-fighter-bottom: 32%;
 }
 .stage-label {
     position: absolute;
@@ -1343,8 +1344,8 @@ button,
 .fighter-wrap.dodge-evade .bsprite {
     filter: drop-shadow(0 6px 5px rgba(0,0,0,0.45)) brightness(1.08);
 }
-.fighter-wrap.player { left: 21%; bottom: 32%; top: auto; }
-.fighter-wrap.enemy { right: 21%; bottom: 32%; top: auto; }
+.fighter-wrap.player { left: 21%; bottom: var(--battle-fighter-bottom, 32%); top: auto; }
+.fighter-wrap.enemy { right: 21%; bottom: var(--battle-fighter-bottom, 32%); top: auto; }
 .battle-stage.attack-anim-active,
 .battle-scene.attack-anim-active {
     overflow: visible;
@@ -3185,6 +3186,13 @@ body.afk-layout .currency-pill .currency-tip {
 .game-container.adventure-mode .battle-scene-frame,
 .game-container.adventure-mode .battle-scene-ui {
     background: transparent;
+}
+/* Adventure + future PvE battle modes: lower fighters 15% toward ground */
+.game-container.adventure-mode .battle-stage,
+.game-container.arena-mode .battle-stage,
+.game-container.house-tower-mode .battle-stage,
+.game-container.pvp-wager-mode .battle-stage {
+    --battle-fighter-bottom: calc(32% * 0.85);
 }
 
 .game-modal {
