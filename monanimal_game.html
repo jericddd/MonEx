@@ -4658,7 +4658,7 @@ let money = 5000;
 let essence = 0;
 let monShards = 0;
 let trainerXp = 0;
-let resourceChestLastCollectAt = Date.now();
+let resourceChestLastCollectAt = null;
 let resourceChestTimerInterval = null;
 let highestStageCleared = 0;
 let adventureGlobalBest = 0;
@@ -4924,8 +4924,25 @@ function getResourceChestRates(chapter) {
     };
 }
 
+function isValidResourceChestTimestamp(ts) {
+    return typeof ts === "number" && Number.isFinite(ts) && ts > 0;
+}
+
+function loadResourceChestTimestamp(loadedData) {
+    let fromLocal = null;
+    if (currentUser) {
+        try {
+            const raw = localStorage.getItem("monex_" + currentUser);
+            if (raw) fromLocal = JSON.parse(raw).resourceChestLastCollectAt;
+        } catch (_) {}
+    }
+    const candidates = [loadedData?.resourceChestLastCollectAt, fromLocal].filter(isValidResourceChestTimestamp);
+    // Latest claim timestamp wins across cloud/local; elapsed time is always wall-clock since then.
+    resourceChestLastCollectAt = candidates.length ? Math.max(...candidates) : Date.now();
+}
+
 function ensureResourceChestTimestamp() {
-    if (!resourceChestLastCollectAt || Number.isNaN(resourceChestLastCollectAt)) {
+    if (!isValidResourceChestTimestamp(resourceChestLastCollectAt)) {
         resourceChestLastCollectAt = Date.now();
     }
 }
@@ -5049,7 +5066,7 @@ function renderResourceChestModal() {
         <div class="resource-chest-timer-block">
             <div class="resource-chest-timer-label">COLLECTING TIME</div>
             <div class="resource-chest-timer-value">${elapsed} / 24:00:00</div>
-            <div class="resource-chest-timer-cap">${preview.progress >= 1 ? "Chest is full — collect now!" : "Keeps collecting while idle (max 24h)."}</div>
+            <div class="resource-chest-timer-cap">${preview.progress >= 1 ? "Chest is full — collect now!" : "Keeps collecting offline (max 24h). Resets when you collect."}</div>
         </div>
         <p class="resource-chest-chapter-note">Rewards scale by <b>Chapter ${preview.chapter}</b> progress (updates when you advance to the next chapter).</p>
         <div class="resource-chest-rewards">
@@ -5101,6 +5118,21 @@ function startResourceChestTimer() {
             renderResourceChestModal();
         }
     }, RESOURCE_CHEST_TIMER_TICK_MS);
+    bindResourceChestPersistence();
+}
+
+let resourceChestPersistenceBound = false;
+function bindResourceChestPersistence() {
+    if (resourceChestPersistenceBound) return;
+    resourceChestPersistenceBound = true;
+    const flush = () => {
+        if (!currentUser || !isValidResourceChestTimestamp(resourceChestLastCollectAt)) return;
+        saveData();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") flush();
+    });
 }
 
 function stopResourceChestTimer() {
@@ -7462,8 +7494,7 @@ async function loadData() {
         gearInventory = data.gearInventory || [];
         lastResetDate = data.lastResetDate || null;
         xHandle = data.xHandle || xHandle || "";
-        resourceChestLastCollectAt = data.resourceChestLastCollectAt || Date.now();
-        ensureResourceChestTimestamp();
+        loadResourceChestTimestamp(data);
 
         [...party, ...box].forEach((mon) => {
             try { ensureMonReady(mon); } catch (e) { console.error("Skipped invalid mon on load:", e); }
