@@ -2668,9 +2668,31 @@ body.afk-layout .currency-pill .currency-tip {
     box-shadow: none;
     background: transparent;
 }
+.side-icon-btn.active::before {
+    content: "";
+    position: absolute;
+    inset: 10%;
+    border-radius: 14px;
+    background: rgba(254, 240, 138, 0.16);
+    box-shadow:
+        0 0 10px rgba(250, 204, 21, 0.55),
+        inset 0 0 12px rgba(254, 240, 138, 0.28);
+    pointer-events: none;
+    z-index: 0;
+}
 .side-icon-btn.active img {
-    filter: var(--rail-tab-icon-shadow);
-    transform: scale(calc(var(--rail-icon-scale, 1) * 1.06));
+    filter:
+        drop-shadow(0 0 5px rgba(254, 240, 138, 0.95))
+        drop-shadow(0 0 12px rgba(250, 204, 21, 0.8))
+        var(--rail-tab-icon-shadow);
+    transform: scale(calc(var(--rail-icon-scale, 1) * 1.08));
+}
+.side-icon-btn.active:hover img {
+    filter:
+        drop-shadow(0 0 6px rgba(254, 240, 138, 1))
+        drop-shadow(0 0 14px rgba(250, 204, 21, 0.9))
+        var(--rail-tab-icon-shadow);
+    transform: scale(calc(var(--rail-icon-scale, 1) * 1.1));
 }
 
 .battle-scene {
@@ -8303,6 +8325,39 @@ function readCachedUserFallback() {
 }
 
 // ==================== AFK NAVIGATION ====================
+const RAIL_TAB_BY_MODAL = {
+    "daily-quest": "rail-daily-quest",
+    shop: "rail-shop",
+    profile: "rail-profile",
+    party: "rail-party",
+    box: "rail-box",
+    inventory: "rail-inventory",
+    "gear-synth": "rail-inventory",
+};
+
+function clearActiveRailTabs() {
+    document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
+}
+
+function setActiveRailTab(buttonId) {
+    clearActiveRailTabs();
+    if (buttonId) document.getElementById(buttonId)?.classList.add("active");
+}
+
+function syncActiveRailTab() {
+    if (document.getElementById("battle-scene")?.classList.contains("open")) {
+        setActiveRailTab("rail-battle");
+        return;
+    }
+    for (const [modalName, railId] of Object.entries(RAIL_TAB_BY_MODAL)) {
+        if (document.getElementById("modal-" + modalName)?.classList.contains("open")) {
+            setActiveRailTab(railId);
+            return;
+        }
+    }
+    clearActiveRailTabs();
+}
+
 function resetToMainSceneUI() {
     setAdventureMode(false);
     setBattleSceneBackground("");
@@ -8315,7 +8370,7 @@ function resetToMainSceneUI() {
 
 function showMainScene() {
     resetToMainSceneUI();
-    document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
+    clearActiveRailTabs();
     renderMainScene();
     updateResourceChestWidget();
     startResourceChestTimer();
@@ -8325,7 +8380,7 @@ function showMainScene() {
 function closeAllModals() {
     closePartySwitchPicker();
     document.querySelectorAll(".game-modal").forEach(el => el.classList.remove("open"));
-    document.getElementById("rail-battle")?.classList.remove("active");
+    syncActiveRailTab();
 }
 
 function openGameModal(name) {
@@ -8346,12 +8401,14 @@ function openGameModal(name) {
     if (name === "shop") renderShop();
     if (name === "profile") renderProfile();
     if (name === "daily-quest") renderDailyQuest();
+    syncActiveRailTab();
 }
 
 function closeGameModal(name) {
     const modal = document.getElementById("modal-" + name);
     if (modal) modal.classList.remove("open");
     if (name === "box") closeBoxSortMenu();
+    syncActiveRailTab();
 }
 
 function openCatch() {
@@ -8476,8 +8533,7 @@ function openBattleHub() {
     setAdventureMode(false);
     setBattleFightingUI(false);
     setBattleSceneBackground(BATTLE_HUB_BG);
-    document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
-    document.getElementById("rail-battle")?.classList.add("active");
+    setActiveRailTab("rail-battle");
     renderBattleHubMenu();
     ensureCoverStagesSync();
 }
@@ -8504,8 +8560,7 @@ function prepareAdventureBattleScene() {
     stopSceneIdleBattle();
     ensureBattleSceneOpen();
     enterAdventureFullMode(getChapterBackgroundPath(currentChapter));
-    document.querySelectorAll(".side-icon-btn").forEach(el => el.classList.remove("active"));
-    document.getElementById("rail-battle")?.classList.add("active");
+    setActiveRailTab("rail-battle");
 }
 
 function openAdventureStagePrep() {
@@ -8599,7 +8654,7 @@ function closeBattleScene() {
     battleScreen = "main";
     document.getElementById("battle-scene").classList.remove("open");
     setMainSceneVisible(true);
-    document.getElementById("rail-battle")?.classList.remove("active");
+    syncActiveRailTab();
     const content = document.getElementById("battle-content");
     if (content) {
         content.innerHTML = "";
