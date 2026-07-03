@@ -9298,6 +9298,7 @@ function showSkillBodyFxForTurn(skill, atkSide, defSide, isUlt, options = {}) {
 }
 
 function showAttackSkillBodyFx(defSide, skill, isUlt, outcome = "hit") {
+    if (outcome === "dodge" || outcome === "miss") return;
     const small = outcome === "block";
     playSkillBodyFx(defSide, skill, isUlt, { small });
 }
@@ -9601,9 +9602,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     const effDodge = defenderCanEvade ? getEffectiveDodge(def, atk) : 0;
     if (effDodge > 0 && Math.random() * 100 < effDodge) {
         await playDodgeEvade(defSide);
-        showAttackSkillBodyFx(defSide, skill, isUlt, "dodge");
         showDamage(defSide, 0, "miss");
-        showSkillCallout(defSide, "DODGE!", { status: true });
         finishTurn();
         if (attackPath) await completeGifAttackReturn(atkSide, atk, attackPath, animStart);
         else { await delay(250); await recoil(atkSide); await delay(120); }
