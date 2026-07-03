@@ -4626,13 +4626,13 @@ const BATTLE_BG_MENU = BANNER_DIR + "/battlebackground.jpg";
 const BATTLE_BG_MAP = BANNER_DIR + "/map1.gif";
 const BATTLE_STAGE_PATH = BANNER_DIR + "/mainscene_battlepath.jpg";
 const MAIN_SCENE_BG = BANNER_DIR + "/mainscene_background.png";
-const BATTLE_HUB_BG = BANNER_DIR + "/battlescene_background_test.jpg";
+const BATTLE_HUB_BG = BANNER_DIR + "/battlescene_background.jpg";
 const CHAPTER_BG_MAX = 2;
 const ADVENTURE_CHAPTER_PLACEHOLDER = BANNER_DIR + "/adventure_chapter_placeholder.png";
 const CHAPTER_BG_FALLBACK = ADVENTURE_CHAPTER_PLACEHOLDER;
 const BATTLE_HUB_BTN_DIR = BANNER_DIR + "/battle_hub";
 const BATTLE_ICONS_DIR = "game_icons/battle";
-// Statue placement on battlescene_background.png — left/top anchor + translate + ground shadow
+// Statue placement on battlescene_background.jpg — left/top anchor + translate + ground shadow
 const BATTLE_HUB_STATUE_ANCHORS = {
     adventure: { left: 12, top: 70, translateX: -50, translateY: -100, shadowW: 70, shadowH: 10, shadowBottom: 2 },
     "house-tower": { left: 31, top: 69, translateX: -50, translateY: -100, shadowW: 76, shadowH: 11, shadowBottom: 1 },
@@ -4701,7 +4701,7 @@ function setMainSceneVisible(visible) {
 
 function getChapterBackgroundPath(chapter) {
     const ch = Math.max(1, Math.floor(chapter) || 1);
-    if (ch <= CHAPTER_BG_MAX) return `${BANNER_DIR}/adventure_chapter${ch}.png`;
+    if (ch <= CHAPTER_BG_MAX) return `${BANNER_DIR}/adventure_chapter${ch}.jpg`;
     return ADVENTURE_CHAPTER_PLACEHOLDER;
 }
 
