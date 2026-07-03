@@ -1706,10 +1706,6 @@ button,
     filter: drop-shadow(0 6px 5px rgba(0,0,0,0.45));
     transform-origin: center bottom;
 }
-.bsprite.battle-sprite-chog-swing2 {
-    width: 166px;
-    height: 166px;
-}
 .nameplate {
     background: rgba(255,255,255,0.92);
     border: 3px solid #6B21A8;
@@ -2522,10 +2518,6 @@ body.afk-layout .currency-pill .currency-tip {
     display: block;
     flex-shrink: 0;
     transform-origin: center bottom;
-}
-.scene-idle-sprite.scene-sprite-chog-swing2 {
-    width: calc(var(--scene-fighter-size, 88px) * 1.11);
-    height: calc(var(--scene-fighter-size, 88px) * 1.11);
 }
 .scene-idle-fighter.dash-sweep .scene-idle-sprite {
     filter: brightness(1.15);
@@ -4759,26 +4751,24 @@ const SCENE_IDLE_SPRITE_SCALE = {
 const SCENE_IDLE_SPRITE_SCALE_DEFAULT = 1.0;
 
 const CHOG_SWING2_PATH = "128x128/chog-swing2.gif";
+const CHOG_SWING2_VISUAL_SCALE = 1.1;
 
 function isChogSwing2Path(spritePath) {
     return normalizeSpritePath(spritePath) === CHOG_SWING2_PATH;
 }
 
-function syncSpritePathClasses(imgEl, spritePath) {
-    if (!imgEl) return;
-    const isSwing2 = isChogSwing2Path(spritePath || imgEl.src);
-    imgEl.classList.toggle("battle-sprite-chog-swing2", isSwing2 && imgEl.classList.contains("bsprite"));
-    imgEl.classList.toggle("scene-sprite-chog-swing2", isSwing2 && imgEl.classList.contains("scene-idle-sprite"));
+function getChogSwingPathScale(spritePath) {
+    return isChogSwing2Path(spritePath) ? CHOG_SWING2_VISUAL_SCALE : 1;
 }
 
 function getSceneIdleSpriteTransform(monName, mirrored, spritePath) {
     const speciesScale = SCENE_IDLE_SPRITE_SCALE[monName] ?? SCENE_IDLE_SPRITE_SCALE_DEFAULT;
-    return mirrored ? `scale(${speciesScale}) scaleX(-1)` : `scale(${speciesScale})`;
+    const scale = speciesScale * getChogSwingPathScale(spritePath);
+    return mirrored ? `scale(${scale}) scaleX(-1)` : `scale(${scale})`;
 }
 
 function applySceneIdleSpriteTransform(imgEl, monName, mirrored, spritePath) {
     if (!imgEl) return;
-    syncSpritePathClasses(imgEl, spritePath);
     imgEl.style.transform = getSceneIdleSpriteTransform(monName, mirrored, spritePath);
 }
 
@@ -5464,15 +5454,36 @@ function getSceneSpriteHitAtMs(spritePath, monName, durationMs) {
 }
 
 function setSceneIdleSprite(imgEl, spritePath) {
-    if (!imgEl || !spritePath) return;
+    if (!imgEl || !spritePath) return Promise.resolve();
     const base = normalizeSpritePath(spritePath);
     const current = normalizeSpritePath(imgEl.dataset.spriteBase || imgEl.src);
-    if (current === base) return;
-    imgEl.dataset.spriteBase = base;
-    imgEl.src = spritePath + "?t=" + Date.now();
+    if (current === base) return Promise.resolve();
+
     const monName = imgEl.dataset.mon;
     const mirrored = imgEl.classList.contains("mirrored");
-    applySceneIdleSpriteTransform(imgEl, monName, mirrored, spritePath);
+    const apply = () => {
+        imgEl.dataset.spriteBase = base;
+        applySceneIdleSpriteTransform(imgEl, monName, mirrored, spritePath);
+    };
+
+    if (!spritePath.endsWith(".gif")) {
+        apply();
+        imgEl.src = spritePath;
+        return Promise.resolve();
+    }
+
+    return new Promise(resolve => {
+        const url = spritePath + "?t=" + Date.now();
+        const pre = new Image();
+        const finish = () => {
+            apply();
+            imgEl.src = url;
+            requestAnimationFrame(() => requestAnimationFrame(resolve));
+        };
+        pre.onload = finish;
+        pre.onerror = finish;
+        pre.src = url;
+    });
 }
 
 async function waitSceneGifMs(ms, token) {
@@ -5560,11 +5571,12 @@ function refreshSceneIdleHeroFighters(heroes) {
         const img = document.getElementById(`scene-idle-sprite-hero-${idx}`);
         if (!fighter || !img) return;
         const isMirrored = shouldMirrorBattleSprite("player", mon.name);
+        const spritePath = getSceneIdleDisplaySprite(mon);
         img.dataset.mon = mon.name;
         img.alt = mon.name;
         img.classList.toggle("mirrored", isMirrored);
-        applySceneIdleSpriteTransform(img, mon.name, isMirrored);
-        setSceneIdleSprite(img, getSceneIdleDisplaySprite(mon));
+        applySceneIdleSpriteTransform(img, mon.name, isMirrored, spritePath);
+        setSceneIdleSprite(img, spritePath);
         const shadow = fighter.querySelector(".scene-idle-body-shadow");
         if (shadow) {
             const cfg = SCENE_IDLE_BODY_SHADOW[mon.name] || SCENE_IDLE_BODY_SHADOW_DEFAULT;
@@ -5672,7 +5684,7 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
         const attackPath = getAttackSpritePath(atkMon.name);
         const idleSprite = getSceneIdleHomeSprite(atkMon);
         if (attackPath) {
-            setSceneIdleSprite(atkImg, attackPath);
+            await setSceneIdleSprite(atkImg, attackPath);
             const durationMs = getSceneIdleSpriteDurationMs(attackPath, atkMon.name);
             const hitAtMs = getSceneIdleSpriteHitAtMs(attackPath, atkMon.name);
             await delay(hitAtMs);
@@ -5680,7 +5692,7 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
             sceneIdleShakeHit(defEl);
             await waitSceneGifMs(durationMs - hitAtMs, token);
             if (token !== sceneIdleBattleToken) return;
-            setSceneIdleSprite(atkImg, idleSprite);
+            await setSceneIdleSprite(atkImg, idleSprite);
             await waitSceneGifMs(getSceneIdleSpriteDurationMs(idleSprite, atkMon.name), token);
         } else {
             await delay(scaleSceneIdleSpriteMs(280));
@@ -5875,12 +5887,13 @@ function setBattleSprite(side, src, name, replayGif) {
 
 function getBattleSpriteTransform(side, name, spritePath) {
     const mirror = shouldMirrorBattleSprite(side, name);
-    return mirror ? "scaleX(-1)" : "";
+    const scale = getChogSwingPathScale(spritePath);
+    if (scale === 1) return mirror ? "scaleX(-1)" : "";
+    return mirror ? `scale(${scale}) scaleX(-1)` : `scale(${scale})`;
 }
 
 function applyBattleSpritePresentation(spriteEl, side, name, spritePath) {
     if (!spriteEl) return;
-    syncSpritePathClasses(spriteEl, spritePath);
     spriteEl.style.transform = getBattleSpriteTransform(side, name, spritePath || spriteEl.src);
     spriteEl.classList.toggle("mirrored", shouldMirrorBattleSprite(side, name));
 }
