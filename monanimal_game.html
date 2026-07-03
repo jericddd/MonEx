@@ -1172,6 +1172,7 @@ button,
     background-repeat: no-repeat;
     box-sizing: border-box;
     --battle-fighter-bottom: 32%;
+    --bsprite-size: 150px;
 }
 .stage-label {
     position: absolute;
@@ -1346,6 +1347,16 @@ button,
 }
 .fighter-wrap.player { left: 21%; bottom: var(--battle-fighter-bottom, 32%); top: auto; }
 .fighter-wrap.enemy { right: 21%; bottom: var(--battle-fighter-bottom, 32%); top: auto; }
+.battle-body-shadow {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.34) 0%, rgba(0, 0, 0, 0.16) 55%, transparent 72%);
+    pointer-events: none;
+    z-index: 1;
+}
 .battle-stage.attack-anim-active,
 .battle-scene.attack-anim-active {
     overflow: visible;
@@ -4025,6 +4036,7 @@ body.afk-layout .currency-pill .currency-tip {
     .battle-meter-skills-grid .skill-lock-icon { font-size: 11px; }
     .fighter-wrap.player { left: 18%; }
     .fighter-wrap.enemy { right: 18%; }
+    .battle-stage { --bsprite-size: 118px; }
     .bsprite { width: 118px; height: 118px; }
     .side-icon-btn .rail-tip {
         right: auto;
@@ -4831,6 +4843,15 @@ function applySceneIdleSpriteTransform(imgEl, monName, mirrored, spritePath) {
 function getSceneIdleBodyShadowHtml(monName) {
     const cfg = SCENE_IDLE_BODY_SHADOW[monName] || SCENE_IDLE_BODY_SHADOW_DEFAULT;
     return `<div class="scene-idle-body-shadow" data-mon="${monName}" style="width:calc(var(--scene-fighter-size, 88px) * ${cfg.w});height:calc(var(--scene-fighter-size, 88px) * ${cfg.h});" aria-hidden="true"></div>`;
+}
+
+function applyBattleBodyShadow(side, monName) {
+    const el = document.getElementById("battle-shadow-" + side);
+    if (!el) return;
+    const cfg = SCENE_IDLE_BODY_SHADOW[monName] || SCENE_IDLE_BODY_SHADOW_DEFAULT;
+    el.dataset.mon = monName;
+    el.style.width = `calc(var(--bsprite-size, 150px) * ${cfg.w})`;
+    el.style.height = `calc(var(--bsprite-size, 150px) * ${cfg.h})`;
 }
 let sceneIdleBattleRunning = false;
 let xHandle = "";
@@ -8965,12 +8986,14 @@ function renderBattleScene() {
             <div class="stage-label${boss ? ' boss-label' : ''}">${boss ? 'BOSS — ' : ''}CH.${currentChapter} STAGE ${currentStage}</div>
             <div class="fighter-wrap enemy" id="wrap-enemy">
                 <div class="fighter-skill-callout" id="skill-callout-enemy" aria-hidden="true"></div>
+                <div class="battle-body-shadow" id="battle-shadow-enemy" aria-hidden="true"></div>
                 <img class="bsprite" id="sprite-enemy" alt="">
                 <div class="fighter-debuff-burn" id="debuff-burn-enemy" aria-hidden="true"><img class="debuff-burn-img" src="${DEBUFF_BURN_FX}" alt=""></div>
                 <div class="fighter-block-shield" id="block-shield-enemy" aria-hidden="true"><img class="block-shield-img" src="${BLOCK_FX_ICON}" alt=""></div>
             </div>
             <div class="fighter-wrap player" id="wrap-player">
                 <div class="fighter-skill-callout" id="skill-callout-player" aria-hidden="true"></div>
+                <div class="battle-body-shadow" id="battle-shadow-player" aria-hidden="true"></div>
                 <img class="bsprite" id="sprite-player" alt="">
                 <div class="fighter-debuff-burn" id="debuff-burn-player" aria-hidden="true"><img class="debuff-burn-img" src="${DEBUFF_BURN_FX}" alt=""></div>
                 <div class="fighter-block-shield" id="block-shield-player" aria-hidden="true"><img class="block-shield-img" src="${BLOCK_FX_ICON}" alt=""></div>
@@ -9261,6 +9284,7 @@ function updateBattleMeter(side, fighter) {
 
 function setFighter(side, f) {
     setBattleSprite(side, f.sprite, f.name, false);
+    applyBattleBodyShadow(side, f.name);
     const portrait = document.getElementById("portrait-" + side);
     if (portrait) {
         bindBattleImgFallback(portrait, f.name);
