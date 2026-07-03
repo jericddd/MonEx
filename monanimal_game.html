@@ -1570,7 +1570,6 @@ button,
 .vs-side.right .vs-name { text-align: right; }
 .hpbar.big { height: 16px; }
 .manbar.big { height: 7px; margin-top: 3px; }
-.enbar.big { height: 7px; margin-top: 3px; }
 .status-row {
     display: flex; flex-wrap: wrap; gap: 3px; min-height: 14px; margin-top: 3px;
 }
@@ -1867,8 +1866,6 @@ button,
 }
 .manbar { height: 6px; background: #222; border: 1px solid #111; margin-top: 3px; }
 .manfill { height: 100%; width: 0; background: linear-gradient(90deg, #93c5fd, #3b82f6); transition: width .3s ease; }
-.enbar { height: 6px; background: #222; border: 1px solid #111; margin-top: 3px; }
-.enfill { height: 100%; width: 0; background: linear-gradient(90deg, #facc15, #f59e0b); transition: width .3s ease; }
 .bench { position: absolute; display: flex; gap: 6px; z-index: 5; }
 .bench-enemy { top: 10px; left: 10px; }
 .bench-player { bottom: 10px; left: 10px; }
@@ -4692,7 +4689,7 @@ const MAX_HIT_CHANCE = 98;
 const BLOCK_PIERCE_FACTOR = 1;
 const MAX_BLOCK_CHANCE = 25;
 
-// Each species has its own FIXED ultimate (energy-triggered, fires once per run).
+// Each species has its own FIXED ultimate (low-HP trigger chance, once per battle).
 const SPECIES_ULTIMATE = {
     "Molandak":   { name: "Frost Nova",     element: "ice",      power: 2.2, desc: "Erupts in an icy nova for massive damage." },
     "Chog":       { name: "Croak Quake",    element: "earth",    power: 2.2, desc: "A ground-shaking quake that crushes the foe." },
@@ -5659,6 +5656,7 @@ function getSceneIdleAttackPlayMs(spritePath, monName) {
 const ATTACK_DASH_MS = 220;
 const MELEE_TOUCH_GAP_PX = 2;
 const BATTLE_MANA_MAX = 100;
+const ULTIMATE_TRIGGER_MAX_CHANCE = 90;
 const SKILL_REPEAT_WEIGHT = 0.15;
 const NORMAL_ATTACK_POWER = 0.55;
 const NORMAL_ATTACK_MANA_GAIN = 20;
@@ -6427,6 +6425,29 @@ function getSkillManaCost(skill) {
     return 0;
 }
 
+function getUltimateTriggerChance(fighter) {
+    if (!fighter || fighter.ultimateUsed || fighter.hp <= 0) return 0;
+    const maxHp = Math.max(1, fighter.maxHp || 1);
+    const hpRatio = Math.max(0, Math.min(1, fighter.hp / maxHp));
+    const missingRatio = 1 - hpRatio;
+    return Math.round(missingRatio * ULTIMATE_TRIGGER_MAX_CHANCE);
+}
+
+function formatUltimateTriggerDetail(subject) {
+    if (subject && subject.maxHp > 0 && subject.hp != null && !subject.ultimateUsed) {
+        const chance = getUltimateTriggerChance(subject);
+        return "Trigger: " + chance + "% now (up to " + ULTIMATE_TRIGGER_MAX_CHANCE + "% as HP drops) · once per battle";
+    }
+    if (subject?.ultimateUsed) return "Ultimate already used this battle";
+    return "Trigger: up to " + ULTIMATE_TRIGGER_MAX_CHANCE + "% chance as HP gets lower · once per battle";
+}
+
+function rollUltimateTrigger(fighter) {
+    if (!fighter || fighter.ultimateUsed || !fighter.ultimate) return false;
+    const chance = getUltimateTriggerChance(fighter);
+    return chance > 0 && Math.random() * 100 < chance;
+}
+
 function getHealerAtkPower(healer) {
     return healer.atkPower != null
         ? healer.atkPower
@@ -6471,6 +6492,19 @@ function formatHealSkillDetail(mon, skill) {
 
 function getSkillStatsLine(mon, skill) {
     if (skill.type === "passive") return formatPassiveDetail(skill);
+    if (skill.type === "ultimate") {
+        const atk = getEffectiveStats(mon).atk;
+        const dmg = Math.floor(atk * (skill.power || 1));
+        const dmgPart = skill.power > 0
+            ? "DMG: " + dmg + " (ATK " + atk + " × " + skill.power + ")"
+            : "No direct damage";
+        const triggerPart = formatUltimateTriggerDetail({
+            hp: mon.current_hp ?? mon.max_hp,
+            maxHp: mon.max_hp,
+            ultimateUsed: false,
+        });
+        return [triggerPart, dmgPart].filter(Boolean).join(" · ");
+    }
     const manaPart = (skill.type === "active" || skill.type === "heal")
         ? "Mana: " + getSkillManaCost(skill) : "";
     if (skill.cleanse) {
@@ -6568,7 +6602,14 @@ function formatHealSkillDetailForFighter(fighter, skill) {
 
 function getSkillStatsLineForFighter(fighter, skill) {
     if (skill.type === "passive") return formatPassiveDetail(skill);
-    const manaPart = (skill.type === "active" || skill.type === "heal" || skill.type === "ultimate")
+    if (skill.type === "ultimate") {
+        const dmg = calculateDamage(fighter, BATTLE_METER_DUMMY_DEFENDER, skill);
+        const dmgPart = skill.power > 0
+            ? "DMG: " + dmg + " (ATK " + getEffectiveAtkPower(fighter) + " × " + skill.power + ")"
+            : "No direct damage";
+        return [formatUltimateTriggerDetail(fighter), dmgPart].filter(Boolean).join(" · ");
+    }
+    const manaPart = (skill.type === "active" || skill.type === "heal")
         ? "Mana: " + getSkillManaCost(skill) : "";
     if (skill.type === "normal") {
         const dmg = calculateDamage(fighter, BATTLE_METER_DUMMY_DEFENDER, skill);
@@ -9283,7 +9324,7 @@ function makeFighter(mon, isPlayer, options = {}) {
         skills: mon.skills.map(s => ({ ...s })),
         ultimate: { ...mon.ultimate },
         sprite: getSpritePath(mon.name, mon.rarity),
-        energy: 0, mana: BATTLE_MANA_MAX, maxMana: BATTLE_MANA_MAX,
+        mana: BATTLE_MANA_MAX, maxMana: BATTLE_MANA_MAX,
         battleId: (isPlayer ? "p" : "e") + "_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
         ultimateUsed: false, lastSkillName: null, status: [], isPlayer
     };
@@ -9333,7 +9374,6 @@ function renderBattleScene() {
                             <div class="vs-name"><span id="np-name-player"></span> <span class="vs-lv" id="np-lv-player"></span></div>
                             <div class="hpbar big"><div class="hpfill" id="hp-player"></div><span class="hptext" id="hptext-player"></span></div>
                             <div class="manbar big"><div class="manfill" id="mana-player"></div></div>
-                            <div class="enbar big"><div class="enfill" id="en-player"></div></div>
                             <div class="status-row" id="status-player"></div>
                         </div>
                     </div>
@@ -9343,7 +9383,6 @@ function renderBattleScene() {
                             <div class="vs-name"><span class="vs-lv" id="np-lv-enemy"></span> <span id="np-name-enemy"></span></div>
                             <div class="hpbar big"><div class="hpfill" id="hp-enemy"></div><span class="hptext" id="hptext-enemy"></span></div>
                             <div class="manbar big"><div class="manfill" id="mana-enemy"></div></div>
-                            <div class="enbar big"><div class="enfill" id="en-enemy"></div></div>
                             <div class="status-row" id="status-enemy"></div>
                         </div>
                         <div class="team-col" id="team-enemy"></div>
@@ -9680,7 +9719,6 @@ function updateBars(side, f) {
     document.getElementById("hptext-" + side).textContent = Math.max(0, Math.ceil(f.hp)) + " / " + f.maxHp;
     const manaEl = document.getElementById("mana-" + side);
     if (manaEl) manaEl.style.width = Math.min(100, (f.mana / f.maxMana) * 100) + "%";
-    document.getElementById("en-" + side).style.width = Math.min(100, f.energy) + "%";
     updateBattleMeterVitals(side, f);
     updateBattleMeterStats(side, f);
 }
@@ -9943,8 +9981,9 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     }
 
     let skill, isUlt = false;
-    if (atk.energy >= 100 && !atk.ultimateUsed) {
-        skill = atk.ultimate; isUlt = true;
+    if (!atk.ultimateUsed && rollUltimateTrigger(atk)) {
+        skill = atk.ultimate;
+        isUlt = true;
     } else {
         skill = pickBattleSkill(atk);
     }
@@ -9961,10 +10000,6 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     const preAnimMs = isUlt ? 500 : (skill.type === "heal" ? 180 : 300);
     await delay(preAnimMs);
 
-    const spendEnergy = () => {
-        atk.energy = Math.min(100, atk.energy + 30);
-        if (isUlt) { atk.ultimateUsed = true; atk.energy = 0; }
-    };
     const spendMana = () => {
         if (!isUlt && skill.type !== "normal") {
             atk.mana = Math.max(0, atk.mana - getSkillManaCost(skill));
@@ -9978,7 +10013,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     const finishTurn = () => {
         spendMana();
         restoreMana();
-        spendEnergy();
+        if (isUlt) atk.ultimateUsed = true;
         atk.lastSkillName = skill.name;
         tickStatusDurations(atk);
         updateBars(atkSide, atk);
@@ -10068,7 +10103,6 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     tryApplySkillEffect(atk, def, skill);
     renderStatusRow(defSide, def);
 
-    if (def.hp > 0) def.energy = Math.min(100, def.energy + 15);
     finishTurn();
 
     if (attackPath) {
