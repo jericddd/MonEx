@@ -541,6 +541,8 @@ button.green:hover {
 }
 #modal-party .gear-slot.has-hover-tip:hover .hover-tip-panel,
 #modal-box .gear-slot.has-hover-tip:hover .hover-tip-panel,
+#modal-party .house-badge.has-hover-tip:hover .hover-tip-panel,
+#modal-box .house-badge.has-hover-tip:hover .hover-tip-panel,
 #modal-inventory .gear-inv-slot.has-hover-tip:hover .hover-tip-panel {
     z-index: 1001;
 }
@@ -1172,6 +1174,130 @@ button,
     font-family: 'Lato', sans-serif;
 }
 .info-icon:hover .stats-tooltip { display: block; }
+
+/* House faction badge (top-left of mon cards) */
+.house-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 4;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: help;
+    border: 2px solid #6B21A8;
+    background: #fff;
+    box-shadow: 2px 2px 0 #6B21A8;
+    padding: 1px;
+    box-sizing: border-box;
+}
+.house-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    display: block;
+}
+.house-badge--box {
+    top: 6px;
+    left: 6px;
+    width: 18px;
+    height: 18px;
+    border-width: 1px;
+    box-shadow: 1px 1px 0 #6B21A8;
+}
+.house-badge--battle {
+    position: relative;
+    top: auto;
+    left: auto;
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    border-width: 1px;
+    box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.45);
+    cursor: help;
+}
+.house-badge .hover-tip-panel {
+    bottom: auto;
+    top: calc(100% + 6px);
+    left: 0;
+    right: auto;
+    transform: none;
+}
+.vs-name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    margin-bottom: 4px;
+    text-shadow: 0 1px 2px #000;
+}
+.vs-side.right .vs-name {
+    justify-content: flex-end;
+}
+.vs-name .vs-lv { flex-shrink: 0; }
+.vs-name .vs-mon-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.box-house-filter {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.box-house-filter-btn {
+    width: 30px;
+    height: 30px;
+    padding: 2px;
+    border: 2px solid #c4b5fd;
+    background: #fff;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 #7c3aed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+.box-house-filter-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    opacity: 0.55;
+}
+.box-house-filter-btn:hover,
+.box-house-filter-btn:focus-visible {
+    border-color: #7c3aed;
+    background: #faf5ff;
+}
+.box-house-filter-btn.active {
+    border-color: #6B21A8;
+    background: #ede9fe;
+    box-shadow: 2px 2px 0 #4c1d95;
+}
+.box-house-filter-btn.active img {
+    opacity: 1;
+}
+.box-house-filter-btn--all {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 5px;
+    line-height: 1.2;
+    color: #5b21b6;
+    padding: 0 2px;
+}
+.box-house-filter-btn--all.active {
+    color: #fff;
+    background: linear-gradient(180deg, #c084fc 0%, #7c3aed 100%);
+}
+
 .stats-tooltip .st-title {
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
@@ -1563,11 +1689,6 @@ button,
 .team-dot.dead { filter: grayscale(1) brightness(0.5); opacity: 0.5; }
 .team-dot.active { border-color: #facc15; box-shadow: 0 0 8px #facc15; }
 .vs-bars { flex: 1; min-width: 0; }
-.vs-name {
-    color: #fff; font-family: 'Press Start 2P', monospace; font-size: 9px;
-    margin-bottom: 4px; text-shadow: 0 1px 2px #000; white-space: nowrap; overflow: hidden;
-}
-.vs-side.right .vs-name { text-align: right; }
 .hpbar.big { height: 16px; }
 .manbar.big { height: 7px; margin-top: 3px; }
 .status-row {
@@ -4354,6 +4475,7 @@ body.afk-layout .currency-pill .currency-tip {
                         <button type="button" data-sort="rarity" onclick="setBoxSort('rarity')">Sort by Rarity</button>
                     </div>
                 </div>
+                <div class="box-house-filter" id="box-house-filter" aria-label="Filter by house"></div>
                 <div class="game-modal-title-row">
                     <h2>BOX</h2>
                     <span id="box-capacity-label" class="box-capacity-label"></span>
@@ -4559,12 +4681,25 @@ function renderHoverTip(name, desc) {
 
 const MONANIMAL_NAMES = ["Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal", "Monavara", "Moncock", "Mondigrade", "Montiger", "Mosferatu", "Moxy", "Shramp", "Spidermon", "Moyaki"];
 const REMOVED_MONANIMAL_NAMES = new Set(["Mopo"]);
-// Fixed house per species (expand as assignments are finalized).
+// Fixed house per species — every monanimal belongs to exactly one house.
 const SPECIES_HOUSE = {
     Chog: "chog",
+    Mouch: "chog",
+    Anago: "chog",
+    Shramp: "chog",
+    Spidermon: "chog",
     Molandak: "molandak",
+    Lyraffe: "molandak",
+    Mondigrade: "molandak",
+    Montiger: "molandak",
+    Mokadal: "molandak",
+    Monavara: "molandak",
     Moyaki: "moyaki",
     Salmonad: "moyaki",
+    Moncock: "moyaki",
+    Moxy: "moyaki",
+    Larvanad: "moyaki",
+    Mosferatu: "moyaki",
 };
 
 function getSpeciesHouseId(name) {
@@ -4825,6 +4960,7 @@ let currentUser = null;
 let party = [];
 let box = [];
 let boxSortMode = "rarity";
+let boxHouseFilter = null;
 let monballs = 15;
 let money = 5000;
 let essence = 0;
@@ -4856,10 +4992,46 @@ const BATTLE_ICONS_DIR = "game_icons/battle";
 // Not under battle/ because houses are used outside the battle hub.
 const HOUSE_ICON_DIR = "game_icons/house";
 const HOUSES = {
-    chog:     { id: "chog",     label: "House of Chog",     icon: `${HOUSE_ICON_DIR}/chog.png` },
-    molandak: { id: "molandak", label: "House of Molandak", icon: `${HOUSE_ICON_DIR}/molandak.png` },
-    moyaki:   { id: "moyaki",   label: "House of Moyaki",   icon: `${HOUSE_ICON_DIR}/moyaki.png` },
+    chog:     { id: "chog",     label: "House of Chog",     icon: `${HOUSE_ICON_DIR}/chogicon.png` },
+    molandak: { id: "molandak", label: "House of Molandak", icon: `${HOUSE_ICON_DIR}/molandakicon.png` },
+    moyaki:   { id: "moyaki",   label: "House of Moyaki",   icon: `${HOUSE_ICON_DIR}/moyakiicon.png` },
 };
+const HOUSE_ORDER = ["chog", "molandak", "moyaki"];
+
+function renderHouseBadge(monOrName, variant = "party") {
+    const name = typeof monOrName === "string" ? monOrName : monOrName?.name;
+    const meta = getSpeciesHouseMeta(name);
+    if (!meta) return "";
+    const sizeCls = variant === "box" ? "house-badge--box" : variant === "battle" ? "house-badge--battle" : "";
+    return `<span class="house-badge has-hover-tip ${sizeCls}" aria-label="${meta.label}">
+        <img src="${meta.icon}" alt="">
+        ${renderHoverTip(meta.label, meta.label)}
+    </span>`;
+}
+
+function partyBelongsToHouse(houseId) {
+    if (!party.length) return false;
+    return party.every(m => getSpeciesHouseId(m.name) === houseId);
+}
+
+function getPartyOffHouseMembers(houseId) {
+    return party.filter(m => getSpeciesHouseId(m.name) !== houseId);
+}
+
+function openHouseTower(houseId) {
+    const meta = getHouseMeta(houseId);
+    if (!meta) return;
+    if (!party.length) {
+        alert("Add Monanimals to your party before entering a House Tower.");
+        return;
+    }
+    const offHouse = getPartyOffHouseMembers(houseId);
+    if (offHouse.length) {
+        alert(`${meta.label} Tower only allows party members from ${meta.label}.\n\nSwitch out: ${offHouse.map(m => m.name).join(", ")}`);
+        return;
+    }
+    alert(`${meta.label} Tower coming soon!`);
+}
 // Statue placement on battlescene_background.jpg — left/top anchor + translate + ground shadow
 const BATTLE_HUB_STATUE_ANCHORS = {
     adventure: { left: 12, top: 70, translateX: -50, translateY: -100, shadowW: 70, shadowH: 10, shadowBottom: 2 },
@@ -6321,6 +6493,36 @@ function setBoxSort(mode) {
     closeBoxSortMenu();
     sortBox();
     renderBox();
+}
+
+function renderBoxHouseFilter() {
+    const el = document.getElementById("box-house-filter");
+    if (!el) return;
+    el.innerHTML = `
+        <button type="button" class="box-house-filter-btn box-house-filter-btn--all${boxHouseFilter == null ? " active" : ""}" onclick="setBoxHouseFilter(null)" title="All houses" aria-label="All houses">ALL</button>
+        ${HOUSE_ORDER.map(id => {
+            const meta = HOUSES[id];
+            return `<button type="button" class="box-house-filter-btn${boxHouseFilter === id ? " active" : ""}" data-house="${id}" onclick="setBoxHouseFilter('${id}')" title="${meta.label}" aria-label="${meta.label}">
+                <img src="${meta.icon}" alt="">
+            </button>`;
+        }).join("")}
+    `;
+}
+
+function setBoxHouseFilter(houseId) {
+    if (houseId != null && !HOUSES[houseId]) return;
+    if (houseId == null) {
+        boxHouseFilter = null;
+    } else {
+        boxHouseFilter = boxHouseFilter === houseId ? null : houseId;
+    }
+    renderBoxHouseFilter();
+    renderBox();
+}
+
+function getBoxDisplayList() {
+    if (!boxHouseFilter) return box;
+    return box.filter(m => getSpeciesHouseId(m.name) === boxHouseFilter);
 }
 
 function getRarityRoll() {
@@ -8036,6 +8238,7 @@ function renderPartyGrid() {
         card.style.cursor = "pointer";
         card.innerHTML = `
     ${renderStatsInfo(mon)}
+    ${renderHouseBadge(mon, "party")}
     <div class="mon-sprite">
         <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
     </div>
@@ -8090,9 +8293,12 @@ function renderBox() {
     const content = document.getElementById("box-content");
     const capLabel = document.getElementById("box-capacity-label");
     if (capLabel) capLabel.textContent = String(box.length);
+    renderBoxHouseFilter();
     sortBox();
     updateBoxSortMenu();
     content.innerHTML = "";
+
+    const displayList = getBoxDisplayList();
 
     if (!box || box.length === 0) {
         content.className = "";
@@ -8105,10 +8311,23 @@ function renderBox() {
         return;
     }
 
+    if (!displayList.length) {
+        content.className = "";
+        const filterLabel = boxHouseFilter ? getHouseMeta(boxHouseFilter)?.label : "";
+        content.innerHTML = `
+            <div style="text-align: center; padding: 80px 20px; color: #666; min-width: 280px;">
+                <p style="font-size: 16px; margin-bottom: 12px;">No ${filterLabel} Monanimals in your box.</p>
+                <p style="font-size: 14px;">Try another house filter or tap ALL.</p>
+            </div>
+        `;
+        return;
+    }
+
     content.className = "box-content-grid";
     content.style.gridColumn = "";
 
-    box.forEach((mon, i) => {
+    displayList.forEach((mon) => {
+        const i = box.indexOf(mon);
         ensureMonReady(mon);
         const cap = getLevelCap(mon);
 
@@ -8116,6 +8335,7 @@ function renderBox() {
         card.className = `mon-card ${getRarityClass(mon.rarity)}`;
         card.innerHTML = `
     ${renderStatsInfo(mon)}
+    ${renderHouseBadge(mon, "box")}
     <div class="mon-sprite">
         <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
     </div>
@@ -8978,9 +9198,9 @@ const BATTLE_HUB_MAIN_BUTTONS = [
     { alt: "Training", label: "TRAINING", src: `${BATTLE_ICONS_DIR}/training/training.png`, onclick: "alert('Training coming soon!')", statue: true, scene: "training" },
 ];
 const BATTLE_HUB_TOWER_BUTTONS = [
-    { alt: "Tower of Chog", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_tower_chog.png`, left: 28, top: 42, onclick: "alert('Tower of Chog coming soon!')" },
-    { alt: "Tower of Molandak", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_tower_molandak.png`, left: 50, top: 34, onclick: "alert('Tower of Molandak coming soon!')" },
-    { alt: "Tower of Moyaki", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_tower_moyaki.png`, left: 72, top: 42, onclick: "alert('Tower of Moyaki coming soon!')" },
+    { alt: "Tower of Chog", houseId: "chog", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_tower_chog.png`, left: 28, top: 42, onclick: "openHouseTower('chog')" },
+    { alt: "Tower of Molandak", houseId: "molandak", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_tower_molandak.png`, left: 50, top: 34, onclick: "openHouseTower('molandak')" },
+    { alt: "Tower of Moyaki", houseId: "moyaki", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_tower_moyaki.png`, left: 72, top: 42, onclick: "openHouseTower('moyaki')" },
     { alt: "Back", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_back.png`, left: 50, top: 72, onclick: "renderBattleHubMenu()", back: true },
 ];
 
@@ -9398,7 +9618,11 @@ function renderBattleScene() {
                         <img class="vs-portrait" id="portrait-player" alt="">
                         <div class="team-col" id="team-player"></div>
                         <div class="vs-bars">
-                            <div class="vs-name"><span id="np-name-player"></span> <span class="vs-lv" id="np-lv-player"></span></div>
+                            <div class="vs-name vs-name-line">
+                                <span id="np-house-player"></span>
+                                <span class="vs-mon-name" id="np-name-player"></span>
+                                <span class="vs-lv" id="np-lv-player"></span>
+                            </div>
                             <div class="hpbar big"><div class="hpfill" id="hp-player"></div><span class="hptext" id="hptext-player"></span></div>
                             <div class="manbar big"><div class="manfill" id="mana-player"></div></div>
                             <div class="status-row" id="status-player"></div>
@@ -9407,7 +9631,11 @@ function renderBattleScene() {
                     <div class="vs-badge">VS</div>
                     <div class="vs-side right">
                         <div class="vs-bars">
-                            <div class="vs-name"><span class="vs-lv" id="np-lv-enemy"></span> <span id="np-name-enemy"></span></div>
+                            <div class="vs-name vs-name-line">
+                                <span class="vs-lv" id="np-lv-enemy"></span>
+                                <span class="vs-mon-name" id="np-name-enemy"></span>
+                                <span id="np-house-enemy"></span>
+                            </div>
                             <div class="hpbar big"><div class="hpfill" id="hp-enemy"></div><span class="hptext" id="hptext-enemy"></span></div>
                             <div class="manbar big"><div class="manfill" id="mana-enemy"></div></div>
                             <div class="status-row" id="status-enemy"></div>
@@ -9733,6 +9961,8 @@ function setFighter(side, f) {
     }
     document.getElementById("np-name-" + side).textContent = f.name;
     document.getElementById("np-lv-" + side).textContent = "Lv." + f.level;
+    const houseEl = document.getElementById("np-house-" + side);
+    if (houseEl) houseEl.innerHTML = renderHouseBadge(f.name, "battle");
     updateBars(side, f);
     renderStatusRow(side, f);
     updateBattleMeter(side, f);
