@@ -898,6 +898,138 @@ button.green:hover {
     line-height: 1.45;
 }
 
+/* ===== Armory hub (synthesize / enhance) ===== */
+#modal-armory .game-modal-panel {
+    width: min(1040px, 96vw);
+    max-width: min(1040px, 96vw);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+#modal-armory .game-modal-body {
+    padding: 0;
+    overflow: hidden;
+    flex: 1;
+    min-height: 0;
+}
+.armory-shell {
+    display: flex;
+    min-height: 440px;
+    max-height: min(72vh, 640px);
+}
+.armory-nav {
+    flex: 0 0 25%;
+    max-width: 25%;
+    border-right: 3px solid #ede9fe;
+    padding: 14px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-sizing: border-box;
+    background: linear-gradient(180deg, #faf5ff 0%, #f5f3ff 100%);
+}
+.armory-nav-btn {
+    width: 100%;
+    padding: 12px 10px;
+    border: 2px solid #c4b5fd;
+    background: #fff;
+    color: #5b21b6;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    line-height: 1.5;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 #7c3aed;
+    text-align: center;
+}
+.armory-nav-btn:hover,
+.armory-nav-btn:focus-visible {
+    background: #ede9fe;
+    border-color: #7c3aed;
+}
+.armory-nav-btn.active {
+    background: linear-gradient(180deg, #c084fc 0%, #7c3aed 100%);
+    border-color: #5b21b6;
+    color: #fff;
+    box-shadow: 3px 3px 0 #4c1d95;
+}
+.armory-nav-spacer {
+    flex: 1;
+    min-height: 56px;
+}
+.armory-pane {
+    flex: 1 1 75%;
+    min-width: 0;
+    padding: 14px 16px;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+.gear-enhance-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.gear-enhance-workbench {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.gear-enhance-slot-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+.gear-enhance-slot {
+    width: 96px;
+    height: 96px;
+    border: 3px solid #f59e0b;
+    background: #fff;
+    box-shadow: inset 0 0 0 2px #fef3c7, 3px 3px 0 #b45309;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    padding: 6px;
+    box-sizing: border-box;
+}
+.gear-enhance-slot.filled { background: #fffbeb; }
+.gear-enhance-slot .gear-enhance-level {
+    position: absolute;
+    top: 3px;
+    left: 4px;
+    font-size: 8px;
+    font-weight: 700;
+    color: #b45309;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+.gear-enhance-info {
+    flex: 1;
+    min-width: 200px;
+    max-width: 320px;
+    border: 2px solid #e9d5ff;
+    background: #faf5ff;
+    padding: 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #4c1d95;
+}
+.gear-enhance-info h4 {
+    margin: 0 0 8px;
+    font-size: 11px;
+    color: #6B21A8;
+}
+.gear-enhance-rate {
+    font-weight: 700;
+    color: #7c3aed;
+}
+.gear-enhance-rate.low { color: #dc2626; }
+
 .ascend-btn {
     width: 100%;
     margin-top: 6px;
@@ -4147,6 +4279,10 @@ body.afk-layout .currency-pill .currency-tip {
             <img src="game_icons/button%20tabs/shop.png?v=4" alt="">
             <span class="rail-tip">SHOP</span>
         </button>
+        <button type="button" class="side-icon-btn" id="rail-armory" onclick="openArmoryModal('synthesize')">
+            <img src="game_icons/button%20tabs/armory.png?v=4" alt="">
+            <span class="rail-tip">ARMORY</span>
+        </button>
         <button type="button" class="side-icon-btn" id="rail-profile" onclick="goToProfile()">
             <img src="game_icons/button%20tabs/profile.png?v=4" alt="">
             <span class="rail-tip">PROFILE</span>
@@ -4241,9 +4377,6 @@ body.afk-layout .currency-pill .currency-tip {
     <div class="game-modal-panel game-modal-wide">
         <div class="game-modal-header">
             <h2>INVENTORY</h2>
-            <div class="gear-synth-header-actions">
-                <button type="button" class="gear-synth-open-btn" id="inventory-synth-btn" onclick="openGearSynthModal()">SYNTHESIZE</button>
-            </div>
             <button type="button" class="game-modal-close" onclick="closeGameModal('inventory')">×</button>
         </div>
         <div class="game-modal-body">
@@ -4252,14 +4385,23 @@ body.afk-layout .currency-pill .currency-tip {
     </div>
 </div>
 
-<!-- Gear synthesis modal -->
-<div id="modal-gear-synth" class="game-modal" onclick="if(event.target===this)closeGameModal('gear-synth')">
+<!-- Armory modal -->
+<div id="modal-armory" class="game-modal" onclick="if(event.target===this)closeGameModal('armory')">
     <div class="game-modal-panel game-modal-wide" onclick="event.stopPropagation()">
         <div class="game-modal-header">
-            <h2>GEAR SYNTHESIS</h2>
-            <button type="button" class="game-modal-close" onclick="closeGameModal('gear-synth')">×</button>
+            <h2>ARMORY</h2>
+            <button type="button" class="game-modal-close" onclick="closeGameModal('armory')">×</button>
         </div>
-        <div class="game-modal-body" id="gear-synth-body"></div>
+        <div class="game-modal-body">
+            <div class="armory-shell">
+                <nav class="armory-nav" aria-label="Armory tabs">
+                    <button type="button" class="armory-nav-btn" id="armory-tab-synthesize" onclick="setArmoryTab('synthesize')">SYNTHESIZE</button>
+                    <button type="button" class="armory-nav-btn" id="armory-tab-enhance" onclick="setArmoryTab('enhance')">ENHANCE</button>
+                    <div class="armory-nav-spacer" aria-hidden="true"></div>
+                </nav>
+                <div class="armory-pane" id="armory-pane-content"></div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -5303,11 +5445,23 @@ const GEAR_SYNTH_REROLL_LOW_RATE = 0.75;
 const GEAR_SYNTH_UPGRADE_GOLD = [0, 1000, 2500, 6000, 15000];
 const GEAR_SYNTH_REROLL_GOLD = [0, 500, 1200, 3000, 8000, 20000];
 const GEAR_SYNTH_SLOT_LABELS = ["Main Item", "Catalyst", "Catalyst"];
+const GEAR_ENHANCE_MAX = 8;
+const GEAR_ENHANCE_SUCCESS_RATE = [100, 100, 100, 100, 100, 65, 50, 35, 20];
+const GEAR_ENHANCE_FAIL_DROP = [null, null, null, null, null, 4, 4, 4, 4];
+const GEAR_ENHANCE_GOLD = [0, 150, 400, 900, 2200, 5500, 12000];
+const GEAR_ENHANCE_STAT_PER_LEVEL = {
+    weapon: { atk: 3, crit: 2 },
+    armor: { hp: 28, block: 2 },
+    helmet: { hp: 18, dodge: 2 },
+    boots: { spd: 2, hit: 2 },
+};
 const RARITY_ORDER = ["Common", "Uncommon", "Rare", "Legendary", "Mythic"];
 const ASCEND_SHARD_COST = { Common: 5, Uncommon: 10, Rare: 20, Legendary: 40 };
 let gearInventory = [];
 let _gearIdSeq = 0;
 let gearSynthSlots = [null, null, null];
+let armoryActiveTab = "synthesize";
+let gearEnhanceTargetId = null;
 
 // ==================== HELPER FUNCTIONS ====================
 function getMonPngPath(name) {
@@ -6504,7 +6658,7 @@ function renderGearRow(location, index, mon) {
         const g = mon.equipment && mon.equipment[slot];
         const filled = g ? " filled" : "";
         const tierDot = g ? `<span class="gear-tier-dot" style="background:${GEAR_TIERS[g.tier].color}"></span>` : "";
-        const tipName = g ? g.name : "Equip " + GEAR_SLOT_LABELS[slot];
+        const tipName = g ? formatGearDisplayName(g) : "Equip " + GEAR_SLOT_LABELS[slot];
         const tipDesc = g ? formatGearBonuses(g.bonuses) : "";
         return `<button class="gear-slot has-hover-tip${filled}" onclick="openEquipModal('${location}',${index},'${slot}')">${GEAR_SLOT_ICONS[slot]}${tierDot}${renderHoverTip(tipName, tipDesc)}</button>`;
     }).join("")}</div>`;
@@ -6800,6 +6954,53 @@ function formatGearBonuses(b) {
     if (b.pierce) parts.push("PIERCE+" + b.pierce);
     return parts.join(", ") || "No bonus";
 }
+function normalizeGear(gear) {
+    if (!gear) return gear;
+    if (gear.enhanceLevel == null) gear.enhanceLevel = 0;
+    return gear;
+}
+function formatGearDisplayName(gear) {
+    normalizeGear(gear);
+    const lvl = gear.enhanceLevel || 0;
+    return gear.name + (lvl > 0 ? " +" + lvl : "");
+}
+function getGearEnhanceGoldCost(gear) {
+    normalizeGear(gear);
+    const tier = gear.tier || 1;
+    const level = gear.enhanceLevel || 0;
+    if (level >= GEAR_ENHANCE_MAX) return 0;
+    const base = GEAR_ENHANCE_GOLD[tier] || GEAR_ENHANCE_GOLD[1];
+    return Math.floor(base * (level + 1) * (1 + tier * 0.15));
+}
+function getGearEnhanceSuccessRate(gear) {
+    normalizeGear(gear);
+    const level = gear.enhanceLevel || 0;
+    if (level >= GEAR_ENHANCE_MAX) return 0;
+    return GEAR_ENHANCE_SUCCESS_RATE[level] ?? 20;
+}
+function getGearEnhanceFailDropLevel(gear) {
+    normalizeGear(gear);
+    const level = gear.enhanceLevel || 0;
+    return GEAR_ENHANCE_FAIL_DROP[level] ?? null;
+}
+function applyGearEnhanceLevelUp(gear) {
+    normalizeGear(gear);
+    const adds = GEAR_ENHANCE_STAT_PER_LEVEL[gear.slot] || {};
+    Object.keys(adds).forEach(k => {
+        gear.bonuses[k] = (gear.bonuses[k] || 0) + adds[k];
+    });
+    gear.enhanceLevel += 1;
+}
+function stripGearEnhanceLevels(gear, targetLevel) {
+    normalizeGear(gear);
+    while (gear.enhanceLevel > targetLevel) {
+        const adds = GEAR_ENHANCE_STAT_PER_LEVEL[gear.slot] || {};
+        Object.keys(adds).forEach(k => {
+            gear.bonuses[k] = Math.max(0, (gear.bonuses[k] || 0) - adds[k]);
+        });
+        gear.enhanceLevel -= 1;
+    }
+}
 function generateGear(tier, slot) {
     const t = GEAR_TIERS[tier];
     const scale = 4 + tier * 5;
@@ -6814,7 +7015,8 @@ function generateGear(tier, slot) {
         tier,
         tierName: t.name,
         name: t.name + " " + GEAR_SLOT_LABELS[slot],
-        bonuses
+        bonuses,
+        enhanceLevel: 0,
     };
 }
 function rollGearDrop(chapter, isBoss) {
@@ -6873,14 +7075,14 @@ function openEquipModal(location, monIndex, slot) {
         <div class="equip-modal">
             <h3>${GEAR_SLOT_LABELS[slot]} — ${mon.name}</h3>
             ${equipped ? `<div class="equip-option" onclick="unequipGear('${location}',${monIndex},'${slot}'); this.closest('.equip-modal-bg').remove();">
-                <span><b style="color:${GEAR_TIERS[equipped.tier].color}">${equipped.name}</b><br><small>${formatGearBonuses(equipped.bonuses)}</small></span>
+                <span><b style="color:${GEAR_TIERS[equipped.tier].color}">${formatGearDisplayName(equipped)}</b><br><small>${formatGearBonuses(equipped.bonuses)}</small></span>
                 <span class="equip-action" style="color:#ef4444;">UNEQUIP</span>
             </div>` : `<p style="font-size:12px;color:#666;text-align:center;">Nothing equipped</p>`}
             <hr style="border:none;border-top:1px solid #ddd;margin:12px 0;">
             <p style="font-size:11px;color:#666;margin:0 0 8px;">Inventory (${options.length})</p>
             ${options.length ? options.map(g => `
                 <div class="equip-option" data-gid="${g.id}">
-                    <span><b style="color:${GEAR_TIERS[g.tier].color}">${g.name}</b><br><small>${formatGearBonuses(g.bonuses)}</small></span>
+                    <span><b style="color:${GEAR_TIERS[g.tier].color}">${formatGearDisplayName(g)}</b><br><small>${formatGearBonuses(g.bonuses)}</small></span>
                     <span class="equip-action" style="color:#6B21A8;">EQUIP</span>
                 </div>`).join("") : `<p style="font-size:12px;color:#888;text-align:center;">No ${GEAR_SLOT_LABELS[slot]} in inventory.<br>Win adventure battles to find gear!</p>`}
             <button style="margin-top:14px;width:100%;padding:10px;border:2px solid #6B21A8;background:white;cursor:pointer;" id="equip-close">CLOSE</button>
@@ -6988,13 +7190,13 @@ function gearSynthAssignNext(gearId) {
     const idx = gearSynthSlots.findIndex(s => !s);
     if (idx < 0) return;
     gearSynthSlots[idx] = gear;
-    renderGearSynthModal();
+    renderArmoryPane();
 }
 
 function gearSynthClearSlot(index) {
     if (index < 0 || index > 2) return;
     gearSynthSlots[index] = null;
-    renderGearSynthModal();
+    renderArmoryPane();
 }
 
 function executeGearSynth() {
@@ -7010,7 +7212,7 @@ function executeGearSynth() {
     const ids = getGearSynthUsedIds();
     if (ids.length !== 3 || ids.some(id => gearInventory.findIndex(g => g.id === id) < 0)) {
         alert("Selected gear is no longer in your inventory.");
-        renderGearSynthModal();
+        renderArmoryPane();
         return;
     }
     if (money < recipe.gold) {
@@ -7038,7 +7240,7 @@ function executeGearSynth() {
 
     saveData();
     updateUI();
-    renderGearSynthModal();
+    renderArmoryPane();
     renderInventory();
 
     if (success) {
@@ -7068,8 +7270,8 @@ function renderGearSynthSlotHtml(gear, index) {
     </div>`;
 }
 
-function renderGearSynthModal() {
-    const el = document.getElementById("gear-synth-body");
+function renderGearSynthPanel(container) {
+    const el = container || document.getElementById("armory-pane-content");
     if (!el) return;
     const recipe = analyzeGearSynthRecipe(gearSynthSlots);
     const recipeCls = recipe && recipe.type !== "invalid" ? "" : " invalid";
@@ -7080,9 +7282,9 @@ function renderGearSynthModal() {
         ? gearInventory.map(g => {
             const tier = GEAR_TIERS[g.tier];
             const used = usedIds.includes(g.id);
-            return `<button type="button" class="gear-synth-pick-item${used ? " used" : ""}" onclick="gearSynthAssignNext('${g.id}')" title="${g.name}\n${formatGearBonuses(g.bonuses)}">
+            return `<button type="button" class="gear-synth-pick-item${used ? " used" : ""}" onclick="gearSynthAssignNext('${g.id}')" title="${formatGearDisplayName(g)}\n${formatGearBonuses(g.bonuses)}">
                 <span class="gear-slot-emoji">${GEAR_SLOT_ICONS[g.slot]}</span>
-                <span class="gear-slot-tier" style="color:${tier.color}">${tier.name}</span>
+                <span class="gear-slot-tier" style="color:${tier.color}">${tier.name}${g.enhanceLevel ? " +" + g.enhanceLevel : ""}</span>
             </button>`;
         }).join("")
         : `<p style="grid-column:1/-1;text-align:center;color:#888;font-size:12px;margin:0;">No gear in inventory. Win adventure battles to find materials.</p>`;
@@ -7103,7 +7305,7 @@ function renderGearSynthModal() {
             <div class="gear-synth-actions">
                 <div class="gear-synth-cost">${currencyIcon("gold", 18)} <span>${recipe?.gold || 0} Gold</span></div>
                 <button type="button" class="gear-synth-btn" onclick="executeGearSynth()" ${canSynth ? "" : "disabled"}>SYNTHESIZE</button>
-                <button type="button" class="gear-synth-open-btn" onclick="clearGearSynthSlots(); renderGearSynthModal();">CLEAR</button>
+                <button type="button" class="gear-synth-open-btn" onclick="clearGearSynthSlots(); renderArmoryPane();">CLEAR</button>
             </div>
             <div>
                 <p class="gear-synth-note" style="margin-bottom:8px;"><b>Inventory gear</b> — click to fill the next empty slot (Main → Catalyst → Catalyst).</p>
@@ -7113,12 +7315,176 @@ function renderGearSynthModal() {
     `;
 }
 
-function openGearSynthModal() {
+function renderGearEnhancePanel(container) {
+    const el = container || document.getElementById("armory-pane-content");
+    if (!el) return;
+    const gear = gearEnhanceTargetId ? gearInventory.find(g => g.id === gearEnhanceTargetId) : null;
+    if (gear) normalizeGear(gear);
+
+    const level = gear?.enhanceLevel || 0;
+    const atMax = gear && level >= GEAR_ENHANCE_MAX;
+    const goldCost = gear ? getGearEnhanceGoldCost(gear) : 0;
+    const successRate = gear ? getGearEnhanceSuccessRate(gear) : 0;
+    const failDrop = gear ? getGearEnhanceFailDropLevel(gear) : null;
+    const canEnhance = gear && !atMax && money >= goldCost;
+    const rateCls = successRate > 0 && successRate < 70 ? " low" : "";
+
+    const slotInner = gear
+        ? `<span class="gear-enhance-level">+${level}</span>
+           <span class="gear-slot-emoji">${GEAR_SLOT_ICONS[gear.slot]}</span>
+           <span class="gear-slot-tier" style="color:${GEAR_TIERS[gear.tier].color}">${gear.tierName}</span>`
+        : `<span style="font-size:22px;opacity:0.35;">+</span>`;
+
+    const infoHtml = !gear
+        ? `<h4>Select gear to enhance</h4><p>Pick an item from your inventory below. Pockie-style enhancement adds stats per level (max +${GEAR_ENHANCE_MAX}). Unequipped gear only.</p>`
+        : `<h4>${formatGearDisplayName(gear)}</h4>
+           <p><b>Current stats:</b> ${formatGearBonuses(gear.bonuses)}</p>
+           <p><b>Enhance level:</b> +${level} / +${GEAR_ENHANCE_MAX}</p>
+           ${atMax
+                ? `<p style="color:#ca8a04;font-weight:700;">Max enhancement reached.</p>`
+                : `<p>Next enhance: <span class="gear-enhance-rate${rateCls}">${successRate}%</span> success · ${goldCost} Gold</p>
+                   ${failDrop != null ? `<p style="font-size:11px;color:#b45309;">On failure, drops to +${failDrop}.</p>` : `<p style="font-size:11px;color:#64748b;">Safe enhance — no level drop on failure.</p>`}
+                   <p style="font-size:11px;color:#64748b;">Success adds slot bonuses (Pockie armory enhance).</p>`}`;
+
+    const pickItems = gearInventory.length
+        ? gearInventory.map(g => {
+            normalizeGear(g);
+            const tier = GEAR_TIERS[g.tier];
+            const selected = gearEnhanceTargetId === g.id;
+            return `<button type="button" class="gear-synth-pick-item${selected ? " used" : ""}" onclick="gearEnhanceSelect('${g.id}')" title="${formatGearDisplayName(g)}\n${formatGearBonuses(g.bonuses)}" style="${selected ? "opacity:1;border-color:#f59e0b;box-shadow:2px 2px 0 #b45309;" : ""}">
+                <span class="gear-slot-emoji">${GEAR_SLOT_ICONS[g.slot]}</span>
+                <span class="gear-slot-tier" style="color:${tier.color}">${tier.name}${g.enhanceLevel ? " +" + g.enhanceLevel : ""}</span>
+            </button>`;
+        }).join("")
+        : `<p style="grid-column:1/-1;text-align:center;color:#888;font-size:12px;margin:0;">No gear in inventory. Win adventure battles to find equipment.</p>`;
+
+    el.innerHTML = `
+        <div class="gear-enhance-panel">
+            <p class="gear-synth-note">Pockie-style enhancement: place gear in the slot, spend Gold, and roll for +1. Higher levels have lower success rates and may drop on failure.</p>
+            <div class="gear-enhance-workbench">
+                <div class="gear-enhance-slot-wrap">
+                    <div class="gear-synth-slot-label">Equipment</div>
+                    <div class="gear-enhance-slot${gear ? " filled" : ""}" onclick="gearEnhanceClear()">${slotInner}</div>
+                </div>
+                <div class="gear-enhance-info">${infoHtml}</div>
+            </div>
+            <div class="gear-synth-actions">
+                <div class="gear-synth-cost">${currencyIcon("gold", 18)} <span>${goldCost} Gold</span></div>
+                <button type="button" class="gear-synth-btn" onclick="executeGearEnhance()" ${canEnhance ? "" : "disabled"} style="border-color:#f59e0b;background:linear-gradient(180deg,#fde68a 0%,#f59e0b 100%);color:#451a03;box-shadow:3px 3px 0 #92400e;">ENHANCE</button>
+                <button type="button" class="gear-synth-open-btn" onclick="gearEnhanceClear(); renderArmoryPane();">CLEAR</button>
+            </div>
+            <div>
+                <p class="gear-synth-note" style="margin-bottom:8px;"><b>Inventory gear</b> — click to place in the enhance slot.</p>
+                <div class="gear-synth-pick-grid">${pickItems}</div>
+            </div>
+        </div>
+    `;
+}
+
+function setArmoryTab(tab) {
+    armoryActiveTab = tab === "enhance" ? "enhance" : "synthesize";
+    renderArmoryPane();
+}
+
+function renderArmoryPane() {
+    const pane = document.getElementById("armory-pane-content");
+    if (!pane) return;
+    document.getElementById("armory-tab-synthesize")?.classList.toggle("active", armoryActiveTab === "synthesize");
+    document.getElementById("armory-tab-enhance")?.classList.toggle("active", armoryActiveTab === "enhance");
+    if (armoryActiveTab === "enhance") renderGearEnhancePanel(pane);
+    else renderGearSynthPanel(pane);
+}
+
+function openArmoryModal(tab) {
     if (!isEquipmentUnlocked()) {
-        alert("Gear synthesis unlocks at Chapter 2 (Stage 9+). Keep progressing!");
+        alert("Armory unlocks at Chapter 2 (Stage 9+). Keep progressing!");
         return;
     }
-    openGameModal("gear-synth");
+    armoryActiveTab = tab === "enhance" ? "enhance" : "synthesize";
+    openGameModal("armory");
+}
+
+function gearEnhanceSelect(gearId) {
+    if (!gearInventory.some(g => g.id === gearId)) return;
+    gearEnhanceTargetId = gearId;
+    renderArmoryPane();
+}
+
+function gearEnhanceClear() {
+    gearEnhanceTargetId = null;
+    renderArmoryPane();
+}
+
+function refreshEquippedGearStats() {
+    party.forEach(mon => {
+        if (!mon?.equipment) return;
+        GEAR_SLOTS.forEach(slot => {
+            if (mon.equipment[slot]) normalizeGear(mon.equipment[slot]);
+        });
+        refreshMonDerivedStats(mon);
+    });
+    box.forEach(mon => {
+        if (!mon?.equipment) return;
+        GEAR_SLOTS.forEach(slot => {
+            if (mon.equipment[slot]) normalizeGear(mon.equipment[slot]);
+        });
+        refreshMonDerivedStats(mon);
+    });
+}
+
+function executeGearEnhance() {
+    if (!isEquipmentUnlocked()) {
+        alert("Gear enhancement unlocks at Chapter 2 (Stage 9+).");
+        return;
+    }
+    const idx = gearInventory.findIndex(g => g.id === gearEnhanceTargetId);
+    if (idx < 0) {
+        alert("Selected gear is no longer in your inventory.");
+        gearEnhanceClear();
+        return;
+    }
+    const gear = gearInventory[idx];
+    normalizeGear(gear);
+    if (gear.enhanceLevel >= GEAR_ENHANCE_MAX) {
+        alert("This gear is already at max enhancement (+8).");
+        renderArmoryPane();
+        return;
+    }
+    const goldCost = getGearEnhanceGoldCost(gear);
+    if (money < goldCost) {
+        alert("Need " + goldCost + " Gold to enhance.\nYou have: " + money);
+        return;
+    }
+    const successRate = getGearEnhanceSuccessRate(gear);
+    const failDrop = getGearEnhanceFailDropLevel(gear);
+    const failNote = failDrop != null ? "\nOn failure: drops to +" + failDrop + "." : "\nOn failure: no level drop.";
+    if (!confirm("Enhance " + formatGearDisplayName(gear) + "?\n\nCost: " + goldCost + " Gold\nSuccess rate: " + successRate + "%" + failNote)) return;
+
+    money -= goldCost;
+    const success = Math.random() < (successRate / 100);
+    if (success) {
+        applyGearEnhanceLevelUp(gear);
+    } else if (failDrop != null && gear.enhanceLevel > failDrop) {
+        stripGearEnhanceLevels(gear, failDrop);
+    }
+
+    refreshEquippedGearStats();
+    saveData();
+    updateUI();
+    renderArmoryPane();
+    renderInventory();
+
+    if (success) {
+        alert("Enhancement success!\n" + formatGearDisplayName(gear) + "\n" + formatGearBonuses(gear.bonuses));
+    } else if (failDrop != null && gear.enhanceLevel <= failDrop) {
+        alert("Enhancement failed.\nEnhance level dropped to +" + gear.enhanceLevel + ".");
+    } else {
+        alert("Enhancement failed.\nNo change to enhance level.");
+    }
+}
+
+function openGearSynthModal() {
+    openArmoryModal("synthesize");
 }
 
 function getNextRarity(rarity) {
@@ -7512,13 +7878,18 @@ async function loadData() {
         currentChapter = data.currentChapter ?? 1;
         currentStage = data.currentStage ?? 1;
         migrateAdventureSave();
-        gearInventory = data.gearInventory || [];
+        gearInventory = (data.gearInventory || []).map(normalizeGear);
         lastResetDate = data.lastResetDate || null;
         xHandle = data.xHandle || xHandle || "";
         loadResourceChestTimestamp(data);
 
         [...party, ...box].forEach((mon) => {
-            try { ensureMonReady(mon); } catch (e) { console.error("Skipped invalid mon on load:", e); }
+            try {
+                ensureMonReady(mon);
+                GEAR_SLOTS.forEach(slot => {
+                    if (mon.equipment?.[slot]) normalizeGear(mon.equipment[slot]);
+                });
+            } catch (e) { console.error("Skipped invalid mon on load:", e); }
         });
         purgeRemovedMonanimalsFromSave();
         sortBox();
@@ -8380,11 +8751,11 @@ function readCachedUserFallback() {
 const RAIL_TAB_BY_MODAL = {
     "daily-quest": "rail-daily-quest",
     shop: "rail-shop",
+    armory: "rail-armory",
     profile: "rail-profile",
     party: "rail-party",
     box: "rail-box",
     inventory: "rail-inventory",
-    "gear-synth": "rail-inventory",
 };
 
 function clearActiveRailTabs() {
@@ -8449,7 +8820,7 @@ function openGameModal(name) {
     if (name === "party") { syncXWildMons(true); renderPartyGrid(); }
     if (name === "box") { syncXWildMons(true); renderBox(); }
     if (name === "inventory") renderInventory();
-    if (name === "gear-synth") renderGearSynthModal();
+    if (name === "armory") renderArmoryPane();
     if (name === "shop") renderShop();
     if (name === "profile") renderProfile();
     if (name === "daily-quest") renderDailyQuest();
@@ -9839,8 +10210,7 @@ function showBattleResult(win, reward) {
 }
 function renderInventory() {
     const grid = document.getElementById("inventory-grid");
-    const synthBtn = document.getElementById("inventory-synth-btn");
-    if (synthBtn) synthBtn.disabled = !isEquipmentUnlocked();
+    if (!grid) return;
     grid.innerHTML = "";
 
     const materials = [
@@ -9877,12 +10247,13 @@ function renderInventory() {
             `;
         } else if (i - 3 < gearInventory.length) {
             const g = gearInventory[i - 3];
+            normalizeGear(g);
             slot.className = "gear-inv-slot has-hover-tip";
             slot.style.borderColor = GEAR_TIERS[g.tier].color;
             slot.innerHTML = `
                 <span style="font-size: 22px;">${GEAR_SLOT_ICONS[g.slot]}</span>
-                <span style="font-size:8px;font-weight:bold;color:${GEAR_TIERS[g.tier].color};margin-top:2px;">${g.tierName}</span>
-                ${renderHoverTip(g.name, formatGearBonuses(g.bonuses) + "\nEquip via mon card gear slots.")}
+                <span style="font-size:8px;font-weight:bold;color:${GEAR_TIERS[g.tier].color};margin-top:2px;">${g.tierName}${g.enhanceLevel ? " +" + g.enhanceLevel : ""}</span>
+                ${renderHoverTip(formatGearDisplayName(g), formatGearBonuses(g.bonuses) + "\nEquip via mon card gear slots.")}
             `;
         } else {
             slot.innerHTML = `<span style="font-size: 22px; opacity: 0.3;">\uD83D\uDCE6</span>`;
