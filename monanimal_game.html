@@ -3174,15 +3174,17 @@ body.afk-layout .currency-pill .currency-tip {
 .game-container.adventure-mode .battle-scene-ui--fight .battle-stage {
     border: none;
     box-shadow: none;
-    background-color: transparent;
-    background-size: 100% 100%;
-    background-position: center center;
-    background-repeat: no-repeat;
+    background: transparent;
 }
-.game-container.adventure-mode .game-container-bg,
-.game-container.adventure-mode .battle-scene-bg.visible {
+.game-container.adventure-mode .game-container-bg {
     object-fit: fill;
     object-position: center center;
+}
+.game-container.adventure-mode .game-container-stage,
+.game-container.adventure-mode .battle-scene,
+.game-container.adventure-mode .battle-scene-frame,
+.game-container.adventure-mode .battle-scene-ui {
+    background: transparent;
 }
 
 .game-modal {
@@ -4724,6 +4726,11 @@ function getChapterBackgroundPath(chapter) {
 function applyBattleStageChapterBackground(chapter) {
     const stage = document.getElementById("battle-stage");
     if (!stage) return;
+    const adventureMode = document.querySelector(".game-container")?.classList.contains("adventure-mode");
+    if (adventureMode) {
+        stage.style.backgroundImage = "";
+        return;
+    }
     const path = getChapterBackgroundPath(chapter ?? currentChapter);
     stage.style.backgroundImage = `url('${path}')`;
     stage.style.backgroundSize = "100% 100%";
@@ -8366,17 +8373,10 @@ function applyBattleHubStatueAnchors() {
 function setBattleSceneBackground(url) {
     if (url) setGameContainerBackground(url);
     const stageBg = document.getElementById("battle-scene-bg");
-    const battleOpen = document.getElementById("battle-scene")?.classList.contains("open");
-    const adventureMode = document.querySelector(".game-container")?.classList.contains("adventure-mode");
     if (!stageBg) return;
-    // Hub uses game-container-bg only so header + scene share one stretched image (no seam).
-    if (battleOpen && url && adventureMode) {
-        stageBg.src = url;
-        stageBg.classList.add("visible");
-    } else {
-        stageBg.src = "";
-        stageBg.classList.remove("visible");
-    }
+    // Hub and adventure use game-container-bg only so header + scene share one stretched image.
+    stageBg.src = "";
+    stageBg.classList.remove("visible");
 }
 
 function setAdventureMode(active) {
