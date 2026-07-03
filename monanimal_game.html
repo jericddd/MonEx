@@ -5358,7 +5358,7 @@ const SCENE_SPRITE_DURATION_MS = {
     "128x128/anago-swing1.gif": 1920,
     "128x128/anago-swing2.gif": 1920,
     "128x128/chog1-swing.gif": 960,
-    "128x128/chog-swing2.gif": 1920,
+    "128x128/chog-swing2.gif": 1800,
     "128x128/molandak1-swing.gif": 960,
     "128x128/chog.gif": 1440,
     "128x128/molandak.gif": 960,
@@ -5383,6 +5383,12 @@ function getSceneIdleSpriteHitAtMs(spritePath, monName) {
     return scaleSceneIdleSpriteMs(
         getSceneSpriteHitAtMs(spritePath, monName, getSceneSpriteDurationMs(spritePath, monName))
     );
+}
+
+function getSceneIdleAttackPlayMs(spritePath, monName) {
+    const durationMs = getSceneIdleSpriteDurationMs(spritePath, monName);
+    const hitAtMs = getSceneIdleSpriteHitAtMs(spritePath, monName);
+    return Math.max(durationMs, hitAtMs);
 }
 
 const ATTACK_DASH_MS = 220;
@@ -5436,12 +5442,16 @@ function getSceneIdleDisplaySprite(mon) {
 }
 
 function normalizeSpritePath(src) {
-    return String(src || "").split("?")[0];
+    const raw = String(src || "").split("?")[0];
+    const idx = raw.indexOf("128x128/");
+    return idx >= 0 ? raw.slice(idx) : raw;
 }
 
 function getSceneSpriteDurationMs(spritePath, monName) {
     const key = normalizeSpritePath(spritePath);
-    if (SCENE_SPRITE_DURATION_MS[key]) return SCENE_SPRITE_DURATION_MS[key];
+    if (Object.prototype.hasOwnProperty.call(SCENE_SPRITE_DURATION_MS, key)) {
+        return SCENE_SPRITE_DURATION_MS[key];
+    }
     if (monName && ATTACK_SPRITE_DURATION_MS[monName]) return ATTACK_SPRITE_DURATION_MS[monName];
     return 960;
 }
@@ -5575,8 +5585,6 @@ function refreshSceneIdleHeroFighters(heroes) {
         img.dataset.mon = mon.name;
         img.alt = mon.name;
         img.classList.toggle("mirrored", isMirrored);
-        applySceneIdleSpriteTransform(img, mon.name, isMirrored, spritePath);
-        setSceneIdleSprite(img, spritePath);
         const shadow = fighter.querySelector(".scene-idle-body-shadow");
         if (shadow) {
             const cfg = SCENE_IDLE_BODY_SHADOW[mon.name] || SCENE_IDLE_BODY_SHADOW_DEFAULT;
@@ -5584,6 +5592,9 @@ function refreshSceneIdleHeroFighters(heroes) {
             shadow.style.width = `calc(var(--scene-fighter-size, 88px) * ${cfg.w})`;
             shadow.style.height = `calc(var(--scene-fighter-size, 88px) * ${cfg.h})`;
         }
+        if (sceneIdleFighterBusy.has(`hero-${idx}`)) return;
+        applySceneIdleSpriteTransform(img, mon.name, isMirrored, spritePath);
+        setSceneIdleSprite(img, spritePath);
     });
 }
 
@@ -5666,6 +5677,11 @@ function sceneIdleShakeHit(defEl) {
     setTimeout(() => defEl.classList.remove("hit-shake"), 300);
 }
 
+async function waitSceneIdleUntil(animStart, targetMs, token) {
+    let remaining = targetMs - (Date.now() - animStart);
+    await waitSceneGifMs(remaining, token);
+}
+
 async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
     if (token !== sceneIdleBattleToken) return;
     const busyKey = `${atkTeam}-${atkIdx}`;
@@ -5685,13 +5701,17 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
         const idleSprite = getSceneIdleHomeSprite(atkMon);
         if (attackPath) {
             await setSceneIdleSprite(atkImg, attackPath);
-            const durationMs = getSceneIdleSpriteDurationMs(attackPath, atkMon.name);
+            if (token !== sceneIdleBattleToken) return;
+            const animStart = Date.now();
+            const playMs = getSceneIdleAttackPlayMs(attackPath, atkMon.name);
             const hitAtMs = getSceneIdleSpriteHitAtMs(attackPath, atkMon.name);
-            await delay(hitAtMs);
+            const hitShake = waitSceneIdleUntil(animStart, hitAtMs, token).then(() => {
+                if (token !== sceneIdleBattleToken) return;
+                sceneIdleShakeHit(defEl);
+            });
+            await waitSceneIdleUntil(animStart, playMs, token);
             if (token !== sceneIdleBattleToken) return;
-            sceneIdleShakeHit(defEl);
-            await waitSceneGifMs(durationMs - hitAtMs, token);
-            if (token !== sceneIdleBattleToken) return;
+            await hitShake;
             await setSceneIdleSprite(atkImg, idleSprite);
             await waitSceneGifMs(getSceneIdleSpriteDurationMs(idleSprite, atkMon.name), token);
         } else {
