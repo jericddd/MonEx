@@ -1184,19 +1184,6 @@ button,
     font-size: 11px;
     z-index: 5;
 }
-.battle-stage-path {
-    position: absolute;
-    left: 50%;
-    bottom: 24%;
-    transform: translateX(-50%);
-    width: 68%;
-    height: 12%;
-    object-fit: fill;
-    object-position: center bottom;
-    z-index: 2;
-    pointer-events: none;
-    display: block;
-}
 .fighter-wrap {
     position: absolute;
     display: flex;
@@ -3161,7 +3148,15 @@ body.afk-layout .currency-pill .currency-tip {
 .game-container.adventure-mode .battle-scene-ui--fight .battle-stage {
     border: none;
     box-shadow: none;
-    background: transparent;
+    background-color: transparent;
+    background-size: 100% 100%;
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+.game-container.adventure-mode .game-container-bg,
+.game-container.adventure-mode .battle-scene-bg.visible {
+    object-fit: fill;
+    object-position: center center;
 }
 
 .game-modal {
@@ -3894,11 +3889,6 @@ body.afk-layout .currency-pill .currency-tip {
     }
     .scene-battle-path {
         height: var(--scene-battle-path-height);
-    }
-    .battle-stage-path {
-        width: 78%;
-        height: 10%;
-        bottom: 22%;
     }
     .scene-idle-stage {
         transform: scale(0.84);
@@ -4710,6 +4700,9 @@ function applyBattleStageChapterBackground(chapter) {
     if (!stage) return;
     const path = getChapterBackgroundPath(chapter ?? currentChapter);
     stage.style.backgroundImage = `url('${path}')`;
+    stage.style.backgroundSize = "100% 100%";
+    stage.style.backgroundPosition = "center center";
+    stage.style.backgroundRepeat = "no-repeat";
 }
 
 function refreshAdventureChapterBackground() {
@@ -8850,7 +8843,6 @@ function renderBattleScene() {
             ${renderBattleMeterPanelHtml("player")}
             ${renderBattleMeterPanelHtml("enemy")}
             <div class="stage-label${boss ? ' boss-label' : ''}">${boss ? 'BOSS — ' : ''}CH.${currentChapter} STAGE ${currentStage}</div>
-            <img class="battle-stage-path" src="${BATTLE_STAGE_PATH}" alt="" aria-hidden="true">
             <div class="fighter-wrap enemy" id="wrap-enemy">
                 <div class="fighter-skill-callout" id="skill-callout-enemy" aria-hidden="true"></div>
                 <img class="bsprite" id="sprite-enemy" alt="">
