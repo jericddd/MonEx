@@ -4559,6 +4559,25 @@ function renderHoverTip(name, desc) {
 
 const MONANIMAL_NAMES = ["Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal", "Monavara", "Moncock", "Mondigrade", "Montiger", "Mosferatu", "Moxy", "Shramp", "Spidermon", "Moyaki"];
 const REMOVED_MONANIMAL_NAMES = new Set(["Mopo"]);
+// Fixed house per species (expand as assignments are finalized).
+const SPECIES_HOUSE = {
+    Chog: "chog",
+    Molandak: "molandak",
+    Moyaki: "moyaki",
+    Salmonad: "moyaki",
+};
+
+function getSpeciesHouseId(name) {
+    return SPECIES_HOUSE[name] || null;
+}
+
+function getHouseMeta(houseId) {
+    return houseId ? HOUSES[houseId] || null : null;
+}
+
+function getSpeciesHouseMeta(name) {
+    return getHouseMeta(getSpeciesHouseId(name));
+}
 
 const SPRITE_MAP = {
     "Molandak": "128x128/molandak.png", "Chog": "128x128/chog.png", "Mouch": "128x128/mouch.png",
@@ -4833,6 +4852,14 @@ const ADVENTURE_CHAPTER_PLACEHOLDER = BANNER_DIR + "/adventure_chapter_placehold
 const CHAPTER_BG_FALLBACK = ADVENTURE_CHAPTER_PLACEHOLDER;
 const BATTLE_HUB_BTN_DIR = BANNER_DIR + "/battle_hub";
 const BATTLE_ICONS_DIR = "game_icons/battle";
+// House faction crests — global species identity (party, box, profile, towers).
+// Not under battle/ because houses are used outside the battle hub.
+const HOUSE_ICON_DIR = "game_icons/house";
+const HOUSES = {
+    chog:     { id: "chog",     label: "House of Chog",     icon: `${HOUSE_ICON_DIR}/chog.png` },
+    molandak: { id: "molandak", label: "House of Molandak", icon: `${HOUSE_ICON_DIR}/molandak.png` },
+    moyaki:   { id: "moyaki",   label: "House of Moyaki",   icon: `${HOUSE_ICON_DIR}/moyaki.png` },
+};
 // Statue placement on battlescene_background.jpg — left/top anchor + translate + ground shadow
 const BATTLE_HUB_STATUE_ANCHORS = {
     adventure: { left: 12, top: 70, translateX: -50, translateY: -100, shadowW: 70, shadowH: 10, shadowBottom: 2 },
