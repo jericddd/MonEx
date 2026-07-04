@@ -3287,65 +3287,65 @@ body.afk-layout .currency-pill .currency-tip {
     --hub-statue-shadow-h: var(--hub-adventure-shadow-h, 10%);
     --hub-statue-shadow-bottom: var(--hub-adventure-shadow-bottom, 2%);
     left: var(--hub-adventure-left, 10.5%);
-    top: var(--hub-adventure-top, 79%);
+    top: var(--hub-adventure-top, 84%);
     width: var(--hub-adventure-width, 10.5%);
-    transform: translate(var(--hub-adventure-tx, -50%), var(--hub-adventure-ty, -100%));
+    transform: translate(var(--hub-adventure-tx, -50%), var(--hub-adventure-ty, -94%));
 }
 .battle-hub-btn--scene-adventure:hover,
 .battle-hub-btn--scene-adventure:focus-visible {
-    transform: translate(var(--hub-adventure-tx, -50%), var(--hub-adventure-ty, -100%)) scale(1.03);
+    transform: translate(var(--hub-adventure-tx, -50%), var(--hub-adventure-ty, -94%)) scale(1.03);
 }
 .battle-hub-btn--scene-house-tower {
     --hub-statue-shadow-w: var(--hub-house-tower-shadow-w, 76%);
     --hub-statue-shadow-h: var(--hub-house-tower-shadow-h, 11%);
     --hub-statue-shadow-bottom: var(--hub-house-tower-shadow-bottom, 1%);
     left: var(--hub-house-tower-left, 27%);
-    top: var(--hub-house-tower-top, 79%);
+    top: var(--hub-house-tower-top, 84%);
     width: var(--hub-house-tower-width, 10.5%);
-    transform: translate(var(--hub-house-tower-tx, -50%), var(--hub-house-tower-ty, -100%));
+    transform: translate(var(--hub-house-tower-tx, -50%), var(--hub-house-tower-ty, -93%));
 }
 .battle-hub-btn--scene-house-tower:hover,
 .battle-hub-btn--scene-house-tower:focus-visible {
-    transform: translate(var(--hub-house-tower-tx, -50%), var(--hub-house-tower-ty, -100%)) scale(1.03);
+    transform: translate(var(--hub-house-tower-tx, -50%), var(--hub-house-tower-ty, -93%)) scale(1.03);
 }
 .battle-hub-btn--scene-arena {
     --hub-statue-shadow-w: var(--hub-arena-shadow-w, 74%);
     --hub-statue-shadow-h: var(--hub-arena-shadow-h, 11%);
     --hub-statue-shadow-bottom: var(--hub-arena-shadow-bottom, 2%);
     left: var(--hub-arena-left, 50%);
-    top: var(--hub-arena-top, 79%);
+    top: var(--hub-arena-top, 84%);
     width: var(--hub-arena-width, 12%);
-    transform: translate(var(--hub-arena-tx, -50%), var(--hub-arena-ty, -100%));
+    transform: translate(var(--hub-arena-tx, -50%), var(--hub-arena-ty, -88%));
 }
 .battle-hub-btn--scene-arena:hover,
 .battle-hub-btn--scene-arena:focus-visible {
-    transform: translate(var(--hub-arena-tx, -50%), var(--hub-arena-ty, -100%)) scale(1.03);
+    transform: translate(var(--hub-arena-tx, -50%), var(--hub-arena-ty, -88%)) scale(1.03);
 }
 .battle-hub-btn--scene-pvp-wager {
     --hub-statue-shadow-w: var(--hub-pvp-wager-shadow-w, 68%);
     --hub-statue-shadow-h: var(--hub-pvp-wager-shadow-h, 10%);
     --hub-statue-shadow-bottom: var(--hub-pvp-wager-shadow-bottom, 2%);
     left: var(--hub-pvp-wager-left, 73%);
-    top: var(--hub-pvp-wager-top, 79%);
+    top: var(--hub-pvp-wager-top, 84%);
     width: var(--hub-pvp-wager-width, 10.5%);
-    transform: translate(var(--hub-pvp-wager-tx, -50%), var(--hub-pvp-wager-ty, -100%));
+    transform: translate(var(--hub-pvp-wager-tx, -50%), var(--hub-pvp-wager-ty, -93%));
 }
 .battle-hub-btn--scene-pvp-wager:hover,
 .battle-hub-btn--scene-pvp-wager:focus-visible {
-    transform: translate(var(--hub-pvp-wager-tx, -50%), var(--hub-pvp-wager-ty, -100%)) scale(1.03);
+    transform: translate(var(--hub-pvp-wager-tx, -50%), var(--hub-pvp-wager-ty, -93%)) scale(1.03);
 }
 .battle-hub-btn--scene-training {
     --hub-statue-shadow-w: var(--hub-training-shadow-w, 66%);
     --hub-statue-shadow-h: var(--hub-training-shadow-h, 10%);
     --hub-statue-shadow-bottom: var(--hub-training-shadow-bottom, 2%);
     left: var(--hub-training-left, 89.5%);
-    top: var(--hub-training-top, 79%);
+    top: var(--hub-training-top, 84%);
     width: var(--hub-training-width, 10.5%);
-    transform: translate(var(--hub-training-tx, -50%), var(--hub-training-ty, -100%));
+    transform: translate(var(--hub-training-tx, -50%), var(--hub-training-ty, -94%));
 }
 .battle-hub-btn--scene-training:hover,
 .battle-hub-btn--scene-training:focus-visible {
-    transform: translate(var(--hub-training-tx, -50%), var(--hub-training-ty, -100%)) scale(1.03);
+    transform: translate(var(--hub-training-tx, -50%), var(--hub-training-ty, -94%)) scale(1.03);
 }
 .battle-hub-btn--statue:hover .battle-hub-statue-figure,
 .battle-hub-btn--statue:focus-visible .battle-hub-statue-figure {
@@ -5042,11 +5042,11 @@ function openHouseTower(houseId) {
 }
 // Pad centers on battlescene_background.png (1672×941) — left/top are art-space %; top maps to stage via header offset
 const BATTLE_HUB_STATUE_ANCHORS = {
-    adventure:     { left: 10.5, top: 81.8, width: 10.5, translateX: -50, translateY: -100, shadowW: 70, shadowH: 10, shadowBottom: 2 },
-    "house-tower": { left: 27.0, top: 81.8, width: 10.5, translateX: -50, translateY: -100, shadowW: 76, shadowH: 11, shadowBottom: 1 },
-    arena:         { left: 50.0, top: 81.2, width: 12.0, translateX: -50, translateY: -100, shadowW: 74, shadowH: 11, shadowBottom: 2 },
-    "pvp-wager":   { left: 73.0, top: 81.8, width: 10.5, translateX: -50, translateY: -100, shadowW: 68, shadowH: 10, shadowBottom: 2 },
-    training:      { left: 89.5, top: 81.8, width: 10.5, translateX: -50, translateY: -100, shadowW: 66, shadowH: 10, shadowBottom: 2 },
+    adventure:     { left: 10.5, top: 86.6, width: 10.5, translateX: -50, translateY: -94, shadowW: 70, shadowH: 10, shadowBottom: 2 },
+    "house-tower": { left: 27.0, top: 87.0, width: 10.5, translateX: -50, translateY: -93, shadowW: 76, shadowH: 11, shadowBottom: 1 },
+    arena:         { left: 50.0, top: 86.8, width: 12.0, translateX: -50, translateY: -88, shadowW: 74, shadowH: 11, shadowBottom: 2 },
+    "pvp-wager":   { left: 73.0, top: 87.0, width: 10.5, translateX: -50, translateY: -93, shadowW: 68, shadowH: 10, shadowBottom: 2 },
+    training:      { left: 89.5, top: 86.8, width: 10.5, translateX: -50, translateY: -94, shadowW: 66, shadowH: 10, shadowBottom: 2 },
 };
 // 1920×1080 design boards — UI hotspots use % inside .cover-art-stage
 const COVER_ART_1920_1080 = { w: 1920, h: 1080 };
