@@ -6025,6 +6025,28 @@ const SCENE_SPRITE_DURATION_MS = {
     "128x128/main-moyaki.gif": 960
 };
 
+// End attack GIFs after the hit follow-through — skip recovery/wind-down tail frames.
+const SCENE_ATTACK_END_MS = {
+    "128x128/johnw-swing1.gif": 1200,
+    "128x128/johnw-swing2.gif": 1200,
+    "128x128/anago-swing1.gif": 1440,
+    "128x128/anago-swing2.gif": 1440,
+    "128x128/chog1-swing.gif": 720,
+    "128x128/chog-swing2.gif": 1320,
+    "128x128/molandak1-swing.gif": 720
+};
+
+// Shorter idle breathe loops (restart before full GIF loop) for snappier idle motion.
+const SCENE_IDLE_BREATHE_LOOP_MS = {
+    "128x128/johnw-idle.gif": 960,
+    "128x128/anago-idle.gif": 640,
+    "128x128/mouch-idle.gif": 640,
+    "128x128/main-moyaki.gif": 640,
+    "128x128/chog.gif": 960,
+    "128x128/molandak.gif": 640,
+    "128x128/anago.gif": 640
+};
+
 const sceneIdleFighterBusy = new Set();
 const SCENE_IDLE_SPRITE_SPEED = 1;
 
@@ -6043,10 +6065,22 @@ function getSceneIdleSpriteHitAtMs(spritePath, monName) {
 }
 
 function getSceneIdleAttackPlayMs(spritePath, monName) {
+    const key = normalizeSpritePath(spritePath);
+    if (SCENE_ATTACK_END_MS[key]) {
+        return scaleSceneIdleSpriteMs(SCENE_ATTACK_END_MS[key]);
+    }
     const durationMs = getSceneIdleSpriteDurationMs(spritePath, monName);
     const hitAtMs = getSceneIdleSpriteHitAtMs(spritePath, monName);
-    // One loop only — end slightly before the measured loop so the browser never paints loop 2.
     return Math.min(durationMs, Math.max(hitAtMs + 32, durationMs - 16));
+}
+
+function getSceneIdleBreatheLoopMs(spritePath, monName) {
+    const key = normalizeSpritePath(spritePath);
+    if (SCENE_IDLE_BREATHE_LOOP_MS[key]) {
+        return scaleSceneIdleSpriteMs(SCENE_IDLE_BREATHE_LOOP_MS[key]);
+    }
+    const full = getSceneIdleSpriteDurationMs(spritePath, monName);
+    return Math.max(400, Math.round(full * 0.67));
 }
 
 const ATTACK_DASH_MS = 220;
@@ -6420,7 +6454,7 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
             await waitSceneIdleUntil(animStart, playMs, token);
             if (token !== sceneIdleBattleToken) return;
             await hitShake;
-            await setSceneIdleSprite(atkImg, idleSprite);
+            await setSceneIdleSprite(atkImg, idleSprite, true);
         } else {
             await delay(scaleSceneIdleSpriteMs(280));
             if (token !== sceneIdleBattleToken) return;
@@ -6455,6 +6489,36 @@ async function sceneIdleFighterCombatLoop(atkTeam, atkIdx, token, startDelay) {
     }
 }
 
+async function sceneIdleBreatheLoop(team, idx, mon, token) {
+    const busyKey = `${team}-${idx}`;
+    const idleSprite = getSceneIdleHomeSprite(mon);
+    if (!idleSprite.endsWith(".gif")) return;
+
+    const breatheMs = getSceneIdleBreatheLoopMs(idleSprite, mon?.name);
+    await delay(breatheMs * (0.15 + Math.random() * 0.35));
+
+    while (token === sceneIdleBattleToken) {
+        const mainScene = document.getElementById("main-scene");
+        if (!mainScene || mainScene.style.display === "none") {
+            await delay(250);
+            continue;
+        }
+
+        const img = document.getElementById(`scene-idle-sprite-${team}-${idx}`);
+        if (!img) break;
+
+        if (!sceneIdleFighterBusy.has(busyKey)) {
+            const current = normalizeSpritePath(img.dataset.spriteBase || img.src);
+            const home = normalizeSpritePath(idleSprite);
+            if (current === home) {
+                await setSceneIdleSprite(img, idleSprite, true);
+            }
+        }
+
+        await waitSceneGifMs(breatheMs, token);
+    }
+}
+
 async function startSceneIdleBattleLoop() {
     const token = ++sceneIdleBattleToken;
     sceneIdleBattleRunning = true;
@@ -6470,11 +6534,13 @@ async function startSceneIdleBattleLoop() {
     }
 
     const loops = [];
-    heroes.forEach((_, i) => {
+    heroes.forEach((mon, i) => {
         loops.push(sceneIdleFighterCombatLoop("hero", i, token, i * 120 + Math.random() * 280));
+        if (mon) loops.push(sceneIdleBreatheLoop("hero", i, mon, token));
     });
-    enemies.forEach((_, i) => {
+    enemies.forEach((mon, i) => {
         loops.push(sceneIdleFighterCombatLoop("enemy", i, token, i * 120 + Math.random() * 280));
+        if (mon) loops.push(sceneIdleBreatheLoop("enemy", i, mon, token));
     });
 
     await Promise.all(loops);
