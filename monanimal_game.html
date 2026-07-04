@@ -5905,10 +5905,7 @@ function bindBattleImgFallback(img, name) {
 const JOHNW_ENEMY_NAME = "Johnw";
 const JOHNW_IDLE_SPRITE = "128x128/johnw-idle.gif";
 const JOHNW_PNG_SPRITE = "128x128/johnw.png";
-const JOHNW_SWING_SPRITES = [
-    "128x128/johnw-swing1.gif",
-    "128x128/johnw-swing2.gif"
-];
+const JOHNW_SWING_SPRITE = "128x128/johnw-swing1.gif";
 const ANAGO_SWING_SPRITES = [
     "128x128/anago-swing1.gif",
     "128x128/anago-swing2.gif"
@@ -5951,7 +5948,7 @@ function getJohnwIdleSprite() {
 }
 
 function pickJohnwSwingSprite() {
-    return JOHNW_SWING_SPRITES[Math.floor(Math.random() * JOHNW_SWING_SPRITES.length)];
+    return JOHNW_SWING_SPRITE;
 }
 
 function pickAnagoSwingSprite() {
@@ -5972,7 +5969,7 @@ function pickChogSwingSprite() {
 
 const ATTACK_SPRITE_MAP = {
     Molandak: "128x128/molandak1-swing.gif",
-    Johnw: JOHNW_SWING_SPRITES[0]
+    Johnw: JOHNW_SWING_SPRITE
 };
 
 const ATTACK_SPRITE_DURATION_MS = {
@@ -5995,8 +5992,7 @@ const BATTLE_ATTACK_HIT_AT_MS = {
     "128x128/moncock-swing2.gif": 1080,
     "128x128/salmonad-swing1.gif": 1080,
     "128x128/salmonad-swing2.gif": 1200,
-    "128x128/johnw-swing1.gif": 960,
-    "128x128/johnw-swing2.gif": 960
+    "128x128/johnw-swing1.gif": 960
 };
 
 // Swing GIF frames 8-15 from source; hit near frame 2-3 of swing clip.
@@ -6013,7 +6009,6 @@ const ATTACK_HIT_AT_MS = {
 const SCENE_SPRITE_DURATION_MS = {
     "128x128/johnw-idle.gif": 1920,
     "128x128/johnw-swing1.gif": 1920,
-    "128x128/johnw-swing2.gif": 1920,
     "128x128/anago-swing1.gif": 1920,
     "128x128/anago-swing2.gif": 1920,
     "128x128/chog1-swing.gif": 960,
@@ -6036,7 +6031,6 @@ const SCENE_SPRITE_DURATION_MS = {
 // End attack GIFs after the hit follow-through — skip recovery/wind-down tail frames.
 const SCENE_ATTACK_END_MS = {
     "128x128/johnw-swing1.gif": 1200,
-    "128x128/johnw-swing2.gif": 1200,
     "128x128/anago-swing1.gif": 1440,
     "128x128/anago-swing2.gif": 1440,
     "128x128/moncock-swing1.gif": 960,
