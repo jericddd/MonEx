@@ -11,7 +11,7 @@
     --purple-light: #A855F7;
     --game-max-width: 1400px;
     --game-side-pad: 30px;
-    --scene-battle-path-height: calc(var(--scene-fighter-size, 88px) * 1.71);
+    --scene-battle-dock-height: calc(var(--scene-fighter-size, 88px) * 2.05 * 0.92 + 18px);
     --monad-purple: #200052;
     --scene-fighter-size: 141px;
     --modal-drop: 10vh;
@@ -2444,7 +2444,7 @@ body.afk-layout .currency-pill .currency-tip {
 .resource-chest-wrap {
     position: absolute;
     right: 108px;
-    bottom: calc(var(--scene-battle-path-height, 240px) + 28px);
+    bottom: calc(var(--scene-battle-dock-height, 240px) + 28px);
     top: auto;
     transform: none;
     z-index: 6;
@@ -2651,19 +2651,6 @@ body.afk-layout .currency-pill .currency-tip {
     opacity: 0.55;
     cursor: not-allowed;
     box-shadow: 2px 2px 0 #14532d;
-}
-.scene-battle-path {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: var(--scene-battle-path-height);
-    object-fit: fill;
-    object-position: center bottom;
-    z-index: 1;
-    pointer-events: none;
-    display: block;
 }
 .scene-battle-dock-shade {
     position: absolute;
@@ -4226,9 +4213,6 @@ body.afk-layout .currency-pill .currency-tip {
     .scene-battle-dock {
         padding: 0 10px 88px;
     }
-    .scene-battle-path {
-        height: var(--scene-battle-path-height);
-    }
     .scene-idle-stage {
         transform: scale(0.84);
     }
@@ -4252,7 +4236,7 @@ body.afk-layout .currency-pill .currency-tip {
     }
     .resource-chest-wrap {
         right: 14px;
-        bottom: calc(var(--scene-battle-path-height, 200px) + 96px);
+        bottom: calc(var(--scene-battle-dock-height, 200px) + 96px);
     }
     .resource-chest-btn {
         padding: 6px 8px 5px;
@@ -4374,7 +4358,6 @@ body.afk-layout .currency-pill .currency-tip {
                         <span class="resource-chest-timer-mini" id="resource-chest-timer-mini">00:00:00</span>
                     </button>
                 </div>
-                <img class="scene-battle-path" src="for%20result%20banner/mainscene_battlepath.jpg" alt="" aria-hidden="true">
                 <div class="scene-battle-dock">
                     <div class="scene-battle-dock-shade" aria-hidden="true"></div>
                     <div class="scene-battle-row">
@@ -5000,7 +4983,6 @@ let battleScreen = "main";
 const BANNER_DIR = "for%20result%20banner";
 const BATTLE_BG_MENU = BANNER_DIR + "/battlebackground.jpg";
 const BATTLE_BG_MAP = BANNER_DIR + "/map1.gif";
-const BATTLE_STAGE_PATH = BANNER_DIR + "/mainscene_battlepath.jpg";
 const MAIN_SCENE_BG = BANNER_DIR + "/mainscene_background.png";
 const BATTLE_HUB_BG_VER = 3;
 const BATTLE_HUB_BG = `${BANNER_DIR}/battlescene_background.png?v=${BATTLE_HUB_BG_VER}`;
