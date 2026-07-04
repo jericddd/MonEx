@@ -4987,6 +4987,10 @@ const ADVENTURE_CHAPTER_PLACEHOLDER = BANNER_DIR + "/adventure_chapter_placehold
 const CHAPTER_BG_FALLBACK = ADVENTURE_CHAPTER_PLACEHOLDER;
 const BATTLE_HUB_BTN_DIR = BANNER_DIR + "/battle_hub";
 const BATTLE_ICONS_DIR = "game_icons/battle";
+const BATTLE_HUB_ICON_VER = 2;
+function battleHubIconSrc(path) {
+    return `${path}?v=${BATTLE_HUB_ICON_VER}`;
+}
 // House faction crests — global species identity (party, box, profile, towers).
 // Not under battle/ because houses are used outside the battle hub.
 const HOUSE_ICON_DIR = "game_icons/house";
