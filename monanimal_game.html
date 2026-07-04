@@ -2450,10 +2450,11 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .resource-chest-wrap {
     position: absolute;
-    right: 64px;
-    bottom: calc(var(--scene-battle-dock-height, 240px) + 4px);
+    right: 12px;
+    bottom: 12px;
     top: auto;
-    transform: none;
+    transform: scale(2);
+    transform-origin: bottom right;
     z-index: 6;
     overflow: visible;
     width: 96px;
@@ -4405,9 +4406,11 @@ body.afk-layout .currency-pill .currency-tip {
         margin-left: -20px;
     }
     .resource-chest-wrap {
-        right: 12px;
-        bottom: calc(var(--scene-battle-dock-height, 200px) + 72px);
+        right: 8px;
+        bottom: 78px;
         width: 72px;
+        transform: scale(2);
+        transform-origin: bottom right;
     }
     .resource-chest-pedestal {
         width: 72px;
