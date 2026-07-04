@@ -1187,10 +1187,10 @@ button,
     align-items: center;
     justify-content: center;
     cursor: help;
-    border: 2px solid #6B21A8;
-    background: #fff;
-    box-shadow: 2px 2px 0 #6B21A8;
-    padding: 1px;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
     box-sizing: border-box;
 }
 .house-badge img {
@@ -1205,18 +1205,14 @@ button,
     left: 6px;
     width: 18px;
     height: 18px;
-    border-width: 1px;
-    box-shadow: 1px 1px 0 #6B21A8;
 }
 .house-badge--battle {
     position: relative;
     top: auto;
     left: auto;
     flex-shrink: 0;
-    width: 14px;
-    height: 14px;
-    border-width: 1px;
-    box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.45);
+    width: 16px;
+    height: 16px;
     cursor: help;
 }
 .house-badge .hover-tip-panel {
@@ -1752,8 +1748,11 @@ button,
     margin-top: 4px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     flex-wrap: wrap;
+}
+.bm-mon .house-badge .hover-tip-panel {
+    z-index: 1200;
 }
 .bm-mon .type-tag {
     font-size: 8px;
@@ -9618,11 +9617,7 @@ function renderBattleScene() {
                         <img class="vs-portrait" id="portrait-player" alt="">
                         <div class="team-col" id="team-player"></div>
                         <div class="vs-bars">
-                            <div class="vs-name vs-name-line">
-                                <span id="np-house-player"></span>
-                                <span class="vs-mon-name" id="np-name-player"></span>
-                                <span class="vs-lv" id="np-lv-player"></span>
-                            </div>
+                            <div class="vs-name"><span class="vs-mon-name" id="np-name-player"></span> <span class="vs-lv" id="np-lv-player"></span></div>
                             <div class="hpbar big"><div class="hpfill" id="hp-player"></div><span class="hptext" id="hptext-player"></span></div>
                             <div class="manbar big"><div class="manfill" id="mana-player"></div></div>
                             <div class="status-row" id="status-player"></div>
@@ -9631,11 +9626,7 @@ function renderBattleScene() {
                     <div class="vs-badge">VS</div>
                     <div class="vs-side right">
                         <div class="vs-bars">
-                            <div class="vs-name vs-name-line">
-                                <span class="vs-lv" id="np-lv-enemy"></span>
-                                <span class="vs-mon-name" id="np-name-enemy"></span>
-                                <span id="np-house-enemy"></span>
-                            </div>
+                            <div class="vs-name"><span class="vs-lv" id="np-lv-enemy"></span> <span class="vs-mon-name" id="np-name-enemy"></span></div>
                             <div class="hpbar big"><div class="hpfill" id="hp-enemy"></div><span class="hptext" id="hptext-enemy"></span></div>
                             <div class="manbar big"><div class="manfill" id="mana-enemy"></div></div>
                             <div class="status-row" id="status-enemy"></div>
@@ -9682,8 +9673,9 @@ function renderBattleMeterPanelHtml(side) {
             <div class="bm-head">
                 <div class="bm-trainer" id="bm-trainer-${side}"></div>
                 <div class="bm-mon">
-                    <span class="type-tag bm-rarity" id="bm-rarity-${side}">COMMON</span>
+                    <span id="bm-house-${side}"></span>
                     <span class="bm-mon-name" id="bm-mon-name-${side}"></span>
+                    <span class="type-tag bm-rarity" id="bm-rarity-${side}">COMMON</span>
                 </div>
             </div>
             <div class="bm-vitals mon-stats">
@@ -9939,6 +9931,8 @@ function updateBattleMeterIdentity(side, fighter) {
     }
     const monNameEl = document.getElementById("bm-mon-name-" + side);
     if (monNameEl) monNameEl.textContent = fighter.name;
+    const houseEl = document.getElementById("bm-house-" + side);
+    if (houseEl) houseEl.innerHTML = renderHouseBadge(fighter.name, "battle");
 }
 
 function updateBattleMeter(side, fighter) {
@@ -9961,8 +9955,6 @@ function setFighter(side, f) {
     }
     document.getElementById("np-name-" + side).textContent = f.name;
     document.getElementById("np-lv-" + side).textContent = "Lv." + f.level;
-    const houseEl = document.getElementById("np-house-" + side);
-    if (houseEl) houseEl.innerHTML = renderHouseBadge(f.name, "battle");
     updateBars(side, f);
     renderStatusRow(side, f);
     updateBattleMeter(side, f);
