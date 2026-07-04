@@ -12,6 +12,7 @@
     --game-max-width: 1400px;
     --game-side-pad: 30px;
     --scene-battle-dock-height: calc(var(--scene-fighter-size, 88px) * 2.05 * 0.92 + 18px);
+    --scene-idle-lift: calc(var(--scene-fighter-size, 141px) * -0.38);
     --monad-purple: #200052;
     --scene-fighter-size: 141px;
     --modal-drop: 10vh;
@@ -2695,7 +2696,7 @@ body.afk-layout .currency-pill .currency-tip {
     width: 100%;
     max-width: 837px;
     min-height: calc(var(--scene-fighter-size, 141px) * 2.05);
-    transform: scale(0.92);
+    transform: translateY(var(--scene-idle-lift, -54px)) scale(0.92);
     transform-origin: center bottom;
 }
 .scene-idle-arena {
@@ -4214,7 +4215,7 @@ body.afk-layout .currency-pill .currency-tip {
         padding: 0 10px 88px;
     }
     .scene-idle-stage {
-        transform: scale(0.84);
+        transform: translateY(var(--scene-idle-lift, -46px)) scale(0.84);
     }
     .scene-idle-arena {
         min-height: calc(var(--scene-fighter-size, 76px) * 1.15);
