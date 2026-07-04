@@ -2594,9 +2594,6 @@ body.afk-layout .currency-pill .currency-tip {
     0%, 100% { opacity: 0.2; transform: scale(0.6) translateY(0); }
     50% { opacity: 1; transform: scale(1.2) translateY(-6px); }
 }
-.resource-chest-label {
-    display: none;
-}
 .resource-chest-timer-mini {
     position: relative;
     z-index: 1;
@@ -5878,14 +5875,6 @@ function getMonAvatarFallbackPath(mon) {
 }
 
 // Battle idle: always use animated GIF when the species has one (rarity only affects party/box avatars).
-function getBattleIdleSpritePath(name) {
-    return getSceneIdleDisplaySprite(name);
-}
-
-function getSpritePath(name, rarity) {
-    return getBattleIdleSpritePath(name);
-}
-
 function bindBattleImgFallback(img, name) {
     if (!img) return;
     img.onerror = function() {
@@ -5943,14 +5932,6 @@ function isSalmonad(name) {
     return String(name || "").toLowerCase() === "salmonad";
 }
 
-function getJohnwIdleSprite() {
-    return JOHNW_IDLE_SPRITE;
-}
-
-function pickJohnwSwingSprite() {
-    return JOHNW_SWING_SPRITE;
-}
-
 function pickAnagoSwingSprite() {
     return ANAGO_SWING_SPRITES[Math.floor(Math.random() * ANAGO_SWING_SPRITES.length)];
 }
@@ -5968,8 +5949,7 @@ function pickChogSwingSprite() {
 }
 
 const ATTACK_SPRITE_MAP = {
-    Molandak: "128x128/molandak1-swing.gif",
-    Johnw: JOHNW_SWING_SPRITE
+    Molandak: "128x128/molandak1-swing.gif"
 };
 
 const ATTACK_SPRITE_DURATION_MS = {
@@ -6116,21 +6096,12 @@ const FREEZE_DMG_BOOST = 1.3;
 const MELEE_DASH_FALLBACK_PX = 180;
 
 function getAttackSpritePath(name) {
-    if (isJohnw(name)) return pickJohnwSwingSprite();
+    if (isJohnw(name)) return JOHNW_SWING_SPRITE;
     if (isAnago(name)) return pickAnagoSwingSprite();
     if (isMoncock(name)) return pickMoncockSwingSprite();
     if (isSalmonad(name)) return pickSalmonadSwingSprite();
     if (isChog(name)) return pickChogSwingSprite();
     return ATTACK_SPRITE_MAP[name] || null;
-}
-
-function getSceneFighterSprite(name) {
-    if (isJohnw(name)) return getJohnwIdleSprite();
-    return getAttackSpritePath(name) || `128x128/${name.toLowerCase()}.png`;
-}
-
-function getSceneIdleHomeSprite(mon) {
-    return getSceneIdleDisplaySprite(mon);
 }
 
 // Main-scene battle sprites: stable GIF idle for animated species, PNG for everyone else.
@@ -6240,10 +6211,6 @@ async function waitSceneGifMs(ms, token) {
         await delay(chunk);
         elapsed += chunk;
     }
-}
-
-async function waitSceneGifComplete(spritePath, monName, token) {
-    await waitSceneGifMs(getSceneSpriteDurationMs(spritePath, monName), token);
 }
 
 function makeSeededRand(seed) {
@@ -6370,11 +6337,6 @@ function getSceneIdleDashDistance(atkEl, defEl) {
     return Math.max(0, atkBox.left - defBox.right - MELEE_TOUCH_GAP_PX);
 }
 
-function getSceneIdleLungePx(atkEl, defEl) {
-    const dash = getSceneIdleDashDistance(atkEl, defEl);
-    return dash > MELEE_TOUCH_GAP_PX ? dash : 14;
-}
-
 function stopSceneIdleBattle() {
     sceneIdleBattleToken++;
     sceneIdleBattleRunning = false;
@@ -6448,7 +6410,7 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
     sceneIdleFighterBusy.add(busyKey);
     try {
         const attackPath = getAttackSpritePath(atkMon.name);
-        const idleSprite = getSceneIdleHomeSprite(atkMon);
+        const idleSprite = getSceneIdleDisplaySprite(atkMon);
         if (attackPath) {
             await waitSceneIdleLoopBoundary(atkImg, idleSprite, atkMon.name, token);
             if (token !== sceneIdleBattleToken) return;
@@ -6501,7 +6463,7 @@ async function sceneIdleFighterCombatLoop(atkTeam, atkIdx, token, startDelay) {
 
 async function sceneIdleBreatheLoop(team, idx, mon, token) {
     const busyKey = `${team}-${idx}`;
-    const idleSprite = getSceneIdleHomeSprite(mon);
+    const idleSprite = getSceneIdleDisplaySprite(mon);
     if (!idleSprite.endsWith(".gif")) return;
 
     const breatheMs = getSceneIdleBreatheLoopMs(idleSprite, mon?.name);
@@ -6740,10 +6702,6 @@ function shouldMirrorBattleSprite(side, name) {
     return natural !== wanted;
 }
 
-function applyBattleSpriteFacing(spriteEl, side, name, spritePath) {
-    applyBattleSpritePresentation(spriteEl, side, name, spritePath);
-}
-
 function getRarityRank(rarity) {
     const i = RARITY_ORDER.indexOf(rarity);
     return i >= 0 ? i : -1;
@@ -6868,15 +6826,6 @@ function getMaxHP(level, rarity) {
     else if (rarity === "Legendary") rarityBonus = 105;
     else if (rarity === "Mythic") rarityBonus = 165;
     return Math.floor(baseHP + rarityBonus);
-}
-
-function getAttackDamage(level, rarity) {
-    let baseDamage = Math.floor(Math.random() * 13) + 14;
-    baseDamage += Math.floor(level * 4.2);
-    if (rarity === "Legendary" || rarity === "Mythic") baseDamage += 28;
-    else if (rarity === "Rare") baseDamage += 15;
-    else if (rarity === "Uncommon") baseDamage += 8;
-    return baseDamage;
 }
 
 function getCatchRate(rarity) {
@@ -7402,10 +7351,6 @@ function migrateAdventureSave() {
     if (currentStage < 1) currentStage = 1;
     const best = globalProgressToChapterStage(adventureGlobalBest);
     highestStageCleared = best.stage;
-}
-
-function getChapter() {
-    return currentChapter;
 }
 
 function getAdventureEnemyLevel(globalProgress, slotIndex, boss) {
@@ -9565,19 +9510,6 @@ function enterAdventureFullMode(bgUrl) {
     setBattleSceneBackground(bgUrl);
 }
 
-function getObjectCoverRect(containerW, containerH, imgW, imgH) {
-    const containerAspect = containerW / containerH;
-    const imageAspect = imgW / imgH;
-    if (containerAspect > imageAspect) {
-        const height = containerH;
-        const width = height * imageAspect;
-        return { left: (containerW - width) / 2, top: 0, width, height };
-    }
-    const width = containerW;
-    const height = width / imageAspect;
-    return { left: 0, top: (containerH - height) / 2, width, height };
-}
-
 registerCoverStage("main-scene-viewport", "main-scene-cover-stage", {
     isActive: () => {
         const viewport = document.getElementById("main-scene-viewport");
@@ -9973,7 +9905,7 @@ function makeFighter(mon, isPlayer, options = {}) {
         stats,
         skills: mon.skills.map(s => ({ ...s })),
         ultimate: { ...mon.ultimate },
-        sprite: getSpritePath(mon.name, mon.rarity),
+        sprite: getSceneIdleDisplaySprite(mon),
         mana: BATTLE_MANA_MAX, maxMana: BATTLE_MANA_MAX,
         battleId: (isPlayer ? "p" : "e") + "_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
         ultimateUsed: false, lastSkillName: null, status: [], isPlayer
