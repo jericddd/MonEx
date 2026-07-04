@@ -2287,12 +2287,18 @@ body.afk-layout .currency-pill {
 body.afk-layout .currency-pill:hover {
     transform: translateY(-1px);
 }
-body.afk-layout .header-currencies .currency-pill:nth-child(1) { background: rgba(239, 68, 68, 0.14); }
-body.afk-layout .header-currencies .currency-pill:nth-child(2) { background: rgba(245, 158, 11, 0.16); }
-body.afk-layout .header-currencies .currency-pill:nth-child(3) { background: rgba(59, 130, 246, 0.14); }
-body.afk-layout .header-currencies .currency-pill:nth-child(4) { background: rgba(168, 85, 247, 0.14); }
+body.afk-layout .header-currencies {
+    background: rgba(31, 18, 53, 0.75);
+    border: 1px solid rgba(124, 58, 237, 0.38);
+    box-shadow: 0 4px 18px rgba(8, 4, 20, 0.35), inset 0 1px 0 rgba(167, 139, 250, 0.12);
+    backdrop-filter: blur(6px);
+}
+body.afk-layout .header-currencies .currency-pill:nth-child(1) { background: rgba(239, 68, 68, 0.18); }
+body.afk-layout .header-currencies .currency-pill:nth-child(2) { background: rgba(245, 158, 11, 0.2); }
+body.afk-layout .header-currencies .currency-pill:nth-child(3) { background: rgba(59, 130, 246, 0.18); }
+body.afk-layout .header-currencies .currency-pill:nth-child(4) { background: rgba(168, 85, 247, 0.22); }
 body.afk-layout .currency-pill .cur-qty {
-    color: #4c1d95;
+    color: #e9d5ff;
     font-weight: 800;
     font-size: 13px;
 }
@@ -2444,12 +2450,38 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .resource-chest-wrap {
     position: absolute;
-    right: 108px;
-    bottom: calc(var(--scene-battle-dock-height, 240px) + 28px);
+    right: 64px;
+    bottom: calc(var(--scene-battle-dock-height, 240px) + 4px);
     top: auto;
     transform: none;
     z-index: 6;
     overflow: visible;
+    width: 96px;
+}
+.resource-chest-pedestal {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: 92px;
+    height: 20px;
+    border-radius: 4px 4px 2px 2px;
+    background: linear-gradient(180deg, #6d6678 0%, #433d4f 52%, #2b2436 100%);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+    z-index: 0;
+}
+.resource-chest-pedestal::before {
+    content: "";
+    position: absolute;
+    left: -10px;
+    right: -10px;
+    bottom: -2px;
+    height: 12px;
+    border-radius: 3px;
+    background: linear-gradient(180deg, #524b5d 0%, #342f3d 100%);
+    z-index: -1;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
 }
 .resource-chest-fx-layer {
     position: absolute;
@@ -2471,7 +2503,10 @@ body.afk-layout .currency-pill .currency-tip {
     animation: resource-chest-burst 0.82s cubic-bezier(0.2, 0.75, 0.3, 1) forwards;
 }
 .resource-chest-particle.xp-particle {
-    filter: drop-shadow(0 0 5px rgba(250, 204, 21, 0.85));
+    filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.85));
+}
+.resource-chest-particle.shard-particle {
+    filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.85));
 }
 @keyframes resource-chest-burst {
     0% {
@@ -2497,72 +2532,148 @@ body.afk-layout .currency-pill .currency-tip {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding: 10px 12px 8px;
-    border: 3px solid #92400e;
-    background: linear-gradient(180deg, #fde68a 0%, #f59e0b 55%, #d97706 100%);
-    box-shadow: 4px 4px 0 #78350f, 0 0 18px rgba(251, 191, 36, 0.45);
+    gap: 4px;
+    width: 100%;
+    padding: 0 0 22px;
+    border: none;
+    background: transparent;
+    box-shadow: none;
     cursor: pointer;
     font-family: 'Press Start 2P', monospace;
-    color: #451a03;
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    color: #ddd6fe;
+    transition: transform 0.15s ease;
 }
 .resource-chest-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 5px 5px 0 #78350f, 0 0 22px rgba(251, 191, 36, 0.6);
+    transform: translateY(-3px);
 }
-.resource-chest-btn.is-full {
-    animation: resource-chest-glow 1.4s ease-in-out infinite;
+.resource-chest-btn.is-full .resource-chest-icon-wrap {
+    animation: resource-chest-ready-pulse 1.6s ease-in-out infinite;
 }
-@keyframes resource-chest-glow {
-    0%, 100% { box-shadow: 4px 4px 0 #78350f, 0 0 14px rgba(251, 191, 36, 0.45); }
-    50% { box-shadow: 4px 4px 0 #78350f, 0 0 26px rgba(254, 240, 138, 0.95); }
+@keyframes resource-chest-ready-pulse {
+    0%, 100% {
+        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.45)) drop-shadow(0 0 6px rgba(124, 58, 237, 0.35));
+    }
+    50% {
+        filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 14px rgba(251, 191, 36, 0.7)) drop-shadow(0 0 18px rgba(124, 58, 237, 0.45));
+    }
 }
-.resource-chest-icon {
-    width: 56px;
-    height: 48px;
+.resource-chest-icon-wrap {
+    position: relative;
+    z-index: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 34px;
-    line-height: 1;
-    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.25));
+    width: 64px;
+    height: 56px;
+    margin-bottom: 2px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.45));
+    transition: filter 0.15s ease;
 }
-.resource-chest-icon::before {
-    content: "🧰";
+.resource-chest-icon {
+    width: 52px;
+    height: 52px;
+    display: block;
+    object-fit: contain;
+    image-rendering: pixelated;
+    filter: brightness(0.88) saturate(0.92);
+}
+.resource-chest-sparkles {
+    position: absolute;
+    left: 50%;
+    top: 28%;
+    width: 72px;
+    height: 48px;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.resource-chest-btn.is-full .resource-chest-sparkles {
+    opacity: 1;
+}
+.resource-chest-sparkles::before,
+.resource-chest-sparkles::after {
+    content: "";
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #fbbf24;
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.9);
+    animation: resource-chest-sparkle 1.4s ease-in-out infinite;
+}
+.resource-chest-sparkles::before {
+    left: 12%;
+    top: 20%;
+    animation-delay: 0s;
+}
+.resource-chest-sparkles::after {
+    right: 10%;
+    top: 35%;
+    animation-delay: 0.65s;
+    background: #c4b5fd;
+    box-shadow: 0 0 6px rgba(167, 139, 250, 0.9);
+}
+@keyframes resource-chest-sparkle {
+    0%, 100% { opacity: 0.2; transform: scale(0.6) translateY(0); }
+    50% { opacity: 1; transform: scale(1.2) translateY(-6px); }
 }
 .resource-chest-label {
-    font-size: 7px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
+    display: none;
 }
 .resource-chest-timer-mini {
-    font-size: 7px;
-    color: #7c2d12;
-    background: rgba(255,255,255,0.55);
-    padding: 3px 6px;
-    border: 1px solid #92400e;
+    position: relative;
+    z-index: 1;
+    font-size: 6px;
+    color: #ddd6fe;
+    background: rgba(31, 18, 53, 0.9);
+    padding: 4px 7px;
+    border: 2px solid #6b21a8;
     border-radius: 2px;
-    min-width: 72px;
+    box-shadow: 2px 2px 0 #4c1d95;
+    min-width: 68px;
     text-align: center;
+    letter-spacing: 0.04em;
 }
 .resource-chest-full-badge {
     position: absolute;
-    top: -8px;
-    right: -8px;
-    background: #dc2626;
-    color: #fff;
+    top: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, #a855f7 0%, #7c3aed 100%);
+    color: #fef08a;
     font-size: 6px;
-    padding: 3px 5px;
-    border: 2px solid #fff;
-    box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+    padding: 3px 7px;
+    border: 2px solid #fbbf24;
+    box-shadow: 0 0 10px rgba(124, 58, 237, 0.55), 2px 2px 0 rgba(0, 0, 0, 0.35);
     display: none;
+    z-index: 3;
+    white-space: nowrap;
 }
 .resource-chest-btn.is-full .resource-chest-full-badge {
     display: block;
 }
 #modal-resource-chest .game-modal-panel {
     max-width: 420px;
+    background: linear-gradient(180deg, #2a1838 0%, #1a1028 100%);
+    border: 4px solid #6B21A8;
+    box-shadow: 6px 6px 0 #4c1d95, 0 0 24px rgba(124, 58, 237, 0.22);
+    color: #e9d5ff;
+}
+#modal-resource-chest .game-modal-header {
+    border-bottom: 2px solid rgba(124, 58, 237, 0.35);
+    background: rgba(15, 6, 30, 0.35);
+}
+#modal-resource-chest .game-modal-header h2 {
+    color: #f5f3ff;
+}
+#modal-resource-chest .game-modal-close {
+    color: #ddd6fe;
+    background: rgba(124, 58, 237, 0.15);
+}
+#modal-resource-chest .game-modal-close:hover {
+    background: rgba(124, 58, 237, 0.28);
 }
 .resource-chest-modal-body {
     display: flex;
@@ -2572,31 +2683,32 @@ body.afk-layout .currency-pill .currency-tip {
 .resource-chest-timer-block {
     text-align: center;
     padding: 12px;
-    background: linear-gradient(180deg, #f5f3ff 0%, #ede9fe 100%);
+    background: linear-gradient(180deg, rgba(42, 24, 56, 0.95) 0%, rgba(26, 16, 40, 0.98) 100%);
     border: 3px solid #6b21a8;
     box-shadow: 3px 3px 0 #4c1d95;
 }
 .resource-chest-timer-label {
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
-    color: #6b21a8;
+    color: #c4b5fd;
     margin-bottom: 8px;
 }
 .resource-chest-timer-value {
     font-family: 'Press Start 2P', monospace;
     font-size: 14px;
-    color: #111;
+    color: #fef08a;
     letter-spacing: 1px;
 }
 .resource-chest-timer-cap {
     font-family: 'Press Start 2P', monospace;
     font-size: 7px;
-    color: #666;
+    color: #a78bfa;
     margin-top: 6px;
+    line-height: 1.5;
 }
 .resource-chest-chapter-note {
     font-size: 11px;
-    color: #555;
+    color: #c4b5fd;
     text-align: center;
     line-height: 1.5;
 }
@@ -2610,12 +2722,12 @@ body.afk-layout .currency-pill .currency-tip {
     align-items: center;
     gap: 8px;
     padding: 8px 10px;
-    background: #fff;
-    border: 2px solid #d8b4fe;
-    box-shadow: 2px 2px 0 #c4b5fd;
+    background: rgba(42, 24, 56, 0.75);
+    border: 2px solid #7c3aed;
+    box-shadow: 2px 2px 0 #4c1d95;
     font-size: 11px;
     font-weight: 700;
-    color: #333;
+    color: #ede9fe;
 }
 .resource-chest-reward-row.wide {
     grid-column: 1 / -1;
@@ -2630,28 +2742,28 @@ body.afk-layout .currency-pill .currency-tip {
     margin-left: auto;
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
-    color: #6b21a8;
+    color: #fef08a;
 }
 .resource-chest-collect-btn {
     width: 100%;
     padding: 14px 12px;
-    border: 3px solid #15803d;
-    background: linear-gradient(180deg, #4ade80 0%, #22c55e 55%, #16a34a 100%);
-    color: #fff;
+    border: 3px solid #7c3aed;
+    background: linear-gradient(180deg, #a855f7 0%, #7c3aed 55%, #6b21a8 100%);
+    color: #fef08a;
     font-family: 'Press Start 2P', monospace;
     font-size: 10px;
     cursor: pointer;
-    box-shadow: 4px 4px 0 #14532d;
+    box-shadow: 4px 4px 0 #4c1d95;
     text-shadow: 1px 1px 0 rgba(0,0,0,0.25);
 }
 .resource-chest-collect-btn:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 5px 5px 0 #14532d;
+    box-shadow: 5px 5px 0 #4c1d95;
 }
 .resource-chest-collect-btn:disabled {
-    opacity: 0.55;
+    opacity: 0.45;
     cursor: not-allowed;
-    box-shadow: 2px 2px 0 #14532d;
+    box-shadow: 2px 2px 0 #4c1d95;
 }
 .scene-battle-dock-shade {
     position: absolute;
@@ -2698,6 +2810,22 @@ body.afk-layout .currency-pill .currency-tip {
     min-height: calc(var(--scene-fighter-size, 141px) * 2.05);
     transform: translateY(var(--scene-idle-lift, -54px)) scale(0.92);
     transform-origin: center bottom;
+}
+.scene-idle-ground-ring {
+    position: absolute;
+    left: 50%;
+    bottom: 6%;
+    width: min(74%, 540px);
+    height: calc(var(--scene-fighter-size, 141px) * 0.52);
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center,
+        rgba(124, 58, 237, 0.24) 0%,
+        rgba(251, 191, 36, 0.1) 38%,
+        transparent 72%);
+    box-shadow: 0 0 36px rgba(124, 58, 237, 0.14), inset 0 0 18px rgba(167, 139, 250, 0.1);
+    pointer-events: none;
+    z-index: 0;
 }
 .scene-idle-arena {
     display: flex;
@@ -2886,9 +3014,10 @@ body.afk-layout .currency-pill .currency-tip {
     flex-shrink: 0;
     box-sizing: border-box;
     overflow: visible;
+    transition: transform 0.15s ease;
 }
 .side-icon-btn:hover {
-    transform: none;
+    transform: translateY(-2px);
     box-shadow: none;
     background: transparent;
 }
@@ -2908,8 +3037,11 @@ body.afk-layout .currency-pill .currency-tip {
     transform: scale(var(--rail-icon-scale, 1));
 }
 .side-icon-btn:hover img {
-    filter: var(--rail-tab-icon-shadow);
-    transform: scale(calc(var(--rail-icon-scale, 1) * 1.1));
+    filter:
+        drop-shadow(0 0 8px rgba(124, 58, 237, 0.55))
+        drop-shadow(0 4px 10px rgba(8, 4, 20, 0.35))
+        var(--rail-tab-icon-shadow);
+    transform: scale(calc(var(--rail-icon-scale, 1) * 1.08)) translateY(-1px);
 }
 .side-icon-btn > span:not(.rail-tip) {
     position: relative;
@@ -2961,6 +3093,17 @@ body.afk-layout .currency-pill .currency-tip {
         inset 0 0 12px rgba(254, 240, 138, 0.28);
     pointer-events: none;
     z-index: 0;
+}
+.side-icon-btn.rail-idle-pulse.active::before {
+    animation: rail-idle-gold-pulse 1.5s ease-in-out infinite;
+}
+@keyframes rail-idle-gold-pulse {
+    0%, 100% {
+        box-shadow: 0 0 8px rgba(250, 204, 21, 0.45), inset 0 0 10px rgba(254, 240, 138, 0.22);
+    }
+    50% {
+        box-shadow: 0 0 16px rgba(251, 191, 36, 0.85), inset 0 0 14px rgba(254, 240, 138, 0.42);
+    }
 }
 .side-icon-btn.active img {
     filter:
@@ -4262,20 +4405,29 @@ body.afk-layout .currency-pill .currency-tip {
         margin-left: -20px;
     }
     .resource-chest-wrap {
-        right: 14px;
-        bottom: calc(var(--scene-battle-dock-height, 200px) + 96px);
+        right: 12px;
+        bottom: calc(var(--scene-battle-dock-height, 200px) + 72px);
+        width: 72px;
+    }
+    .resource-chest-pedestal {
+        width: 72px;
+        height: 16px;
     }
     .resource-chest-btn {
-        padding: 6px 8px 5px;
+        padding-bottom: 18px;
+    }
+    .resource-chest-icon-wrap {
+        width: 48px;
+        height: 42px;
     }
     .resource-chest-icon {
         width: 40px;
-        height: 34px;
-        font-size: 24px;
+        height: 40px;
     }
-    .resource-chest-label,
     .resource-chest-timer-mini {
-        font-size: 6px;
+        font-size: 5px;
+        min-width: 58px;
+        padding: 3px 5px;
     }
     :root { --scene-fighter-size: 122px; --rail-icon-max: 40px; --rail-btn-size: 48px; --rail-pad-y: 4px; --rail-pad-x: 4px; --rail-panel-pad: 6px; --rail-gap: 2px; }
     .side-rail,
@@ -4378,10 +4530,13 @@ body.afk-layout .currency-pill .currency-tip {
                 <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions"></div>
                 <div class="resource-chest-wrap" id="resource-chest-wrap">
                     <div class="resource-chest-fx-layer" id="resource-chest-fx-layer" aria-hidden="true"></div>
-                    <button type="button" class="resource-chest-btn" id="resource-chest-btn" onclick="openResourceChestModal()" aria-label="Collect resources">
-                        <span class="resource-chest-full-badge">FULL</span>
-                        <span class="resource-chest-icon" aria-hidden="true"></span>
-                        <span class="resource-chest-label">Collect</span>
+                    <div class="resource-chest-pedestal" aria-hidden="true"></div>
+                    <button type="button" class="resource-chest-btn" id="resource-chest-btn" onclick="openResourceChestModal()" aria-label="Resource chest">
+                        <span class="resource-chest-full-badge">READY</span>
+                        <span class="resource-chest-sparkles" aria-hidden="true"></span>
+                        <span class="resource-chest-icon-wrap">
+                            <img class="resource-chest-icon" src="game_icons/button%20tabs/box.png?v=5" alt="">
+                        </span>
                         <span class="resource-chest-timer-mini" id="resource-chest-timer-mini">00:00:00</span>
                     </button>
                 </div>
@@ -4389,6 +4544,7 @@ body.afk-layout .currency-pill .currency-tip {
                     <div class="scene-battle-dock-shade" aria-hidden="true"></div>
                     <div class="scene-battle-row">
                         <div class="scene-idle-stage">
+                            <div class="scene-idle-ground-ring" aria-hidden="true"></div>
                             <div class="scene-idle-arena" id="scene-idle-arena"></div>
                         </div>
                     </div>
@@ -5395,7 +5551,9 @@ function playResourceChestCollectFx(preview) {
     for (let i = 0; i < count; i++) {
         const icon = particleIcons[i % particleIcons.length];
         const particle = document.createElement("img");
-        particle.className = "resource-chest-particle" + (icon === GAME_ICONS.trainerXp ? " xp-particle" : "");
+        particle.className = "resource-chest-particle"
+            + (icon === GAME_ICONS.trainerXp ? " xp-particle" : "")
+            + (icon === GAME_ICONS.essence ? " shard-particle" : "");
         particle.src = icon.src;
         particle.alt = "";
         const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.55;
@@ -6140,6 +6298,21 @@ function getSceneIdleLungePx(atkEl, defEl) {
 function stopSceneIdleBattle() {
     sceneIdleBattleToken++;
     sceneIdleBattleRunning = false;
+    syncRailIdlePulse();
+}
+
+function syncRailIdlePulse() {
+    const container = document.querySelector(".game-container");
+    const battleBtn = document.getElementById("rail-battle");
+    if (!battleBtn) return;
+    const onMain = container?.classList.contains("main-scene-active")
+        && !container?.classList.contains("adventure-mode")
+        && !document.getElementById("battle-scene")?.classList.contains("open");
+    const shouldPulse = onMain && sceneIdleBattleRunning;
+    battleBtn.classList.toggle("rail-idle-pulse", shouldPulse);
+    if (shouldPulse) {
+        setActiveRailTab("rail-battle");
+    }
 }
 
 function ensureSceneIdleBattleRunning() {
@@ -6248,12 +6421,14 @@ async function sceneIdleFighterCombatLoop(atkTeam, atkIdx, token, startDelay) {
 async function startSceneIdleBattleLoop() {
     const token = ++sceneIdleBattleToken;
     sceneIdleBattleRunning = true;
+    syncRailIdlePulse();
     await delay(200);
 
     const heroes = party.slice(0, 3);
     const enemies = sceneIdleEnemyTeam.slice(0, 3);
     if (!heroes.length || !enemies.length) {
         sceneIdleBattleRunning = false;
+        syncRailIdlePulse();
         return;
     }
 
@@ -6266,7 +6441,10 @@ async function startSceneIdleBattleLoop() {
     });
 
     await Promise.all(loops);
-    if (token === sceneIdleBattleToken) sceneIdleBattleRunning = false;
+    if (token === sceneIdleBattleToken) {
+        sceneIdleBattleRunning = false;
+        syncRailIdlePulse();
+    }
 }
 
 function beginAttackAnim(side) {
@@ -8316,6 +8494,7 @@ function renderMainScene() {
         ensureSceneIdleBattleRunning();
     }
     updateResourceChestWidget();
+    syncRailIdlePulse();
     requestAnimationFrame(() => syncCoverStages());
 }
 
