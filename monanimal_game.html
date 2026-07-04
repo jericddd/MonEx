@@ -2459,31 +2459,6 @@ body.afk-layout .currency-pill .currency-tip {
     overflow: visible;
     width: 96px;
 }
-.resource-chest-pedestal {
-    position: absolute;
-    left: 50%;
-    bottom: 0;
-    transform: translateX(-50%);
-    width: 92px;
-    height: 20px;
-    border-radius: 4px 4px 2px 2px;
-    background: linear-gradient(180deg, #6d6678 0%, #433d4f 52%, #2b2436 100%);
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    pointer-events: none;
-    z-index: 0;
-}
-.resource-chest-pedestal::before {
-    content: "";
-    position: absolute;
-    left: -10px;
-    right: -10px;
-    bottom: -2px;
-    height: 12px;
-    border-radius: 3px;
-    background: linear-gradient(180deg, #524b5d 0%, #342f3d 100%);
-    z-index: -1;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
-}
 .resource-chest-fx-layer {
     position: absolute;
     left: 50%;
@@ -2535,7 +2510,7 @@ body.afk-layout .currency-pill .currency-tip {
     align-items: center;
     gap: 4px;
     width: 100%;
-    padding: 0 0 22px;
+    padding: 0;
     border: none;
     background: transparent;
     box-shadow: none;
@@ -2564,19 +2539,18 @@ body.afk-layout .currency-pill .currency-tip {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 64px;
-    height: 56px;
-    margin-bottom: 2px;
+    width: 72px;
+    height: 58px;
     filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.45));
     transition: filter 0.15s ease;
 }
 .resource-chest-icon {
-    width: 52px;
-    height: 52px;
+    width: 72px;
+    height: 58px;
     display: block;
     object-fit: contain;
+    object-position: center bottom;
     image-rendering: pixelated;
-    filter: brightness(0.88) saturate(0.92);
 }
 .resource-chest-sparkles {
     position: absolute;
@@ -4412,20 +4386,13 @@ body.afk-layout .currency-pill .currency-tip {
         transform: scale(2);
         transform-origin: bottom right;
     }
-    .resource-chest-pedestal {
-        width: 72px;
-        height: 16px;
-    }
-    .resource-chest-btn {
-        padding-bottom: 18px;
-    }
     .resource-chest-icon-wrap {
-        width: 48px;
-        height: 42px;
+        width: 56px;
+        height: 46px;
     }
     .resource-chest-icon {
-        width: 40px;
-        height: 40px;
+        width: 56px;
+        height: 46px;
     }
     .resource-chest-timer-mini {
         font-size: 5px;
@@ -4533,12 +4500,11 @@ body.afk-layout .currency-pill .currency-tip {
                 <div class="scene-upper-zone" id="scene-upper-zone" aria-label="Main scene actions"></div>
                 <div class="resource-chest-wrap" id="resource-chest-wrap">
                     <div class="resource-chest-fx-layer" id="resource-chest-fx-layer" aria-hidden="true"></div>
-                    <div class="resource-chest-pedestal" aria-hidden="true"></div>
                     <button type="button" class="resource-chest-btn" id="resource-chest-btn" onclick="openResourceChestModal()" aria-label="Resource chest">
                         <span class="resource-chest-full-badge">READY</span>
                         <span class="resource-chest-sparkles" aria-hidden="true"></span>
                         <span class="resource-chest-icon-wrap">
-                            <img class="resource-chest-icon" src="game_icons/button%20tabs/box.png?v=5" alt="">
+                            <img class="resource-chest-icon" src="game_icons/button%20tabs/collectresource.png?v=1" alt="">
                         </span>
                         <span class="resource-chest-timer-mini" id="resource-chest-timer-mini">00:00:00</span>
                     </button>
