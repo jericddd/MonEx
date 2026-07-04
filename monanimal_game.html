@@ -3361,9 +3361,6 @@ body.afk-layout .currency-pill .currency-tip {
 .battle-hub-btn:not(.battle-hub-btn--statue):focus-visible img {
     filter: drop-shadow(0 8px 18px rgba(15, 6, 30, 0.45));
 }
-.battle-hub-btn--back {
-    width: 7.3%;
-}
 .adventure-panel {
     text-align: center;
     background: rgba(255, 255, 255, 0.93);
@@ -9204,7 +9201,6 @@ const BATTLE_HUB_TOWER_BUTTONS = [
     { alt: "Tower of Chog", houseId: "chog", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_tower_chog.png`, left: 28, top: 42, onclick: "openHouseTower('chog')" },
     { alt: "Tower of Molandak", houseId: "molandak", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_tower_molandak.png`, left: 50, top: 34, onclick: "openHouseTower('molandak')" },
     { alt: "Tower of Moyaki", houseId: "moyaki", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_tower_moyaki.png`, left: 72, top: 42, onclick: "openHouseTower('moyaki')" },
-    { alt: "Back", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_back.png`, left: 50, top: 72, onclick: "renderBattleHubMenu()", back: true },
 ];
 
 function renderBattleHubButtons(buttons) {
@@ -9215,7 +9211,6 @@ function renderBattleHubButtons(buttons) {
         <div class="battle-hub-layer" id="battle-hub-layer">
         ${buttons.map((btn) => {
                 const extraClass = [
-                    btn.back ? "battle-hub-btn--back" : "",
                     btn.leftRail ? "battle-hub-btn--left-rail" : "",
                     btn.statue ? "battle-hub-btn--statue" : "",
                     btn.scene ? `battle-hub-btn--scene-${btn.scene}` : "",
@@ -9308,7 +9303,11 @@ function requestLeaveBattle() {
         openBattleHub();
         return;
     }
-    if (battleScreen === "adventure" || battleScreen === "tower" || battleScreen === "menu") {
+    if (battleScreen === "tower") {
+        renderBattleHubMenu();
+        return;
+    }
+    if (battleScreen === "adventure" || battleScreen === "menu") {
         closeBattleScene();
         return;
     }
