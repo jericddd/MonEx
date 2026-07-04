@@ -6045,7 +6045,8 @@ function getSceneIdleSpriteHitAtMs(spritePath, monName) {
 function getSceneIdleAttackPlayMs(spritePath, monName) {
     const durationMs = getSceneIdleSpriteDurationMs(spritePath, monName);
     const hitAtMs = getSceneIdleSpriteHitAtMs(spritePath, monName);
-    return Math.max(durationMs, hitAtMs);
+    // One loop only — end slightly before the measured loop so the browser never paints loop 2.
+    return Math.min(durationMs, Math.max(hitAtMs + 32, durationMs - 16));
 }
 
 const ATTACK_DASH_MS = 220;
@@ -6121,11 +6122,31 @@ function getSceneSpriteHitAtMs(spritePath, monName, durationMs) {
     return Math.floor(durationMs * 0.375);
 }
 
-function setSceneIdleSprite(imgEl, spritePath) {
+function markSceneIdleGifStart(imgEl) {
+    if (!imgEl) return;
+    imgEl.dataset.animStart = String(Date.now());
+}
+
+async function waitSceneIdleLoopBoundary(imgEl, spritePath, monName, token) {
+    if (!imgEl || !spritePath?.endsWith(".gif")) return;
+    const durationMs = getSceneIdleSpriteDurationMs(spritePath, monName);
+    if (durationMs <= 0) return;
+    const animStart = Number(imgEl.dataset.animStart);
+    if (!animStart) {
+        markSceneIdleGifStart(imgEl);
+        return;
+    }
+    const inLoop = (Date.now() - animStart) % durationMs;
+    const remaining = durationMs - inLoop;
+    if (remaining <= 24 || remaining >= durationMs - 24) return;
+    await waitSceneGifMs(remaining, token);
+}
+
+function setSceneIdleSprite(imgEl, spritePath, forceReplay) {
     if (!imgEl || !spritePath) return Promise.resolve();
     const base = normalizeSpritePath(spritePath);
     const current = normalizeSpritePath(imgEl.dataset.spriteBase || imgEl.src);
-    if (current === base) return Promise.resolve();
+    if (!forceReplay && current === base) return Promise.resolve();
 
     const monName = imgEl.dataset.mon;
     const mirrored = imgEl.classList.contains("mirrored");
@@ -6137,6 +6158,7 @@ function setSceneIdleSprite(imgEl, spritePath) {
     if (!spritePath.endsWith(".gif")) {
         apply();
         imgEl.src = spritePath;
+        delete imgEl.dataset.animStart;
         return Promise.resolve();
     }
 
@@ -6146,11 +6168,21 @@ function setSceneIdleSprite(imgEl, spritePath) {
         const finish = () => {
             apply();
             imgEl.src = url;
-            requestAnimationFrame(() => requestAnimationFrame(resolve));
+            requestAnimationFrame(() => {
+                markSceneIdleGifStart(imgEl);
+                requestAnimationFrame(resolve);
+            });
         };
         pre.onload = finish;
         pre.onerror = finish;
         pre.src = url;
+    });
+}
+
+function stampSceneIdleGifStarts() {
+    document.querySelectorAll(".scene-idle-sprite").forEach(img => {
+        const src = normalizeSpritePath(img.dataset.spriteBase || img.src);
+        if (src.endsWith(".gif")) markSceneIdleGifStart(img);
     });
 }
 
@@ -6280,6 +6312,7 @@ function buildSceneIdleBattleDOM(heroes, enemies) {
         const enemyHtml = enemy ? renderSceneIdleFighter("enemy", idx, enemy) : "";
         return `<div class="scene-idle-row ${cls}"><div class="scene-idle-pair" style="${getSceneIdlePairOffset(idx)}">${heroHtml}${enemyHtml}</div></div>`;
     }).join("");
+    stampSceneIdleGifStarts();
 }
 
 function getSceneIdleDashDistance(atkEl, defEl) {
@@ -6373,9 +6406,11 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
         const attackPath = getAttackSpritePath(atkMon.name);
         const idleSprite = getSceneIdleHomeSprite(atkMon);
         if (attackPath) {
+            await waitSceneIdleLoopBoundary(atkImg, idleSprite, atkMon.name, token);
+            if (token !== sceneIdleBattleToken) return;
             await setSceneIdleSprite(atkImg, attackPath);
             if (token !== sceneIdleBattleToken) return;
-            const animStart = Date.now();
+            const animStart = Number(atkImg.dataset.animStart) || Date.now();
             const playMs = getSceneIdleAttackPlayMs(attackPath, atkMon.name);
             const hitAtMs = getSceneIdleSpriteHitAtMs(attackPath, atkMon.name);
             const hitShake = waitSceneIdleUntil(animStart, hitAtMs, token).then(() => {
@@ -6386,7 +6421,6 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
             if (token !== sceneIdleBattleToken) return;
             await hitShake;
             await setSceneIdleSprite(atkImg, idleSprite);
-            await waitSceneGifMs(getSceneIdleSpriteDurationMs(idleSprite, atkMon.name), token);
         } else {
             await delay(scaleSceneIdleSpriteMs(280));
             if (token !== sceneIdleBattleToken) return;
