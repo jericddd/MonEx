@@ -131,6 +131,8 @@ function buildSavePayload(state) {
     lastResetDate: state.lastResetDate,
     xHandle: state.xHandle,
     resourceChestLastCollectAt: state.resourceChestLastCollectAt,
+    adventureBattleActive: !!state.adventureBattleActive,
+    saveVersion: state.saveVersion ?? 1,
   };
 }
 
@@ -142,7 +144,8 @@ async function pushCloudSave(payload) {
     body: JSON.stringify({ save: payload }),
   });
   if (!res.ok) throw new Error("cloud save failed");
-  return res.json();
+  const data = await res.json();
+  return data.save || null;
 }
 
 function scheduleCloudSave(state, delayMs = 800) {

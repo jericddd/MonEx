@@ -5449,9 +5449,9 @@ function isValidResourceChestTimestamp(ts) {
     return typeof ts === "number" && Number.isFinite(ts) && ts > 0;
 }
 
-function loadResourceChestTimestamp(loadedData) {
+function loadResourceChestTimestamp(loadedData, cloudOnly = false) {
     let fromLocal = null;
-    if (currentUser) {
+    if (!cloudOnly && currentUser) {
         try {
             const raw = localStorage.getItem("monex_" + currentUser);
             if (raw) fromLocal = JSON.parse(raw).resourceChestLastCollectAt;
@@ -8383,6 +8383,7 @@ function saveData() {
 async function loadData() {
     if (!currentUser) return;
     let data = null;
+    let cloudWins = false;
 
     if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
         try {
@@ -8390,7 +8391,10 @@ async function loadData() {
                 MonExAuth.loadCloudSave(),
                 delay(8000).then(() => null),
             ]);
-            if (cloud?.save) data = cloud.save;
+            if (cloud?.found && cloud.save) {
+                data = cloud.save;
+                cloudWins = true;
+            }
             if (MonExAuth.getUsername()) xHandle = MonExAuth.getUsername();
         } catch (_) {}
     }
@@ -8424,7 +8428,7 @@ async function loadData() {
         gearInventory = (data.gearInventory || []).map(normalizeGear);
         lastResetDate = data.lastResetDate || null;
         xHandle = data.xHandle || xHandle || "";
-        loadResourceChestTimestamp(data);
+        loadResourceChestTimestamp(data, cloudWins);
 
         [...party, ...box].forEach((mon) => {
             try {
@@ -8436,6 +8440,10 @@ async function loadData() {
         });
         purgeRemovedMonanimalsFromSave();
         sortBox();
+
+        if (cloudWins) {
+            saveData();
+        }
     } else {
         party = [];
         box = [];

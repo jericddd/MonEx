@@ -222,7 +222,7 @@ async function handleRequest(request, env) {
       const body = await request.json();
       const payload = buildSavePayload(body?.save || body, auth.session);
       await writeCloudSave(env.MONEX_KV, auth.session.xUserId, payload);
-      return json({ ok: true, savedAt: payload.updatedAt });
+      return json({ ok: true, savedAt: payload.updatedAt, save: payload });
     }
 
     if (path === "/api/activity" && request.method === "GET") {

@@ -168,7 +168,7 @@ app.put("/api/save", (req, res) => {
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error });
   const payload = buildSavePayload(req.body?.save || req.body, auth.session);
   writeCloudSave(auth.session.xUserId, payload);
-  res.json({ ok: true, savedAt: payload.updatedAt });
+  res.json({ ok: true, savedAt: payload.updatedAt, save: payload });
 });
 
 /** Pending wild mons waiting to claim in game */
