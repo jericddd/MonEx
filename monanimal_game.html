@@ -5300,6 +5300,7 @@ const SCENE_IDLE_BODY_SHADOW = {
     Anago:    { w: 0.42, h: 0.082 },
     Moyaki:   { w: 0.48, h: 0.095 },
     Moncock:  { w: 0.46, h: 0.09 },
+    Salmonad: { w: 0.52, h: 0.10 },
 };
 const SCENE_IDLE_BODY_SHADOW_DEFAULT = { w: 0.56, h: 0.105 };
 
@@ -5316,6 +5317,7 @@ const SCENE_IDLE_SPRITE_SCALE = {
     Mosferatu: 0.88,
     Moncock: 0.90,
     Spidermon: 0.90,
+    Salmonad: 0.92,
 };
 const SCENE_IDLE_SPRITE_SCALE_DEFAULT = 1.0;
 
@@ -5840,9 +5842,10 @@ function getMonIdleGifPath(name) {
 }
 
 // Species with idle GIF assets (main scene + legendary avatars).
-const MONS_WITH_IDLE_GIF = new Set(["anago", "mouch", "moyaki", "moncock"]);
+const MONS_WITH_IDLE_GIF = new Set(["anago", "mouch", "moyaki", "moncock", "salmonad"]);
 const MON_LEGENDARY_GIF_OVERRIDES = {
     moyaki: "128x128/main-moyaki.gif",
+    salmonad: "128x128/slamonad-idle.gif",
 };
 
 function getMonLegendaryGifPath(name) {
@@ -5914,6 +5917,10 @@ const MONCOCK_SWING_SPRITES = [
     "128x128/moncock-swing1.gif",
     "128x128/moncock-swing2.gif"
 ];
+const SALMONAD_SWING_SPRITES = [
+    "128x128/salmonad-swing1.gif",
+    "128x128/salmonad-swing2.gif"
+];
 const CHOG_SWING_SPRITES = [
     "128x128/chog1-swing.gif",
     "128x128/chog-swing2.gif"
@@ -5935,6 +5942,10 @@ function isMoncock(name) {
     return String(name || "").toLowerCase() === "moncock";
 }
 
+function isSalmonad(name) {
+    return String(name || "").toLowerCase() === "salmonad";
+}
+
 function getJohnwIdleSprite() {
     return JOHNW_IDLE_SPRITE;
 }
@@ -5951,6 +5962,10 @@ function pickMoncockSwingSprite() {
     return MONCOCK_SWING_SPRITES[Math.floor(Math.random() * MONCOCK_SWING_SPRITES.length)];
 }
 
+function pickSalmonadSwingSprite() {
+    return SALMONAD_SWING_SPRITES[Math.floor(Math.random() * SALMONAD_SWING_SPRITES.length)];
+}
+
 function pickChogSwingSprite() {
     return CHOG_SWING_SPRITES[Math.floor(Math.random() * CHOG_SWING_SPRITES.length)];
 }
@@ -5965,7 +5980,8 @@ const ATTACK_SPRITE_DURATION_MS = {
     Chog: 960,
     Johnw: 1920,
     Anago: 1920,
-    Moncock: 1920
+    Moncock: 1920,
+    Salmonad: 1920
 };
 
 // Per-swing GIF impact timing (ms from first painted frame after replay).
@@ -5977,6 +5993,8 @@ const BATTLE_ATTACK_HIT_AT_MS = {
     "128x128/anago-swing2.gif": 1080,
     "128x128/moncock-swing1.gif": 720,
     "128x128/moncock-swing2.gif": 1080,
+    "128x128/salmonad-swing1.gif": 1080,
+    "128x128/salmonad-swing2.gif": 1200,
     "128x128/johnw-swing1.gif": 960,
     "128x128/johnw-swing2.gif": 960
 };
@@ -5987,7 +6005,8 @@ const ATTACK_HIT_AT_MS = {
     Chog: 480,
     Johnw: 960,
     Anago: 1080,
-    Moncock: 1080
+    Moncock: 1080,
+    Salmonad: 1080
 };
 
 // Full measured GIF loop lengths for main-scene idle fighting (ffprobe).
@@ -6008,7 +6027,10 @@ const SCENE_SPRITE_DURATION_MS = {
     "128x128/main-moyaki.gif": 960,
     "128x128/moncock-idle.gif": 1440,
     "128x128/moncock-swing1.gif": 1080,
-    "128x128/moncock-swing2.gif": 1920
+    "128x128/moncock-swing2.gif": 1920,
+    "128x128/slamonad-idle.gif": 1200,
+    "128x128/salmonad-swing1.gif": 1920,
+    "128x128/salmonad-swing2.gif": 1680
 };
 
 // End attack GIFs after the hit follow-through — skip recovery/wind-down tail frames.
@@ -6019,6 +6041,8 @@ const SCENE_ATTACK_END_MS = {
     "128x128/anago-swing2.gif": 1440,
     "128x128/moncock-swing1.gif": 960,
     "128x128/moncock-swing2.gif": 1440,
+    "128x128/salmonad-swing1.gif": 1440,
+    "128x128/salmonad-swing2.gif": 1320,
     "128x128/chog1-swing.gif": 720,
     "128x128/chog-swing2.gif": 1320,
     "128x128/molandak1-swing.gif": 720
@@ -6033,7 +6057,8 @@ const SCENE_IDLE_BREATHE_LOOP_MS = {
     "128x128/chog.gif": 960,
     "128x128/molandak.gif": 640,
     "128x128/anago.gif": 640,
-    "128x128/moncock-idle.gif": 960
+    "128x128/moncock-idle.gif": 960,
+    "128x128/slamonad-idle.gif": 800
 };
 
 const sceneIdleFighterBusy = new Set();
@@ -6100,6 +6125,7 @@ function getAttackSpritePath(name) {
     if (isJohnw(name)) return pickJohnwSwingSprite();
     if (isAnago(name)) return pickAnagoSwingSprite();
     if (isMoncock(name)) return pickMoncockSwingSprite();
+    if (isSalmonad(name)) return pickSalmonadSwingSprite();
     if (isChog(name)) return pickChogSwingSprite();
     return ATTACK_SPRITE_MAP[name] || null;
 }
