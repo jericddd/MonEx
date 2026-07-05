@@ -6,12 +6,14 @@ import { makeActivityId } from "./activity-log.js";
 function summarizeResults(results) {
   const caught = results.filter((r) => !r.escaped);
   const escaped = results.filter((r) => r.escaped);
-  const highlights = caught.slice(0, 3).map((r) => ({
-    name: r.mon.name,
-    rarity: r.mon.rarity,
-    skills: formatSkillsShort(r.mon.skills),
-  }));
-  return { caught, escaped, highlights };
+  const monSummary = (mon) => ({
+    name: mon.name,
+    rarity: mon.rarity,
+    skills: formatSkillsShort(mon.skills),
+  });
+  const mons = caught.map((r) => monSummary(r.mon));
+  const highlights = mons.slice(0, 3);
+  return { caught, escaped, highlights, mons };
 }
 
 /**
@@ -48,7 +50,7 @@ export function processMentionTweet(tweet, botUsername, state, startingMonballs)
 
     user.monballs -= parsed.spend;
     const { throws, results } = runCatchSession(parsed.spend);
-    const { caught, escaped, highlights } = summarizeResults(results);
+    const { caught, escaped, highlights, mons } = summarizeResults(results);
     addPendingMons(user, caught.map((r) => r.mon));
 
     const activity = {
@@ -61,6 +63,7 @@ export function processMentionTweet(tweet, botUsername, state, startingMonballs)
       caughtCount: caught.length,
       escapedCount: escaped.length,
       highlights,
+      mons,
       monballsLeft: user.monballs,
       status: "success",
       at: new Date().toISOString(),

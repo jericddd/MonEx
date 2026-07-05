@@ -660,27 +660,8 @@ button.green:hover {
 #modal-box .hub-content-wrap {
     flex: 1;
     min-height: 0;
-    overflow-x: hidden;
-    overflow-y: auto;
     display: block;
     padding: 14px 6px 14px 16px;
-    scrollbar-gutter: stable;
-    scrollbar-width: thin;
-    scrollbar-color: #c46a28 rgba(0, 0, 0, 0.2);
-}
-#modal-box .hub-content-wrap::-webkit-scrollbar {
-    width: 10px;
-}
-#modal-box .hub-content-wrap::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.22);
-    border-radius: 5px;
-    margin-top: 44px;
-    margin-bottom: 8px;
-}
-#modal-box .hub-content-wrap::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #d07020, #8b4a22);
-    border: 1px solid #c46a28;
-    border-radius: 5px;
 }
 #modal-box .box-scroll-wrap {
     overflow: visible;
@@ -4780,10 +4761,38 @@ body.afk-layout .currency-pill .currency-tip {
     background: rgba(0, 0, 0, 0.2);
 }
 .profile-hub-frame .activity-feed {
+    border: none;
+    background: transparent;
+    padding: 0;
+    max-height: none;
+    overflow: visible;
+}
+.profile-pane--log.active {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.profile-log-title {
+    font-size: 12px;
+    margin: 0 0 8px;
+    color: #fde68a;
+    flex-shrink: 0;
+}
+.profile-log-scroll {
+    flex: 1;
+    min-height: 200px;
+    max-height: min(52vh, 480px);
     border: 2px solid rgba(196, 106, 40, 0.45);
     background: rgba(0, 0, 0, 0.18);
-    padding: 8px 12px;
     border-radius: 6px;
+    padding: 8px 6px 8px 12px;
+    box-sizing: border-box;
+}
+.profile-log-scroll .activity-feed {
+    padding-right: 22px;
+}
+.profile-hub-frame .activity-item-clickable:hover {
+    background: rgba(240, 160, 80, 0.14);
 }
 .profile-hub-frame .activity-item {
     border-bottom-color: rgba(196, 106, 40, 0.35);
@@ -5450,7 +5459,7 @@ body.afk-layout .currency-pill .currency-tip {
                 <div class="hub-shell">
                     <nav class="hub-nav" id="box-nav" aria-label="Box filters"></nav>
                     <div class="hub-main">
-                        <div class="hub-content-wrap">
+                        <div class="hub-content-wrap hub-scrollbar-panel">
                             <div class="box-scroll-wrap">
                                 <div id="box-content" class="box-content-grid"></div>
                             </div>
@@ -5590,10 +5599,12 @@ body.afk-layout .currency-pill .currency-tip {
                             </div>
                             <p style="font-size:11px; margin:0;">On X post: <b>@monexmonad catch 10 monanimals</b> (1 Monball = 1 catch)</p>
                         </div>
-                        <div id="profile-pane-log" class="profile-pane">
-                            <h3 style="font-size:12px; margin-bottom:8px;">YOUR X CATCH LOG</h3>
-                            <div id="profile-activity-feed" class="activity-feed">
-                                <p style="color:#888;">Save your X @handle above.</p>
+                        <div id="profile-pane-log" class="profile-pane profile-pane--log">
+                            <h3 class="profile-log-title">YOUR X CATCH LOG</h3>
+                            <div class="profile-log-scroll hub-scrollbar-panel">
+                                <div id="profile-activity-feed" class="activity-feed">
+                                    <p class="activity-empty">Save your X @handle above.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
