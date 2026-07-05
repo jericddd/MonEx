@@ -63,7 +63,7 @@ test("sanitizes gear and inventory cap", () => {
       bonuses: { spd: 5 },
     })),
   });
-  assert.equal(inv.gearInventory.length, 200);
+  assert.equal(inv.gearInventory.length, 250);
 });
 
 test("forces adventureBattleActive false and validates progress", () => {

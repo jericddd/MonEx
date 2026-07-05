@@ -1108,6 +1108,21 @@ button.green:hover {
     background: rgba(61, 26, 8, 0.2);
     box-shadow: inset 0 0 0 1px rgba(255, 220, 160, 0.45);
 }
+.hub-main .gear-slot.empty {
+    background: linear-gradient(145deg, #b8bcc4 0%, #8b919a 100%);
+    border-color: #7b8490;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+.hub-main .gear-slot.empty .gear-slot-empty-icon {
+    font-size: clamp(12px, 2.8vw, 18px);
+    opacity: 0.45;
+    filter: grayscale(1) brightness(0.28);
+}
+.hub-main .gear-slot .gear-slot-icon {
+    width: 84%;
+    height: 84%;
+    object-fit: contain;
+}
 .mon-card-status {
     font-family: 'Lato', sans-serif;
     font-size: 10px;
@@ -1547,6 +1562,32 @@ button.green:hover {
     line-height: 28px;
 }
 .gear-slot.filled { background: #ede9fe; box-shadow: 0 0 0 2px rgba(250,204,21,0.5); }
+.gear-slot.empty {
+    background: linear-gradient(145deg, #b8bcc4 0%, #8b919a 100%);
+    border-color: #6b7280;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.18);
+}
+.gear-slot.empty .gear-slot-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72%;
+    height: 72%;
+}
+.gear-slot.empty .gear-slot-empty-icon {
+    font-size: 14px;
+    line-height: 1;
+    opacity: 0.42;
+    filter: grayscale(1) brightness(0.25);
+}
+.gear-slot-icon,
+.gear-inv-icon {
+    width: 88%;
+    height: 88%;
+    object-fit: contain;
+    pointer-events: none;
+    display: block;
+}
 .gear-slot .gear-tier-dot {
     position: absolute;
     bottom: 1px;
@@ -1692,6 +1733,13 @@ button.green:hover {
 .gear-synth-slot.main-slot { border-color: #f59e0b; box-shadow: inset 0 0 0 2px #fef3c7, 3px 3px 0 #b45309; }
 .gear-synth-slot.filled { background: #faf5ff; }
 .gear-synth-slot:hover { transform: scale(1.03); }
+.gear-synth-slot .gear-slot-icon,
+.gear-synth-pick-item .gear-slot-icon,
+.gear-enhance-slot .gear-slot-icon {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+}
 .gear-synth-slot .gear-slot-emoji { font-size: 26px; line-height: 1; }
 .gear-synth-slot .gear-slot-tier {
     font-size: 8px;
@@ -5538,6 +5586,11 @@ body.afk-layout .currency-pill .currency-tip {
     font-size: 22px;
     line-height: 1;
 }
+.hub-main .gear-inv-slot .gear-inv-icon {
+    width: 72%;
+    height: 72%;
+    object-fit: contain;
+}
 .hub-main .gear-inv-slot .inv-slot-tier {
     font-size: 8px;
     font-weight: bold;
@@ -7519,6 +7572,14 @@ const GEAR_TIERS = [
     { name: "Legendary", color: "#ca8a04" },
     { name: "Mythic",    color: "#9f1239" },
 ];
+const HOUSE_GEAR_LINES = {
+    chog: { label: "Croakguard" },
+    molandak: { label: "Quillspire" },
+    moyaki: { label: "Geyserfin" },
+};
+const GEAR_ICON_SYSTEM_VERSION = 1;
+const GEAR_INVENTORY_SEED_VERSION = 1;
+const GEAR_INVENTORY_DUPES_PER_VARIANT = 5;
 const GEAR_SYNTH_UPGRADE_RATE = 0.75;
 const GEAR_SYNTH_REROLL_RATE = 0.99;
 const GEAR_SYNTH_REROLL_LOW_RATE = 0.75;
@@ -7554,6 +7615,7 @@ const HERO_ASCENSION_STAT_BONUS_PCT = 0.05;
 const RARITY_ORDER = ["Common", "Uncommon", "Rare", "Legendary", "Mythic"];
 const ASCEND_SHARD_COST = { Common: 5, Uncommon: 10, Rare: 20, Legendary: 40 };
 let gearInventory = [];
+let gearInventorySeedVersion = 0;
 let _gearIdSeq = 0;
 let gearSynthSlots = [null, null, null];
 let armoryActiveTab = "synthesize";
@@ -9048,15 +9110,75 @@ function renderStatsInfo(mon) {
     </div>`;
 }
 
+function getGearTierKey(tier) {
+    return (GEAR_TIERS[tier]?.name || "Common").toLowerCase();
+}
+
+function getGearIconPath(gear) {
+    if (!gear?.house || !gear.slot || !gear.tier) return null;
+    return `game_icons/gear/${gear.house}/${gear.slot}-${getGearTierKey(gear.tier)}.png`;
+}
+
+function renderGearIconHtml(gear, className = "gear-slot-icon") {
+    const path = getGearIconPath(gear);
+    if (!path) {
+        const emoji = GEAR_SLOT_ICONS[gear?.slot] || "\u2699\uFE0F";
+        return `<span class="gear-slot-emoji-fallback">${emoji}</span>`;
+    }
+    return `<img class="${className}" src="${path}" alt="">`;
+}
+
+function renderEmptyGearSlotHtml(slot) {
+    return `<span class="gear-slot-empty" aria-hidden="true"><span class="gear-slot-empty-icon">${GEAR_SLOT_ICONS[slot]}</span></span>`;
+}
+
+function canMonEquipGear(mon, gear) {
+    if (!gear) return false;
+    if (!gear.house) return true;
+    const monHouse = getSpeciesHouseId(mon?.name);
+    return monHouse != null && monHouse === gear.house;
+}
+
+function generateHouseGear(houseId, tier, slot) {
+    const line = HOUSE_GEAR_LINES[houseId];
+    if (!line) return generateGear(tier, slot);
+    const gear = generateGear(tier, slot);
+    gear.house = houseId;
+    gear.lineName = line.label;
+    gear.iconVersion = GEAR_ICON_SYSTEM_VERSION;
+    gear.name = `${line.label} ${gear.tierName} ${GEAR_SLOT_LABELS[slot]}`;
+    return gear;
+}
+
+function seedHouseGearInventory() {
+    gearInventory = [];
+    HOUSE_ORDER.forEach((houseId) => {
+        for (let tier = 1; tier <= 5; tier++) {
+            GEAR_SLOTS.forEach((slot) => {
+                for (let i = 0; i < GEAR_INVENTORY_DUPES_PER_VARIANT; i++) {
+                    gearInventory.push(generateHouseGear(houseId, tier, slot));
+                }
+            });
+        }
+    });
+}
+
+function ensureHouseGearInventorySeed() {
+    if (gearInventorySeedVersion >= GEAR_INVENTORY_SEED_VERSION) return;
+    seedHouseGearInventory();
+    gearInventorySeedVersion = GEAR_INVENTORY_SEED_VERSION;
+}
+
 function renderGearRow(location, index, mon) {
     if (!isEquipmentUnlocked()) return "";
     return `<div class="gear-row">${GEAR_SLOTS.map(slot => {
         const g = mon.equipment && mon.equipment[slot];
-        const filled = g ? " filled" : "";
+        const filled = g ? " filled" : " empty";
         const tierDot = g ? `<span class="gear-tier-dot" style="background:${GEAR_TIERS[g.tier].color}"></span>` : "";
         const tipName = g ? formatGearDisplayName(g) : "Equip " + GEAR_SLOT_LABELS[slot];
-        const tipDesc = g ? formatGearBonusesForMon(g, mon) : "";
-        return `<button class="gear-slot has-hover-tip${filled}" onclick="openEquipModal('${location}',${index},'${slot}')">${GEAR_SLOT_ICONS[slot]}${tierDot}${renderHoverTip(tipName, tipDesc)}</button>`;
+        const tipDesc = g ? formatGearBonusesForMon(g, mon) : "Empty slot — tap to equip house gear.";
+        const inner = g ? `${renderGearIconHtml(g)}${tierDot}` : renderEmptyGearSlotHtml(slot);
+        return `<button class="gear-slot has-hover-tip${filled}" onclick="openEquipModal('${location}',${index},'${slot}')">${inner}${renderHoverTip(tipName, tipDesc)}</button>`;
     }).join("")}</div>`;
 }
 
@@ -9473,7 +9595,13 @@ function refreshGearTierLabels(gear) {
     const t = GEAR_TIERS[gear.tier];
     if (!t) return;
     gear.tierName = t.name;
-    gear.name = t.name + " " + GEAR_SLOT_LABELS[gear.slot];
+    const line = gear.house && HOUSE_GEAR_LINES[gear.house];
+    if (line) {
+        gear.lineName = line.label;
+        gear.name = `${line.label} ${t.name} ${GEAR_SLOT_LABELS[gear.slot]}`;
+    } else {
+        gear.name = t.name + " " + GEAR_SLOT_LABELS[gear.slot];
+    }
 }
 
 function migrateAllGear() {
@@ -9624,7 +9752,7 @@ function stripGearEnhanceLevels(gear, targetLevel) {
     gear.enhanceLevel = Math.max(0, targetLevel);
     rebuildGearBonuses(gear);
 }
-function generateGear(tier, slot) {
+function generateGear(tier, slot, houseId = null) {
     const t = GEAR_TIERS[tier];
     const scale = 4 + tier * 5;
     const bonuses = {};
@@ -9632,7 +9760,7 @@ function generateGear(tier, slot) {
     else if (slot === "armor") { bonuses.hp = scale * 10 + tier * 15; bonuses.block = 4 + tier * 3; }
     else if (slot === "helmet") { bonuses.hp = scale * 6 + tier * 10; bonuses.dodge = 4 + tier * 3; }
     else if (slot === "boots") { bonuses.spd = scale + tier * 4; bonuses.hit = 4 + tier * 3; }
-    return {
+    const gear = {
         id: nextGearId(),
         slot,
         tier,
@@ -9643,13 +9771,21 @@ function generateGear(tier, slot) {
         enhanceLevel: 0,
         gearVersion: GEAR_SYSTEM_VERSION,
     };
+    if (houseId && HOUSE_GEAR_LINES[houseId]) {
+        gear.house = houseId;
+        gear.lineName = HOUSE_GEAR_LINES[houseId].label;
+        gear.iconVersion = GEAR_ICON_SYSTEM_VERSION;
+        gear.name = `${gear.lineName} ${t.name} ${GEAR_SLOT_LABELS[slot]}`;
+    }
+    return gear;
 }
 function rollGearDrop(chapter, isBoss) {
     if (chapter < 2) return null;
     let tier = chapter;
     if (isBoss && Math.random() < 0.35 && tier < 5) tier += 1;
     const slot = GEAR_SLOTS[randInt(0, GEAR_SLOTS.length - 1)];
-    return generateGear(tier, slot);
+    const houseId = HOUSE_ORDER[randInt(0, HOUSE_ORDER.length - 1)];
+    return generateHouseGear(houseId, tier, slot);
 }
 function getMonList(location) {
     return location === "box" ? box : party;
@@ -9668,7 +9804,13 @@ function equipGearOnMon(location, monIndex, gearId) {
     if (!mon) return;
     const gi = gearInventory.findIndex(g => g.id === gearId);
     if (gi < 0) return;
-    const gear = gearInventory.splice(gi, 1)[0];
+    const gear = gearInventory[gi];
+    if (!canMonEquipGear(mon, gear)) {
+        const meta = getHouseMeta(gear.house);
+        alert(`${meta ? meta.label + " gear" : "This gear"} can only be worn by that house's Monanimals.`);
+        return;
+    }
+    gearInventory.splice(gi, 1);
     const old = mon.equipment[gear.slot];
     if (old) gearInventory.push(old);
     mon.equipment[gear.slot] = gear;
@@ -9693,23 +9835,32 @@ function openEquipModal(location, monIndex, slot) {
     }
     const mon = getMonList(location)[monIndex];
     const equipped = mon.equipment[slot];
-    const options = gearInventory.filter(g => g.slot === slot);
+    const monHouse = getSpeciesHouseId(mon.name);
+    const options = gearInventory.filter(g => {
+        if (g.slot !== slot) return false;
+        if (!g.house) return true;
+        return g.house === monHouse;
+    });
+    const houseNote = monHouse
+        ? `<p style="font-size:10px;color:#666;margin:0 0 8px;text-align:center;">Showing ${getHouseMeta(monHouse)?.label || "house"} gear only.</p>`
+        : "";
     const bg = document.createElement("div");
     bg.className = "equip-modal-bg";
     bg.innerHTML = `
         <div class="equip-modal">
             <h3>${GEAR_SLOT_LABELS[slot]} — ${mon.name}</h3>
+            ${houseNote}
             ${equipped ? `<div class="equip-option" onclick="unequipGear('${location}',${monIndex},'${slot}'); this.closest('.equip-modal-bg').remove();">
-                <span><b style="color:${GEAR_TIERS[equipped.tier].color}">${formatGearDisplayName(equipped)}</b><br><small>${formatGearBonusesForMon(equipped, mon)}</small></span>
+                <span style="display:flex;align-items:center;gap:8px;">${renderGearIconHtml(equipped, "gear-inv-icon")}<span><b style="color:${GEAR_TIERS[equipped.tier].color}">${formatGearDisplayName(equipped)}</b><br><small>${formatGearBonusesForMon(equipped, mon)}</small></span></span>
                 <span class="equip-action" style="color:#ef4444;">UNEQUIP</span>
             </div>` : `<p style="font-size:12px;color:#666;text-align:center;">Nothing equipped</p>`}
             <hr style="border:none;border-top:1px solid #ddd;margin:12px 0;">
             <p style="font-size:11px;color:#666;margin:0 0 8px;">Inventory (${options.length})</p>
             ${options.length ? options.map(g => `
                 <div class="equip-option" data-gid="${g.id}">
-                    <span><b style="color:${GEAR_TIERS[g.tier].color}">${formatGearDisplayName(g)}</b><br><small>${formatGearBonuses(g.bonuses)}</small></span>
+                    <span style="display:flex;align-items:center;gap:8px;">${renderGearIconHtml(g, "gear-inv-icon")}<span><b style="color:${GEAR_TIERS[g.tier].color}">${formatGearDisplayName(g)}</b><br><small>${formatGearBonuses(g.bonuses)}</small></span></span>
                     <span class="equip-action" style="color:#6B21A8;">EQUIP</span>
-                </div>`).join("") : `<p style="font-size:12px;color:#888;text-align:center;">No ${GEAR_SLOT_LABELS[slot]} in inventory.<br>Win adventure battles to find gear!</p>`}
+                </div>`).join("") : `<p style="font-size:12px;color:#888;text-align:center;">No ${GEAR_SLOT_LABELS[slot]} for this house in inventory.<br>Win adventure battles to find gear!</p>`}
             <button style="margin-top:14px;width:100%;padding:10px;border:2px solid #6B21A8;background:white;cursor:pointer;" id="equip-close">CLOSE</button>
         </div>`;
     document.body.appendChild(bg);
@@ -9853,12 +10004,13 @@ function executeGearSynth() {
 
     const success = Math.random() < recipe.rate;
     let result = null;
+    const mainHouse = gearSynthSlots[0]?.house || HOUSE_ORDER[randInt(0, HOUSE_ORDER.length - 1)];
     if (success) {
         if (recipe.type === "upgrade") {
             const slot = GEAR_SLOTS[randInt(0, GEAR_SLOTS.length - 1)];
-            result = generateGear(recipe.resultTier, slot);
+            result = generateHouseGear(mainHouse, recipe.resultTier, slot);
         } else {
-            result = generateGear(recipe.resultTier, recipe.slot);
+            result = generateHouseGear(mainHouse, recipe.resultTier, recipe.slot);
         }
         gearInventory.push(result);
     }
@@ -9889,7 +10041,7 @@ function renderGearSynthSlotHtml(gear, index) {
         <div class="gear-synth-slot-label">${label}</div>
         <div class="${slotCls}" onclick="gearSynthClearSlot(${index})" title="${gear.name}">
             <span class="gear-slot-clear">×</span>
-            <span class="gear-slot-emoji">${GEAR_SLOT_ICONS[gear.slot]}</span>
+            ${renderGearIconHtml(gear, "gear-slot-icon")}
             <span class="gear-slot-tier" style="color:${tier.color}">${tier.name}</span>
         </div>
     </div>`;
@@ -9908,7 +10060,7 @@ function renderGearSynthPanel(container) {
             const tier = GEAR_TIERS[g.tier];
             const used = usedIds.includes(g.id);
             return `<button type="button" class="gear-synth-pick-item${used ? " used" : ""}" onclick="gearSynthAssignNext('${g.id}')" title="${formatGearDisplayName(g)}\n${formatGearBonuses(g.bonuses)}">
-                <span class="gear-slot-emoji">${GEAR_SLOT_ICONS[g.slot]}</span>
+                ${renderGearIconHtml(g, "gear-slot-icon")}
                 <span class="gear-slot-tier" style="color:${tier.color}">${tier.name}${g.enhanceLevel ? " +" + g.enhanceLevel : ""}</span>
             </button>`;
         }).join("")
@@ -9956,7 +10108,7 @@ function renderGearEnhancePanel(container) {
 
     const slotInner = gear
         ? `<span class="gear-enhance-level">+${level}</span>
-           <span class="gear-slot-emoji">${GEAR_SLOT_ICONS[gear.slot]}</span>
+           ${renderGearIconHtml(gear, "gear-slot-icon")}
            <span class="gear-slot-tier" style="color:${GEAR_TIERS[gear.tier].color}">${gear.tierName}</span>`
         : `<span style="font-size:22px;opacity:0.35;">+</span>`;
 
@@ -9977,7 +10129,7 @@ function renderGearEnhancePanel(container) {
             const tier = GEAR_TIERS[g.tier];
             const selected = gearEnhanceTargetId === g.id;
             return `<button type="button" class="gear-synth-pick-item${selected ? " used" : ""}" onclick="gearEnhanceSelect('${g.id}')" title="${formatGearDisplayName(g)}\n${formatGearBonuses(g.bonuses)}" style="${selected ? "opacity:1;border-color:#f59e0b;box-shadow:2px 2px 0 #b45309;" : ""}">
-                <span class="gear-slot-emoji">${GEAR_SLOT_ICONS[g.slot]}</span>
+                ${renderGearIconHtml(g, "gear-slot-icon")}
                 <span class="gear-slot-tier" style="color:${tier.color}">${tier.name}${g.enhanceLevel ? " +" + g.enhanceLevel : ""}</span>
             </button>`;
         }).join("")
@@ -10887,6 +11039,7 @@ function saveData() {
         party, box, monballs, money, essence, monShards, trainerXp,
         highestStageCleared, adventureGlobalBest, currentChapter, currentStage,
         gearInventory, lastResetDate, xHandle,
+        gearInventorySeedVersion,
         adventureBattleActive: isInAdventureBattle,
         resourceChestLastCollectAt,
         saveVersion: 2,
@@ -10930,6 +11083,7 @@ function applyLoadedSave(data) {
     currentStage = data.currentStage ?? 1;
     migrateAdventureSave();
     gearInventory = (data.gearInventory || []).map(normalizeGear);
+    gearInventorySeedVersion = data.gearInventorySeedVersion ?? 0;
     lastResetDate = data.lastResetDate || null;
     xHandle = data.xHandle || xHandle || "";
     loadResourceChestTimestamp(data, false);
@@ -10944,6 +11098,7 @@ function applyLoadedSave(data) {
     });
     purgeRemovedMonanimalsFromSave();
     migrateAllGear();
+    ensureHouseGearInventorySeed();
     sortBox();
 }
 
@@ -11001,9 +11156,11 @@ async function loadData() {
         currentChapter = 1;
         currentStage = 1;
         gearInventory = [];
+        gearInventorySeedVersion = 0;
         lastResetDate = null;
         resourceChestLastCollectAt = Date.now();
         if (!xHandle && MonExAuth?.getUsername()) xHandle = MonExAuth.getUsername();
+        ensureHouseGearInventorySeed();
         saveData();
     }
     checkDailyReset();
@@ -12020,7 +12177,8 @@ async function logout() {
             await MonExAuth.flushCloudSave({
                 party, box, monballs, money, essence, monShards, trainerXp,
                 highestStageCleared, adventureGlobalBest, currentChapter, currentStage,
-                gearInventory, lastResetDate, xHandle, resourceChestLastCollectAt
+                gearInventory, lastResetDate, xHandle, resourceChestLastCollectAt,
+                gearInventorySeedVersion,
             });
         } catch (_) {}
         await MonExAuth.logout();
@@ -12483,6 +12641,7 @@ window.onload = async function() {
             party, box, monballs, money, essence, monShards, trainerXp,
             highestStageCleared, adventureGlobalBest, currentChapter, currentStage,
             gearInventory, lastResetDate, xHandle, resourceChestLastCollectAt,
+            gearInventorySeedVersion,
             adventureBattleActive: isInAdventureBattle,
             saveVersion: 2,
             updatedAt: new Date().toISOString(),
@@ -13604,6 +13763,7 @@ function renderInventoryNav() {
 }
 
 const INVENTORY_SLOT_COUNT = 40;
+const INVENTORY_SLOT_MAX = 360;
 
 function renderInventoryMaterialSlotHtml(m) {
     const info = GAME_ICONS[m.key];
@@ -13616,7 +13776,7 @@ function renderInventoryMaterialSlotHtml(m) {
 function renderInventoryGearSlotHtml(g) {
     normalizeGear(g);
     return `
-        <span class="inv-slot-gear-emoji">${GEAR_SLOT_ICONS[g.slot]}</span>
+        ${renderGearIconHtml(g, "gear-inv-icon")}
         <span class="inv-slot-tier" style="color:${GEAR_TIERS[g.tier].color}">${g.tierName}${g.enhanceLevel ? " +" + g.enhanceLevel : ""}</span>
         ${renderHoverTip(formatGearDisplayName(g), formatGearBonuses(g.bonuses) + "\nEquip via mon card gear slots.")}`;
 }
@@ -13644,8 +13804,9 @@ function buildInventorySlotList() {
             .forEach(g => items.push({ type: "gear", data: g }));
     }
 
-    const slots = new Array(INVENTORY_SLOT_COUNT).fill(null);
-    items.slice(0, INVENTORY_SLOT_COUNT).forEach((item, i) => { slots[i] = item; });
+    const slotCount = Math.max(INVENTORY_SLOT_COUNT, Math.min(INVENTORY_SLOT_MAX, items.length));
+    const slots = new Array(slotCount).fill(null);
+    items.slice(0, slotCount).forEach((item, i) => { slots[i] = item; });
     return slots;
 }
 

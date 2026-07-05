@@ -28,6 +28,13 @@ export const GEAR_TIERS = [
   { name: "Mythic", color: "#9f1239" },
 ];
 
+const HOUSE_GEAR_LINES = {
+  chog: "Croakguard",
+  molandak: "Quillspire",
+  moyaki: "Geyserfin",
+};
+const VALID_GEAR_HOUSES = new Set(Object.keys(HOUSE_GEAR_LINES));
+
 export const STAT_SPECIALTIES = new Set(["spd", "crit", "pierce", "block", "hit", "dodge"]);
 
 export const GEAR_BONUS_KEYS = new Set(["atk", "hp", "spd", "crit", "dodge", "block", "hit", "pierce"]);
@@ -40,7 +47,7 @@ export const LIMITS = {
   trainerXp: 99_999_999,
   partyMax: 3,
   boxMax: 500,
-  gearInventoryMax: 200,
+  gearInventoryMax: 400,
   gearPerMonMax: 4,
   skillsMax: 12,
   statValueMax: 500,
@@ -121,10 +128,14 @@ export function sanitizeGear(raw) {
 
   const enhanceLevel = clampInt(raw.enhanceLevel ?? 0, 0, LIMITS.gearEnhanceMax);
   const tierName = tierInfo.name;
-  const name = `${tierInfo.name} ${GEAR_SLOT_LABELS[slot]}`;
+  const house = VALID_GEAR_HOUSES.has(raw.house) ? raw.house : undefined;
+  const lineName = house ? HOUSE_GEAR_LINES[house] : (trimString(raw.lineName, 32) || undefined);
+  const name = house && lineName
+    ? `${lineName} ${tierName} ${GEAR_SLOT_LABELS[slot]}`
+    : `${tierName} ${GEAR_SLOT_LABELS[slot]}`;
   const id = trimString(raw.id, LIMITS.gearIdMaxLen) || `gear_srv_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
-  return {
+  const gear = {
     id,
     slot,
     tier,
@@ -135,6 +146,10 @@ export function sanitizeGear(raw) {
     enhanceLevel,
     gearVersion: raw.gearVersion != null ? clampInt(raw.gearVersion, 1, 99) : undefined,
   };
+  if (house) gear.house = house;
+  if (lineName) gear.lineName = lineName;
+  if (raw.iconVersion != null) gear.iconVersion = clampInt(raw.iconVersion, 1, 99);
+  return gear;
 }
 
 function sanitizeMonStats(raw) {
@@ -334,6 +349,7 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
     currentChapter: adventure.currentChapter,
     currentStage: adventure.currentStage,
     gearInventory: sanitizeGearInventory(input.gearInventory),
+    gearInventorySeedVersion: clampInt(input.gearInventorySeedVersion ?? 0, 0, 99),
     lastResetDate: typeof input.lastResetDate === "string" ? trimString(input.lastResetDate, 32) || null : null,
     resourceChestLastCollectAt: sanitizeResourceChestTimestamp(input.resourceChestLastCollectAt, now),
     adventureBattleActive: false,
