@@ -887,23 +887,24 @@ button.green:hover {
     border-bottom: 1px solid rgba(139, 69, 19, 0.28);
     padding: 6px 0 5px;
     margin-bottom: 6px;
+    width: 100%;
+    box-sizing: border-box;
 }
 .hub-main .skills-grid {
     margin: 0 0 5px;
-    gap: 3px;
-    justify-content: flex-start;
+    gap: 4px;
+    width: 100%;
 }
-.hub-main .skills-grid--party {
+.hub-main .skills-grid--card {
     display: grid;
-    grid-template-columns: repeat(6, 22px);
-}
-.hub-main .skills-grid--box {
-    display: grid;
-    grid-template-columns: repeat(4, 22px);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-rows: repeat(2, auto);
 }
 .hub-main .skill-square {
-    width: 22px;
-    height: 22px;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    min-width: 0;
     border: 2px solid #8b4513;
     background: linear-gradient(145deg, #a85a2a, #6b3518);
     box-shadow: 1px 1px 0 #3d2010;
@@ -943,18 +944,23 @@ button.green:hover {
     border-color: #6b7280;
 }
 .hub-main .skill-square .skill-lock-icon {
-    font-size: 11px;
+    font-size: clamp(10px, 55%, 16px);
     line-height: 1;
     opacity: 0.9;
     filter: grayscale(0.2);
     pointer-events: none;
 }
+.hub-main .skill-square .skill-icon-fallback {
+    font-size: clamp(6px, 30%, 9px);
+}
 .hub-main .skills-grid .skill-square .skill-tip {
     display: none !important;
 }
 .hub-main .skill-square .skill-icon-img {
-    width: 16px;
-    height: 16px;
+    width: 72%;
+    height: 72%;
+    max-width: 24px;
+    max-height: 24px;
 }
 .hub-main .skill-square:hover {
     box-shadow: 2px 2px 0 #3d2010;
@@ -989,15 +995,22 @@ button.green:hover {
     z-index: 10001;
 }
 .hub-main .gear-row {
-    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 4px;
-    justify-content: flex-start;
+    width: 100%;
+    margin: 0;
 }
 .hub-main .gear-slot {
-    width: 28px;
-    height: 28px;
-    line-height: 24px;
-    font-size: 12px;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(14px, 3.2vw, 20px);
+    line-height: 1;
     border: 2px solid #c46a28;
     background: rgba(61, 26, 8, 0.12);
     border-radius: 6px;
@@ -7903,10 +7916,9 @@ function renderAscendBtn(index, mon) {
 }
 
 // Skill slots: 1st = ultimate (species-fixed), 2nd = passive (RNG), 3rd+ = actives (RNG).
-// Hub cards always show 12 slots — party 6×2, box 4×3 — with locked placeholders.
+// Hub cards always show 12 slots in a 6×2 grid, with locked placeholders.
 function renderSkillsGrid(mon, location) {
     ensureMonReady(mon);
-    const layoutClass = location === "box" ? "skills-grid--box" : "skills-grid--party";
     const skills = mon.skills || [];
     const squares = [];
     for (let i = 0; i < BATTLE_METER_SKILL_SLOTS; i++) {
@@ -7921,7 +7933,7 @@ function renderSkillsGrid(mon, location) {
             squares.push(renderBattleMeterLockedSlot(i));
         }
     }
-    return `<div class="skills-grid ${layoutClass}">${squares.join("")}</div>`;
+    return `<div class="skills-grid skills-grid--card">${squares.join("")}</div>`;
 }
 
 function clearHubMonCardFloatTip(anchor) {
