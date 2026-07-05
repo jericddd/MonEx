@@ -8972,15 +8972,43 @@ function needsSkillMigration(mon) {
     if (len < base || len > cap) return true;
     if (mon.skills[0]?.type !== "ultimate") return true;
     if (mon.skills[1]?.type !== "passive") return true;
-    for (let i = 2; i < mon.skills.length; i++) {
+    for (let i = 2; i < Math.min(len, base); i++) {
         const t = mon.skills[i]?.type;
         if (t !== "active" && t !== "heal") return true;
+    }
+    for (let i = base; i < len; i++) {
+        const t = mon.skills[i]?.type;
+        if (t !== "passive" && t !== "active" && t !== "heal") return true;
     }
     const rngNames = mon.skills.slice(1).map(skill => skill.name);
     if (new Set(rngNames).size !== rngNames.length) return true;
     const healActives = mon.skills.filter(isHealActiveSkill);
     if (healActives.length > 1) return true;
     return false;
+}
+
+function reconcileAscensionSkillState(mon) {
+    const base = getSkillCount(mon.rarity);
+    const stars = mon.ascensionStars || 0;
+    const len = mon.skills?.length || 0;
+    if (stars <= 0 || len >= base + stars || mon.ascensionSkillPending?.length) return;
+    mon.ascensionSkillPending = rollHeroAscensionSkillOptions(mon);
+    mon.ascensionSkillFreePick = true;
+}
+
+function resolveMonForAscensionSkill(location, monIndex) {
+    const list = location === "party" ? party : box;
+    const mon = list[monIndex];
+    if (mon?.ascensionSkillPending?.length) return mon;
+    const candidates = [];
+    party.forEach((m, i) => {
+        if (m?.ascensionSkillPending?.length) candidates.push({ mon: m, location: "party", index: i });
+    });
+    box.forEach((m, i) => {
+        if (m?.ascensionSkillPending?.length) candidates.push({ mon: m, location: "box", index: i });
+    });
+    if (candidates.length === 1) return candidates[0].mon;
+    return mon;
 }
 
 function syncUltimateFromSkills(mon) {
@@ -9499,12 +9527,15 @@ function closeAscensionSkillPicker() {
 }
 
 function openAscensionSkillPicker(location, monIndex) {
-    const list = location === "party" ? party : box;
-    const mon = list[monIndex];
+    const mon = resolveMonForAscensionSkill(location, monIndex);
     if (!mon?.ascensionSkillPending?.length) return;
     closeAscensionSkillPicker();
     const options = mon.ascensionSkillPending;
-    const afford = money >= HERO_SKILL_UNLOCK_GOLD;
+    const freePick = !!mon.ascensionSkillFreePick;
+    const afford = freePick || money >= HERO_SKILL_UNLOCK_GOLD;
+    const costNote = freePick
+        ? "No Gold cost — your previous unlock attempt was interrupted."
+        : `Choose one (${HERO_SKILL_UNLOCK_GOLD} Gold). These 3 options stay fixed until you pick.`;
     const cards = options.map((skill, i) => {
         const typeLabel = skill.type === "passive" ? "Passive" : (skill.element || "Active");
         return `<button type="button" class="hero-skill-option-btn" onclick="confirmHeroAscensionSkill('${location}', ${monIndex}, ${i})" ${afford ? "" : "disabled style='opacity:0.5'"}>
@@ -9521,7 +9552,7 @@ function openAscensionSkillPicker(location, monIndex) {
             <button type="button" class="hub-popup-close-left" aria-label="Close" onclick="closeAscensionSkillPicker()">&times;</button>
             <div class="hub-popup-inner">
                 <h3 class="hub-popup-title">★ UNLOCK SKILL — ${mon.name}</h3>
-                <p class="hub-popup-sub">Choose one (${HERO_SKILL_UNLOCK_GOLD} Gold). These 3 options stay fixed until you pick.</p>
+                <p class="hub-popup-sub">${costNote}</p>
                 <div class="hero-skill-option-grid">${cards}</div>
             </div>
         </div>`;
@@ -9634,6 +9665,7 @@ function ensureMonReady(mon) {
         expandSkillsForRarity(mon);
     }
     migrateSkillDefinitions(mon);
+    reconcileAscensionSkillState(mon);
     syncUltimateFromSkills(mon);
     refreshMonDerivedStats(mon);
     if (mon.current_hp == null) mon.current_hp = mon.max_hp;
@@ -10645,12 +10677,12 @@ function executeHeroAscension() {
 }
 
 function confirmHeroAscensionSkill(location, monIndex, optionIndex) {
-    const list = location === "party" ? party : box;
-    const mon = list[monIndex];
+    const mon = resolveMonForAscensionSkill(location, monIndex);
     if (!mon?.ascensionSkillPending?.length) return;
     const skill = mon.ascensionSkillPending[optionIndex];
     if (!skill) return;
-    if (money < HERO_SKILL_UNLOCK_GOLD) {
+    const freePick = !!mon.ascensionSkillFreePick;
+    if (!freePick && money < HERO_SKILL_UNLOCK_GOLD) {
         alert(`Need ${HERO_SKILL_UNLOCK_GOLD} Gold to unlock this skill.\nYou have: ${money}`);
         return;
     }
@@ -10663,12 +10695,13 @@ function confirmHeroAscensionSkill(location, monIndex, optionIndex) {
         alert(`${skill.name} is already on this hero. Pick a different option.`);
         return;
     }
-    money -= HERO_SKILL_UNLOCK_GOLD;
+    if (!freePick) money -= HERO_SKILL_UNLOCK_GOLD;
     mon.skills.push({ ...skill });
     migrateSkillDefinitions(mon);
     syncUltimateFromSkills(mon);
     refreshMonDerivedStats(mon);
     delete mon.ascensionSkillPending;
+    delete mon.ascensionSkillFreePick;
     closeAscensionSkillPicker();
     saveData();
     updateUI();
