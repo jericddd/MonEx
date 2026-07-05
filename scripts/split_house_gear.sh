@@ -14,7 +14,13 @@ process_house() {
 
   # Accept common names: chog.png, sheet.png, or any single PNG in the folder
   local src=""
-  for candidate in "$src_dir/$house.png" "$src_dir/Quillspire.png" "$src_dir/sheet.png" "$src_dir"/sheet*.png; do
+  for candidate in \
+    "$src_dir/$house.png" \
+    "$src_dir/Croakguard.png" \
+    "$src_dir/Quillspire.png" \
+    "$src_dir/Geyserfin.png" \
+    "$src_dir/sheet.png" \
+    "$src_dir"/sheet*.png; do
     if [[ -f "$candidate" ]]; then
       src="$candidate"
       break

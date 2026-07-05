@@ -7,17 +7,17 @@ House-exclusive equipment art. Each house has its own folder.
 ```
 game_icons/gear/
   chog/           # House of Chog — Croakguard Exchange
-    chog.png      # full sprite sheet (source — optional, keep or remove after split)
+    Croakguard.png  # source sprite sheet
     weapon-common.png … boots-mythic.png
   molandak/       # House of Molandak — Quillspire Exchange
-    molandak.png
+    Quillspire.png
     weapon-common.png …
   moyaki/         # House of Moyaki — Geyserfin Exchange
-    moyaki.png
+    Geyserfin.png
     weapon-common.png …
 ```
 
-Drop each house’s **full sprite sheet** into that house folder (e.g. `molandak/molandak.png`), then run:
+Drop each house’s **full sprite sheet** into that house folder, then run:
 
 ```bash
 bash scripts/split_house_gear.sh
