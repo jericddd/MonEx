@@ -444,6 +444,7 @@ button.green:hover {
     padding: 0;
 }
 .shop-frame {
+    position: relative;
     border: 4px solid #e07a2f;
     border-radius: 6px;
     box-shadow:
@@ -453,10 +454,29 @@ button.green:hover {
     background: linear-gradient(180deg, #3d2518 0%, #2a1810 100%);
     overflow: hidden;
 }
+.shop-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+    width: 32px;
+    height: 32px;
+    border: 2px solid #991b1b;
+    border-radius: 6px;
+    background: linear-gradient(180deg, #ef4444, #b91c1c);
+    color: #fff;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #7f1d1d;
+}
+.shop-close-btn:hover {
+    filter: brightness(1.08);
+}
 .shop-shell {
     display: flex;
-    min-height: 520px;
-    max-height: min(78vh, 640px);
+    min-height: 320px;
+    max-height: min(72vh, 560px);
 }
 .shop-categories {
     flex: 0 0 118px;
@@ -501,92 +521,26 @@ button.green:hover {
     flex-direction: column;
     background: linear-gradient(180deg, #5c3a24 0%, #4a2e1c 45%, #3d2518 100%);
 }
-.shop-topbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 14px 10px;
-    border-bottom: 2px solid rgba(0, 0, 0, 0.25);
-}
-.shop-level-badge {
-    flex: 0 0 42px;
-    width: 42px;
-    height: 42px;
-    border: 3px solid #f0c060;
-    border-radius: 8px;
-    background: linear-gradient(145deg, #8b5a2b, #5c3818);
-    color: #fff8e8;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2);
-}
-.shop-bars {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 0;
-}
-.shop-bar-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.shop-bar-label {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 7px;
-    color: #ffe8c8;
-    width: 22px;
-    flex-shrink: 0;
-}
-.shop-bar-track {
-    flex: 1;
-    height: 14px;
-    border: 2px solid #2a1810;
-    border-radius: 4px;
-    background: #1a1008;
-    overflow: hidden;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
-}
-.shop-bar-fill {
-    height: 100%;
-    transition: width 0.35s ease;
-}
-.shop-bar-fill.hp {
-    background: linear-gradient(90deg, #dc2626, #f97316);
-}
-.shop-bar-fill.xp {
-    background: linear-gradient(90deg, #2563eb, #60a5fa);
-}
-.shop-close-btn {
-    flex: 0 0 36px;
-    width: 36px;
-    height: 36px;
-    border: 2px solid #991b1b;
-    border-radius: 6px;
-    background: linear-gradient(180deg, #ef4444, #b91c1c);
-    color: #fff;
-    font-size: 20px;
-    line-height: 1;
-    cursor: pointer;
-    box-shadow: 0 3px 0 #7f1d1d;
-}
-.shop-close-btn:hover {
-    filter: brightness(1.08);
-}
 .shop-grid-wrap {
     flex: 1;
-    padding: 14px 16px;
+    padding: 14px 48px 14px 16px;
     overflow-y: auto;
     min-height: 0;
 }
+.shop-empty-msg {
+    margin: 0;
+    padding: 24px 8px;
+    text-align: center;
+    font-family: 'Lato', sans-serif;
+    font-size: 14px;
+    color: #ffe8c8;
+    opacity: 0.75;
+}
 .shop-item-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
     gap: 10px;
+    align-content: start;
 }
 .shop-slot {
     aspect-ratio: 1;
@@ -603,9 +557,12 @@ button.green:hover {
     padding: 6px;
     position: relative;
     cursor: default;
+    font: inherit;
+    color: inherit;
 }
-.shop-slot.empty {
-    opacity: 0.55;
+.shop-slot.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }
 .shop-slot.has-item {
     cursor: pointer;
@@ -616,10 +573,6 @@ button.green:hover {
 }
 .shop-slot.has-item.affordable:hover {
     transform: translateY(-1px);
-}
-.shop-slot.disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
 }
 .shop-slot-icon {
     width: 52%;
@@ -660,74 +613,6 @@ button.green:hover {
     font-weight: 700;
     color: #fde68a;
     text-shadow: 1px 1px 0 #000;
-}
-.shop-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 10px 14px 12px;
-    border-top: 3px solid #8b4513;
-    background: linear-gradient(180deg, #4a2e1c 0%, #362218 100%);
-    flex-wrap: wrap;
-}
-.shop-pagination {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 8px;
-    color: #ffe8c8;
-}
-.shop-page-btn {
-    width: 28px;
-    height: 28px;
-    border: 2px solid #c46a28;
-    border-radius: 6px;
-    background: linear-gradient(180deg, #8b4a22, #6b3518);
-    color: #ffe8c8;
-    cursor: pointer;
-    font-size: 12px;
-    line-height: 1;
-}
-.shop-page-btn:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-}
-.shop-stats {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    flex-wrap: wrap;
-}
-.shop-stat {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 8px;
-    color: #ffe8c8;
-}
-.shop-stat-ico {
-    font-size: 14px;
-    line-height: 1;
-}
-.shop-gold-pill {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border: 2px solid #d4a04a;
-    border-radius: 8px;
-    background: linear-gradient(180deg, #6b4426, #4a2e18);
-    font-family: 'Press Start 2P', monospace;
-    font-size: 9px;
-    color: #fde68a;
-}
-.shop-gold-pill img {
-    width: 18px;
-    height: 18px;
-    image-rendering: pixelated;
 }
 @media (max-width: 720px) {
     .shop-shell {
@@ -4969,35 +4854,13 @@ body.afk-layout .currency-pill .currency-tip {
         </div>
         <div class="game-modal-body">
             <div class="shop-frame">
+                <button type="button" class="shop-close-btn" onclick="closeGameModal('shop')" aria-label="Close shop">×</button>
                 <div class="shop-shell">
                     <nav class="shop-categories" id="shop-categories" aria-label="Shop categories"></nav>
                     <div class="shop-main">
-                        <div class="shop-topbar">
-                            <div class="shop-level-badge" id="shop-level-badge">1</div>
-                            <div class="shop-bars">
-                                <div class="shop-bar-row">
-                                    <span class="shop-bar-label">HP</span>
-                                    <div class="shop-bar-track"><div class="shop-bar-fill hp" id="shop-hp-bar" style="width:100%"></div></div>
-                                </div>
-                                <div class="shop-bar-row">
-                                    <span class="shop-bar-label">XP</span>
-                                    <div class="shop-bar-track"><div class="shop-bar-fill xp" id="shop-xp-bar" style="width:0%"></div></div>
-                                </div>
-                            </div>
-                            <button type="button" class="shop-close-btn" onclick="closeGameModal('shop')" aria-label="Close shop">×</button>
-                        </div>
                         <div class="shop-grid-wrap">
                             <div id="shop-grid" class="shop-item-grid"></div>
                         </div>
-                        <footer class="shop-footer">
-                            <div class="shop-pagination">
-                                <button type="button" class="shop-page-btn" id="shop-page-prev" onclick="changeShopPage(-1)" aria-label="Previous page">‹</button>
-                                <span id="shop-page-label">1/1</span>
-                                <button type="button" class="shop-page-btn" id="shop-page-next" onclick="changeShopPage(1)" aria-label="Next page">›</button>
-                            </div>
-                            <div class="shop-stats" id="shop-stats"></div>
-                            <div class="shop-gold-pill" id="shop-gold-pill"></div>
-                        </footer>
                     </div>
                 </div>
             </div>
@@ -5682,9 +5545,7 @@ const SHOP_CATEGORIES = [
     { id: "potions", label: "POTIONS" },
     { id: "food", label: "FOOD" },
 ];
-const SHOP_SLOTS_PER_PAGE = 18;
 let shopActiveCategory = "potions";
-let shopPage = 1;
 
 const SHOP_ITEMS = [
     { id: "monball5",   category: "food",    name: "Monball Pack",    desc: "5 Monballs for catching.",     cost: { gold: 2000 },              grant: { monballs: 5 } },
@@ -9014,30 +8875,7 @@ function buyShopItem(itemId) {
 
 function setShopCategory(categoryId) {
     shopActiveCategory = categoryId;
-    shopPage = 1;
     renderShop();
-}
-
-function changeShopPage(delta) {
-    const items = SHOP_ITEMS.filter(i => i.category === shopActiveCategory);
-    const totalPages = Math.max(1, Math.ceil(items.length / SHOP_SLOTS_PER_PAGE));
-    shopPage = Math.min(totalPages, Math.max(1, shopPage + delta));
-    renderShop();
-}
-
-function getShopLeadMonStats() {
-    const mon = party[0];
-    if (!mon) return { atk: 0, def: 0, spd: 0, mag: 0, hpPct: 100 };
-    ensureMonReady(mon);
-    const eff = getEffectiveStats(mon);
-    const hpPct = mon.max_hp > 0 ? Math.round((mon.current_hp / mon.max_hp) * 100) : 100;
-    return {
-        atk: eff.atk,
-        def: Math.round((eff.block || 0) + (mon.max_hp || 0) / 10),
-        spd: eff.spd,
-        mag: eff.crit || 0,
-        hpPct,
-    };
 }
 
 function renderShopCategories() {
@@ -9050,63 +8888,19 @@ function renderShopCategories() {
     `).join("");
 }
 
-function renderShopHeader() {
-    const tInfo = getTrainerLevelInfo(trainerXp);
-    const xpPct = tInfo.needed > 0 ? Math.round((tInfo.progress / tInfo.needed) * 100) : 0;
-    const lead = getShopLeadMonStats();
-
-    const lvl = document.getElementById("shop-level-badge");
-    if (lvl) lvl.textContent = String(tInfo.level);
-
-    const hpBar = document.getElementById("shop-hp-bar");
-    if (hpBar) hpBar.style.width = lead.hpPct + "%";
-
-    const xpBar = document.getElementById("shop-xp-bar");
-    if (xpBar) xpBar.style.width = xpPct + "%";
-}
-
-function renderShopFooter(items) {
-    const totalPages = Math.max(1, Math.ceil(items.length / SHOP_SLOTS_PER_PAGE));
-    const label = document.getElementById("shop-page-label");
-    if (label) label.textContent = `${shopPage}/${totalPages}`;
-
-    const prev = document.getElementById("shop-page-prev");
-    const next = document.getElementById("shop-page-next");
-    if (prev) prev.disabled = shopPage <= 1;
-    if (next) next.disabled = shopPage >= totalPages;
-
-    const stats = getShopLeadMonStats();
-    const statsEl = document.getElementById("shop-stats");
-    if (statsEl) {
-        statsEl.innerHTML = `
-            <span class="shop-stat"><span class="shop-stat-ico">⚔</span>${stats.atk}</span>
-            <span class="shop-stat"><span class="shop-stat-ico">🛡</span>${stats.def}</span>
-            <span class="shop-stat"><span class="shop-stat-ico">⚡</span>${stats.spd}</span>
-            <span class="shop-stat"><span class="shop-stat-ico">✦</span>${stats.mag}</span>
-        `;
-    }
-
-    const goldEl = document.getElementById("shop-gold-pill");
-    if (goldEl) {
-        goldEl.innerHTML = `${currencyIcon("gold", 18)}<span>${money}</span>`;
-    }
-}
-
 function renderShop() {
     const grid = document.getElementById("shop-grid");
     if (!grid) return;
 
     renderShopCategories();
-    renderShopHeader();
 
     const items = SHOP_ITEMS.filter(i => i.category === shopActiveCategory);
-    const totalPages = Math.max(1, Math.ceil(items.length / SHOP_SLOTS_PER_PAGE));
-    if (shopPage > totalPages) shopPage = totalPages;
+    if (!items.length) {
+        grid.innerHTML = `<p class="shop-empty-msg">No items in this category yet.</p>`;
+        return;
+    }
 
-    const pageItems = items.slice((shopPage - 1) * SHOP_SLOTS_PER_PAGE, shopPage * SHOP_SLOTS_PER_PAGE);
-    const slots = [];
-
-    pageItems.forEach(item => {
+    grid.innerHTML = items.map(item => {
         const afford = canAffordCost(item.cost);
         const costShort = item.cost.gold ? item.cost.gold + "G" : formatCost(item.cost);
         const tip = renderHoverTip(item.name, item.desc + " — " + formatCost(item.cost));
@@ -9116,33 +8910,21 @@ function renderShop() {
             ${tip}
         `;
         if (afford) {
-            slots.push(`
+            return `
                 <button type="button"
                     class="shop-slot has-item has-hover-tip affordable"
                     onclick="buyShopItem('${item.id}')"
                     aria-label="${item.name}">
                     ${inner}
                 </button>
-            `);
-        } else {
-            slots.push(`
-                <div class="shop-slot has-item has-hover-tip disabled" aria-label="${item.name}">
-                    ${inner}
-                </div>
-            `);
+            `;
         }
-    });
-
-    while (slots.length < SHOP_SLOTS_PER_PAGE) {
-        slots.push(`
-            <div class="shop-slot empty" aria-hidden="true">
-                <div class="shop-slot-icon">?</div>
+        return `
+            <div class="shop-slot has-item has-hover-tip disabled" aria-label="${item.name}">
+                ${inner}
             </div>
-        `);
-    }
-
-    grid.innerHTML = slots.join("");
-    renderShopFooter(items);
+        `;
+    }).join("");
 }
 
 function importWildMon(raw) {
