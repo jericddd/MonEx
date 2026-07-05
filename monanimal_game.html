@@ -4218,32 +4218,150 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .adventure-panel {
     text-align: center;
-    background: rgba(255, 255, 255, 0.93);
-    padding: 32px 40px;
-    border: 4px solid #6B21A8;
-    box-shadow: 4px 4px 0 #6B21A8;
+    background: linear-gradient(180deg, #5c3a24 0%, #4a2e1c 45%, #3d2518 100%);
+    padding: 24px 28px 28px;
+    border: 4px solid #e07a2f;
+    border-radius: 6px;
+    box-shadow:
+        inset 0 0 0 2px #5c2e0e,
+        inset 0 0 0 4px #f4a442,
+        0 8px 24px rgba(0, 0, 0, 0.55);
     max-width: min(920px, 96%);
     width: 100%;
     box-sizing: border-box;
     font-family: 'Lato', sans-serif;
+    color: #ffe8c8;
     pointer-events: auto;
     position: relative;
     z-index: 2;
 }
 .adventure-panel h2 {
-    margin: 0 0 20px;
-    color: #6B21A8;
+    margin: 0 0 12px;
+    color: #fde68a;
     font-family: 'Press Start 2P', monospace;
-    font-size: 14px;
+    font-size: 10px;
     line-height: 1.65;
 }
 .adventure-panel p,
 .adventure-panel .adv-desc,
 .adventure-panel .result-drops {
     font-family: 'Lato', sans-serif;
+    color: rgba(255, 232, 200, 0.88);
+}
+.adventure-panel .adv-desc {
+    margin: 12px 0 24px;
+    font-size: 14px;
+    line-height: 1.45;
 }
 .adventure-panel button {
     font-family: 'Press Start 2P', monospace;
+}
+.adventure-start-btn,
+.adventure-panel .adventure-continue-btn {
+    margin-top: 8px;
+    padding: 14px 48px;
+    font-size: 9px;
+    line-height: 1.5;
+    background: linear-gradient(180deg, #f0a040 0%, #d07020 100%);
+    color: #3d1a08;
+    border: 2px solid #c46a28;
+    border-radius: 8px;
+    box-shadow: 0 4px 0 #3d2010;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.1s ease;
+}
+.adventure-start-btn:hover,
+.adventure-panel .adventure-continue-btn:hover {
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+}
+.team-arrange-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin: 24px 0 28px;
+    flex-wrap: wrap;
+}
+.team-slot {
+    border: 3px solid #d4a04a;
+    padding: 12px 10px 10px;
+    width: 190px;
+    background: linear-gradient(180deg, #f8ecd8 0%, #edd9b8 100%);
+    border-radius: 10px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        0 3px 0 #3d2010;
+    cursor: grab;
+    user-select: none;
+    font-family: 'Lato', sans-serif;
+    pointer-events: auto;
+    touch-action: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+.team-slot:hover {
+    border-color: #f0a050;
+    box-shadow:
+        inset 0 0 12px rgba(255, 200, 80, 0.18),
+        0 4px 0 #2a1810;
+}
+.team-slot.is-dragging {
+    opacity: 0.55;
+    cursor: grabbing;
+}
+.team-slot-sprite {
+    height: 132px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(139, 69, 19, 0.35);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.08);
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+.team-slot-sprite img {
+    max-height: 118px;
+    max-width: 118px;
+    object-fit: contain;
+    object-position: center bottom;
+    image-rendering: pixelated;
+    display: block;
+}
+.team-slot-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    line-height: 1.5;
+    color: #3d1a08;
+}
+.team-slot-lv {
+    font-family: 'Lato', sans-serif;
+    font-size: 13px;
+    color: rgba(61, 26, 8, 0.72);
+    margin-top: 4px;
+}
+.team-slot-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+}
+.team-slot-actions button {
+    cursor: pointer;
+    background: linear-gradient(180deg, #8b4a22 0%, #6b3518 100%);
+    color: #ffe8c8;
+    border: 2px solid #c46a28;
+    border-radius: 6px;
+    box-shadow: 0 2px 0 #3d2010;
+    font-size: 6px;
+    padding: 8px 12px;
+}
+.team-slot-actions button:hover {
+    filter: brightness(1.08);
+    border-color: #f0a050;
+}
+.adventure-panel .boss-label {
+    display: inline-block;
+    margin-left: 6px;
+    vertical-align: middle;
 }
 .battle-leave-panel {
     background: white;
@@ -4269,36 +4387,6 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .battle-leave-stay { background: #6B21A8; color: white; }
 .battle-leave-confirm { background: #ef4444; color: white; }
-.team-slot {
-    border: 4px solid #6B21A8;
-    padding: 12px;
-    width: 190px;
-    background: white;
-    box-shadow: 4px 4px 0 #6B21A8;
-    cursor: grab;
-    user-select: none;
-    font-family: 'Lato', sans-serif;
-    pointer-events: auto;
-    touch-action: none;
-}
-.team-slot-name {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 8px;
-    line-height: 1.5;
-}
-.team-slot-lv {
-    font-family: 'Lato', sans-serif;
-    font-size: 13px;
-    color: #444;
-}
-.team-slot-actions {
-    display: flex;
-    justify-content: center;
-    margin-top: 12px;
-}
-.team-slot-actions button {
-    cursor: pointer;
-}
 #battle-content { flex: 1; width: 100%; min-height: 0; }
 #battle-content .battle-stage {
     position: absolute;
@@ -10818,12 +10906,10 @@ function startStageSelection() {
     content.className = "battle-scene-ui cover-art-layer";
     content.innerHTML = `
         <div class="adventure-panel">
-            <h2>CHAPTER ${currentChapter} - STAGE ${currentStage}${boss ? ' <span class="boss-label">BOSS</span>' : ''}</h2>
-            <p class="adv-desc" style="margin:20px 0 30px 0; font-size:15px; color:#444;">${boss ? 'Boss stage — tougher enemies and better rewards!' : 'Arrange sequence before battle start, drag and drop'}</p>
-            <div id="team-arrange" style="display:flex; gap:20px; justify-content:center; margin:30px 0; flex-wrap:wrap;"></div>
-            <button onclick="startAdventureBattle()" style="padding:18px 80px; font-size:20px; background:#6B21A8; color:white; border:none; cursor:pointer;">
-                START BATTLE
-            </button>
+            <h2>CHAPTER ${currentChapter} — STAGE ${currentStage}${boss ? ' <span class="boss-label">BOSS</span>' : ''}</h2>
+            <p class="adv-desc">${boss ? 'Boss stage — tougher enemies and better rewards!' : 'Arrange sequence before battle start, drag and drop'}</p>
+            <div id="team-arrange" class="team-arrange-row"></div>
+            <button type="button" class="adventure-start-btn" onclick="startAdventureBattle()">START BATTLE</button>
         </div>
     `;
 
@@ -10833,11 +10919,8 @@ function startStageSelection() {
 
 function renderTeamArrangement() {
     const container = document.getElementById("team-arrange");
+    if (!container) return;
     container.innerHTML = "";
-    container.style.display = "flex";
-    container.style.gap = "20px";
-    container.style.justifyContent = "center";
-    container.style.flexWrap = "wrap";
 
     const currentParty = party.slice(0, 3);
 
@@ -10847,10 +10930,10 @@ function renderTeamArrangement() {
         div.draggable = true;
         div.dataset.index = i;
         div.innerHTML = `
-            <div style="height:140px; display:flex; align-items:center; justify-content:center;">
-                <img src="${getMonAvatarPath(mon)}" style="max-height:130px; max-width:130px;" alt="" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
+            <div class="team-slot-sprite">
+                <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
             </div>
-            <div style="text-align:center; margin-top:10px;">
+            <div style="text-align:center;">
                 <div class="team-slot-name">${mon.name}</div>
                 <div class="team-slot-lv">Lv.${Math.floor(mon.level)}</div>
             </div>
@@ -10859,14 +10942,13 @@ function renderTeamArrangement() {
             </div>
         `;
 
-        // Drag events
         div.addEventListener("dragstart", (e) => {
             e.dataTransfer.setData("text/plain", i);
-            div.style.opacity = "0.5";
+            div.classList.add("is-dragging");
         });
 
         div.addEventListener("dragend", () => {
-            div.style.opacity = "1";
+            div.classList.remove("is-dragging");
         });
 
         div.addEventListener("dragover", (e) => {
@@ -10879,7 +10961,6 @@ function renderTeamArrangement() {
             const toIndex = parseInt(div.dataset.index);
 
             if (fromIndex !== toIndex) {
-                // Swap in party array
                 [party[fromIndex], party[toIndex]] = [party[toIndex], party[fromIndex]];
                 renderTeamArrangement();
             }
@@ -11854,9 +11935,7 @@ function showBattleResult(win, reward) {
         <div class="adventure-panel">
             <h2 style="color:${win ? '#16a34a' : '#ef4444'};">${win ? 'VICTORY!' : 'DEFEAT'}</h2>
             ${drops}
-            <button onclick="openAdventureStagePrep()" style="margin-top:10px; padding:14px 45px; background:#6B21A8; color:white; border:none; cursor:pointer;">
-                CONTINUE
-            </button>
+            <button type="button" class="adventure-continue-btn" onclick="openAdventureStagePrep()">CONTINUE</button>
         </div>
     `;
     updateUI();
