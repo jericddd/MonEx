@@ -469,8 +469,7 @@ button.green:hover {
 #modal-party-switch .game-modal-body {
     padding: 0;
 }
-#modal-party .game-modal-panel,
-#modal-inventory .game-modal-panel {
+#modal-party .game-modal-panel {
     overflow: visible;
     max-height: none;
 }
@@ -479,6 +478,7 @@ button.green:hover {
     max-height: min(88vh, 920px);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 #modal-box .game-modal-body {
     overflow: hidden;
@@ -647,21 +647,28 @@ button.green:hover {
     min-height: 0;
     box-sizing: border-box;
 }
-#modal-party .hub-content-wrap,
-#modal-inventory .hub-content-wrap {
+#modal-party .hub-content-wrap {
     overflow: visible;
 }
 #modal-box .hub-frame,
 #modal-inventory .hub-frame {
+    position: relative;
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: column;
 }
+#modal-box .hub-close-btn,
+#modal-inventory .hub-close-btn {
+    top: 8px;
+    right: 8px;
+    z-index: 6;
+}
 #modal-box .hub-shell,
 #modal-inventory .hub-shell {
     flex: 1;
     min-height: 0;
+    max-height: none;
 }
 #modal-box .hub-main,
 #modal-inventory .hub-main {
@@ -673,16 +680,32 @@ button.green:hover {
 #modal-inventory .hub-content-wrap {
     flex: 1;
     min-height: 0;
-    display: block;
-    padding: 14px 6px 14px 16px;
-    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 4px 14px 16px;
+    overflow: hidden;
 }
 #modal-box .box-scroll-wrap,
 #modal-inventory .box-scroll-wrap {
-    overflow: visible;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
     width: 100%;
-    padding-right: 28px;
+    padding: 4px 6px 8px 0;
     box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
+    border: 2px solid rgba(196, 106, 40, 0.45);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.12);
+}
+#modal-box .box-scroll-wrap .box-content-grid,
+#modal-inventory .box-scroll-wrap .inventory-grid {
+    padding-right: 10px;
+}
+#modal-inventory .box-scroll-wrap .inventory-grid {
+    border: none;
+    background: transparent;
 }
 .hub-empty-msg,
 .shop-empty-msg {
@@ -6255,8 +6278,8 @@ body.afk-layout .currency-pill .currency-tip {
                 <div class="hub-shell">
                     <nav class="hub-nav" id="box-nav" aria-label="Box filters"></nav>
                     <div class="hub-main">
-                        <div class="hub-content-wrap hub-scrollbar-panel">
-                            <div class="box-scroll-wrap">
+                        <div class="hub-content-wrap">
+                            <div class="box-scroll-wrap hub-scrollbar-panel">
                                 <div id="box-content" class="box-content-grid"></div>
                             </div>
                         </div>
@@ -6280,8 +6303,8 @@ body.afk-layout .currency-pill .currency-tip {
                 <div class="hub-shell">
                     <nav class="hub-nav" id="inventory-nav" aria-label="Inventory categories"></nav>
                     <div class="hub-main">
-                        <div class="hub-content-wrap hub-scrollbar-panel">
-                            <div class="box-scroll-wrap">
+                        <div class="hub-content-wrap">
+                            <div class="box-scroll-wrap hub-scrollbar-panel">
                                 <div id="inventory-grid" class="inventory-grid"></div>
                             </div>
                         </div>
