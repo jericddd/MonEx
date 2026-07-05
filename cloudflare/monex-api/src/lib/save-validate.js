@@ -47,7 +47,7 @@ export const LIMITS = {
   gearBonusMax: 9_999,
   maxChapter: 999,
   stagesPerChapter: 40,
-  gearEnhanceMax: 8,
+  gearEnhanceMax: 21,
   maxGearTier: 5,
   ascensionStarsMax: 2,
   ascensionSkillPendingMax: 3,
@@ -131,7 +131,9 @@ export function sanitizeGear(raw) {
     tierName,
     name,
     bonuses: sanitizeGearBonuses(raw.bonuses),
+    baseBonuses: sanitizeGearBonuses(raw.baseBonuses || raw.bonuses),
     enhanceLevel,
+    gearVersion: raw.gearVersion != null ? clampInt(raw.gearVersion, 1, 99) : undefined,
   };
 }
 

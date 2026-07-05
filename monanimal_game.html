@@ -7525,16 +7525,32 @@ const GEAR_SYNTH_REROLL_LOW_RATE = 0.75;
 const GEAR_SYNTH_UPGRADE_GOLD = [0, 1000, 2500, 6000, 15000];
 const GEAR_SYNTH_REROLL_GOLD = [0, 500, 1200, 3000, 8000, 20000];
 const GEAR_SYNTH_SLOT_LABELS = ["Main Item", "Catalyst", "Catalyst"];
-const GEAR_ENHANCE_MAX = 8;
-const GEAR_ENHANCE_SUCCESS_RATE = [100, 100, 100, 100, 100, 65, 50, 35, 20];
-const GEAR_ENHANCE_FAIL_DROP = [null, null, null, null, null, 4, 4, 4, 4];
-const GEAR_ENHANCE_GOLD = [0, 150, 400, 900, 2200, 5500, 12000];
+const GEAR_SYSTEM_VERSION = 2;
+const GEAR_ENHANCE_MAX = 21;
+const GEAR_ENHANCE_MILESTONE_LEVELS = [11, 21];
+const GEAR_ENHANCE_MILESTONE_11_MULT = 1.25;
+const GEAR_ENHANCE_MILESTONE_21_MULT = 1.25;
+const GEAR_ENHANCE_SUCCESS_RATE = [
+    100, 100, 100, 100, 100,
+    65, 50, 35, 20, 15,
+    40, 38, 35, 32, 28, 25, 22, 20, 18, 16,
+    12,
+];
+const GEAR_ENHANCE_FAIL_DROP = [
+    null, null, null, null, null,
+    4, 4, 4, 4, 4,
+    10, 10,
+    10, 10, 10, 10, 10, 10, 10, 10,
+    20,
+];
+const GEAR_ENHANCE_GOLD = [0, 150, 400, 900, 2200, 5500, 12000, 18000, 26000, 36000, 50000, 70000, 95000, 125000, 160000, 200000, 250000, 310000, 380000, 460000, 550000];
 const GEAR_ENHANCE_STAT_PER_LEVEL = {
     weapon: { atk: 3, crit: 2 },
     armor: { hp: 28, block: 2 },
     helmet: { hp: 18, dodge: 2 },
     boots: { spd: 2, hit: 2 },
 };
+const HERO_ASCENSION_STAT_BONUS_PCT = 0.05;
 const RARITY_ORDER = ["Common", "Uncommon", "Rare", "Legendary", "Mythic"];
 const ASCEND_SHARD_COST = { Common: 5, Uncommon: 10, Rare: 20, Legendary: 40 };
 let gearInventory = [];
@@ -8766,6 +8782,7 @@ function formatUltimateSkillDetail(monOrFighter, skill) {
         ? getEffectiveAtkPower(monOrFighter)
         : getEffectiveStats(monOrFighter).atk;
     const lvl = Math.max(1, Math.floor(monOrFighter.level || 1));
+    const ascMult = getAscensionStatMult(monOrFighter);
     const parts = [];
     if (skill.multiHit?.length) {
         let total = skill.multiHit.reduce((sum, p) => sum + p, 0);
@@ -8774,7 +8791,7 @@ function formatUltimateSkillDetail(monOrFighter, skill) {
     } else if (skill.power > 0) {
         parts.push("DMG: " + Math.floor(atk * skill.power) + " (ATK " + atk + " × " + skill.power + ")");
     }
-    if (skill.ultCritChanceBonus) parts.push("+" + scaleLevelBonus(skill.ultCritChanceBonus, lvl) + "% crit chance on ult");
+    if (skill.ultCritChanceBonus) parts.push("+" + Math.round(scaleLevelBonus(skill.ultCritChanceBonus, lvl) * ascMult) + "% crit chance on ult");
     if (skill.ultCritDamageMult) parts.push("+" + Math.round((skill.ultCritDamageMult - 1) * 100) + "% crit damage on ult");
     if (skill.executeThreshold) parts.push("+" + Math.round((skill.executeBonus || 0) * 100) + "% dmg if foe below " + Math.round(skill.executeThreshold * 100) + "% HP");
     if (skill.cannotBeBlocked) parts.push("Cannot be blocked");
@@ -8785,12 +8802,12 @@ function formatUltimateSkillDetail(monOrFighter, skill) {
     if (skill.bonusIfBurning) parts.push("+" + Math.round(skill.bonusIfBurning * 100) + "% if target is Burning");
     if (skill.lifesteal) parts.push("Heal " + Math.round(skill.lifesteal * 100) + "% of damage dealt");
     if (skill.shieldPct) parts.push("Shield " + Math.round(skill.shieldPct * 100) + "% max HP for " + (skill.shieldTurns || 2) + " turns");
-    if (skill.selfBuff?.statMods?.block) parts.push("+" + scaleLevelBonus(skill.selfBuff.statMods.block, lvl) + " BLOCK for " + skill.selfBuff.turns + " turn(s)");
-    if (skill.selfBuff?.statMods?.spd) parts.push("+" + scaleLevelBonus(skill.selfBuff.statMods.spd, lvl) + " SPD for " + skill.selfBuff.turns + " turn(s)");
-    if (skill.selfBuff?.statMods?.dodge) parts.push("+" + scaleLevelBonus(skill.selfBuff.statMods.dodge, lvl) + " DODGE for " + skill.selfBuff.turns + " turn(s)");
+    if (skill.selfBuff?.statMods?.block) parts.push("+" + Math.round(scaleLevelBonus(skill.selfBuff.statMods.block, lvl) * ascMult) + " BLOCK for " + skill.selfBuff.turns + " turn(s)");
+    if (skill.selfBuff?.statMods?.spd) parts.push("+" + Math.round(scaleLevelBonus(skill.selfBuff.statMods.spd, lvl) * ascMult) + " SPD for " + skill.selfBuff.turns + " turn(s)");
+    if (skill.selfBuff?.statMods?.dodge) parts.push("+" + Math.round(scaleLevelBonus(skill.selfBuff.statMods.dodge, lvl) * ascMult) + " DODGE for " + skill.selfBuff.turns + " turn(s)");
     if (skill.enemyDebuff?.statMods?.hit) {
         const hitMod = skill.enemyDebuff.statMods.hit;
-        parts.push((hitMod < 0 ? "" : "+") + scaleLevelBonus(hitMod, lvl) + " enemy HIT for " + skill.enemyDebuff.turns + " turn(s)");
+        parts.push((hitMod < 0 ? "" : "+") + Math.round(scaleLevelBonus(hitMod, lvl) * ascMult) + " enemy HIT for " + skill.enemyDebuff.turns + " turn(s)");
     }
     if (skill.stunPerHit) parts.push(Math.round(skill.stunPerHit * 100) + "% Stun chance per hit");
     if (skill.stunIfBelowHp) parts.push("Stuns if foe survives below " + Math.round(skill.stunIfBelowHp * 100) + "% HP");
@@ -9038,7 +9055,7 @@ function renderGearRow(location, index, mon) {
         const filled = g ? " filled" : "";
         const tierDot = g ? `<span class="gear-tier-dot" style="background:${GEAR_TIERS[g.tier].color}"></span>` : "";
         const tipName = g ? formatGearDisplayName(g) : "Equip " + GEAR_SLOT_LABELS[slot];
-        const tipDesc = g ? formatGearBonuses(g.bonuses) : "";
+        const tipDesc = g ? formatGearBonusesForMon(g, mon) : "";
         return `<button class="gear-slot has-hover-tip${filled}" onclick="openEquipModal('${location}',${index},'${slot}')">${GEAR_SLOT_ICONS[slot]}${tierDot}${renderHoverTip(tipName, tipDesc)}</button>`;
     }).join("")}</div>`;
 }
@@ -9395,13 +9412,88 @@ function getBaseAtk(level, rarity) {
     else if (rarity === "Uncommon") atk += 8;
     return atk;
 }
+function getAscensionStatMult(mon) {
+    const stars = Math.min(HERO_ASCENSION_MAX_STARS, mon?.ascensionStars || 0);
+    return 1 + stars * HERO_ASCENSION_STAT_BONUS_PCT;
+}
+
+function computeEnhanceAdds(gear) {
+    const per = GEAR_ENHANCE_STAT_PER_LEVEL[gear.slot] || {};
+    const level = gear.enhanceLevel || 0;
+    const adds = { atk: 0, hp: 0, spd: 0, crit: 0, dodge: 0, block: 0, hit: 0, pierce: 0 };
+    for (let i = 1; i <= level; i++) {
+        Object.keys(per).forEach((k) => { adds[k] = (adds[k] || 0) + per[k]; });
+    }
+    let mult = 1 + ((gear.tier || 1) - 1) * 0.08;
+    if (level >= 11) mult *= GEAR_ENHANCE_MILESTONE_11_MULT;
+    if (level >= 21) mult *= GEAR_ENHANCE_MILESTONE_21_MULT;
+    Object.keys(adds).forEach((k) => { adds[k] = Math.round((adds[k] || 0) * mult); });
+    return adds;
+}
+
+function computeLegacyEnhanceAdds(slot, level) {
+    const per = GEAR_ENHANCE_STAT_PER_LEVEL[slot] || {};
+    const adds = {};
+    for (let i = 1; i <= level; i++) {
+        Object.keys(per).forEach((k) => { adds[k] = (adds[k] || 0) + per[k]; });
+    }
+    return adds;
+}
+
+function migrateGearBonuses(gear) {
+    if (!gear) return;
+    normalizeGear(gear);
+    if (gear.gearVersion === GEAR_SYSTEM_VERSION) return;
+    const level = gear.enhanceLevel || 0;
+    if (!gear.baseBonuses) {
+        const legacyAdds = computeLegacyEnhanceAdds(gear.slot, level);
+        gear.baseBonuses = {};
+        const keys = new Set([...Object.keys(gear.bonuses || {}), ...Object.keys(legacyAdds)]);
+        keys.forEach((k) => {
+            gear.baseBonuses[k] = Math.max(0, (gear.bonuses?.[k] || 0) - (legacyAdds[k] || 0));
+        });
+    }
+    rebuildGearBonuses(gear);
+    gear.gearVersion = GEAR_SYSTEM_VERSION;
+}
+
+function rebuildGearBonuses(gear) {
+    if (!gear) return;
+    const base = gear.baseBonuses || gear.bonuses || {};
+    const enhanceAdds = computeEnhanceAdds(gear);
+    gear.bonuses = {};
+    const keys = new Set([...Object.keys(base), ...Object.keys(enhanceAdds)]);
+    keys.forEach((k) => {
+        gear.bonuses[k] = (base[k] || 0) + (enhanceAdds[k] || 0);
+    });
+}
+
+function migrateAllGear() {
+    gearInventory.forEach(migrateGearBonuses);
+    gearSynthSlots.forEach((g, i) => { if (g) migrateGearBonuses(g); });
+    const migrateMonGear = (mon) => {
+        if (!mon?.equipment) return;
+        GEAR_SLOTS.forEach((slot) => {
+            if (mon.equipment[slot]) migrateGearBonuses(mon.equipment[slot]);
+        });
+    };
+    party.forEach(migrateMonGear);
+    box.forEach(migrateMonGear);
+}
+
 function getGearBonuses(mon) {
     const b = { atk: 0, hp: 0, spd: 0, crit: 0, dodge: 0, block: 0, hit: 0, pierce: 0 };
-    if (!mon.equipment) return b;
+    if (!mon?.equipment) return b;
+    const lvl = Math.floor(mon.level || 1);
+    const ascMult = getAscensionStatMult(mon);
     GEAR_SLOTS.forEach(slot => {
         const g = mon.equipment[slot];
         if (!g || !g.bonuses) return;
-        Object.keys(g.bonuses).forEach(k => { b[k] = (b[k] || 0) + g.bonuses[k]; });
+        migrateGearBonuses(g);
+        Object.keys(g.bonuses).forEach(k => {
+            const scaled = Math.round(scaleStatWithLevel(g.bonuses[k], lvl) * ascMult);
+            b[k] = (b[k] || 0) + scaled;
+        });
     });
     return b;
 }
@@ -9415,14 +9507,15 @@ function scaleLevelBonus(baseValue, level) {
     return scaleStatWithLevel(baseValue, level);
 }
 
-function scaleUltBuffDef(buffDef, level) {
+function scaleUltBuffDef(buffDef, level, ascensionStars = 0) {
     if (!buffDef) return buffDef;
+    const ascMult = 1 + Math.min(HERO_ASCENSION_MAX_STARS, ascensionStars || 0) * HERO_ASCENSION_STAT_BONUS_PCT;
     const out = { ...buffDef, statMods: { ...(buffDef.statMods || {}) } };
     Object.keys(out.statMods).forEach((key) => {
         const val = out.statMods[key];
         if (typeof val === "number") {
             const sign = val < 0 ? -1 : 1;
-            out.statMods[key] = sign * scaleLevelBonus(Math.abs(val), level);
+            out.statMods[key] = Math.round(scaleLevelBonus(Math.abs(val), level) * ascMult) * sign;
         }
     });
     return out;
@@ -9432,15 +9525,17 @@ function getEffectiveStats(mon) {
     ensureMonReady(mon);
     const gb = getGearBonuses(mon);
     const lvl = Math.floor(mon.level || 1);
+    const ascMult = getAscensionStatMult(mon);
     const s = mon.stats || {};
+    const scaleBase = (val) => Math.round(scaleStatWithLevel(val, lvl) * ascMult);
     return {
         atk: getBaseAtk(lvl, mon.rarity) + (gb.atk || 0),
-        spd: scaleStatWithLevel(s.spd, lvl) + (gb.spd || 0),
-        crit: scaleStatWithLevel(s.crit, lvl) + (gb.crit || 0),
-        dodge: scaleStatWithLevel(s.dodge, lvl) + (gb.dodge || 0),
-        block: scaleStatWithLevel(s.block, lvl) + (gb.block || 0),
-        hit: scaleStatWithLevel(s.hit, lvl) + (gb.hit || 0),
-        pierce: scaleStatWithLevel(s.pierce, lvl) + (gb.pierce || 0),
+        spd: scaleBase(s.spd) + (gb.spd || 0),
+        crit: scaleBase(s.crit) + (gb.crit || 0),
+        dodge: scaleBase(s.dodge) + (gb.dodge || 0),
+        block: scaleBase(s.block) + (gb.block || 0),
+        hit: scaleBase(s.hit) + (gb.hit || 0),
+        pierce: scaleBase(s.pierce) + (gb.pierce || 0),
         specialty: s.specialty
     };
 }
@@ -9453,17 +9548,30 @@ function refreshMonDerivedStats(mon) {
         mon.current_hp = Math.min(mon.max_hp, Math.ceil(mon.current_hp * (mon.max_hp / oldMax)));
     }
 }
-function formatGearBonuses(b) {
-    const parts = [];
-    if (b.atk) parts.push("ATK+" + b.atk);
-    if (b.hp) parts.push("HP+" + b.hp);
-    if (b.spd) parts.push("SPD+" + b.spd);
-    if (b.crit) parts.push("CRIT+" + b.crit);
-    if (b.dodge) parts.push("DODGE+" + b.dodge);
-    if (b.block) parts.push("BLOCK+" + b.block);
-    if (b.hit) parts.push("HIT+" + b.hit);
-    if (b.pierce) parts.push("PIERCE+" + b.pierce);
+function formatGearBonuses(b, options = {}) {
+    const lvl = options.monLevel ? Math.floor(options.monLevel) : 0;
+    const ascMult = options.ascensionStars != null
+        ? 1 + Math.min(HERO_ASCENSION_MAX_STARS, options.ascensionStars) * HERO_ASCENSION_STAT_BONUS_PCT
+        : 1;
+    const fmt = (k, label) => {
+        if (!b[k]) return null;
+        let val = b[k];
+        if (lvl > 0) val = Math.round(scaleStatWithLevel(val, lvl) * ascMult);
+        return label + "+" + val;
+    };
+    const parts = [
+        fmt("atk", "ATK"), fmt("hp", "HP"), fmt("spd", "SPD"), fmt("crit", "CRIT"),
+        fmt("dodge", "DODGE"), fmt("block", "BLOCK"), fmt("hit", "HIT"), fmt("pierce", "PIERCE"),
+    ].filter(Boolean);
     return parts.join(", ") || "No bonus";
+}
+
+function formatGearBonusesForMon(gear, mon) {
+    migrateGearBonuses(gear);
+    return formatGearBonuses(gear.bonuses, {
+        monLevel: mon?.level,
+        ascensionStars: mon?.ascensionStars,
+    });
 }
 function normalizeGear(gear) {
     if (!gear) return gear;
@@ -9495,22 +9603,14 @@ function getGearEnhanceFailDropLevel(gear) {
     return GEAR_ENHANCE_FAIL_DROP[level] ?? null;
 }
 function applyGearEnhanceLevelUp(gear) {
-    normalizeGear(gear);
-    const adds = GEAR_ENHANCE_STAT_PER_LEVEL[gear.slot] || {};
-    Object.keys(adds).forEach(k => {
-        gear.bonuses[k] = (gear.bonuses[k] || 0) + adds[k];
-    });
-    gear.enhanceLevel += 1;
+    migrateGearBonuses(gear);
+    gear.enhanceLevel = (gear.enhanceLevel || 0) + 1;
+    rebuildGearBonuses(gear);
 }
 function stripGearEnhanceLevels(gear, targetLevel) {
-    normalizeGear(gear);
-    while (gear.enhanceLevel > targetLevel) {
-        const adds = GEAR_ENHANCE_STAT_PER_LEVEL[gear.slot] || {};
-        Object.keys(adds).forEach(k => {
-            gear.bonuses[k] = Math.max(0, (gear.bonuses[k] || 0) - adds[k]);
-        });
-        gear.enhanceLevel -= 1;
-    }
+    migrateGearBonuses(gear);
+    gear.enhanceLevel = Math.max(0, targetLevel);
+    rebuildGearBonuses(gear);
 }
 function generateGear(tier, slot) {
     const t = GEAR_TIERS[tier];
@@ -9526,8 +9626,10 @@ function generateGear(tier, slot) {
         tier,
         tierName: t.name,
         name: t.name + " " + GEAR_SLOT_LABELS[slot],
-        bonuses,
+        baseBonuses: { ...bonuses },
+        bonuses: { ...bonuses },
         enhanceLevel: 0,
+        gearVersion: GEAR_SYSTEM_VERSION,
     };
 }
 function rollGearDrop(chapter, isBoss) {
@@ -9586,7 +9688,7 @@ function openEquipModal(location, monIndex, slot) {
         <div class="equip-modal">
             <h3>${GEAR_SLOT_LABELS[slot]} — ${mon.name}</h3>
             ${equipped ? `<div class="equip-option" onclick="unequipGear('${location}',${monIndex},'${slot}'); this.closest('.equip-modal-bg').remove();">
-                <span><b style="color:${GEAR_TIERS[equipped.tier].color}">${formatGearDisplayName(equipped)}</b><br><small>${formatGearBonuses(equipped.bonuses)}</small></span>
+                <span><b style="color:${GEAR_TIERS[equipped.tier].color}">${formatGearDisplayName(equipped)}</b><br><small>${formatGearBonusesForMon(equipped, mon)}</small></span>
                 <span class="equip-action" style="color:#ef4444;">UNEQUIP</span>
             </div>` : `<p style="font-size:12px;color:#666;text-align:center;">Nothing equipped</p>`}
             <hr style="border:none;border-top:1px solid #ddd;margin:12px 0;">
@@ -9847,7 +9949,7 @@ function renderGearEnhancePanel(container) {
         : `<span style="font-size:22px;opacity:0.35;">+</span>`;
 
     const infoHtml = !gear
-        ? `<h4>Select gear to enhance</h4><p>Pick an item from your inventory below. Pockie-style enhancement adds stats per level (max +${GEAR_ENHANCE_MAX}). Unequipped gear only.</p>`
+        ? `<h4>Select gear to enhance</h4><p>Pick an item from your inventory. Pockie-style enhancement: +1–+10 safe growth, <b>milestone bonuses at +11 and +21</b> (max +${GEAR_ENHANCE_MAX}). Stats scale with wearer level (+${Math.round(STAT_LEVEL_GROWTH_PCT * 1000) / 10}%/level).</p>`
         : `<h4>${formatGearDisplayName(gear)}</h4>
            <p><b>Current stats:</b> ${formatGearBonuses(gear.bonuses)}</p>
            <p><b>Enhance level:</b> +${level} / +${GEAR_ENHANCE_MAX}</p>
@@ -10072,7 +10174,7 @@ function executeHeroAscension() {
         if (!main.ascensionSkillPending?.length) {
             main.ascensionSkillPending = rollHeroAscensionSkillOptions(main);
         }
-        alert(`Ascension success! ${main.name} earned ★${main.ascensionStars}.\nTap 🔓 UNLOCK on their card to choose a skill (${HERO_SKILL_UNLOCK_GOLD} Gold).`);
+        alert(`Ascension success! ${main.name} earned ★${main.ascensionStars}.\n+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% stats on base stats & gear.\nTap 🔓 UNLOCK on their card to choose a skill (${HERO_SKILL_UNLOCK_GOLD} Gold).`);
     } else {
         alert("Ascension failed.\nDuplicates were consumed.");
     }
@@ -10192,7 +10294,7 @@ function renderHeroAscensionPanel(container) {
 
     el.innerHTML = `
         <div class="hero-ascension-panel">
-            <p class="gear-synth-note">Hero Ascension: <b>Legendary+</b> only. <b>Star 1</b> = 1 main + 2 dupes · <b>Star 2</b> = 1 main + 4 dupes · <b>75%</b> success. Tap 🔓 on the hero card to unlock skills.</p>
+            <p class="gear-synth-note">Hero Ascension: <b>Legendary+</b> only. <b>★1</b> = main + 2 dupes · <b>★2</b> = main + 4 dupes · <b>75%</b> success. Each ★ grants <b>+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% base & gear stats</b> (stacks with level growth). Tap 🔓 to unlock skills.</p>
             <div class="gear-synth-recipe-bar${recipeCls}">${describeHeroAscensionRecipe(recipe)}</div>
             <div class="hero-ascension-workbench">
                 <button type="button" class="hero-ascension-main-slot hero-ascension-main-slot-btn${main ? " filled" : ""}${showMainPicker ? " is-open" : ""}" onclick="toggleHeroAscensionMainPicker()" title="${main ? "Change main hero" : "Choose main hero"}">
@@ -10282,7 +10384,7 @@ function executeGearEnhance() {
     const gear = gearInventory[idx];
     normalizeGear(gear);
     if (gear.enhanceLevel >= GEAR_ENHANCE_MAX) {
-        alert("This gear is already at max enhancement (+8).");
+        alert("This gear is already at max enhancement (+" + GEAR_ENHANCE_MAX + ").");
         renderArmoryPane();
         return;
     }
@@ -10527,7 +10629,10 @@ function getUltimateHitPowers(skill, atk, def) {
 
 function getUltimateCritChance(atk, skill) {
     let chance = getCritChance(atk);
-    if (skill.ultCritChanceBonus) chance += scaleLevelBonus(skill.ultCritChanceBonus, atk.level || 1);
+    if (skill.ultCritChanceBonus) {
+        chance += scaleLevelBonus(skill.ultCritChanceBonus, atk.level || 1)
+            * getAscensionStatMult(atk);
+    }
     return chance;
 }
 
@@ -10567,7 +10672,7 @@ function applyUltimateExtras(atk, def, skill, totalDealt, atkSide) {
             if (atkSide) showDamage(atkSide, heal, "heal");
         }
     }
-    if (skill.selfBuff) applySelfBuff(atk, scaleUltBuffDef(skill.selfBuff, atk.level));
+    if (skill.selfBuff) applySelfBuff(atk, scaleUltBuffDef(skill.selfBuff, atk.level, atk.ascensionStars));
     if (skill.shieldPct) {
         addStatus(atk, {
             id: skill.shieldId || "ultshield",
@@ -10576,7 +10681,7 @@ function applyUltimateExtras(atk, def, skill, totalDealt, atkSide) {
         });
     }
     if (skill.enemyDebuff && def.hp >= 0) {
-        const debuff = scaleUltBuffDef(skill.enemyDebuff, atk.level);
+        const debuff = scaleUltBuffDef(skill.enemyDebuff, atk.level, atk.ascensionStars);
         addStatus(def, {
             id: debuff.id || "ultdebuff",
             turns: debuff.turns || 2,
@@ -10826,6 +10931,7 @@ function applyLoadedSave(data) {
         } catch (e) { console.error("Skipped invalid mon on load:", e); }
     });
     purgeRemovedMonanimalsFromSave();
+    migrateAllGear();
     sortBox();
 }
 
@@ -12511,6 +12617,7 @@ function makeFighter(mon, isPlayer, options = {}) {
     return {
         ref: isPlayer ? mon : null,
         name: mon.name, rarity: mon.rarity, level: Math.floor(mon.level),
+        ascensionStars: mon.ascensionStars || 0,
         trainerName,
         maxHp: mon.max_hp,
         hp: isPlayer ? Math.max(0, mon.current_hp) : mon.max_hp,
