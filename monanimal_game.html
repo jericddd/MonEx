@@ -2989,9 +2989,25 @@ body.afk-layout .header {
 body.afk-layout .game-container > .header {
     border-bottom: none;
 }
+body.afk-layout .game-container:not(.main-scene-active) > .header::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(12, 6, 22, 0.78) 0%, rgba(12, 6, 22, 0.48) 70%, rgba(12, 6, 22, 0) 100%);
+    pointer-events: none;
+    z-index: 0;
+}
+body.afk-layout .game-container:not(.main-scene-active) > .header .header-inner {
+    position: relative;
+    z-index: 1;
+}
 body.afk-layout .game-container > .header .header-trainer #trainer-name {
     color: #fff;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 0 10px rgba(0, 0, 0, 0.45);
+}
+body.afk-layout.test-user-session .game-container > .header .header-trainer #trainer-name {
+    color: #ef4444;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 12px rgba(239, 68, 68, 0.55);
 }
 body.afk-layout .game-container > .header .trainer-meta {
     color: rgba(255, 255, 255, 0.92);
@@ -9649,6 +9665,7 @@ async function loadData() {
 // ==================== UI RENDER ====================
 function updateUI() {
     try {
+        document.body.classList.toggle("test-user-session", isStagingHost() && isTestUser());
         document.getElementById("trainer-name").innerText = currentUser ? "@" + currentUser.replace(/^@/, "") : "Trainer";
         document.getElementById("monball-count").innerText = monballs;
         document.getElementById("gold-count").innerText = money;
@@ -10399,6 +10416,27 @@ function purgeRemovedMonanimalsFromSave() {
     if (changed) saveData();
 }
 
+function isStagingHost() {
+    const host = location.hostname.toLowerCase();
+    return host.endsWith(".pages.dev") || host === "localhost" || host === "127.0.0.1";
+}
+
+function isTestUser() {
+    if (!currentUser) return false;
+    return String(currentUser).replace(/^@/, "").toLowerCase() === "test";
+}
+
+function applyTestUserStagingBoost() {
+    if (!isStagingHost() || !isTestUser()) return false;
+    const boost = 999999;
+    monballs = boost;
+    money = boost;
+    essence = boost;
+    monShards = boost;
+    saveData();
+    return true;
+}
+
 function grantTestBattleParty() {
     if (!currentUser) return;
     const flagKey = "monex_test_cc_party_v3_" + currentUser;
@@ -10541,6 +10579,7 @@ async function logout() {
 }
 
 async function runPostLoginBootstrap() {
+    try { applyTestUserStagingBoost(); } catch (e) { console.error("applyTestUserStagingBoost failed:", e); }
     try { grantTestBattleParty(); } catch (e) { console.error("grantTestBattleParty failed:", e); }
     try { grantTestChogToBox(); } catch (e) { console.error("grantTestChogToBox failed:", e); }
     try { ensureLegendaryBoxRoster(); } catch (e) { console.error("ensureLegendaryBoxRoster failed:", e); }
@@ -10551,6 +10590,7 @@ async function runPostLoginBootstrap() {
         alert("Your adventure battle was abandoned. It counts as a defeat — your team was restored to full HP.");
     }
     try { await syncXWildMons(true); } catch (_) {}
+    updateUI();
 }
 
 async function checkLogin() {
