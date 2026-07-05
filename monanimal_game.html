@@ -1713,72 +1713,132 @@ button.green:hover {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
     border: 2px solid #111;
-    border-radius: 4px;
-    background: rgba(0, 0, 0, 0.06);
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.28);
     flex-shrink: 0;
     box-sizing: border-box;
 }
 .equip-gear-icon-wrap .gear-inv-icon {
-    width: 88%;
-    height: 88%;
+    width: 22px;
+    height: 22px;
+    max-width: 22px;
+    max-height: 22px;
+    object-fit: contain;
 }
 .gear-inv-slot:hover { transform: scale(1.05); }
-.equip-modal-bg {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.65);
+.equip-modal-overlay {
+    z-index: 700;
+}
+.equip-modal-frame {
+    width: min(92vw, 400px);
+    max-height: min(84vh, 640px);
     display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding: var(--modal-drop) 20px 20px;
-    box-sizing: border-box;
-    z-index: 300;
+    flex-direction: column;
 }
-.equip-modal {
-    background: white;
-    border: 4px solid #6B21A8;
-    box-shadow: 4px 4px 0 #6B21A8;
-    padding: 20px;
-    max-width: 420px;
-    width: 92%;
-    max-height: 80vh;
-    overflow-y: auto;
-    font-family: 'Lato', sans-serif;
+.equip-modal-frame > .hub-close-btn {
+    top: 10px;
+    right: 10px;
 }
-.equip-modal h3 {
-    margin: 0 0 12px;
-    color: #6B21A8;
+.equip-modal-inner {
+    padding: 44px 16px 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+}
+.equip-modal-note {
+    font-size: 11px;
+    color: rgba(255, 232, 200, 0.72);
     text-align: center;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 9px;
-    line-height: 1.6;
+    margin: 0 0 10px;
+    line-height: 1.4;
 }
-.equip-modal p,
-.equip-modal small {
-    font-family: 'Lato', sans-serif;
-}
-.equip-modal .equip-action {
+.equip-modal-section-label {
     font-family: 'Press Start 2P', monospace;
     font-size: 7px;
+    color: #fde68a;
+    margin: 0 0 6px;
+    letter-spacing: 0.02em;
 }
-.equip-modal #equip-close {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 8px;
+.equip-modal-divider {
+    border: none;
+    border-top: 2px solid rgba(196, 106, 40, 0.45);
+    margin: 12px 0;
+}
+.equip-modal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: min(42vh, 300px);
+    overflow-y: auto;
+    padding-right: 2px;
+}
+.equip-modal-empty {
+    font-size: 12px;
+    color: rgba(255, 232, 200, 0.65);
+    text-align: center;
+    margin: 0;
+    line-height: 1.45;
 }
 .equip-option {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px;
-    margin: 6px 0;
-    border: 2px solid #ddd;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 2px solid rgba(212, 160, 74, 0.45);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.22);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11px;
+    font-family: 'Lato', sans-serif;
+    color: #ffe8c8;
+    text-align: left;
+    box-sizing: border-box;
+    transition: border-color 0.12s, background 0.12s;
+    appearance: none;
+    -webkit-appearance: none;
 }
-.equip-option:hover { border-color: #6B21A8; background: #faf5ff; }
+.equip-option:hover {
+    border-color: #f4a442;
+    background: rgba(0, 0, 0, 0.34);
+}
+.equip-option-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.equip-option-text {
+    min-width: 0;
+}
+.equip-option-text b {
+    display: block;
+    font-size: 12px;
+    color: #fde68a;
+    line-height: 1.3;
+    word-break: break-word;
+}
+.equip-option-text small {
+    display: block;
+    margin-top: 2px;
+    font-size: 10px;
+    color: rgba(255, 232, 200, 0.72);
+    line-height: 1.35;
+}
+.equip-action {
+    flex-shrink: 0;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    line-height: 1.4;
+}
+.equip-action-unequip { color: #fca5a5; }
+.equip-action-equip { color: #86efac; }
 
 /* ===== Pockie-style gear synthesis ===== */
 .gear-synth-header-actions {
@@ -10040,6 +10100,19 @@ function unequipGear(location, monIndex, slot) {
     updateUI();
     if (location === "box") renderBox();
 }
+function renderEquipOptionHtml(gear, mon, action, actionClass, options = {}) {
+    const bonuses = mon ? formatGearBonusesForMon(gear, mon) : formatGearBonuses(gear.bonuses);
+    const dataGid = options.dataGid ? ` data-gid="${options.dataGid}"` : "";
+    const onclick = options.onclick ? ` onclick="${options.onclick}"` : "";
+    return `<button type="button" class="equip-option"${dataGid}${onclick}>
+        <span class="equip-option-main">
+            <span class="equip-gear-icon-wrap" style="border-color:${getGearTierColor(gear)}">${renderGearIconHtml(gear, "gear-inv-icon")}</span>
+            <span class="equip-option-text"><b>${formatGearDisplayName(gear)}</b><small>${bonuses}</small></span>
+        </span>
+        <span class="equip-action ${actionClass}">${action}</span>
+    </button>`;
+}
+
 function openEquipModal(location, monIndex, slot) {
     if (!isEquipmentUnlocked()) {
         alert("Equipment unlocks at Chapter 2 (Stage 9+). Keep progressing!");
@@ -10054,36 +10127,45 @@ function openEquipModal(location, monIndex, slot) {
         return g.house === monHouse;
     });
     const houseNote = monHouse
-        ? `<p style="font-size:10px;color:#666;margin:0 0 8px;text-align:center;">Showing ${getHouseMeta(monHouse)?.label || "house"} gear only.</p>`
+        ? `<p class="equip-modal-note">Showing ${getHouseMeta(monHouse)?.label || "house"} gear only.</p>`
         : "";
-    const bg = document.createElement("div");
-    bg.className = "equip-modal-bg";
-    bg.innerHTML = `
-        <div class="equip-modal">
-            <h3>${GEAR_SLOT_LABELS[slot]} — ${mon.name}</h3>
-            ${houseNote}
-            ${equipped ? `<div class="equip-option" onclick="unequipGear('${location}',${monIndex},'${slot}'); this.closest('.equip-modal-bg').remove();">
-                <span style="display:flex;align-items:center;gap:8px;"><span class="equip-gear-icon-wrap" style="border-color:${getGearTierColor(equipped)}">${renderGearIconHtml(equipped, "gear-inv-icon")}</span><span><b>${formatGearDisplayName(equipped)}</b><br><small>${formatGearBonusesForMon(equipped, mon)}</small></span></span>
-                <span class="equip-action" style="color:#ef4444;">UNEQUIP</span>
-            </div>` : `<p style="font-size:12px;color:#666;text-align:center;">Nothing equipped</p>`}
-            <hr style="border:none;border-top:1px solid #ddd;margin:12px 0;">
-            <p style="font-size:11px;color:#666;margin:0 0 8px;">Inventory (${options.length})</p>
-            ${options.length ? options.map(g => `
-                <div class="equip-option" data-gid="${g.id}">
-                    <span style="display:flex;align-items:center;gap:8px;"><span class="equip-gear-icon-wrap" style="border-color:${getGearTierColor(g)}">${renderGearIconHtml(g, "gear-inv-icon")}</span><span><b>${formatGearDisplayName(g)}</b><br><small>${formatGearBonuses(g.bonuses)}</small></span></span>
-                    <span class="equip-action" style="color:#6B21A8;">EQUIP</span>
-                </div>`).join("") : `<p style="font-size:12px;color:#888;text-align:center;">No ${GEAR_SLOT_LABELS[slot]} for this house in inventory.<br>Win adventure battles to find gear!</p>`}
-            <button style="margin-top:14px;width:100%;padding:10px;border:2px solid #6B21A8;background:white;cursor:pointer;" id="equip-close">CLOSE</button>
+    const equippedHtml = equipped
+        ? renderEquipOptionHtml(equipped, mon, "UNEQUIP", "equip-action-unequip", {
+            onclick: `unequipGear('${location}',${monIndex},'${slot}'); this.closest('.equip-modal-overlay').remove();`,
+        })
+        : `<p class="equip-modal-empty">Nothing equipped</p>`;
+    const inventoryHtml = options.length
+        ? options.map(g => renderEquipOptionHtml(g, null, "EQUIP", "equip-action-equip", { dataGid: g.id })).join("")
+        : `<p class="equip-modal-empty">No ${GEAR_SLOT_LABELS[slot]} for this house in inventory.<br>Win adventure battles to find gear!</p>`;
+
+    const overlay = document.createElement("div");
+    overlay.className = "popup-overlay hub-popup-overlay equip-modal-overlay";
+    overlay.innerHTML = `
+        <div class="hub-popup-frame hub-frame equip-modal-frame" onclick="event.stopPropagation()">
+            <button type="button" class="hub-close-btn equip-modal-close" aria-label="Close">&times;</button>
+            <div class="hub-popup-inner equip-modal-inner">
+                <h3 class="hub-popup-title">${GEAR_SLOT_LABELS[slot].toUpperCase()} — ${mon.name}</h3>
+                ${houseNote}
+                <div class="equip-modal-section">
+                    <div class="equip-modal-section-label">EQUIPPED</div>
+                    ${equippedHtml}
+                </div>
+                <hr class="equip-modal-divider">
+                <div class="equip-modal-section">
+                    <div class="equip-modal-section-label">INVENTORY (${options.length})</div>
+                    <div class="equip-modal-list hub-scrollbar-panel">${inventoryHtml}</div>
+                </div>
+            </div>
         </div>`;
-    document.body.appendChild(bg);
-    bg.querySelector("#equip-close").onclick = () => bg.remove();
-    bg.querySelectorAll(".equip-option[data-gid]").forEach(el => {
+    overlay.querySelector(".equip-modal-close").onclick = () => overlay.remove();
+    overlay.querySelectorAll(".equip-option[data-gid]").forEach(el => {
         el.onclick = () => {
             equipGearOnMon(location, monIndex, el.dataset.gid);
-            bg.remove();
+            overlay.remove();
         };
     });
-    bg.onclick = (e) => { if (e.target === bg) bg.remove(); };
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
 }
 
 function getGearSynthCatalystTier(mainTier) {
