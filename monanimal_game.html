@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <title>MonEx</title>
@@ -1196,6 +1197,43 @@ button.green:hover {
     color: #fde68a;
     text-shadow: 1px 1px 0 #000;
 }
+@media (max-width: 1024px) and (min-width: 721px) {
+    :root {
+        --rail-icon-max: 58px;
+        --rail-btn-size: 68px;
+        --rail-offset-top: 48px;
+        --game-side-pad: 20px;
+    }
+    .scene-battle-dock {
+        padding: 0 76px 10px;
+    }
+    .box-content-grid,
+    .hub-main .box-content-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .hub-main .inventory-grid,
+    .inventory-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .hub-main .party-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .box-content-grid,
+    .hub-main .box-content-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .hub-main .inventory-grid,
+    .inventory-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+    #modal-party-switch .game-modal-panel {
+        --ps-cols: 7;
+    }
+}
+
 @media (max-width: 720px) {
     .hub-shell,
     .shop-shell,
@@ -1219,6 +1257,51 @@ button.green:hover {
     }
     .shop-item-grid {
         grid-template-columns: repeat(4, 1fr);
+    }
+    .hub-main .party-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .box-content-grid,
+    .hub-main .box-content-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .hub-main .inventory-grid,
+    .inventory-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    #modal-party-switch .game-modal-panel {
+        --ps-cols: 5;
+        --ps-cell: 54px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hub-main .party-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .box-content-grid,
+    .hub-main .box-content-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .hub-main .inventory-grid,
+    .inventory-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .shop-item-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    #modal-party-switch .game-modal-panel {
+        --ps-cols: 4;
+        --ps-cell: 50px;
+    }
+    .team-arrange-row {
+        gap: 10px;
+    }
+    .header-trainer #trainer-name {
+        font-size: 13px;
+    }
+    .trainer-meta {
+        font-size: 10px;
     }
 }
 .trainer-meta {
@@ -2871,8 +2954,11 @@ body.afk-layout .currency-tip-float {
 body.afk-layout {
     background: #fff;
     height: 100vh;
+    height: 100dvh;
     min-height: 100vh;
+    min-height: 100dvh;
     max-height: 100vh;
+    max-height: 100dvh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -2880,8 +2966,11 @@ body.afk-layout {
 body.afk-layout .game-shell {
     flex: 1;
     height: 100vh;
+    height: 100dvh;
     min-height: 100vh;
+    min-height: 100dvh;
     max-height: 100vh;
+    max-height: 100dvh;
     background: #fff;
     display: flex;
     flex-direction: column;
@@ -3071,6 +3160,9 @@ body.afk-layout .currency-pill .currency-tip {
     min-height: 0;
     overflow: hidden;
     z-index: 1;
+}
+.game-rails-dock {
+    display: contents;
 }
 
 /* Shared cover-art stage: UI % coords map to 1920×1080 design boards (stretched to viewport) */
@@ -3808,8 +3900,7 @@ body.afk-layout .currency-pill .currency-tip {
     z-index: 25;
 }
 .game-container.adventure-mode .main-scene-viewport,
-.game-container.adventure-mode .left-rail,
-.game-container.adventure-mode .side-rail {
+.game-container.adventure-mode .game-rails-dock {
     visibility: hidden;
     pointer-events: none;
 }
@@ -4285,7 +4376,8 @@ body.afk-layout .currency-pill .currency-tip {
 .team-slot {
     border: 3px solid #d4a04a;
     padding: 12px 10px 10px;
-    width: 190px;
+    width: min(190px, 100%);
+    max-width: 190px;
     background: linear-gradient(180deg, #f8ecd8 0%, #edd9b8 100%);
     border-radius: 10px;
     box-shadow:
@@ -4612,10 +4704,10 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .party-switch-grid {
     display: grid;
-    grid-template-columns: repeat(10, var(--ps-cell, 58px));
+    grid-template-columns: repeat(var(--ps-cols, 10), var(--ps-cell, 58px));
     gap: var(--ps-gap, 8px);
     width: var(--ps-grid-w, 652px);
-    max-width: none;
+    max-width: 100%;
     margin: 0 auto;
     padding: 10px 12px 28px;
     box-sizing: content-box;
@@ -5241,7 +5333,10 @@ body.afk-layout .currency-pill .currency-tip {
 }
 
 @media (max-width: 720px) {
-    :root { --game-side-pad: 16px; }
+    :root {
+        --game-side-pad: 16px;
+        --mobile-rail-dock-height: 116px;
+    }
     .header-inner { gap: 10px; }
     .header-name-row { gap: 8px; }
     .header-currencies {
@@ -5254,8 +5349,12 @@ body.afk-layout .currency-pill .currency-tip {
         min-height: 0;
         max-height: 100%;
     }
+    .game-container-stage {
+        padding-bottom: var(--mobile-rail-dock-height);
+        box-sizing: border-box;
+    }
     .scene-battle-dock {
-        padding: 0 10px 88px;
+        padding: 0 10px calc(var(--mobile-rail-dock-height) + 4px);
     }
     .scene-idle-stage {
         transform: translateY(var(--scene-idle-lift, -46px)) scale(0.84);
@@ -5280,9 +5379,9 @@ body.afk-layout .currency-pill .currency-tip {
     }
     .resource-chest-wrap {
         right: 8px;
-        bottom: 78px;
+        bottom: calc(var(--mobile-rail-dock-height) + 8px);
         width: 72px;
-        transform: scale(2);
+        transform: scale(1.65);
         transform-origin: bottom right;
     }
     .resource-chest-icon-wrap {
@@ -5299,22 +5398,36 @@ body.afk-layout .currency-pill .currency-tip {
         padding: 3px 5px;
     }
     :root { --scene-fighter-size: 122px; --rail-icon-max: 40px; --rail-btn-size: 48px; --rail-pad-y: 4px; --rail-pad-x: 4px; --rail-panel-pad: 6px; --rail-gap: 2px; }
-    .side-rail,
-    .left-rail {
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: auto;
-        bottom: 0;
-        width: auto;
-        max-width: calc(100% - 16px);
-        height: auto;
+    .game-rails-dock {
+        display: flex;
         flex-direction: row;
+        flex-wrap: wrap;
         justify-content: center;
-        flex-wrap: nowrap;
-        padding: var(--rail-panel-pad);
+        align-items: flex-end;
         gap: var(--rail-gap);
-        margin: 0 8px 8px;
+        position: absolute;
+        left: 8px;
+        right: 8px;
+        bottom: 8px;
+        z-index: 10;
+        padding: var(--rail-panel-pad);
+        box-sizing: border-box;
+        pointer-events: none;
+        max-width: calc(100% - 16px);
+        margin: 0 auto;
+    }
+    .game-rails-dock .side-icon-btn {
+        pointer-events: auto;
+    }
+    .left-rail,
+    .side-rail {
+        display: contents;
+        position: static;
+        width: auto;
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        border: none;
     }
     .battle-scene { bottom: 0; }
     .battle-meter-panel {
@@ -5438,6 +5551,7 @@ body.afk-layout .currency-pill .currency-tip {
         </div>
     </div>
 
+    <div class="game-rails-dock" aria-label="Game menu">
     <nav class="left-rail" aria-label="Quick actions">
         <button type="button" class="side-icon-btn" id="rail-daily-quest" onclick="openGameModal('daily-quest')">
             <img src="game_icons/button%20tabs/dailyquest.png?v=5" alt="">
@@ -5483,6 +5597,7 @@ body.afk-layout .currency-pill .currency-tip {
             <span class="rail-tip">CATCH ON X</span>
         </button>
     </nav>
+    </div>
     </div>
 </div>
 </div>
