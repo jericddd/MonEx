@@ -6578,7 +6578,8 @@ const STAT_RANGES = {
     Legendary: { rating: [32, 62], critDmg: [36, 62], spd: [100, 130] },
     Mythic:    { rating: [40, 78], critDmg: [44, 75], spd: [110, 150] },
 };
-const STAT_SYSTEM_VERSION = 2;
+const STAT_SYSTEM_VERSION = 3;
+const STAT_SMALL_ROLL = 3;
 const BASE_CRIT_CHANCE = 20;
 const CRIT_DAMAGE_MULT = 1.1;
 const BASE_HIT_CHANCE = 90;
@@ -6607,6 +6608,32 @@ const SPECIES_ULTIMATE = {
     "Shramp":     { name: "Bubble Barrage", element: "water",    power: 2.0, desc: "A relentless barrage of bubbles." },
     "Spidermon":  { name: "Web Cataclysm",  element: "poison",   power: 2.3, desc: "Ensnares and poisons the foe." },
     "Moyaki":     { name: "Flame Geyser",   element: "fire",     power: 2.3, desc: "A geyser of searing flame." },
+};
+
+// Fixed combat identity per species: specialty + stat shape (0–1 bias within rarity range).
+// Non-specialty stats get a small ±STAT_SMALL_ROLL jitter at generation.
+const SPECIES_STAT_PROFILE = {
+    Molandak:   { specialty: "pierce", bias: { spd: 0.40, crit: 0.60, dodge: 0.35, block: 0.30, hit: 0.55, pierce: 0.88 } },
+    Chog:       { specialty: "block",  bias: { spd: 0.25, crit: 0.35, dodge: 0.30, block: 0.92, hit: 0.45, pierce: 0.30 } },
+    Mouch:      { specialty: "spd",    bias: { spd: 0.92, crit: 0.50, dodge: 0.55, block: 0.25, hit: 0.60, pierce: 0.45 } },
+    Salmonad:   { specialty: "hit",    bias: { spd: 0.55, crit: 0.45, dodge: 0.40, block: 0.35, hit: 0.88, pierce: 0.50 } },
+    Anago:      { specialty: "pierce", bias: { spd: 0.35, crit: 0.55, dodge: 0.50, block: 0.40, hit: 0.50, pierce: 0.90 } },
+    Larvanad:   { specialty: "crit",   bias: { spd: 0.45, crit: 0.90, dodge: 0.40, block: 0.30, hit: 0.55, pierce: 0.50 } },
+    Lyraffe:    { specialty: "spd",    bias: { spd: 0.96, crit: 0.50, dodge: 0.60, block: 0.20, hit: 0.55, pierce: 0.40 } },
+    Mokadal:    { specialty: "pierce", bias: { spd: 0.50, crit: 0.65, dodge: 0.45, block: 0.25, hit: 0.55, pierce: 0.92 } },
+    Monavara:   { specialty: "crit",   bias: { spd: 0.55, crit: 0.92, dodge: 0.45, block: 0.30, hit: 0.50, pierce: 0.60 } },
+    Moncock:    { specialty: "crit",   bias: { spd: 0.60, crit: 0.88, dodge: 0.40, block: 0.30, hit: 0.65, pierce: 0.45 } },
+    Mondigrade: { specialty: "block",  bias: { spd: 0.20, crit: 0.40, dodge: 0.25, block: 0.96, hit: 0.45, pierce: 0.35 } },
+    Montiger:   { specialty: "crit",   bias: { spd: 0.65, crit: 0.95, dodge: 0.35, block: 0.25, hit: 0.70, pierce: 0.55 } },
+    Mosferatu:  { specialty: "dodge",  bias: { spd: 0.50, crit: 0.55, dodge: 0.92, block: 0.35, hit: 0.45, pierce: 0.40 } },
+    Moxy:       { specialty: "spd",    bias: { spd: 0.90, crit: 0.55, dodge: 0.50, block: 0.25, hit: 0.60, pierce: 0.50 } },
+    Shramp:     { specialty: "block",  bias: { spd: 0.35, crit: 0.35, dodge: 0.45, block: 0.88, hit: 0.50, pierce: 0.30 } },
+    Spidermon:  { specialty: "dodge",  bias: { spd: 0.55, crit: 0.45, dodge: 0.94, block: 0.30, hit: 0.50, pierce: 0.45 } },
+    Moyaki:     { specialty: "hit",    bias: { spd: 0.50, crit: 0.70, dodge: 0.35, block: 0.30, hit: 0.90, pierce: 0.50 } },
+};
+const DEFAULT_STAT_PROFILE = {
+    specialty: "hit",
+    bias: { spd: 0.50, crit: 0.50, dodge: 0.50, block: 0.50, hit: 0.50, pierce: 0.50 },
 };
 
 // Visual glyph per element (used for the code-generated attack effects).
@@ -8485,20 +8512,36 @@ function renderAscensionStars(mon) {
 function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 function randF(min, max) { return Math.round((Math.random() * (max - min) + min) * 10) / 10; }
 
-// Roll combat stats. Rarity sets the budget; one random "specialty" gets a bonus,
-// so two monanimals of the same species/rarity still differ.
-function generateStats(rarity) {
+// Hybrid stat roll: fixed specialty + species stat shape, rarity sets the range,
+// non-specialty stats get a small ±STAT_SMALL_ROLL jitter so catches aren't identical.
+function getSpeciesStatProfile(name) {
+    return SPECIES_STAT_PROFILE[name] || DEFAULT_STAT_PROFILE;
+}
+
+function getStatRangeForKey(rarity, key) {
     const R = STAT_RANGES[rarity] || STAT_RANGES.Common;
-    const s = {
-        spd:    randInt(R.spd[0], R.spd[1]),
-        crit:   randInt(R.critDmg[0], R.critDmg[1]),
-        dodge:  randInt(R.rating[0], R.rating[1]),
-        block:  randInt(R.rating[0], R.rating[1]),
-        hit:    randInt(R.rating[0], R.rating[1]),
-        pierce: randInt(R.rating[0], R.rating[1]),
-    };
+    if (key === "spd") return R.spd;
+    if (key === "crit") return R.critDmg;
+    return R.rating;
+}
+
+function generateStats(name, rarity) {
+    const profile = getSpeciesStatProfile(name);
+    const spec = profile.specialty;
     const keys = ["spd", "crit", "dodge", "block", "hit", "pierce"];
-    const spec = keys[randInt(0, keys.length - 1)];
+    const s = {};
+
+    for (const key of keys) {
+        const [min, max] = getStatRangeForKey(rarity, key);
+        const bias = profile.bias[key] ?? 0.5;
+        let val = min + Math.round((max - min) * bias);
+        if (key !== spec) {
+            val += randInt(-STAT_SMALL_ROLL, STAT_SMALL_ROLL);
+            val = Math.max(min, Math.min(max, val));
+        }
+        s[key] = val;
+    }
+
     if (spec === "spd") s.spd += 25;
     else s[spec] += randInt(12, 22);
     s.specialty = spec;
@@ -8854,6 +8897,7 @@ function renderStatsInfo(mon) {
     <div class="info-icon">i
         <div class="stats-tooltip">
             <div class="st-title">COMBAT STATS</div>
+            <div style="text-align:center;font-size:10px;color:#fbbf24;margin-bottom:4px;font-family:'Lato',sans-serif;">Specialty: ${getBattleSpecialtyLabel(sp)}</div>
             <div style="text-align:center;font-size:11px;color:#c4b5fd;margin-bottom:6px;font-family:'Lato',sans-serif;">ATK ${atkText}</div>
             ${pair("", cell("spd", "SPD", eff.spd), cell("crit", "CRIT DMG", eff.crit))}
             ${pair("counter", cell("pierce", "PIERCE", eff.pierce), cell("block", "BLOCK", eff.block))}
@@ -9036,9 +9080,9 @@ function migrateSkillDefinitions(mon) {
 function ensureMonReady(mon) {
     if (!mon.equipment) mon.equipment = { weapon: null, armor: null, helmet: null, boots: null };
     if (mon.ascensionStars == null) mon.ascensionStars = 0;
-    if (!mon.stats || mon.stats.spd == null) mon.stats = generateStats(mon.rarity);
+    if (!mon.stats || mon.stats.spd == null) mon.stats = generateStats(mon.name, mon.rarity);
     if (mon.statVersion !== STAT_SYSTEM_VERSION) {
-        mon.stats = generateStats(mon.rarity);
+        mon.stats = generateStats(mon.name, mon.rarity);
         mon.statVersion = STAT_SYSTEM_VERSION;
     }
     migrateSkillDefinitions(mon);
@@ -9147,7 +9191,7 @@ function buildAdventureEnemyMon(name, globalProgress, slotIndex, boss) {
     let rarity = rollAdventureEnemyRarity(globalProgress, slotIndex, boss);
     let level = getAdventureEnemyLevel(globalProgress, slotIndex, boss);
     const mon = { name, rarity, level };
-    mon.stats = generateStats(rarity);
+    mon.stats = generateStats(name, rarity);
     mon.statVersion = STAT_SYSTEM_VERSION;
     if (boss) {
         mon.stats.crit += 8;
@@ -11393,7 +11437,7 @@ function createMonanimal(name, rarity, level) {
     const skills = generateSkills(name, rarity);
     const mon = {
         name, rarity, level, max_hp: maxHP, current_hp: maxHP,
-        stats: generateStats(rarity),
+        stats: generateStats(name, rarity),
         skills,
         ultimate: { ...skills[0] }
     };
@@ -11489,7 +11533,7 @@ function buildTestMon(name, rarity, level, passiveName, activeNames) {
     const mon = {
         name, rarity, level,
         max_hp: maxHp, current_hp: maxHp,
-        stats: generateStats(rarity),
+        stats: generateStats(name, rarity),
         equipment: { weapon: null, armor: null, helmet: null, boots: null },
         skills: [getSpeciesUltimate(name), { ...passive }, ...actives],
     };
