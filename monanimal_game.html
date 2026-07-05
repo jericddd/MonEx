@@ -687,7 +687,6 @@ button.green:hover {
 }
 #modal-box .hub-main,
 #modal-inventory .hub-main {
-    position: relative;
     flex: 1 1 0;
     min-height: 0;
     min-width: 0;
@@ -695,25 +694,18 @@ button.green:hover {
     display: flex;
     flex-direction: column;
 }
-#modal-box .hub-main > .hub-close-btn,
-#modal-inventory .hub-main > .hub-close-btn {
-    position: absolute;
-    top: 6px;
-    right: 10px;
-    z-index: 6;
-}
 #modal-box .hub-content-wrap,
 #modal-inventory .hub-content-wrap {
     flex: 1 1 0;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 36px 6px 12px 12px;
-    margin: 8px 10px 12px 8px;
+    padding: 14px 6px 12px 16px;
+    margin: 0;
     box-sizing: border-box;
-    border: 2px solid rgba(196, 106, 40, 0.45);
-    border-radius: 6px;
-    background: rgba(0, 0, 0, 0.12);
+    border: none;
+    border-radius: 0;
+    background: transparent;
 }
 #modal-inventory .hub-content-wrap .inventory-grid {
     border: none;
@@ -1422,6 +1414,7 @@ button.green:hover {
     .team-arrange-row {
         gap: 10px;
     }
+    .header-trainer-block #trainer-name,
     .header-trainer #trainer-name {
         font-size: 13px;
     }
@@ -1465,6 +1458,30 @@ button.green:hover {
     pointer-events: none;
 }
 .has-hover-tip:hover .hover-tip-panel { display: block; }
+.has-hover-tip.is-float-tip .hover-tip-panel,
+.has-hover-tip.is-float-tip:hover .hover-tip-panel {
+    display: none !important;
+}
+.hover-tip-float {
+    display: block;
+    position: fixed;
+    z-index: 10050;
+    background: linear-gradient(180deg, #3d2518 0%, #2a1810 100%);
+    color: #ffe8c8;
+    padding: 8px 11px;
+    border: 2px solid #c46a28;
+    box-shadow: 3px 3px 0 #3d2010;
+    width: max-content;
+    max-width: 280px;
+    text-align: left;
+    pointer-events: none;
+}
+.hover-tip-float .hover-tip-name {
+    color: #fde68a;
+}
+.hover-tip-float .hover-tip-desc {
+    color: rgba(255, 232, 200, 0.92);
+}
 .hover-tip-name {
     font-family: "Press Start 2P", monospace;
     font-size: 9px;
@@ -3474,12 +3491,14 @@ body.afk-layout .game-container:not(.main-scene-active) > .header .header-inner 
     position: relative;
     z-index: 1;
 }
+body.afk-layout .game-container > .header .header-trainer-block #trainer-name,
 body.afk-layout .game-container > .header .header-trainer #trainer-name {
-    color: #fff;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 0 10px rgba(0, 0, 0, 0.45);
+    color: #fde68a;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 12px rgba(240, 160, 64, 0.35);
 }
+body.afk-layout.test-user-session .game-container > .header .header-trainer-block #trainer-name,
 body.afk-layout.test-user-session .game-container > .header .header-trainer #trainer-name {
-    color: #ef4444;
+    color: #fca5a5;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 12px rgba(239, 68, 68, 0.55);
 }
 body.afk-layout .game-container > .header .trainer-meta {
@@ -3533,11 +3552,13 @@ body.afk-layout .header-inner {
     box-shadow: 0 3px 12px rgba(124, 58, 237, 0.35), inset 0 -2px 0 rgba(0, 0, 0, 0.12);
     flex-shrink: 0;
 }
+.header-trainer-block #trainer-name,
 .header-trainer #trainer-name {
     font-weight: 700;
     font-size: 15px;
-    color: #1f1235;
+    color: #fde68a;
     letter-spacing: -0.01em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
 }
 body.afk-layout .trainer-meta {
     color: #6b7280;
@@ -3911,24 +3932,31 @@ body.afk-layout .currency-pill .currency-tip {
 }
 #modal-resource-chest .game-modal-panel {
     max-width: 420px;
-    background: linear-gradient(180deg, #2a1838 0%, #1a1028 100%);
-    border: 4px solid #6B21A8;
-    box-shadow: 6px 6px 0 #4c1d95, 0 0 24px rgba(124, 58, 237, 0.22);
-    color: #e9d5ff;
+    background: linear-gradient(180deg, #5c3a24 0%, #3d2518 100%);
+    border: 4px solid #e07a2f;
+    box-shadow:
+        inset 0 0 0 2px #5c2e0e,
+        inset 0 0 0 4px #f4a442,
+        0 8px 24px rgba(0, 0, 0, 0.55);
+    color: #ffe8c8;
 }
 #modal-resource-chest .game-modal-header {
-    border-bottom: 2px solid rgba(124, 58, 237, 0.35);
-    background: rgba(15, 6, 30, 0.35);
+    border-bottom: 2px solid rgba(196, 106, 40, 0.55);
+    background: linear-gradient(180deg, #4a2f1c 0%, #362218 100%);
 }
 #modal-resource-chest .game-modal-header h2 {
-    color: #f5f3ff;
+    color: #fde68a;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
 }
 #modal-resource-chest .game-modal-close {
-    color: #ddd6fe;
-    background: rgba(124, 58, 237, 0.15);
+    color: #ffe8c8;
+    background: linear-gradient(180deg, #ef4444, #b91c1c);
+    border: 2px solid #991b1b;
+    box-shadow: 0 3px 0 #7f1d1d;
 }
 #modal-resource-chest .game-modal-close:hover {
-    background: rgba(124, 58, 237, 0.28);
+    filter: brightness(1.08);
 }
 .resource-chest-modal-body {
     display: flex;
@@ -3938,14 +3966,15 @@ body.afk-layout .currency-pill .currency-tip {
 .resource-chest-timer-block {
     text-align: center;
     padding: 12px;
-    background: linear-gradient(180deg, rgba(42, 24, 56, 0.95) 0%, rgba(26, 16, 40, 0.98) 100%);
-    border: 3px solid #6b21a8;
-    box-shadow: 3px 3px 0 #4c1d95;
+    background: linear-gradient(180deg, rgba(74, 47, 28, 0.95) 0%, rgba(42, 24, 16, 0.98) 100%);
+    border: 3px solid #c46a28;
+    box-shadow: 3px 3px 0 #3d2010;
+    border-radius: 6px;
 }
 .resource-chest-timer-label {
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
-    color: #c4b5fd;
+    color: #fde68a;
     margin-bottom: 8px;
 }
 .resource-chest-timer-value {
@@ -3957,13 +3986,13 @@ body.afk-layout .currency-pill .currency-tip {
 .resource-chest-timer-cap {
     font-family: 'Press Start 2P', monospace;
     font-size: 7px;
-    color: #a78bfa;
+    color: rgba(255, 232, 200, 0.75);
     margin-top: 6px;
     line-height: 1.5;
 }
 .resource-chest-chapter-note {
     font-size: 11px;
-    color: #c4b5fd;
+    color: rgba(255, 232, 200, 0.85);
     text-align: center;
     line-height: 1.5;
 }
@@ -3977,12 +4006,13 @@ body.afk-layout .currency-pill .currency-tip {
     align-items: center;
     gap: 8px;
     padding: 8px 10px;
-    background: rgba(42, 24, 56, 0.75);
-    border: 2px solid #7c3aed;
-    box-shadow: 2px 2px 0 #4c1d95;
+    background: rgba(0, 0, 0, 0.22);
+    border: 2px solid #c46a28;
+    box-shadow: 2px 2px 0 #3d2010;
+    border-radius: 6px;
     font-size: 11px;
     font-weight: 700;
-    color: #ede9fe;
+    color: #ffe8c8;
 }
 .resource-chest-reward-row.wide {
     grid-column: 1 / -1;
@@ -4002,23 +4032,25 @@ body.afk-layout .currency-pill .currency-tip {
 .resource-chest-collect-btn {
     width: 100%;
     padding: 14px 12px;
-    border: 3px solid #7c3aed;
-    background: linear-gradient(180deg, #a855f7 0%, #7c3aed 55%, #6b21a8 100%);
-    color: #fef08a;
+    border: 3px solid #c46a28;
+    background: linear-gradient(180deg, #f0a040 0%, #d07020 100%);
+    color: #3d1a08;
     font-family: 'Press Start 2P', monospace;
     font-size: 10px;
     cursor: pointer;
-    box-shadow: 4px 4px 0 #4c1d95;
-    text-shadow: 1px 1px 0 rgba(0,0,0,0.25);
+    box-shadow: 4px 4px 0 #3d2010;
+    text-shadow: none;
+    border-radius: 6px;
 }
 .resource-chest-collect-btn:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 5px 5px 0 #4c1d95;
+    filter: brightness(1.05);
+    box-shadow: 5px 5px 0 #3d2010;
 }
 .resource-chest-collect-btn:disabled {
     opacity: 0.45;
     cursor: not-allowed;
-    box-shadow: 2px 2px 0 #4c1d95;
+    box-shadow: 2px 2px 0 #3d2010;
 }
 .scene-battle-dock-shade {
     position: absolute;
@@ -4448,7 +4480,7 @@ body.afk-layout .currency-pill .currency-tip {
     position: absolute;
     inset: 0;
     z-index: 12;
-    background: rgba(15, 6, 24, 0.62);
+    background: rgba(20, 12, 8, 0.72);
     align-items: center;
     justify-content: center;
     padding: 20px;
@@ -4460,16 +4492,20 @@ body.afk-layout .currency-pill .currency-tip {
     padding-top: var(--modal-drop);
 }
 .battle-pause-panel {
-    background: rgba(255, 255, 255, 0.96);
-    border: 4px solid #6B21A8;
-    box-shadow: 6px 6px 0 #6B21A8;
+    background: linear-gradient(180deg, #5c3a24 0%, #3d2518 100%);
+    border: 4px solid #e07a2f;
+    box-shadow:
+        inset 0 0 0 2px #5c2e0e,
+        inset 0 0 0 4px #f4a442,
+        0 8px 24px rgba(0, 0, 0, 0.55);
     padding: 28px 32px;
     text-align: center;
     min-width: 260px;
+    border-radius: 6px;
 }
 .battle-pause-panel h3 {
     margin: 0 0 20px;
-    color: #6B21A8;
+    color: #fde68a;
     font-family: "Press Start 2P", sans-serif;
     font-size: 11px;
 }
@@ -4484,12 +4520,16 @@ body.afk-layout .currency-pill .currency-tip {
     font-size: 8px;
 }
 .battle-pause-continue {
-    background: #6B21A8;
-    color: #fff;
+    background: linear-gradient(180deg, #f0a040 0%, #d07020 100%);
+    color: #3d1a08;
+    border: 2px solid #c46a28;
+    box-shadow: 0 3px 0 #3d2010;
 }
 .battle-pause-leave {
-    background: #ef4444;
+    background: linear-gradient(180deg, #ef4444, #b91c1c);
     color: #fff;
+    border: 2px solid #991b1b;
+    box-shadow: 0 3px 0 #7f1d1d;
 }
 .battle-pause-panel button:hover::before { display: none !important; }
 .battle-scene-ui {
@@ -6287,10 +6327,10 @@ body.afk-layout .currency-pill .currency-tip {
         </div>
         <div class="game-modal-body">
             <div class="hub-frame">
+                <button type="button" class="hub-close-btn" onclick="closeGameModal('box')" aria-label="Close box">×</button>
                 <div class="hub-shell">
                     <nav class="hub-nav" id="box-nav" aria-label="Box filters"></nav>
                     <div class="hub-main">
-                        <button type="button" class="hub-close-btn" onclick="closeGameModal('box')" aria-label="Close box">×</button>
                         <div class="hub-content-wrap hub-scrollbar-panel">
                             <div id="box-content" class="box-content-grid"></div>
                         </div>
@@ -6310,10 +6350,10 @@ body.afk-layout .currency-pill .currency-tip {
         </div>
         <div class="game-modal-body">
             <div class="hub-frame">
+                <button type="button" class="hub-close-btn" onclick="closeGameModal('inventory')" aria-label="Close inventory">×</button>
                 <div class="hub-shell">
                     <nav class="hub-nav" id="inventory-nav" aria-label="Inventory categories"></nav>
                     <div class="hub-main">
-                        <button type="button" class="hub-close-btn" onclick="closeGameModal('inventory')" aria-label="Close inventory">×</button>
                         <div class="hub-content-wrap hub-scrollbar-panel">
                             <div id="inventory-grid" class="inventory-grid"></div>
                         </div>
@@ -6533,6 +6573,57 @@ function renderHoverTip(name, desc) {
     return `<span class="hover-tip-panel"><span class="hover-tip-name">${safeName}</span><span class="hover-tip-desc">${safeDesc}</span></span>`;
 }
 
+function clearHoverFloatTip(el) {
+    if (!el) return;
+    if (el._hoverFloatTip) {
+        el._hoverFloatTip.remove();
+        el._hoverFloatTip = null;
+    }
+}
+
+function positionHoverFloatTip(anchorEl, floatTip) {
+    const pad = 8;
+    floatTip.style.visibility = "hidden";
+    document.body.appendChild(floatTip);
+    const tipRect = floatTip.getBoundingClientRect();
+    const rect = anchorEl.getBoundingClientRect();
+    let left = rect.left + rect.width / 2 - tipRect.width / 2;
+    left = Math.max(pad, Math.min(left, window.innerWidth - tipRect.width - pad));
+    let top = rect.top - tipRect.height - 8;
+    if (top < pad) top = rect.bottom + 8;
+    top = Math.max(pad, Math.min(top, window.innerHeight - tipRect.height - pad));
+    floatTip.style.left = `${left}px`;
+    floatTip.style.top = `${top}px`;
+    floatTip.style.visibility = "visible";
+    return floatTip;
+}
+
+function showHoverFloatTip(el) {
+    clearHoverFloatTip(el);
+    const panel = el.querySelector(":scope > .hover-tip-panel");
+    if (!panel) return;
+    const floatTip = panel.cloneNode(true);
+    floatTip.classList.add("hover-tip-float");
+    floatTip.style.position = "fixed";
+    floatTip.style.zIndex = "10050";
+    floatTip.style.display = "block";
+    el._hoverFloatTip = positionHoverFloatTip(el, floatTip);
+}
+
+function bindHoverFloatTips(root) {
+    const scope = root && root.querySelectorAll ? root : document;
+    const nodes = root && root.classList?.contains("has-hover-tip")
+        ? [root]
+        : scope.querySelectorAll(".has-hover-tip");
+    nodes.forEach((el) => {
+        if (el.dataset.hoverFloatBound) return;
+        el.dataset.hoverFloatBound = "1";
+        el.classList.add("is-float-tip");
+        el.addEventListener("mouseenter", () => showHoverFloatTip(el));
+        el.addEventListener("mouseleave", () => clearHoverFloatTip(el));
+    });
+}
+
 const MONANIMAL_NAMES = ["Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal", "Monavara", "Moncock", "Mondigrade", "Montiger", "Mosferatu", "Moxy", "Shramp", "Spidermon", "Moyaki"];
 const REMOVED_MONANIMAL_NAMES = new Set(["Mopo"]);
 // Fixed house per species — every monanimal belongs to exactly one house.
@@ -6665,18 +6756,18 @@ const PASSIVE_SKILL_POOL = [
     {name: "Tough Hide",        element: "passive", type: "passive", dmgTaken: 0.85, desc: "Takes 15% less damage."},
     {name: "Sharp Claws",       element: "passive", type: "passive", dmgDealt: 1.2,  desc: "Deals 20% more damage."},
     {name: "Critical Instinct", element: "passive", type: "passive", critBonus: 10,  desc: "+10% crit chance."},
-    {name: "Evasive",           element: "passive", type: "passive", dodgeBonus: 10, desc: "+10 DODGE."},
-    {name: "Bulwark",           element: "passive", type: "passive", blockBonus: 10, desc: "+10 BLOCK."},
+    {name: "Evasive",           element: "passive", type: "passive", dodgePct: 0.10, desc: "+10% DODGE."},
+    {name: "Bulwark",           element: "passive", type: "passive", blockPct: 0.10, desc: "+10% BLOCK."},
     {name: "Regenerator",       element: "passive", type: "passive", regen: 0.05,    desc: "Heals 5% max HP each turn."},
-    {name: "Static Aegis",      element: "passive", type: "passive", blockBonus: 8,  desc: "+8 BLOCK from a crackling energy shield."},
+    {name: "Static Aegis",      element: "passive", type: "passive", blockPct: 0.08,  desc: "+8% BLOCK from a crackling energy shield."},
     {name: "Shield Stance",     element: "passive", type: "passive", dmgTaken: 0.88, desc: "Fighting behind a raised shield reduces damage taken by 12%."},
-    {name: "Storm Guard",       element: "passive", type: "passive", dodgeBonus: 8, desc: "+8 DODGE from a thunder-wreathed guard."},
+    {name: "Storm Guard",       element: "passive", type: "passive", dodgePct: 0.08, desc: "+8% DODGE from a thunder-wreathed guard."},
     {name: "Emerald Ward",      element: "passive", type: "passive", dmgTaken: 0.9,  desc: "A verdant ward reduces damage taken by 10%."},
     {name: "Iron Will",         element: "passive", type: "passive", dmgTaken: 0.9,  desc: "A crimson sigil steels the body, reducing damage taken by 10%."},
     {name: "Mystic Sigil",      element: "passive", type: "passive", critBonus: 8,  desc: "+8% crit chance from an ancient golden sigil."},
-    {name: "Eagle Eye",         element: "passive", type: "passive", hitBonus: 8,   desc: "+8 HIT."},
-    {name: "Piercing Gaze",     element: "passive", type: "passive", pierceBonus: 8, desc: "+8 PIERCE."},
-    {name: "Swift Feet",        element: "passive", type: "passive", spdBonus: 15,  desc: "+15 SPD."},
+    {name: "Eagle Eye",         element: "passive", type: "passive", hitPct: 0.08,   desc: "+8% HIT."},
+    {name: "Piercing Gaze",     element: "passive", type: "passive", piercePct: 0.08, desc: "+8% PIERCE."},
+    {name: "Swift Feet",        element: "passive", type: "passive", spdPct: 0.15,  desc: "+15% SPD."},
 ];
 
 // Flat combat ratings. crit = critical damage rating (not crit chance).
@@ -6690,7 +6781,7 @@ const STAT_RANGES = {
 const STAT_SYSTEM_VERSION = 3;
 const STAT_SMALL_ROLL = 3;
 const STAT_LEVEL_GROWTH_PCT = 0.005;
-const ULTIMATE_SYSTEM_VERSION = 2;
+const ULTIMATE_SYSTEM_VERSION = 3;
 const BASE_CRIT_CHANCE = 20;
 const CRIT_DAMAGE_MULT = 1.1;
 const BASE_HIT_CHANCE = 90;
@@ -6742,15 +6833,15 @@ const SPECIES_ULTIMATE = {
     },
     "Mondigrade": {
         name: "Seismic Shell", element: "earth", power: 2.2,
-        desc: "Armored slam. +15 BLOCK for 2 turns and 10% max HP shield.",
-        selfBuff: { id: "seismicguard", turns: 2, statMods: { block: 15 } },
+        desc: "Armored slam. +15% BLOCK for 2 turns and 10% max HP shield.",
+        selfBuff: { id: "seismicguard", turns: 2, statMods: { blockPct: 0.15 } },
         shieldPct: 0.10, shieldTurns: 2, shieldId: "seismicshield",
     },
     "Chog": {
         name: "Croak Quake", element: "earth", power: 2.0,
-        desc: "Ground-shaking quake. Stuns 1 turn and +10 BLOCK for 1 turn.",
+        desc: "Ground-shaking quake. Stuns 1 turn and +10% BLOCK for 1 turn.",
         effect: { type: "stun", chance: 1 },
-        selfBuff: { id: "croakguard", turns: 1, statMods: { block: 10 } },
+        selfBuff: { id: "croakguard", turns: 1, statMods: { blockPct: 0.10 } },
     },
     "Shramp": {
         name: "Bubble Barrage", element: "water",
@@ -6760,9 +6851,9 @@ const SPECIES_ULTIMATE = {
     },
     "Lyraffe": {
         name: "Gale Stampede", element: "wind",
-        desc: "2 wind strikes (1.1× ATK). Bonus 0.8× hit if 10+ SPD faster than foe.",
+        desc: "2 wind strikes (1.1× ATK). Bonus 0.8× hit if 10%+ faster than foe.",
         multiHit: [1.1, 1.1],
-        bonusHit: { power: 0.8, spdLead: 10 },
+        bonusHit: { power: 0.8, spdLeadPct: 0.10 },
     },
     "Mouch": {
         name: "Static Swarm", element: "electric",
@@ -6772,8 +6863,8 @@ const SPECIES_ULTIMATE = {
     },
     "Moxy": {
         name: "Shock Nova", element: "electric", power: 2.1,
-        desc: "Lightning nova. +20 SPD for 2 turns.",
-        selfBuff: { id: "shockswift", turns: 2, statMods: { spd: 20 } },
+        desc: "Lightning nova. +20% SPD for 2 turns.",
+        selfBuff: { id: "shockswift", turns: 2, statMods: { spdPct: 0.20 } },
     },
     "Salmonad": {
         name: "Tidal Crash", element: "water", power: 2.4,
@@ -6788,10 +6879,10 @@ const SPECIES_ULTIMATE = {
     },
     "Spidermon": {
         name: "Web Cataclysm", element: "poison", power: 1.8,
-        desc: "Web blast. Poison, -10 enemy HIT and +10 DODGE for 2 turns.",
+        desc: "Web blast. Poison, -10% enemy HIT and +10% DODGE for 2 turns.",
         effect: { type: "poison", chance: 1 },
-        enemyDebuff: { id: "webbed", turns: 2, statMods: { hit: -10 } },
-        selfBuff: { id: "webdodge", turns: 2, statMods: { dodge: 10 } },
+        enemyDebuff: { id: "webbed", turns: 2, statMods: { hitPct: -0.10 } },
+        selfBuff: { id: "webdodge", turns: 2, statMods: { dodgePct: 0.10 } },
     },
     "Mosferatu": {
         name: "Blood Moon", element: "dark", power: 2.2,
@@ -8813,6 +8904,11 @@ function formatPassiveDetail(skill) {
     if (skill.dmgTaken != null) parts.push("-" + Math.round((1 - skill.dmgTaken) * 100) + "% dmg taken");
     if (skill.dmgDealt != null) parts.push("+" + Math.round((skill.dmgDealt - 1) * 100) + "% dmg dealt");
     if (skill.critBonus != null) parts.push("+" + skill.critBonus + "% crit chance");
+    if (skill.dodgePct != null) parts.push("+" + Math.round(skill.dodgePct * 100) + "% DODGE");
+    if (skill.blockPct != null) parts.push("+" + Math.round(skill.blockPct * 100) + "% BLOCK");
+    if (skill.hitPct != null) parts.push("+" + Math.round(skill.hitPct * 100) + "% HIT");
+    if (skill.piercePct != null) parts.push("+" + Math.round(skill.piercePct * 100) + "% PIERCE");
+    if (skill.spdPct != null) parts.push("+" + Math.round(skill.spdPct * 100) + "% SPD");
     if (skill.dodgeBonus != null) parts.push("+" + skill.dodgeBonus + " DODGE");
     if (skill.blockBonus != null) parts.push("+" + skill.blockBonus + " BLOCK");
     if (skill.hitBonus != null) parts.push("+" + skill.hitBonus + " HIT");
@@ -8920,10 +9016,15 @@ function formatUltimateSkillDetail(monOrFighter, skill) {
     if (skill.bonusIfBurning) parts.push("+" + Math.round(skill.bonusIfBurning * 100) + "% if target is Burning");
     if (skill.lifesteal) parts.push("Heal " + Math.round(skill.lifesteal * 100) + "% of damage dealt");
     if (skill.shieldPct) parts.push("Shield " + Math.round(skill.shieldPct * 100) + "% max HP for " + (skill.shieldTurns || 2) + " turns");
-    if (skill.selfBuff?.statMods?.block) parts.push("+" + Math.round(scaleLevelBonus(skill.selfBuff.statMods.block, lvl) * ascMult) + " BLOCK for " + skill.selfBuff.turns + " turn(s)");
-    if (skill.selfBuff?.statMods?.spd) parts.push("+" + Math.round(scaleLevelBonus(skill.selfBuff.statMods.spd, lvl) * ascMult) + " SPD for " + skill.selfBuff.turns + " turn(s)");
-    if (skill.selfBuff?.statMods?.dodge) parts.push("+" + Math.round(scaleLevelBonus(skill.selfBuff.statMods.dodge, lvl) * ascMult) + " DODGE for " + skill.selfBuff.turns + " turn(s)");
-    if (skill.enemyDebuff?.statMods?.hit) {
+    if (skill.selfBuff?.statMods?.blockPct) parts.push("+" + Math.round(skill.selfBuff.statMods.blockPct * 100) + "% BLOCK for " + skill.selfBuff.turns + " turn(s)");
+    else if (skill.selfBuff?.statMods?.block) parts.push("+" + Math.round(scaleLevelBonus(skill.selfBuff.statMods.block, lvl) * ascMult) + " BLOCK for " + skill.selfBuff.turns + " turn(s)");
+    if (skill.selfBuff?.statMods?.spdPct) parts.push("+" + Math.round(skill.selfBuff.statMods.spdPct * 100) + "% SPD for " + skill.selfBuff.turns + " turn(s)");
+    else if (skill.selfBuff?.statMods?.spd) parts.push("+" + Math.round(scaleLevelBonus(skill.selfBuff.statMods.spd, lvl) * ascMult) + " SPD for " + skill.selfBuff.turns + " turn(s)");
+    if (skill.selfBuff?.statMods?.dodgePct) parts.push("+" + Math.round(skill.selfBuff.statMods.dodgePct * 100) + "% DODGE for " + skill.selfBuff.turns + " turn(s)");
+    else if (skill.selfBuff?.statMods?.dodge) parts.push("+" + Math.round(scaleLevelBonus(skill.selfBuff.statMods.dodge, lvl) * ascMult) + " DODGE for " + skill.selfBuff.turns + " turn(s)");
+    if (skill.enemyDebuff?.statMods?.hitPct) {
+        parts.push(Math.round(skill.enemyDebuff.statMods.hitPct * 100) + "% enemy HIT for " + skill.enemyDebuff.turns + " turn(s)");
+    } else if (skill.enemyDebuff?.statMods?.hit) {
         const hitMod = skill.enemyDebuff.statMods.hit;
         parts.push((hitMod < 0 ? "" : "+") + Math.round(scaleLevelBonus(hitMod, lvl) * ascMult) + " enemy HIT for " + skill.enemyDebuff.turns + " turn(s)");
     }
@@ -8940,7 +9041,13 @@ function formatUltimateSkillDetail(monOrFighter, skill) {
         const chance = skill.effect.chance != null ? Math.round(skill.effect.chance * 100) + "% " : "";
         parts.push(chance + "Freeze (heal/cleanse only)");
     }
-    if (skill.bonusHit) parts.push("Bonus hit if " + scaleLevelBonus(skill.bonusHit.spdLead, lvl) + "+ SPD faster");
+    if (skill.bonusHit) {
+        if (skill.bonusHit.spdLeadPct != null) {
+            parts.push("Bonus hit if " + Math.round(skill.bonusHit.spdLeadPct * 100) + "%+ faster than foe");
+        } else {
+            parts.push("Bonus hit if " + scaleLevelBonus(skill.bonusHit.spdLead, lvl) + "+ SPD faster");
+        }
+    }
     return parts.join(" · ");
 }
 
@@ -9322,7 +9429,7 @@ function clearHubMonCardFloatTip(anchor) {
 }
 
 function clearAllHubFloatTips() {
-    document.querySelectorAll(".hub-stats-tip-float, .hub-float-skill-tip").forEach(el => el.remove());
+    document.querySelectorAll(".hub-stats-tip-float, .hub-float-skill-tip, .hover-tip-float").forEach(el => el.remove());
 }
 
 function showHubSkillFloatTip(square) {
@@ -9363,6 +9470,7 @@ function bindHubMonCardTips(card) {
         square.addEventListener("mouseenter", () => showHubSkillFloatTip(square));
         square.addEventListener("mouseleave", () => clearHubMonCardFloatTip(square));
     });
+    bindHoverFloatTips(card);
 }
 
 // Slot 1 ultimate (fixed), slot 2 passive (RNG), slots 3+ actives (RNG — at most one heal incl. Cleanse).
@@ -9709,10 +9817,10 @@ function scaleUltBuffDef(buffDef, level, ascensionStars = 0) {
     const out = { ...buffDef, statMods: { ...(buffDef.statMods || {}) } };
     Object.keys(out.statMods).forEach((key) => {
         const val = out.statMods[key];
-        if (typeof val === "number") {
-            const sign = val < 0 ? -1 : 1;
-            out.statMods[key] = Math.round(scaleLevelBonus(Math.abs(val), level) * ascMult) * sign;
-        }
+        if (typeof val !== "number") return;
+        if (key.endsWith("Pct") || key === "critChance") return;
+        const sign = val < 0 ? -1 : 1;
+        out.statMods[key] = Math.round(scaleLevelBonus(Math.abs(val), level) * ascMult) * sign;
     });
     return out;
 }
@@ -10704,9 +10812,21 @@ function renderLevelUpBtn(index, mon, cost, atCap, cap) {
     return `<button class="green level-up-btn" disabled>${inner}</button>`;
 }
 
+const STAT_PCT_PASSIVE_KEYS = {
+    dodge: "dodgePct", block: "blockPct", hit: "hitPct", pierce: "piercePct", spd: "spdPct",
+};
+
 function passiveBonus(fighter, key) {
     const p = (fighter.skills || []).find(s => s[key] != null);
     return p ? p[key] : 0;
+}
+
+function passivePctBonus(fighter, pctKey) {
+    let total = 0;
+    for (const skill of fighter.skills || []) {
+        if (skill[pctKey] != null) total += skill[pctKey];
+    }
+    return total;
 }
 
 function getBattleStat(fighter, stat) {
@@ -10714,10 +10834,15 @@ function getBattleStat(fighter, stat) {
         dodge: "dodgeBonus", block: "blockBonus",
         hit: "hitBonus", pierce: "pierceBonus", spd: "spdBonus"
     }[stat];
+    const pctKey = STAT_PCT_PASSIVE_KEYS[stat];
     let val = fighter.stats?.[stat] ?? 0;
+    const base = val;
     if (bonusKey) val += passiveBonus(fighter, bonusKey);
+    if (pctKey) val += Math.round(base * passivePctBonus(fighter, pctKey));
+    const modPctKey = stat + "Pct";
     for (const st of fighter.status || []) {
-        if (st.statMods && st.statMods[stat] != null) val += st.statMods[stat];
+        if (st.statMods?.[stat] != null) val += st.statMods[stat];
+        if (st.statMods?.[modPctKey] != null) val += Math.round(base * st.statMods[modPctKey]);
     }
     return Math.max(0, val);
 }
@@ -10837,8 +10962,12 @@ function getUltimateHitPowers(skill, atk, def) {
     if (skill.multiHit?.length) {
         const hits = [...skill.multiHit];
         if (skill.bonusHit) {
-            const spdLead = scaleLevelBonus(skill.bonusHit.spdLead || 0, atk.level || 1);
-            if (getBattleStat(atk, "spd") >= getBattleStat(def, "spd") + spdLead) {
+            const atkSpd = getBattleStat(atk, "spd");
+            const defSpd = getBattleStat(def, "spd");
+            const qualifies = skill.bonusHit.spdLeadPct != null
+                ? atkSpd >= defSpd * (1 + skill.bonusHit.spdLeadPct)
+                : atkSpd >= defSpd + scaleLevelBonus(skill.bonusHit.spdLead || 0, atk.level || 1);
+            if (qualifies) {
                 hits.push(skill.bonusHit.power);
             }
         }
@@ -11609,6 +11738,7 @@ function renderShop() {
             </div>
         `;
     }).join("");
+    bindHoverFloatTips(grid);
 }
 
 function importWildMon(raw) {
@@ -13888,6 +14018,7 @@ function renderInventory() {
         }
         grid.appendChild(slot);
     });
+    bindHoverFloatTips(grid);
 }
 // ==================== BATTLE PROTECTION ====================
 // (isInAdventureBattle is declared once in the STATE section above)
