@@ -38,8 +38,8 @@ function injectActivityUiStyles() {
     border: 1px solid #c46a28;
     border-radius: 5px;
 }
-#modal-box .box-scroll-wrap.hub-scrollbar-panel::-webkit-scrollbar-track,
-#modal-inventory .box-scroll-wrap.hub-scrollbar-panel::-webkit-scrollbar-track {
+#modal-box .hub-content-wrap.hub-scrollbar-panel::-webkit-scrollbar-track,
+#modal-inventory .hub-content-wrap.hub-scrollbar-panel::-webkit-scrollbar-track {
     margin-top: 4px;
     margin-bottom: 8px;
 }

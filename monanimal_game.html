@@ -428,6 +428,27 @@ button.green:hover {
     background: #15803d;
 }
 /* Hover symbol */
+/* Hub scrollbar — matches profile catch log */
+.hub-scrollbar-panel {
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: #c46a28 rgba(0, 0, 0, 0.2);
+    -webkit-overflow-scrolling: touch;
+}
+.hub-scrollbar-panel::-webkit-scrollbar { width: 10px; }
+.hub-scrollbar-panel::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.22);
+    border-radius: 5px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+.hub-scrollbar-panel::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #d07020, #8b4a22);
+    border: 1px solid #c46a28;
+    border-radius: 5px;
+}
 /* ===== Hub panel layout (shop fantasy theme) ===== */
 #modal-shop .game-modal-panel,
 #modal-armory .game-modal-panel,
@@ -475,6 +496,7 @@ button.green:hover {
 }
 #modal-box .game-modal-panel,
 #modal-inventory .game-modal-panel {
+    height: min(88vh, 920px);
     max-height: min(88vh, 920px);
     display: flex;
     flex-direction: column;
@@ -533,9 +555,6 @@ button.green:hover {
     display: flex;
     min-height: 320px;
     max-height: min(72vh, 560px);
-}
-#modal-box .hub-shell {
-    max-height: min(78vh, 720px);
 }
 #modal-armory .hub-shell,
 #modal-armory .armory-shell {
@@ -653,59 +672,53 @@ button.green:hover {
 #modal-box .hub-frame,
 #modal-inventory .hub-frame {
     position: relative;
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
-}
-#modal-box .hub-close-btn,
-#modal-inventory .hub-close-btn {
-    top: 8px;
-    right: 8px;
-    z-index: 6;
+    overflow: hidden;
 }
 #modal-box .hub-shell,
 #modal-inventory .hub-shell {
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0;
     max-height: none;
+    overflow: hidden;
 }
 #modal-box .hub-main,
 #modal-inventory .hub-main {
-    flex: 1;
+    position: relative;
+    flex: 1 1 0;
     min-height: 0;
+    min-width: 0;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+#modal-box .hub-main > .hub-close-btn,
+#modal-inventory .hub-main > .hub-close-btn {
+    position: absolute;
+    top: 6px;
+    right: 10px;
+    z-index: 6;
 }
 #modal-box .hub-content-wrap,
 #modal-inventory .hub-content-wrap {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    padding: 8px 4px 14px 16px;
-    overflow: hidden;
-}
-#modal-box .box-scroll-wrap,
-#modal-inventory .box-scroll-wrap {
-    flex: 1;
+    flex: 1 1 0;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    width: 100%;
-    padding: 4px 6px 8px 0;
+    padding: 36px 6px 12px 12px;
+    margin: 8px 10px 12px 8px;
     box-sizing: border-box;
-    -webkit-overflow-scrolling: touch;
     border: 2px solid rgba(196, 106, 40, 0.45);
     border-radius: 6px;
     background: rgba(0, 0, 0, 0.12);
 }
-#modal-box .box-scroll-wrap .box-content-grid,
-#modal-inventory .box-scroll-wrap .inventory-grid {
-    padding-right: 10px;
-}
-#modal-inventory .box-scroll-wrap .inventory-grid {
+#modal-inventory .hub-content-wrap .inventory-grid {
     border: none;
     background: transparent;
+    padding-right: 8px;
 }
 .hub-empty-msg,
 .shop-empty-msg {
@@ -6274,14 +6287,12 @@ body.afk-layout .currency-pill .currency-tip {
         </div>
         <div class="game-modal-body">
             <div class="hub-frame">
-                <button type="button" class="hub-close-btn" onclick="closeGameModal('box')" aria-label="Close box">×</button>
                 <div class="hub-shell">
                     <nav class="hub-nav" id="box-nav" aria-label="Box filters"></nav>
                     <div class="hub-main">
-                        <div class="hub-content-wrap">
-                            <div class="box-scroll-wrap hub-scrollbar-panel">
-                                <div id="box-content" class="box-content-grid"></div>
-                            </div>
+                        <button type="button" class="hub-close-btn" onclick="closeGameModal('box')" aria-label="Close box">×</button>
+                        <div class="hub-content-wrap hub-scrollbar-panel">
+                            <div id="box-content" class="box-content-grid"></div>
                         </div>
                     </div>
                 </div>
@@ -6299,14 +6310,12 @@ body.afk-layout .currency-pill .currency-tip {
         </div>
         <div class="game-modal-body">
             <div class="hub-frame">
-                <button type="button" class="hub-close-btn" onclick="closeGameModal('inventory')" aria-label="Close inventory">×</button>
                 <div class="hub-shell">
                     <nav class="hub-nav" id="inventory-nav" aria-label="Inventory categories"></nav>
                     <div class="hub-main">
-                        <div class="hub-content-wrap">
-                            <div class="box-scroll-wrap hub-scrollbar-panel">
-                                <div id="inventory-grid" class="inventory-grid"></div>
-                            </div>
+                        <button type="button" class="hub-close-btn" onclick="closeGameModal('inventory')" aria-label="Close inventory">×</button>
+                        <div class="hub-content-wrap hub-scrollbar-panel">
+                            <div id="inventory-grid" class="inventory-grid"></div>
                         </div>
                     </div>
                 </div>
