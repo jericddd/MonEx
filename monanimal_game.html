@@ -633,6 +633,7 @@ button.green:hover {
     box-sizing: border-box;
 }
 #modal-party .hub-content-wrap,
+#modal-box .hub-content-wrap,
 #modal-inventory .hub-content-wrap {
     overflow: visible;
 }
@@ -892,12 +893,64 @@ button.green:hover {
     gap: 3px;
     justify-content: flex-start;
 }
+.hub-main .skills-grid--party {
+    display: grid;
+    grid-template-columns: repeat(6, 22px);
+}
+.hub-main .skills-grid--box {
+    display: grid;
+    grid-template-columns: repeat(4, 22px);
+}
 .hub-main .skill-square {
     width: 22px;
     height: 22px;
     border: 2px solid #8b4513;
     background: linear-gradient(145deg, #a85a2a, #6b3518);
     box-shadow: 1px 1px 0 #3d2010;
+}
+.hub-main .skill-square.skill-ult {
+    background: linear-gradient(145deg, #fde68a, #f59e0b);
+    border-color: #b45309;
+    color: #7c2d12;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.55), 1px 1px 0 #92400e;
+}
+.hub-main .skill-square.skill-passive {
+    background: linear-gradient(145deg, #94a3b8, #64748b);
+    border: 2px dashed #475569;
+    color: #f8fafc;
+    box-shadow: 1px 1px 0 #334155;
+}
+.hub-main .skill-square.skill-active {
+    background: linear-gradient(145deg, #c084fc, #7c3aed);
+    border-color: #6b21a8;
+    box-shadow: 1px 1px 0 #4c1d95;
+}
+.hub-main .skill-square.skill-heal {
+    background: linear-gradient(145deg, #6ee7b7, #059669);
+    border-color: #047857;
+    box-shadow: 1px 1px 0 #065f46;
+}
+.hub-main .skill-square.skill-locked {
+    background: linear-gradient(145deg, #4b5563, #374151);
+    border-color: #6b7280;
+    box-shadow: 1px 1px 0 #1f2937;
+    opacity: 0.85;
+    cursor: help;
+}
+.hub-main .skill-square.skill-locked:hover {
+    transform: none;
+    box-shadow: 1px 1px 0 #1f2937;
+    border-color: #6b7280;
+}
+.hub-main .skill-square .skill-lock-icon {
+    font-size: 11px;
+    line-height: 1;
+    opacity: 0.9;
+    filter: grayscale(0.2);
+    pointer-events: none;
+}
+.hub-main .skills-grid .skill-square .skill-tip {
+    display: none !important;
 }
 .hub-main .skill-square .skill-icon-img {
     width: 16px;
@@ -906,6 +959,34 @@ button.green:hover {
 .hub-main .skill-square:hover {
     box-shadow: 2px 2px 0 #3d2010;
     border-color: #f0a050;
+}
+.hub-main .skill-square.skill-locked:hover {
+    border-color: #6b7280;
+}
+.hub-main .info-icon:hover .stats-tooltip {
+    display: none;
+}
+.hub-stats-tip-float {
+    display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 270px;
+    background: #2a1810;
+    color: #fff;
+    border: 2px solid #d4a04a;
+    padding: 8px 10px 6px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    z-index: 10001;
+    pointer-events: none;
+    font-family: 'Lato', sans-serif;
+    box-sizing: border-box;
+}
+.hub-stats-tip-float.is-visible {
+    display: block;
+}
+.hub-float-skill-tip {
+    z-index: 10001;
 }
 .hub-main .gear-row {
     margin: 0;
@@ -1972,13 +2053,10 @@ body.afk-layout .currency-tip-float {
     background: rgba(250, 204, 21, 0.22);
 }
 .skill-square.skill-ult {
-    width: 28px;
-    height: 28px;
     background: linear-gradient(145deg, #fde68a, #f59e0b);
-    border: 3px solid #b45309;
+    border-color: #b45309;
     color: #7c2d12;
     box-shadow: 0 0 8px rgba(245, 158, 11, 0.75), 2px 2px 0px #92400e;
-    font-size: 11px;
 }
 .skill-square.skill-ult .skill-tip {
     border-color: #b45309;
@@ -7825,16 +7903,67 @@ function renderAscendBtn(index, mon) {
 }
 
 // Skill slots: 1st = ultimate (species-fixed), 2nd = passive (RNG), 3rd+ = actives (RNG).
-function renderSkillsGrid(mon) {
+// Hub cards always show 12 slots — party 6×2, box 4×3 — with locked placeholders.
+function renderSkillsGrid(mon, location) {
     ensureMonReady(mon);
-    const squares = mon.skills.map((skill, i) => {
-        const cls = getSkillSquareClass(skill, i);
-        return `<div class="skill-square ${cls}" data-type="${skill.type}" data-slot="${i + 1}">
-            ${getSkillIcon(skill)}
-            ${renderSkillTip(mon, skill)}
-        </div>`;
-    }).join("");
-    return `<div class="skills-grid">${squares}</div>`;
+    const layoutClass = location === "box" ? "skills-grid--box" : "skills-grid--party";
+    const skills = mon.skills || [];
+    const squares = [];
+    for (let i = 0; i < BATTLE_METER_SKILL_SLOTS; i++) {
+        const skill = skills[i];
+        if (skill) {
+            const cls = getSkillSquareClass(skill, i);
+            squares.push(`<div class="skill-square ${cls}" data-type="${skill.type}" data-slot="${i + 1}">
+                ${getSkillIcon(skill)}
+                ${renderSkillTip(mon, skill)}
+            </div>`);
+        } else {
+            squares.push(renderBattleMeterLockedSlot(i));
+        }
+    }
+    return `<div class="skills-grid ${layoutClass}">${squares.join("")}</div>`;
+}
+
+function clearHubMonCardFloatTip(anchor) {
+    if (!anchor) return;
+    if (anchor._hubFloatTip) {
+        anchor._hubFloatTip.remove();
+        anchor._hubFloatTip = null;
+    }
+}
+
+function showHubSkillFloatTip(square) {
+    clearHubMonCardFloatTip(square);
+    const tip = square.querySelector(".skill-tip");
+    if (!tip) return;
+    const floatTip = tip.cloneNode(true);
+    floatTip.classList.add("battle-meter-skill-tip-float", "hub-float-skill-tip");
+    square._hubFloatTip = positionBattleMeterFloatTip(square, floatTip, "right");
+}
+
+function showHubStatsFloatTip(infoIcon) {
+    clearHubMonCardFloatTip(infoIcon);
+    const tip = infoIcon.querySelector(".stats-tooltip");
+    if (!tip) return;
+    const floatTip = tip.cloneNode(true);
+    floatTip.classList.add("hub-stats-tip-float");
+    infoIcon._hubFloatTip = positionBattleMeterFloatTip(infoIcon, floatTip, "right");
+}
+
+function bindHubMonCardTips(card) {
+    if (!card) return;
+    const infoIcon = card.querySelector(".info-icon");
+    if (infoIcon && !infoIcon._hubTipBound) {
+        infoIcon._hubTipBound = true;
+        infoIcon.addEventListener("mouseenter", () => showHubStatsFloatTip(infoIcon));
+        infoIcon.addEventListener("mouseleave", () => clearHubMonCardFloatTip(infoIcon));
+    }
+    card.querySelectorAll(".skills-grid .skill-square").forEach(square => {
+        if (square._hubTipBound) return;
+        square._hubTipBound = true;
+        square.addEventListener("mouseenter", () => showHubSkillFloatTip(square));
+        square.addEventListener("mouseleave", () => clearHubMonCardFloatTip(square));
+    });
 }
 
 // Slot 1 ultimate (fixed), slot 2 passive (RNG), slots 3+ actives (RNG — at most one heal incl. Cleanse).
@@ -9125,7 +9254,7 @@ function renderMonCardInner(mon, index, location) {
         </div>
     </div>
     <div class="mon-card-loadout">
-        ${renderSkillsGrid(mon)}
+        ${renderSkillsGrid(mon, location)}
         ${renderGearRow(location, index, mon)}
     </div>
     ${statusLine}
@@ -9156,6 +9285,7 @@ function renderPartyGrid() {
         card.style.cursor = "pointer";
         card.innerHTML = renderMonCardInner(mon, index, "party");
         grid.appendChild(card);
+        bindHubMonCardTips(card);
     });
 }
 
@@ -9228,6 +9358,7 @@ function renderBox() {
         card.className = `mon-card ${getRarityClass(mon.rarity)}`;
         card.innerHTML = renderMonCardInner(mon, i, "box");
         content.appendChild(card);
+        bindHubMonCardTips(card);
     });
 }
 
