@@ -639,9 +639,30 @@ button.green:hover {
     box-sizing: border-box;
 }
 #modal-party .hub-content-wrap,
-#modal-box .hub-content-wrap,
 #modal-inventory .hub-content-wrap {
     overflow: visible;
+}
+#modal-box .hub-frame {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+#modal-box .hub-shell {
+    flex: 1;
+    min-height: 0;
+}
+#modal-box .hub-main {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+#modal-box .hub-content-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 .hub-empty-msg,
 .shop-empty-msg {
@@ -9437,6 +9458,7 @@ function renderMonCardInner(mon, index, location) {
 function renderPartyGrid() {
     const grid = document.getElementById("party-grid");
     if (!grid) return;
+    clearAllHubFloatTips();
     grid.innerHTML = "";
 
     if (party.length === 0) {
@@ -9490,6 +9512,7 @@ function renderParty() {
 function renderBox() {
     const content = document.getElementById("box-content");
     if (!content) return;
+    clearAllHubFloatTips();
     renderBoxNav();
     sortBox();
     content.innerHTML = "";
@@ -10405,6 +10428,7 @@ function openGameModal(name) {
 function closeGameModal(name) {
     const modal = document.getElementById("modal-" + name);
     if (modal) modal.classList.remove("open");
+    if (name === "party" || name === "box") clearAllHubFloatTips();
     if (name === "box") closeBoxSortMenu();
     syncActiveRailTab();
 }
