@@ -975,12 +975,12 @@ button.green:hover {
 .hub-main .skill-square.skill-locked:hover {
     border-color: #6b7280;
 }
-.hub-main .info-icon:hover .stats-tooltip {
-    display: none;
+.hub-main .info-icon .stats-tooltip {
+    display: none !important;
 }
 .hub-stats-tip-float {
     display: none;
-    position: fixed;
+    position: fixed !important;
     left: 0;
     top: 0;
     width: 270px;
@@ -989,16 +989,20 @@ button.green:hover {
     border: 2px solid #d4a04a;
     padding: 8px 10px 6px;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-    z-index: 10001;
+    z-index: 10001 !important;
     pointer-events: none;
     font-family: 'Lato', sans-serif;
     box-sizing: border-box;
+}
+.hub-stats-tip-float .st-title {
+    color: #fde68a;
 }
 .hub-stats-tip-float.is-visible {
     display: block;
 }
 .hub-float-skill-tip {
-    z-index: 10001;
+    position: fixed !important;
+    z-index: 10001 !important;
 }
 .hub-main .gear-row {
     display: grid;
@@ -8089,12 +8093,19 @@ function clearHubMonCardFloatTip(anchor) {
     }
 }
 
+function clearAllHubFloatTips() {
+    document.querySelectorAll(".hub-stats-tip-float, .hub-float-skill-tip").forEach(el => el.remove());
+}
+
 function showHubSkillFloatTip(square) {
     clearHubMonCardFloatTip(square);
     const tip = square.querySelector(".skill-tip");
     if (!tip) return;
     const floatTip = tip.cloneNode(true);
+    floatTip.classList.remove("skill-tip");
     floatTip.classList.add("battle-meter-skill-tip-float", "hub-float-skill-tip");
+    floatTip.style.position = "fixed";
+    floatTip.style.zIndex = "10001";
     square._hubFloatTip = positionBattleMeterFloatTip(square, floatTip, "right");
 }
 
@@ -8103,7 +8114,10 @@ function showHubStatsFloatTip(infoIcon) {
     const tip = infoIcon.querySelector(".stats-tooltip");
     if (!tip) return;
     const floatTip = tip.cloneNode(true);
+    floatTip.classList.remove("stats-tooltip");
     floatTip.classList.add("hub-stats-tip-float");
+    floatTip.style.position = "fixed";
+    floatTip.style.zIndex = "10001";
     infoIcon._hubFloatTip = positionBattleMeterFloatTip(infoIcon, floatTip, "right");
 }
 
