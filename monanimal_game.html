@@ -6580,6 +6580,8 @@ const STAT_RANGES = {
 };
 const STAT_SYSTEM_VERSION = 3;
 const STAT_SMALL_ROLL = 3;
+const STAT_LEVEL_GROWTH_PCT = 0.005;
+const ULTIMATE_SYSTEM_VERSION = 2;
 const BASE_CRIT_CHANCE = 20;
 const CRIT_DAMAGE_MULT = 1.1;
 const BASE_HIT_CHANCE = 90;
@@ -6591,23 +6593,102 @@ const MAX_BLOCK_CHANCE = 25;
 
 // Each species has its own FIXED ultimate (low-HP trigger chance, once per battle).
 const SPECIES_ULTIMATE = {
-    "Molandak":   { name: "Frost Nova",     element: "ice",      power: 2.2, desc: "Erupts in an icy nova for massive damage." },
-    "Chog":       { name: "Croak Quake",    element: "earth",    power: 2.2, desc: "A ground-shaking quake that crushes the foe." },
-    "Mouch":      { name: "Static Swarm",   element: "electric", power: 2.1, desc: "A swarm of static that shocks the enemy." },
-    "Salmonad":   { name: "Tidal Crash",    element: "water",    power: 2.3, desc: "A towering wave crashes down." },
-    "Anago":      { name: "Abyssal Coil",   element: "water",    power: 2.2, desc: "Crushing pressure from the deep." },
-    "Larvanad":   { name: "Venom Bloom",    element: "poison",   power: 2.1, desc: "A burst of toxic spores." },
-    "Lyraffe":    { name: "Gale Stampede",  element: "wind",     power: 2.2, desc: "A stampede wrapped in howling wind." },
-    "Mokadal":    { name: "Mind Crush",     element: "psychic",  power: 2.3, desc: "Shatters the foe's mind." },
-    "Monavara":   { name: "Void Pulse",     element: "dark",     power: 2.3, desc: "A pulse of pure void energy." },
-    "Moncock":    { name: "Crimson Spur",   element: "fire",     power: 2.2, desc: "A blazing crimson strike." },
-    "Mondigrade": { name: "Seismic Shell",  element: "earth",    power: 2.4, desc: "An armored seismic slam." },
-    "Montiger":   { name: "Apex Roar",      element: "physical", power: 2.4, desc: "A ferocious apex-predator assault." },
-    "Mosferatu":  { name: "Blood Moon",     element: "dark",     power: 2.3, desc: "Drains life under a blood moon." },
-    "Moxy":       { name: "Shock Nova",     element: "electric", power: 2.2, desc: "An explosive nova of lightning." },
-    "Shramp":     { name: "Bubble Barrage", element: "water",    power: 2.0, desc: "A relentless barrage of bubbles." },
-    "Spidermon":  { name: "Web Cataclysm",  element: "poison",   power: 2.3, desc: "Ensnares and poisons the foe." },
-    "Moyaki":     { name: "Flame Geyser",   element: "fire",     power: 2.3, desc: "A geyser of searing flame." },
+    "Montiger": {
+        name: "Apex Roar", element: "physical", power: 2.4,
+        desc: "A ferocious apex assault. +25% crit chance; crit deals +50% bonus damage.",
+        ultCritChanceBonus: 25, ultCritDamageMult: 1.5,
+    },
+    "Monavara": {
+        name: "Void Pulse", element: "dark", power: 2.2,
+        desc: "Void energy surges. +30% damage if the target is below 50% HP.",
+        executeThreshold: 0.5, executeBonus: 0.3,
+    },
+    "Moncock": {
+        name: "Crimson Spur", element: "fire", power: 2.3,
+        desc: "A blazing strike. 30% chance to Burn (6% max HP/turn, 2 turns).",
+        effect: { type: "burn", chance: 0.3, turns: 2 },
+    },
+    "Larvanad": {
+        name: "Venom Bloom", element: "poison", power: 2.0,
+        desc: "Toxic burst. Applies Poison and +15% crit chance on this hit.",
+        ultCritChanceBonus: 15,
+        effect: { type: "poison", chance: 1 },
+    },
+    "Molandak": {
+        name: "Frost Nova", element: "ice", power: 2.1,
+        desc: "Icy nova. Ignores 50% of enemy Block. 40% chance to Freeze.",
+        ignoreBlock: 0.5,
+        effect: { type: "frozen", chance: 0.4 },
+    },
+    "Mokadal": {
+        name: "Mind Crush", element: "psychic", power: 2.3,
+        desc: "Shatters the mind. Ignores Block. Stuns if target survives below 25% HP.",
+        ignoreBlock: 1,
+        stunIfBelowHp: 0.25,
+    },
+    "Anago": {
+        name: "Abyssal Coil", element: "water", power: 2.2,
+        desc: "Deep pressure. +20% damage vs shielded or high-Block (15+) foes.",
+        bonusVsBlock: 0.2, bonusVsBlockMin: 15, bonusVsShield: 0.2,
+    },
+    "Mondigrade": {
+        name: "Seismic Shell", element: "earth", power: 2.2,
+        desc: "Armored slam. +15 BLOCK for 2 turns and 10% max HP shield.",
+        selfBuff: { id: "seismicguard", turns: 2, statMods: { block: 15 } },
+        shieldPct: 0.10, shieldTurns: 2, shieldId: "seismicshield",
+    },
+    "Chog": {
+        name: "Croak Quake", element: "earth", power: 2.0,
+        desc: "Ground-shaking quake. Stuns 1 turn and +10 BLOCK for 1 turn.",
+        effect: { type: "stun", chance: 1 },
+        selfBuff: { id: "croakguard", turns: 1, statMods: { block: 10 } },
+    },
+    "Shramp": {
+        name: "Bubble Barrage", element: "water",
+        desc: "3 bubble hits (0.7× ATK each) and 15% max HP shield for 2 turns.",
+        multiHit: [0.7, 0.7, 0.7],
+        shieldPct: 0.15, shieldTurns: 2, shieldId: "bubbleshield",
+    },
+    "Lyraffe": {
+        name: "Gale Stampede", element: "wind",
+        desc: "2 wind strikes (1.1× ATK). Bonus 0.8× hit if 10+ SPD faster than foe.",
+        multiHit: [1.1, 1.1],
+        bonusHit: { power: 0.8, spdLead: 10 },
+    },
+    "Mouch": {
+        name: "Static Swarm", element: "electric",
+        desc: "4 static hits (0.55× ATK). Each hit 15% chance to Stun.",
+        multiHit: [0.55, 0.55, 0.55, 0.55],
+        stunPerHit: 0.15,
+    },
+    "Moxy": {
+        name: "Shock Nova", element: "electric", power: 2.1,
+        desc: "Lightning nova. +20 SPD for 2 turns.",
+        selfBuff: { id: "shockswift", turns: 2, statMods: { spd: 20 } },
+    },
+    "Salmonad": {
+        name: "Tidal Crash", element: "water", power: 2.4,
+        desc: "Towering wave. Cannot be blocked.",
+        cannotBeBlocked: true,
+    },
+    "Moyaki": {
+        name: "Flame Geyser", element: "fire", power: 2.2,
+        desc: "Searing geyser. Applies Burn (3 turns). +25% damage if target is already Burning.",
+        bonusIfBurning: 0.25,
+        effect: { type: "burn", chance: 1, turns: 3 },
+    },
+    "Spidermon": {
+        name: "Web Cataclysm", element: "poison", power: 1.8,
+        desc: "Web blast. Poison, -10 enemy HIT and +10 DODGE for 2 turns.",
+        effect: { type: "poison", chance: 1 },
+        enemyDebuff: { id: "webbed", turns: 2, statMods: { hit: -10 } },
+        selfBuff: { id: "webdodge", turns: 2, statMods: { dodge: 10 } },
+    },
+    "Mosferatu": {
+        name: "Blood Moon", element: "dark", power: 2.2,
+        desc: "Life drain under a blood moon. Heals 40% of damage dealt.",
+        lifesteal: 0.4,
+    },
 };
 
 // Fixed combat identity per species: specialty + stat shape (0–1 bias within rarity range).
@@ -8680,20 +8761,60 @@ function formatHealSkillDetail(mon, skill) {
     return parts.join(" · ");
 }
 
+function formatUltimateSkillDetail(monOrFighter, skill) {
+    const atk = monOrFighter.atkPower != null
+        ? getEffectiveAtkPower(monOrFighter)
+        : getEffectiveStats(monOrFighter).atk;
+    const parts = [];
+    if (skill.multiHit?.length) {
+        let total = skill.multiHit.reduce((sum, p) => sum + p, 0);
+        if (skill.bonusHit) total += skill.bonusHit.power;
+        parts.push("DMG: ~" + Math.floor(atk * total) + " (" + skill.multiHit.length + (skill.bonusHit ? "+" : "") + " hits)");
+    } else if (skill.power > 0) {
+        parts.push("DMG: " + Math.floor(atk * skill.power) + " (ATK " + atk + " × " + skill.power + ")");
+    }
+    if (skill.ultCritChanceBonus) parts.push("+" + skill.ultCritChanceBonus + "% crit chance on ult");
+    if (skill.ultCritDamageMult) parts.push("+" + Math.round((skill.ultCritDamageMult - 1) * 100) + "% crit damage on ult");
+    if (skill.executeThreshold) parts.push("+" + Math.round((skill.executeBonus || 0) * 100) + "% dmg if foe below " + Math.round(skill.executeThreshold * 100) + "% HP");
+    if (skill.cannotBeBlocked) parts.push("Cannot be blocked");
+    if (skill.ignoreBlock >= 1) parts.push("Ignores Block");
+    else if (skill.ignoreBlock > 0) parts.push("Ignores " + Math.round(skill.ignoreBlock * 100) + "% of Block");
+    if (skill.bonusVsBlock) parts.push("+" + Math.round(skill.bonusVsBlock * 100) + "% vs high-Block foes");
+    if (skill.bonusVsShield) parts.push("+" + Math.round(skill.bonusVsShield * 100) + "% vs shielded foes");
+    if (skill.bonusIfBurning) parts.push("+" + Math.round(skill.bonusIfBurning * 100) + "% if target is Burning");
+    if (skill.lifesteal) parts.push("Heal " + Math.round(skill.lifesteal * 100) + "% of damage dealt");
+    if (skill.shieldPct) parts.push("Shield " + Math.round(skill.shieldPct * 100) + "% max HP for " + (skill.shieldTurns || 2) + " turns");
+    if (skill.selfBuff?.statMods?.block) parts.push("+" + skill.selfBuff.statMods.block + " BLOCK for " + skill.selfBuff.turns + " turn(s)");
+    if (skill.selfBuff?.statMods?.spd) parts.push("+" + skill.selfBuff.statMods.spd + " SPD for " + skill.selfBuff.turns + " turn(s)");
+    if (skill.selfBuff?.statMods?.dodge) parts.push("+" + skill.selfBuff.statMods.dodge + " DODGE for " + skill.selfBuff.turns + " turn(s)");
+    if (skill.enemyDebuff?.statMods?.hit) parts.push(skill.enemyDebuff.statMods.hit + " enemy HIT for " + skill.enemyDebuff.turns + " turn(s)");
+    if (skill.stunPerHit) parts.push(Math.round(skill.stunPerHit * 100) + "% Stun chance per hit");
+    if (skill.stunIfBelowHp) parts.push("Stuns if foe survives below " + Math.round(skill.stunIfBelowHp * 100) + "% HP");
+    if (skill.effect?.type === "poison") parts.push("Poison: " + Math.round(POISON_TICK_PCT * 100) + "% max HP/turn");
+    if (skill.effect?.type === "burn") {
+        const turns = skill.effect.turns ?? BURN_TURNS;
+        const chance = skill.effect.chance != null ? Math.round(skill.effect.chance * 100) + "% " : "";
+        parts.push(chance + "Burn: " + Math.round(BURN_TICK_PCT * 100) + "% max HP/turn for " + turns + " turns");
+    }
+    if (skill.effect?.type === "stun") parts.push("Stuns (skip turn)");
+    if (skill.effect?.type === "frozen") {
+        const chance = skill.effect.chance != null ? Math.round(skill.effect.chance * 100) + "% " : "";
+        parts.push(chance + "Freeze (heal/cleanse only)");
+    }
+    if (skill.bonusHit) parts.push("Bonus hit if " + skill.bonusHit.spdLead + "+ SPD faster");
+    return parts.join(" · ");
+}
+
 function getSkillStatsLine(mon, skill) {
     if (skill.type === "passive") return formatPassiveDetail(skill);
     if (skill.type === "ultimate") {
-        const atk = getEffectiveStats(mon).atk;
-        const dmg = Math.floor(atk * (skill.power || 1));
-        const dmgPart = skill.power > 0
-            ? "DMG: " + dmg + " (ATK " + atk + " × " + skill.power + ")"
-            : "No direct damage";
         const triggerPart = formatUltimateTriggerDetail({
             hp: mon.current_hp ?? mon.max_hp,
             maxHp: mon.max_hp,
             ultimateUsed: false,
         });
-        return [triggerPart, dmgPart].filter(Boolean).join(" · ");
+        const detailPart = formatUltimateSkillDetail(mon, skill);
+        return [triggerPart, detailPart].filter(Boolean).join(" · ");
     }
     const manaPart = (skill.type === "active" || skill.type === "heal")
         ? "Mana: " + getSkillManaCost(skill) : "";
@@ -8793,11 +8914,8 @@ function formatHealSkillDetailForFighter(fighter, skill) {
 function getSkillStatsLineForFighter(fighter, skill) {
     if (skill.type === "passive") return formatPassiveDetail(skill);
     if (skill.type === "ultimate") {
-        const dmg = calculateDamage(fighter, BATTLE_METER_DUMMY_DEFENDER, skill);
-        const dmgPart = skill.power > 0
-            ? "DMG: " + dmg + " (ATK " + getEffectiveAtkPower(fighter) + " × " + skill.power + ")"
-            : "No direct damage";
-        return [formatUltimateTriggerDetail(fighter), dmgPart].filter(Boolean).join(" · ");
+        const detailPart = formatUltimateSkillDetail(fighter, skill);
+        return [formatUltimateTriggerDetail(fighter), detailPart].filter(Boolean).join(" · ");
     }
     const manaPart = (skill.type === "active" || skill.type === "heal")
         ? "Mana: " + getSkillManaCost(skill) : "";
@@ -8870,7 +8988,10 @@ function getMonAttackRange(mon) {
     const eff = getEffectiveStats(mon);
     const stub = {
         atkPower: eff.atk,
-        stats: mon.stats ? { ...mon.stats } : {},
+        stats: {
+            spd: eff.spd, crit: eff.crit, dodge: eff.dodge, block: eff.block,
+            hit: eff.hit, pierce: eff.pierce, specialty: eff.specialty
+        },
         skills: (mon.skills || []).map(s => ({ ...s })),
         ultimate: mon.ultimate ? { ...mon.ultimate } : null,
         status: [],
@@ -9085,6 +9206,12 @@ function ensureMonReady(mon) {
         mon.stats = generateStats(mon.name, mon.rarity);
         mon.statVersion = STAT_SYSTEM_VERSION;
     }
+    if (mon.ultimateVersion !== ULTIMATE_SYSTEM_VERSION) {
+        const ult = getSpeciesUltimate(mon.name);
+        if (mon.skills?.length) mon.skills[0] = { ...ult };
+        mon.ultimate = { ...ult };
+        mon.ultimateVersion = ULTIMATE_SYSTEM_VERSION;
+    }
     migrateSkillDefinitions(mon);
     if (needsSkillMigration(mon)) {
         mon.skills = generateSkills(mon.name, mon.rarity);
@@ -9274,18 +9401,26 @@ function getGearBonuses(mon) {
     });
     return b;
 }
+
+function scaleStatWithLevel(baseStat, level) {
+    const lvl = Math.max(1, Math.floor(level || 1));
+    return Math.round((baseStat || 0) * (1 + STAT_LEVEL_GROWTH_PCT * (lvl - 1)));
+}
+
 function getEffectiveStats(mon) {
     ensureMonReady(mon);
     const gb = getGearBonuses(mon);
+    const lvl = Math.floor(mon.level || 1);
+    const s = mon.stats || {};
     return {
-        atk: getBaseAtk(Math.floor(mon.level), mon.rarity) + (gb.atk || 0),
-        spd: mon.stats.spd + (gb.spd || 0),
-        crit: mon.stats.crit + (gb.crit || 0),
-        dodge: mon.stats.dodge + (gb.dodge || 0),
-        block: mon.stats.block + (gb.block || 0),
-        hit: mon.stats.hit + (gb.hit || 0),
-        pierce: mon.stats.pierce + (gb.pierce || 0),
-        specialty: mon.stats.specialty
+        atk: getBaseAtk(lvl, mon.rarity) + (gb.atk || 0),
+        spd: scaleStatWithLevel(s.spd, lvl) + (gb.spd || 0),
+        crit: scaleStatWithLevel(s.crit, lvl) + (gb.crit || 0),
+        dodge: scaleStatWithLevel(s.dodge, lvl) + (gb.dodge || 0),
+        block: scaleStatWithLevel(s.block, lvl) + (gb.block || 0),
+        hit: scaleStatWithLevel(s.hit, lvl) + (gb.hit || 0),
+        pierce: scaleStatWithLevel(s.pierce, lvl) + (gb.pierce || 0),
+        specialty: s.specialty
     };
 }
 function refreshMonDerivedStats(mon) {
@@ -10332,6 +10467,103 @@ function isFrozen(fighter) {
     return hasStatus(fighter, "frozen");
 }
 
+function applyDamageToFighter(fighter, rawDmg) {
+    let dmg = Math.max(0, Math.floor(rawDmg));
+    if (dmg <= 0) return 0;
+    let dealt = 0;
+    if (fighter.status?.length) {
+        for (const st of fighter.status) {
+            if (dmg <= 0) break;
+            if (st.shield > 0) {
+                const absorbed = Math.min(st.shield, dmg);
+                st.shield -= absorbed;
+                dmg -= absorbed;
+                dealt += absorbed;
+            }
+        }
+        fighter.status = fighter.status.filter(st => st.shield == null || st.shield > 0);
+    }
+    if (dmg > 0) {
+        fighter.hp = Math.max(0, fighter.hp - dmg);
+        dealt += dmg;
+    }
+    return dealt;
+}
+
+function getUltimateHitPowers(skill, atk, def) {
+    if (skill.multiHit?.length) {
+        const hits = [...skill.multiHit];
+        if (skill.bonusHit && getBattleStat(atk, "spd") >= getBattleStat(def, "spd") + (skill.bonusHit.spdLead || 0)) {
+            hits.push(skill.bonusHit.power);
+        }
+        return hits;
+    }
+    return [skill.power != null ? skill.power : 1];
+}
+
+function getUltimateCritChance(atk, skill) {
+    let chance = getCritChance(atk);
+    if (skill.ultCritChanceBonus) chance += skill.ultCritChanceBonus;
+    return chance;
+}
+
+function applyUltDamageModifiers(atk, def, skill, dmg) {
+    let out = dmg;
+    if (skill.executeThreshold && def.maxHp > 0 && def.hp > 0 && def.hp / def.maxHp < skill.executeThreshold) {
+        out = Math.floor(out * (1 + (skill.executeBonus || 0)));
+    }
+    if (skill.bonusVsBlock && getBattleStat(def, "block") >= (skill.bonusVsBlockMin || 15)) {
+        out = Math.floor(out * (1 + skill.bonusVsBlock));
+    }
+    if (skill.bonusVsShield && getBattleShield(def) > 0) {
+        out = Math.floor(out * (1 + (skill.bonusVsShield || 0)));
+    }
+    if (skill.bonusIfBurning && hasStatus(def, "burn")) {
+        out = Math.floor(out * (1 + skill.bonusIfBurning));
+    }
+    return out;
+}
+
+function getUltBlockChance(def, atk, skill, isUlt, defenderCanEvade) {
+    if (!defenderCanEvade) return 0;
+    if (isUlt && skill.cannotBeBlocked) return 0;
+    let block = getEffectiveBlock(def, atk);
+    if (isUlt && skill.ignoreBlock != null) {
+        if (skill.ignoreBlock >= 1) return 0;
+        block = block * (1 - skill.ignoreBlock);
+    }
+    return block;
+}
+
+function applyUltimateExtras(atk, def, skill, totalDealt, atkSide) {
+    if (skill.lifesteal && totalDealt > 0) {
+        const heal = Math.floor(totalDealt * skill.lifesteal);
+        if (heal > 0) {
+            atk.hp = Math.min(atk.maxHp, atk.hp + heal);
+            if (atkSide) showDamage(atkSide, heal, "heal");
+        }
+    }
+    if (skill.selfBuff) applySelfBuff(atk, skill.selfBuff);
+    if (skill.shieldPct) {
+        addStatus(atk, {
+            id: skill.shieldId || "ultshield",
+            turns: skill.shieldTurns || 2,
+            shield: Math.max(1, Math.ceil(atk.maxHp * skill.shieldPct)),
+        });
+    }
+    if (skill.enemyDebuff && def.hp >= 0) {
+        addStatus(def, {
+            id: skill.enemyDebuff.id || "ultdebuff",
+            turns: skill.enemyDebuff.turns || 2,
+            statMods: { ...(skill.enemyDebuff.statMods || {}) },
+        });
+    }
+    if (skill.effect) tryApplySkillEffect(atk, def, skill);
+    if (skill.stunIfBelowHp && def.hp > 0 && def.maxHp > 0 && def.hp / def.maxHp < skill.stunIfBelowHp) {
+        addStatus(def, { id: "stun" });
+    }
+}
+
 function tryApplySkillEffect(atk, def, skill) {
     if (!skill.effect || def.hp <= 0) return;
     const chance = skill.effect.chance ?? 1;
@@ -10400,7 +10632,12 @@ function syncFighterStatusFx(side, fighter) {
 function renderStatusRow(side, fighter) {
     const el = document.getElementById("status-" + side);
     if (!el) return;
-    const labels = { stun: "STUN", frozen: "FROZEN", poison: "POISON", burn: "BURN", renew: "ATK+", lifebloom: "CRIT+" };
+    const labels = {
+        stun: "STUN", frozen: "FROZEN", poison: "POISON", burn: "BURN",
+        renew: "ATK+", lifebloom: "CRIT+", seismicguard: "BLOCK+", croakguard: "BLOCK+",
+        shockswift: "SPD+", webdodge: "DODGE+", webbed: "HIT-", seismicshield: "SHIELD",
+        bubbleshield: "SHIELD", ultshield: "SHIELD", ultdebuff: "DEBUFF"
+    };
     el.innerHTML = (fighter.status || []).map(st =>
         `<span class="status-pill ${st.id}">${labels[st.id] || st.id.toUpperCase()}</span>`
     ).join("");
@@ -11539,6 +11776,7 @@ function buildTestMon(name, rarity, level, passiveName, activeNames) {
     };
     mon.ultimate = { ...mon.skills[0] };
     mon.statVersion = STAT_SYSTEM_VERSION;
+    mon.ultimateVersion = ULTIMATE_SYSTEM_VERSION;
     refreshMonDerivedStats(mon);
     return mon;
 }
@@ -12235,11 +12473,11 @@ function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 // their HP can be written back (it persists after the battle).
 function makeFighter(mon, isPlayer, options = {}) {
     ensureMonReady(mon);
-    const eff = isPlayer ? getEffectiveStats(mon) : null;
-    const stats = isPlayer ? {
+    const eff = getEffectiveStats(mon);
+    const stats = {
         spd: eff.spd, crit: eff.crit, dodge: eff.dodge, block: eff.block,
         hit: eff.hit, pierce: eff.pierce, specialty: eff.specialty
-    } : { ...mon.stats };
+    };
     const trainerName = options.trainerName != null
         ? options.trainerName
         : (isPlayer
@@ -12251,7 +12489,7 @@ function makeFighter(mon, isPlayer, options = {}) {
         trainerName,
         maxHp: mon.max_hp,
         hp: isPlayer ? Math.max(0, mon.current_hp) : mon.max_hp,
-        atkPower: isPlayer ? eff.atk : getBaseAtk(Math.floor(mon.level), mon.rarity),
+        atkPower: eff.atk,
         stats,
         skills: mon.skills.map(s => ({ ...s })),
         ultimate: { ...mon.ultimate },
@@ -12402,7 +12640,11 @@ function getBattleAttackRange(fighter) {
     const skillSources = [fighter.ultimate, ...(fighter.skills || [])];
     skillSources.forEach(skill => {
         if (!skill) return;
-        if ((skill.type === "active" || skill.type === "ultimate") && (skill.power || 0) > 0) {
+        if (skill.multiHit?.length) {
+            let totalPower = skill.multiHit.reduce((sum, p) => sum + p, 0);
+            if (skill.bonusHit) totalPower += skill.bonusHit.power;
+            damages.push(Math.floor(getEffectiveAtkPower(fighter) * totalPower));
+        } else if ((skill.type === "active" || skill.type === "ultimate") && (skill.power || 0) > 0) {
             damages.push(calculateDamage(fighter, BATTLE_METER_DUMMY_DEFENDER, skill));
         }
     });
@@ -12982,7 +13224,6 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         return;
     }
 
-    const poisonOnly = skill.effect?.type === "poison" && (skill.power || 0) <= 0;
     const attackPath = getAttackSpritePath(atk.name);
     let animStart = 0;
     const defenderCanEvade = !isUlt && !hasStatus(def, "stun");
@@ -13007,36 +13248,62 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         return;
     }
 
-    let dmg = calculateDamage(atk, def, skill);
-    if (!poisonOnly && dmg > 0) {
-        let crit = false, blocked = false;
-        if (Math.random() * 100 < getCritChance(atk)) {
-            dmg = Math.floor(dmg + getCritDamageRating(atk) * CRIT_DAMAGE_MULT);
-            crit = true;
-        }
-        const effBlock = defenderCanEvade ? getEffectiveBlock(def, atk) : 0;
-        if (effBlock > 0 && Math.random() * 100 < effBlock) { dmg = Math.floor(dmg * 0.5); blocked = true; }
-        dmg = Math.max(1, dmg);
+    let dmg = 0;
+    const poisonOnly = !isUlt && skill.effect?.type === "poison" && (skill.power || 0) <= 0;
+    const hitPowers = (isUlt && (skill.multiHit?.length || skill.bonusHit))
+        ? getUltimateHitPowers(skill, atk, def)
+        : [skill.power != null ? skill.power : (skill.type === "normal" ? NORMAL_ATTACK_POWER : 1)];
 
-        showAttackSkillBodyFx(defSide, skill, isUlt, blocked ? "block" : "hit");
+    let totalDealt = 0;
+    for (let hi = 0; hi < hitPowers.length; hi++) {
+        const hitSkill = { ...skill, power: hitPowers[hi] };
+        dmg = calculateDamage(atk, def, hitSkill);
+        if (isUlt) dmg = applyUltDamageModifiers(atk, def, skill, dmg);
 
-        def.hp = Math.max(0, def.hp - dmg);
-        const dw = document.getElementById("wrap-" + defSide);
-        dw.classList.add(blocked ? "block-shake" : "hit-shake");
-        setTimeout(() => dw.classList.remove(blocked ? "block-shake" : "hit-shake"), 300);
-        showDamage(defSide, dmg, crit ? "crit" : blocked ? "block" : "");
-        if (blocked) {
-            showBlockShield(defSide);
-            showSkillCallout(defSide, "BLOCKED!", { status: true, block: true });
+        if (!poisonOnly && dmg > 0) {
+            let crit = false, blocked = false;
+            const critChance = isUlt ? getUltimateCritChance(atk, skill) : getCritChance(atk);
+            if (Math.random() * 100 < critChance) {
+                let critBonus = Math.floor(getCritDamageRating(atk) * CRIT_DAMAGE_MULT);
+                if (isUlt && skill.ultCritDamageMult) critBonus = Math.floor(critBonus * skill.ultCritDamageMult);
+                dmg = Math.floor(dmg + critBonus);
+                crit = true;
+            }
+            const effBlock = getUltBlockChance(def, atk, skill, isUlt, defenderCanEvade);
+            if (effBlock > 0 && Math.random() * 100 < effBlock) {
+                dmg = Math.floor(dmg * 0.5);
+                blocked = true;
+            }
+            dmg = Math.max(1, dmg);
+
+            showAttackSkillBodyFx(defSide, skill, isUlt, blocked ? "block" : "hit");
+            const dealt = applyDamageToFighter(def, dmg);
+            totalDealt += dealt;
+            const dw = document.getElementById("wrap-" + defSide);
+            dw.classList.add(blocked ? "block-shake" : "hit-shake");
+            setTimeout(() => dw.classList.remove(blocked ? "block-shake" : "hit-shake"), 300);
+            showDamage(defSide, dmg, crit ? "crit" : blocked ? "block" : "");
+            if (blocked) {
+                showBlockShield(defSide);
+                showSkillCallout(defSide, "BLOCKED!", { status: true, block: true });
+            }
+            breakFrozenOnHit(def, dmg);
+        } else if (poisonOnly) {
+            showAttackSkillBodyFx(defSide, skill, isUlt, "hit");
+            showDamage(defSide, 0, "poison");
         }
-        breakFrozenOnHit(def, dmg);
-    } else if (poisonOnly) {
-        showAttackSkillBodyFx(defSide, skill, isUlt, "hit");
-        showDamage(defSide, 0, "poison");
+
+        if (isUlt && skill.stunPerHit && def.hp > 0 && !hasStatus(def, "stun") && Math.random() < skill.stunPerHit) {
+            addStatus(def, { id: "stun" });
+        }
+        if (def.hp <= 0) break;
+        if (hitPowers.length > 1 && hi < hitPowers.length - 1) await delay(160);
     }
 
-    tryApplySkillEffect(atk, def, skill);
+    if (isUlt) applyUltimateExtras(atk, def, skill, totalDealt, atkSide);
+    else tryApplySkillEffect(atk, def, skill);
     renderStatusRow(defSide, def);
+    renderStatusRow(atkSide, atk);
 
     finishTurn();
 

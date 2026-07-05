@@ -173,10 +173,39 @@ function sanitizeSkill(raw) {
     skill.effect = {
       type: trimString(raw.effect.type, 24),
       turns: raw.effect.turns != null ? clampInt(raw.effect.turns, 1, 99) : undefined,
+      chance: raw.effect.chance != null ? clampNum(raw.effect.chance, 0, 1) : undefined,
     };
   }
   if (raw.selfBuff && typeof raw.selfBuff === "object") {
     skill.selfBuff = raw.selfBuff;
+  }
+  if (Array.isArray(raw.multiHit)) {
+    skill.multiHit = raw.multiHit.map((v) => clampNum(v, 0, 10)).filter((v) => v > 0).slice(0, 8);
+  }
+  if (raw.bonusHit && typeof raw.bonusHit === "object") {
+    skill.bonusHit = {
+      power: clampNum(raw.bonusHit.power, 0, 10),
+      spdLead: raw.bonusHit.spdLead != null ? clampInt(raw.bonusHit.spdLead, 0, 200) : undefined,
+    };
+  }
+  if (raw.ultCritChanceBonus != null) skill.ultCritChanceBonus = clampInt(raw.ultCritChanceBonus, 0, 100);
+  if (raw.ultCritDamageMult != null) skill.ultCritDamageMult = clampNum(raw.ultCritDamageMult, 1, 5);
+  if (raw.executeThreshold != null) skill.executeThreshold = clampNum(raw.executeThreshold, 0, 1);
+  if (raw.executeBonus != null) skill.executeBonus = clampNum(raw.executeBonus, 0, 2);
+  if (raw.ignoreBlock != null) skill.ignoreBlock = clampNum(raw.ignoreBlock, 0, 1);
+  if (raw.cannotBeBlocked === true) skill.cannotBeBlocked = true;
+  if (raw.bonusVsBlock != null) skill.bonusVsBlock = clampNum(raw.bonusVsBlock, 0, 2);
+  if (raw.bonusVsBlockMin != null) skill.bonusVsBlockMin = clampInt(raw.bonusVsBlockMin, 0, 100);
+  if (raw.bonusVsShield != null) skill.bonusVsShield = clampNum(raw.bonusVsShield, 0, 2);
+  if (raw.bonusIfBurning != null) skill.bonusIfBurning = clampNum(raw.bonusIfBurning, 0, 2);
+  if (raw.lifesteal != null) skill.lifesteal = clampNum(raw.lifesteal, 0, 1);
+  if (raw.shieldPct != null) skill.shieldPct = clampNum(raw.shieldPct, 0, 1);
+  if (raw.shieldTurns != null) skill.shieldTurns = clampInt(raw.shieldTurns, 1, 10);
+  if (typeof raw.shieldId === "string") skill.shieldId = trimString(raw.shieldId, 24);
+  if (raw.stunPerHit != null) skill.stunPerHit = clampNum(raw.stunPerHit, 0, 1);
+  if (raw.stunIfBelowHp != null) skill.stunIfBelowHp = clampNum(raw.stunIfBelowHp, 0, 1);
+  if (raw.enemyDebuff && typeof raw.enemyDebuff === "object") {
+    skill.enemyDebuff = raw.enemyDebuff;
   }
   return skill.name ? skill : null;
 }
@@ -213,6 +242,7 @@ export function sanitizeMon(raw) {
   const stats = sanitizeMonStats(raw.stats);
   if (stats) mon.stats = stats;
   if (Number.isFinite(raw.statVersion)) mon.statVersion = clampInt(raw.statVersion, 1, 99);
+  if (Number.isFinite(raw.ultimateVersion)) mon.ultimateVersion = clampInt(raw.ultimateVersion, 1, 99);
 
   if (Array.isArray(raw.skills)) {
     const skills = raw.skills.map(sanitizeSkill).filter(Boolean).slice(0, LIMITS.skillsMax);
