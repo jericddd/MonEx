@@ -1002,7 +1002,58 @@ button.green:hover {
 .hub-main .skill-square.skill-locked:hover {
     border-color: #6b7280;
 }
-.hub-main .info-icon .stats-tooltip {
+.hub-main .skill-square.skill-unlock-pending {
+    background: linear-gradient(145deg, #854d0e 0%, #713f12 100%);
+    border-color: #fbbf24;
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.35), 1px 1px 0 #78350f;
+    cursor: pointer;
+    animation: skill-unlock-pulse 1.4s ease-in-out infinite;
+}
+.hub-main .skill-square.skill-unlock-pending:hover {
+    border-color: #fde68a;
+    box-shadow: 0 0 14px rgba(251, 191, 36, 0.55), 2px 2px 0 #92400e;
+    transform: scale(1.04);
+}
+.hub-main .skill-unlock-icon {
+    font-size: clamp(12px, 60%, 18px);
+    line-height: 1;
+    filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.65));
+}
+.hub-main .skill-unlock-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(4px, 22%, 6px);
+    color: #fde68a;
+    margin-top: 2px;
+    line-height: 1.2;
+    pointer-events: none;
+}
+@keyframes skill-unlock-pulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(251, 191, 36, 0.28), 1px 1px 0 #78350f; }
+    50% { box-shadow: 0 0 16px rgba(251, 191, 36, 0.55), 1px 1px 0 #78350f; }
+}
+.ascension-skill-picker-panel {
+    background: linear-gradient(180deg, #5c3a24 0%, #3d2518 100%);
+    border: 3px solid #d4a04a;
+    box-shadow: 4px 4px 0 #2a1810;
+    padding: 18px;
+    max-width: 520px;
+    width: min(92vw, 520px);
+    color: #ffe8c8;
+}
+.ascension-skill-picker-panel h3 {
+    margin: 0 0 6px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: #fde68a;
+    line-height: 1.5;
+    text-align: center;
+}
+.ascension-skill-picker-panel .picker-sub {
+    text-align: center;
+    font-size: 12px;
+    color: rgba(255, 232, 200, 0.8);
+    margin: 0 0 12px;
+}
     display: none !important;
 }
 .hub-stats-tip-float {
@@ -1888,7 +1939,19 @@ button.green:hover {
     object-fit: contain;
     image-rendering: pixelated;
 }
-.hero-ascension-pick-item .hero-asc-pick-name {
+.hero-ascension-pick-item .hero-asc-loc-tag {
+    position: absolute;
+    top: 2px;
+    left: 3px;
+    font-size: 7px;
+    font-weight: 700;
+    color: #fde68a;
+    background: rgba(0, 0, 0, 0.55);
+    padding: 1px 3px;
+    border-radius: 2px;
+    line-height: 1.2;
+    pointer-events: none;
+}
     font-size: 6px;
     font-family: 'Press Start 2P', monospace;
     color: #ffe8c8;
@@ -7170,8 +7233,8 @@ let _gearIdSeq = 0;
 let gearSynthSlots = [null, null, null];
 let armoryActiveTab = "synthesize";
 let gearEnhanceTargetId = null;
-let heroAscensionMainIndex = null;
-let heroAscensionDupeBoxIndices = [];
+let heroAscensionMainMon = null;
+let heroAscensionDupeMons = [];
 const HERO_ASCENSION_MAX_STARS = 2;
 const HERO_ASCENSION_DUPES_REQUIRED = [2, 4];
 const HERO_ASCENSION_SUCCESS_RATE = 0.75;
@@ -8621,9 +8684,10 @@ function renderAscendBtn(index, mon) {
 
 // Skill slots: 1st = ultimate (species-fixed), 2nd = passive (RNG), 3rd+ = actives (RNG).
 // Hub cards always show 12 slots in a 6×2 grid, with locked placeholders.
-function renderSkillsGrid(mon, location) {
+function renderSkillsGrid(mon, location, monIndex) {
     ensureMonReady(mon);
     const skills = mon.skills || [];
+    const cap = getMonSkillSlotCap(mon);
     const squares = [];
     for (let i = 0; i < BATTLE_METER_SKILL_SLOTS; i++) {
         const skill = skills[i];
@@ -8633,11 +8697,54 @@ function renderSkillsGrid(mon, location) {
                 ${getSkillIcon(skill)}
                 ${renderSkillTip(mon, skill)}
             </div>`);
+        } else if (i < cap && i === skills.length && mon.ascensionSkillPending?.length) {
+            squares.push(renderAscensionUnlockSlot(location, monIndex, i));
         } else {
             squares.push(renderBattleMeterLockedSlot(i));
         }
     }
     return `<div class="skills-grid skills-grid--card">${squares.join("")}</div>`;
+}
+
+function renderAscensionUnlockSlot(location, monIndex, slotIndex) {
+    return `<button type="button" class="skill-square skill-unlock-pending" data-slot="${slotIndex + 1}" onclick="event.stopPropagation(); openAscensionSkillPicker('${location}', ${monIndex})" aria-label="Unlock ascension skill">
+        <span class="skill-unlock-icon" aria-hidden="true">🔓</span>
+        <span class="skill-unlock-label">UNLOCK</span>
+    </button>`;
+}
+
+function closeAscensionSkillPicker() {
+    document.querySelectorAll(".ascension-skill-picker-overlay").forEach(el => el.remove());
+}
+
+function openAscensionSkillPicker(location, monIndex) {
+    const list = location === "party" ? party : box;
+    const mon = list[monIndex];
+    if (!mon?.ascensionSkillPending?.length) return;
+    closeAscensionSkillPicker();
+    const options = mon.ascensionSkillPending;
+    const afford = money >= HERO_SKILL_UNLOCK_GOLD;
+    const cards = options.map((skill, i) => {
+        const typeLabel = skill.type === "passive" ? "Passive" : (skill.element || "Active");
+        return `<button type="button" class="hero-skill-option-btn" onclick="confirmHeroAscensionSkill('${location}', ${monIndex}, ${i})" ${afford ? "" : "disabled style='opacity:0.5'"}>
+            <b>${skill.name}</b>
+            ${typeLabel}
+            <br><small>${skill.desc || ""}</small>
+        </button>`;
+    }).join("");
+    const modal = document.createElement("div");
+    modal.className = "popup-overlay ascension-skill-picker-overlay";
+    modal.onclick = (e) => { if (e.target === modal) closeAscensionSkillPicker(); };
+    modal.innerHTML = `
+        <div class="ascension-skill-picker-panel" onclick="event.stopPropagation()">
+            <h3>★ UNLOCK SKILL — ${mon.name}</h3>
+            <p class="picker-sub">Choose one (${HERO_SKILL_UNLOCK_GOLD} Gold). These 3 options stay fixed until you pick.</p>
+            <div class="hero-skill-option-grid">${cards}</div>
+            <div style="text-align:center;margin-top:12px;">
+                <button type="button" class="gear-synth-open-btn" onclick="closeAscensionSkillPicker()">CLOSE</button>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
 }
 
 function clearHubMonCardFloatTip(anchor) {
@@ -8684,7 +8791,7 @@ function bindHubMonCardTips(card) {
         infoIcon.addEventListener("mouseenter", () => showHubStatsFloatTip(infoIcon));
         infoIcon.addEventListener("mouseleave", () => clearHubMonCardFloatTip(infoIcon));
     }
-    card.querySelectorAll(".skills-grid .skill-square").forEach(square => {
+    card.querySelectorAll(".skills-grid .skill-square:not(.skill-unlock-pending)").forEach(square => {
         if (square._hubTipBound) return;
         square._hubTipBound = true;
         square.addEventListener("mouseenter", () => showHubSkillFloatTip(square));
@@ -9384,16 +9491,17 @@ function renderGearEnhancePanel(container) {
 }
 
 function rollHeroAscensionSkillOptions(mon) {
+    ensureMonReady(mon);
     const usedNames = new Set((mon.skills || []).map(skill => skill.name));
-    const pool = [...PASSIVE_SKILL_POOL, ...getActiveSkillPoolForMon(mon.skills)];
+    if (mon.ultimate?.name) usedNames.add(mon.ultimate.name);
+    const pool = [...PASSIVE_SKILL_POOL, ...getActiveSkillPoolForMon(mon.skills)]
+        .filter(skill => !usedNames.has(skill.name));
     const options = [];
-    let guard = 0;
-    while (options.length < 3 && guard < 80) {
-        guard++;
-        const blocked = new Set([...usedNames, ...options.map(skill => skill.name)]);
+    const blocked = new Set(usedNames);
+    while (options.length < 3 && pool.length > 0) {
         const skill = pickUniqueSkill(pool, blocked);
         if (!skill) break;
-        options.push(skill);
+        options.push({ ...skill });
     }
     return options;
 }
@@ -9402,35 +9510,35 @@ function getHeroAscensionDupeRequirement(stars) {
     return HERO_ASCENSION_DUPES_REQUIRED[stars] ?? null;
 }
 
-function analyzeHeroAscension(mainIndex, dupeBoxIndices) {
-    const main = party[mainIndex];
-    if (!main) return { type: "invalid", reason: "Select a party hero as your main." };
+function analyzeHeroAscension(mainMon, dupeMons) {
+    const main = mainMon;
+    if (!main) return { type: "invalid", reason: "Select a <b>main hero</b> from your Party or Box." };
     ensureMonReady(main);
     const stars = main.ascensionStars || 0;
     if (stars >= HERO_ASCENSION_MAX_STARS) {
         return { type: "invalid", reason: `${main.name} already has ${HERO_ASCENSION_MAX_STARS} ascension stars.` };
     }
     if (main.ascensionSkillPending?.length) {
-        return { type: "pending_skill", mainIndex, main };
+        return { type: "pending_skill", main };
     }
     const required = getHeroAscensionDupeRequirement(stars);
     if (required == null) return { type: "invalid", reason: "Cannot ascend further." };
-    if (dupeBoxIndices.length !== required) {
+    const dupes = dupeMons || [];
+    if (dupes.length !== required) {
         return {
             type: "invalid",
-            reason: `Star ${stars + 1} needs <b>1 main + ${required} duplicates</b> of the same species (${dupeBoxIndices.length}/${required} selected).`,
+            reason: `Star ${stars + 1} needs <b>1 main + ${required} duplicates</b> of the same species (${dupes.length}/${required} selected).`,
         };
     }
-    for (const boxIndex of dupeBoxIndices) {
-        const dupe = box[boxIndex];
-        if (!dupe) return { type: "invalid", reason: "One or more selected duplicates are no longer in your Box." };
+    for (const dupe of dupes) {
+        if (!dupe) return { type: "invalid", reason: "One or more selected duplicates are no longer available." };
+        if (dupe === main) return { type: "invalid", reason: "The main hero cannot also be a duplicate." };
         if (dupe.name !== main.name) {
             return { type: "invalid", reason: "All duplicates must match the main hero's species." };
         }
     }
     return {
         type: "ready",
-        mainIndex,
         main,
         stars,
         nextStar: stars + 1,
@@ -9441,54 +9549,62 @@ function analyzeHeroAscension(mainIndex, dupeBoxIndices) {
 }
 
 function describeHeroAscensionRecipe(recipe) {
-    if (!recipe) return "Select your <b>main party hero</b>, then pick matching duplicates from your Box.";
+    if (!recipe) return "Select your <b>main hero</b> from Party or Box, then pick matching duplicates.";
     if (recipe.type === "pending_skill") {
-        return `<b>Skill unlock ready</b> — choose one of three skills for <b>${recipe.main.name}</b> (${HERO_SKILL_UNLOCK_GOLD} Gold).`;
+        return `<b>Skill unlock ready</b> — tap <b>🔓 UNLOCK</b> on ${recipe.main.name}'s card to choose a skill (${HERO_SKILL_UNLOCK_GOLD} Gold).`;
     }
     if (recipe.type === "invalid") return recipe.reason;
     const pct = Math.round(recipe.rate * 100);
     return `<b>Star ${recipe.nextStar}</b> — ${recipe.main.name} + ${recipe.required}× ${recipe.main.name} duplicate(s) · <b>${pct}%</b> success · fail consumes duplicates`;
 }
 
-function heroAscensionSelectMain(partyIndex) {
-    if (!party[partyIndex]) return;
-    heroAscensionMainIndex = partyIndex;
-    heroAscensionDupeBoxIndices = [];
+function heroAscensionSelectMain(location, index) {
+    const list = location === "party" ? party : box;
+    const mon = list[index];
+    if (!mon) return;
+    heroAscensionMainMon = mon;
+    heroAscensionDupeMons = [];
     renderArmoryPane();
 }
 
-function heroAscensionToggleDupe(boxIndex) {
-    if (heroAscensionMainIndex == null || !party[heroAscensionMainIndex]) return;
-    const main = party[heroAscensionMainIndex];
-    const dupe = box[boxIndex];
-    if (!dupe || dupe.name !== main.name) return;
-    const stars = main.ascensionStars || 0;
-    const required = getHeroAscensionDupeRequirement(stars);
+function heroAscensionToggleDupe(location, index) {
+    if (!heroAscensionMainMon) return;
+    const list = location === "party" ? party : box;
+    const dupe = list[index];
+    if (!dupe || dupe === heroAscensionMainMon) return;
+    if (dupe.name !== heroAscensionMainMon.name) return;
+    const required = getHeroAscensionDupeRequirement(heroAscensionMainMon.ascensionStars || 0);
     if (required == null) return;
-    const pos = heroAscensionDupeBoxIndices.indexOf(boxIndex);
+    const pos = heroAscensionDupeMons.indexOf(dupe);
     if (pos >= 0) {
-        heroAscensionDupeBoxIndices.splice(pos, 1);
-    } else if (heroAscensionDupeBoxIndices.length < required) {
-        heroAscensionDupeBoxIndices.push(boxIndex);
+        heroAscensionDupeMons.splice(pos, 1);
+    } else if (heroAscensionDupeMons.length < required) {
+        heroAscensionDupeMons.push(dupe);
     }
     renderArmoryPane();
 }
 
-function removeHeroAscensionDupesFromBox(indices) {
-    [...indices].sort((a, b) => b - a).forEach((boxIndex) => {
-        if (box[boxIndex]) box.splice(boxIndex, 1);
+function removeHeroAscensionDupes(dupeMons) {
+    dupeMons.forEach((mon) => {
+        const pi = party.indexOf(mon);
+        if (pi >= 0) {
+            party.splice(pi, 1);
+            return;
+        }
+        const bi = box.indexOf(mon);
+        if (bi >= 0) box.splice(bi, 1);
     });
-    heroAscensionDupeBoxIndices = [];
+    heroAscensionDupeMons = [];
 }
 
 function executeHeroAscension() {
-    if (heroAscensionMainIndex == null) {
-        alert("Select a main hero from your party first.");
+    if (!heroAscensionMainMon) {
+        alert("Select a main hero from your Party or Box first.");
         return;
     }
-    const recipe = analyzeHeroAscension(heroAscensionMainIndex, heroAscensionDupeBoxIndices);
+    const recipe = analyzeHeroAscension(heroAscensionMainMon, heroAscensionDupeMons);
     if (recipe.type === "pending_skill") {
-        alert("Unlock the pending star skill before ascending again.");
+        alert("Unlock the pending star skill on the hero's card (🔓 slot) before ascending again.");
         return;
     }
     if (recipe.type !== "ready") {
@@ -9503,17 +9619,19 @@ function executeHeroAscension() {
     if (!confirm(`Attempt Hero Ascension?\n\n${preview}\n\nCost: ${recipe.gold} Gold\nDuplicates are consumed whether you succeed or fail.`)) return;
 
     money -= recipe.gold;
-    const dupeIndices = [...heroAscensionDupeBoxIndices];
-    removeHeroAscensionDupesFromBox(dupeIndices);
+    const dupesToRemove = [...heroAscensionDupeMons];
+    removeHeroAscensionDupes(dupesToRemove);
 
-    const main = party[recipe.mainIndex];
+    const main = heroAscensionMainMon;
     const success = Math.random() < recipe.rate;
     if (success) {
         main.ascensionStars = (main.ascensionStars || 0) + 1;
-        main.ascensionSkillPending = rollHeroAscensionSkillOptions(main);
-        alert(`Ascension success! ${main.name} earned ★${main.ascensionStars}.\nChoose a skill to unlock (${HERO_SKILL_UNLOCK_GOLD} Gold).`);
+        if (!main.ascensionSkillPending?.length) {
+            main.ascensionSkillPending = rollHeroAscensionSkillOptions(main);
+        }
+        alert(`Ascension success! ${main.name} earned ★${main.ascensionStars}.\nTap 🔓 UNLOCK on their card to choose a skill (${HERO_SKILL_UNLOCK_GOLD} Gold).`);
     } else {
-        alert(`Ascension failed.\nDuplicates were consumed.`);
+        alert("Ascension failed.\nDuplicates were consumed.");
     }
 
     sortBox();
@@ -9522,8 +9640,9 @@ function executeHeroAscension() {
     renderArmoryPane();
 }
 
-function confirmHeroAscensionSkill(partyIndex, optionIndex) {
-    const mon = party[partyIndex];
+function confirmHeroAscensionSkill(location, monIndex, optionIndex) {
+    const list = location === "party" ? party : box;
+    const mon = list[monIndex];
     if (!mon?.ascensionSkillPending?.length) return;
     const skill = mon.ascensionSkillPending[optionIndex];
     if (!skill) return;
@@ -9535,46 +9654,69 @@ function confirmHeroAscensionSkill(partyIndex, optionIndex) {
         alert("This hero has no free skill slots for ascension.");
         return;
     }
+    const alreadyKnown = (mon.skills || []).some(s => s.name === skill.name);
+    if (alreadyKnown) {
+        alert(`${skill.name} is already on this hero. Pick a different option.`);
+        return;
+    }
     money -= HERO_SKILL_UNLOCK_GOLD;
     mon.skills.push({ ...skill });
     migrateSkillDefinitions(mon);
     syncUltimateFromSkills(mon);
     refreshMonDerivedStats(mon);
     delete mon.ascensionSkillPending;
+    closeAscensionSkillPicker();
     saveData();
     updateUI();
     renderArmoryPane();
     alert(`${mon.name} learned ${skill.name}!`);
 }
 
-function renderHeroSkillUnlockPanel(main, partyIndex) {
-    const options = main.ascensionSkillPending || [];
-    if (!options.length) return "";
-    const cards = options.map((skill, i) => {
-        const afford = money >= HERO_SKILL_UNLOCK_GOLD;
-        return `<button type="button" class="hero-skill-option-btn" onclick="confirmHeroAscensionSkill(${partyIndex}, ${i})" ${afford ? "" : "disabled style='opacity:0.5'"}>
-            <b>${skill.name}</b>
-            ${skill.type === "passive" ? "Passive" : skill.element || "Active"}
-            <br><small>${skill.desc || ""}</small>
-        </button>`;
-    }).join("");
-    return `<div class="hero-skill-unlock-panel">
-        <h4>★ UNLOCK STAR SKILL — ${main.name}</h4>
-        <p class="gear-synth-note" style="margin-bottom:10px;">Pick one skill (${HERO_SKILL_UNLOCK_GOLD} Gold). These three options are locked in until you choose.</p>
-        <div class="hero-skill-option-grid">${cards}</div>
-    </div>`;
+function renderHeroAscensionRosterPick(mainMon, dupeMons, mode) {
+    const sections = [];
+    const renderSection = (label, location, list) => {
+        if (!list.length) return;
+        const items = list.map((mon, index) => {
+            const isMainMode = mode === "main";
+            const selected = isMainMode
+                ? mainMon === mon
+                : dupeMons.includes(mon);
+            const isMain = mainMon === mon;
+            const disabled = !isMainMode && (isMain || (mainMon && mon.name !== mainMon.name));
+            const cls = [
+                "hero-ascension-pick-item",
+                selected ? (isMainMode ? "is-main" : "selected") : "",
+                disabled ? "used" : "",
+            ].filter(Boolean).join(" ");
+            const onclick = isMainMode
+                ? `heroAscensionSelectMain('${location}', ${index})`
+                : `heroAscensionToggleDupe('${location}', ${index})`;
+            const locTag = location === "party" ? "P" : "B";
+            return `<button type="button" class="${cls}" onclick="${onclick}" title="${mon.name} · ${label}" ${disabled ? "disabled" : ""}>
+                <span class="hero-asc-loc-tag">${locTag}</span>
+                <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
+                <span class="hero-asc-pick-name">${mon.name}</span>
+                <span class="hero-ascension-dupes-badge">★${mon.ascensionStars || 0}</span>
+            </button>`;
+        }).join("");
+        sections.push(`<p class="gear-synth-note" style="margin:8px 0 6px;"><b>${label}</b></p><div class="gear-synth-pick-grid" style="max-height:160px;">${items}</div>`);
+    };
+    renderSection("Party", "party", party);
+    renderSection("Box", "box", box);
+    if (!sections.length) {
+        return `<p style="text-align:center;color:rgba(255,232,200,0.65);font-size:12px;margin:0;">No heroes in Party or Box.</p>`;
+    }
+    return sections.join("");
 }
 
 function renderHeroAscensionPanel(container) {
     const el = container || document.getElementById("armory-pane-content");
     if (!el) return;
 
-    const recipe = heroAscensionMainIndex != null
-        ? analyzeHeroAscension(heroAscensionMainIndex, heroAscensionDupeBoxIndices)
-        : null;
+    const main = heroAscensionMainMon;
+    const recipe = analyzeHeroAscension(main, heroAscensionDupeMons);
     const recipeCls = recipe && (recipe.type === "ready" || recipe.type === "pending_skill") ? "" : " invalid";
     const canAscend = recipe?.type === "ready" && money >= (recipe.gold || 0);
-    const main = heroAscensionMainIndex != null ? party[heroAscensionMainIndex] : null;
 
     const mainSlot = main
         ? `<div class="hero-ascension-main-slot" title="${main.name}">
@@ -9586,8 +9728,7 @@ function renderHeroAscensionPanel(container) {
     const required = main ? getHeroAscensionDupeRequirement(main.ascensionStars || 0) : null;
     const dupeSlots = required
         ? Array.from({ length: required }, (_, i) => {
-            const boxIndex = heroAscensionDupeBoxIndices[i];
-            const dupe = boxIndex != null ? box[boxIndex] : null;
+            const dupe = heroAscensionDupeMons[i];
             if (!dupe) {
                 return `<div class="hero-ascension-main-slot" style="width:78px;height:78px;border-color:#d4a04a;opacity:0.5;"><span style="font-size:18px;">+</span></div>`;
             }
@@ -9597,39 +9738,15 @@ function renderHeroAscensionPanel(container) {
         }).join('<span class="gear-synth-op">+</span>')
         : "";
 
-    const partyPick = party.length
-        ? party.map((mon, index) => {
-            const selected = heroAscensionMainIndex === index;
-            return `<button type="button" class="hero-ascension-pick-item${selected ? " is-main" : ""}" onclick="heroAscensionSelectMain(${index})" title="${mon.name}">
-                <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
-                <span class="hero-asc-pick-name">${mon.name}</span>
-                <span class="hero-ascension-dupes-badge">★${mon.ascensionStars || 0}</span>
-            </button>`;
-        }).join("")
-        : `<p style="grid-column:1/-1;text-align:center;color:rgba(255,232,200,0.65);font-size:12px;margin:0;">Add heroes to your party first.</p>`;
-
-    const matchingDupes = main
-        ? box.map((mon, index) => ({ mon, index })).filter(({ mon }) => mon.name === main.name)
-        : [];
-    const dupePick = matchingDupes.length
-        ? matchingDupes.map(({ mon, index }) => {
-            const selected = heroAscensionDupeBoxIndices.includes(index);
-            return `<button type="button" class="hero-ascension-pick-item${selected ? " selected" : ""}" onclick="heroAscensionToggleDupe(${index})" title="${mon.name} Lv.${Math.floor(mon.level)}">
-                <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
-                <span class="hero-asc-pick-name">Lv.${Math.floor(mon.level)}</span>
-            </button>`;
-        }).join("")
-        : `<p style="grid-column:1/-1;text-align:center;color:rgba(255,232,200,0.65);font-size:12px;margin:0;">${main ? `No extra ${main.name} copies in your Box.` : "Select a main hero to see matching duplicates."}</p>`;
-
-    const skillUnlock = recipe?.type === "pending_skill"
-        ? renderHeroSkillUnlockPanel(recipe.main, recipe.mainIndex)
-        : (main?.ascensionSkillPending?.length ? renderHeroSkillUnlockPanel(main, heroAscensionMainIndex) : "");
+    const rosterMain = renderHeroAscensionRosterPick(main, heroAscensionDupeMons, "main");
+    const rosterDupes = main
+        ? renderHeroAscensionRosterPick(main, heroAscensionDupeMons, "dupe")
+        : `<p style="text-align:center;color:rgba(255,232,200,0.65);font-size:12px;margin:0;">Select a main hero to pick duplicates.</p>`;
 
     el.innerHTML = `
         <div class="hero-ascension-panel">
-            <p class="gear-synth-note">Hero Ascension: sacrifice duplicate copies to earn ★ stars. <b>Star 1</b> = 1 main + 2 dupes · <b>Star 2</b> = 1 main + 4 dupes · <b>75%</b> success. Each star unlocks a new skill (pick 1 of 3).</p>
+            <p class="gear-synth-note">Hero Ascension: sacrifice duplicate copies to earn ★ stars. <b>Star 1</b> = 1 main + 2 dupes · <b>Star 2</b> = 1 main + 4 dupes · <b>75%</b> success. Each star unlocks a new skill (tap 🔓 on the hero card).</p>
             <div class="gear-synth-recipe-bar${recipeCls}">${describeHeroAscensionRecipe(recipe)}</div>
-            ${skillUnlock}
             <div class="hero-ascension-workbench">
                 ${mainSlot}
                 ${required ? `<span class="gear-synth-op">+</span>${dupeSlots}` : ""}
@@ -9638,15 +9755,15 @@ function renderHeroAscensionPanel(container) {
             <div class="gear-synth-actions">
                 <div class="gear-synth-cost">${currencyIcon("gold", 18)} <span>${recipe?.gold || 0} Gold</span></div>
                 <button type="button" class="gear-synth-btn" onclick="executeHeroAscension()" ${canAscend ? "" : "disabled"} style="border-color:#fbbf24;background:linear-gradient(180deg,#fde68a 0%,#f59e0b 100%);color:#451a03;box-shadow:3px 3px 0 #92400e;">ASCEND</button>
-                <button type="button" class="gear-synth-open-btn" onclick="heroAscensionMainIndex=null;heroAscensionDupeBoxIndices=[];renderArmoryPane();">CLEAR</button>
+                <button type="button" class="gear-synth-open-btn" onclick="heroAscensionMainMon=null;heroAscensionDupeMons=[];renderArmoryPane();">CLEAR</button>
             </div>
             <div>
-                <p class="gear-synth-note" style="margin-bottom:8px;"><b>Party — main hero</b></p>
-                <div class="gear-synth-pick-grid" style="max-height:140px;">${partyPick}</div>
+                <p class="gear-synth-note" style="margin-bottom:8px;"><b>Main hero</b> — Party or Box</p>
+                ${rosterMain}
             </div>
             <div>
-                <p class="gear-synth-note" style="margin-bottom:8px;"><b>Box — duplicates</b> (same species as main)</p>
-                <div class="gear-synth-pick-grid">${dupePick}</div>
+                <p class="gear-synth-note" style="margin-bottom:8px;"><b>Duplicates</b> — same species (Party or Box, not the main)</p>
+                ${rosterDupes}
             </div>
         </div>
     `;
@@ -10254,7 +10371,7 @@ function renderMonCardInner(mon, index, location) {
         </div>
     </div>
     <div class="mon-card-loadout">
-        ${renderSkillsGrid(mon, location)}
+        ${renderSkillsGrid(mon, location, index)}
         ${renderGearRow(location, index, mon)}
     </div>
     ${statusLine}
