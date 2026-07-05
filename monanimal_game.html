@@ -1054,6 +1054,7 @@ button.green:hover {
     color: rgba(255, 232, 200, 0.8);
     margin: 0 0 12px;
 }
+.hub-main .info-icon .stats-tooltip {
     display: none !important;
 }
 .hub-stats-tip-float {
@@ -4837,30 +4838,6 @@ body.afk-layout .currency-pill .currency-tip {
     margin-left: 6px;
     vertical-align: middle;
 }
-.battle-leave-panel {
-    background: white;
-    padding: 30px;
-    border: 4px solid #6B21A8;
-    box-shadow: 4px 4px 0 #6B21A8;
-    text-align: center;
-    max-width: 420px;
-    font-family: 'Lato', sans-serif;
-}
-.battle-leave-panel p {
-    font-family: 'Lato', sans-serif;
-    font-size: 16px;
-    margin-bottom: 25px;
-    line-height: 1.5;
-}
-.battle-leave-panel button {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 8px;
-    padding: 12px 28px;
-    border: none;
-    cursor: pointer;
-}
-.battle-leave-stay { background: #6B21A8; color: white; }
-.battle-leave-confirm { background: #ef4444; color: white; }
 #battle-content { flex: 1; width: 100%; min-height: 0; }
 #battle-content .battle-stage {
     position: absolute;
@@ -4920,6 +4897,165 @@ body.afk-layout .currency-pill .currency-tip {
     padding: var(--modal-drop) 20px 20px;
     box-sizing: border-box;
     z-index: 500;
+}
+.hub-popup-overlay {
+    background: rgba(0, 0, 0, 0.78);
+    z-index: 600;
+    align-items: center;
+    padding: 20px;
+}
+.hub-popup-frame {
+    position: relative;
+    width: min(92vw, 420px);
+    max-width: 520px;
+    padding: 0;
+    box-sizing: border-box;
+}
+.hub-popup-close-left {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 5;
+    width: 32px;
+    height: 32px;
+    border: 2px solid #991b1b;
+    border-radius: 6px;
+    background: linear-gradient(180deg, #ef4444, #b91c1c);
+    color: #fff;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #7f1d1d;
+}
+.hub-popup-close-left:hover {
+    filter: brightness(1.08);
+}
+.hub-popup-inner {
+    padding: 44px 22px 22px;
+    color: #ffe8c8;
+}
+.hub-popup-title {
+    margin: 0 0 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: #fde68a;
+    text-align: center;
+    line-height: 1.5;
+}
+.hub-popup-sub {
+    text-align: center;
+    font-size: 13px;
+    color: rgba(255, 232, 200, 0.85);
+    margin: 0 0 18px;
+    line-height: 1.45;
+}
+.hub-popup-qty-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin: 8px 0 20px;
+}
+.hub-popup-qty-btn {
+    width: 44px;
+    height: 44px;
+    border: 2px solid #c46a28;
+    border-radius: 6px;
+    background: linear-gradient(180deg, #f0a040 0%, #d07020 100%);
+    color: #3d1a08;
+    font-size: 22px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #5c3010;
+    line-height: 1;
+    padding: 0;
+}
+.hub-popup-qty-btn:hover:not(:disabled) {
+    filter: brightness(1.06);
+}
+.hub-popup-qty-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.hub-popup-qty-value {
+    min-width: 56px;
+    text-align: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    color: #fde68a;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 2px solid #8b4513;
+    border-radius: 6px;
+}
+.hub-popup-total {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 2px solid #8b4513;
+    border-radius: 6px;
+}
+.hub-popup-total-label {
+    display: block;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: rgba(255, 232, 200, 0.7);
+    margin-bottom: 8px;
+}
+.hub-popup-total-cost {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fde68a;
+}
+.hub-popup-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.hub-popup-actions-split {
+    gap: 10px;
+}
+.hub-popup-btn {
+    padding: 12px 20px;
+    border: 2px solid #f59e0b;
+    background: linear-gradient(180deg, #fde68a 0%, #f59e0b 100%);
+    color: #451a03;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 #92400e;
+}
+.hub-popup-btn:hover:not(:disabled) {
+    filter: brightness(1.05);
+}
+.hub-popup-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+.hub-popup-btn-primary {
+    border-color: #15803d;
+    background: linear-gradient(180deg, #86efac 0%, #16a34a 100%);
+    color: #14532d;
+    box-shadow: 2px 2px 0 #166534;
+}
+.hub-popup-btn-danger {
+    border-color: #991b1b;
+    background: linear-gradient(180deg, #ef4444, #b91c1c);
+    color: #fff;
+    box-shadow: 2px 2px 0 #7f1d1d;
+}
+.hub-popup-btn-muted {
+    border-color: #6b7280;
+    background: linear-gradient(180deg, #e5e7eb, #9ca3af);
+    color: #1f2937;
+    box-shadow: 2px 2px 0 #4b5563;
+}
+.hub-popup-wide {
+    width: min(92vw, 520px);
+    max-width: 560px;
 }
 .game-modal-panel {
     background: white;
@@ -8799,15 +8935,15 @@ function openAscensionSkillPicker(location, monIndex) {
         </button>`;
     }).join("");
     const modal = document.createElement("div");
-    modal.className = "popup-overlay ascension-skill-picker-overlay";
+    modal.className = "popup-overlay hub-popup-overlay ascension-skill-picker-overlay";
     modal.onclick = (e) => { if (e.target === modal) closeAscensionSkillPicker(); };
     modal.innerHTML = `
-        <div class="ascension-skill-picker-panel" onclick="event.stopPropagation()">
-            <h3>★ UNLOCK SKILL — ${mon.name}</h3>
-            <p class="picker-sub">Choose one (${HERO_SKILL_UNLOCK_GOLD} Gold). These 3 options stay fixed until you pick.</p>
-            <div class="hero-skill-option-grid">${cards}</div>
-            <div style="text-align:center;margin-top:12px;">
-                <button type="button" class="gear-synth-open-btn" onclick="closeAscensionSkillPicker()">CLOSE</button>
+        <div class="hub-popup-frame hub-frame hub-popup-wide" onclick="event.stopPropagation()">
+            <button type="button" class="hub-popup-close-left" aria-label="Close" onclick="closeAscensionSkillPicker()">&times;</button>
+            <div class="hub-popup-inner">
+                <h3 class="hub-popup-title">★ UNLOCK SKILL — ${mon.name}</h3>
+                <p class="hub-popup-sub">Choose one (${HERO_SKILL_UNLOCK_GOLD} Gold). These 3 options stay fixed until you pick.</p>
+                <div class="hero-skill-option-grid">${cards}</div>
             </div>
         </div>`;
     document.body.appendChild(modal);
@@ -10619,15 +10755,143 @@ function renderBox() {
 }
 
 // ==================== ACTIONS ====================
-function buyMonball() {
-    if (money >= 500) {
-        money -= 500;
-        monballs++;
-        saveData();
-        updateUI();
-    } else {
-        alert("Not enough money!");
+const MONBALL_QUICK_BUY = {
+    id: "_monball1",
+    name: "Monball",
+    desc: "One Monball for catching wild Monanimals.",
+    cost: { gold: 500 },
+    grant: { monballs: 1 },
+};
+
+function multiplyCost(cost, qty) {
+    const out = {};
+    if (cost.gold) out.gold = cost.gold * qty;
+    if (cost.essence) out.essence = cost.essence * qty;
+    if (cost.monShards) out.monShards = cost.monShards * qty;
+    return out;
+}
+
+function getMaxAffordableQty(cost) {
+    const limits = [];
+    if (cost.gold) limits.push(Math.floor(money / cost.gold));
+    if (cost.essence) limits.push(Math.floor(essence / cost.essence));
+    if (cost.monShards) limits.push(Math.floor(monShards / cost.monShards));
+    if (!limits.length) return 99;
+    return Math.max(0, Math.min(99, ...limits));
+}
+
+function grantShopItem(item, qty) {
+    const mult = qty || 1;
+    if (item.grant.monballs) monballs += item.grant.monballs * mult;
+    if (item.grant.essence) essence += item.grant.essence * mult;
+    if (item.grant.monShards) monShards += item.grant.monShards * mult;
+}
+
+function executeShopPurchase(item, qty) {
+    const totalCost = multiplyCost(item.cost, qty);
+    if (!canAffordCost(totalCost)) return false;
+    spendCost(totalCost);
+    grantShopItem(item, qty);
+    saveData();
+    updateUI();
+    if (typeof renderShop === "function") renderShop();
+    return true;
+}
+
+function showHubNotice(message, title = "NOTICE") {
+    const overlay = document.createElement("div");
+    overlay.className = "popup-overlay hub-popup-overlay";
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    overlay.innerHTML = `
+        <div class="hub-popup-frame hub-frame" onclick="event.stopPropagation()">
+            <button type="button" class="hub-popup-close-left" aria-label="Close">&times;</button>
+            <div class="hub-popup-inner">
+                <h3 class="hub-popup-title">${title}</h3>
+                <p class="hub-popup-sub">${message}</p>
+                <div class="hub-popup-actions">
+                    <button type="button" class="hub-popup-btn hub-popup-btn-primary hub-popup-ok-btn">OK</button>
+                </div>
+            </div>
+        </div>`;
+    overlay.querySelector(".hub-popup-close-left").onclick = () => overlay.remove();
+    overlay.querySelector(".hub-popup-ok-btn").onclick = () => overlay.remove();
+    document.body.appendChild(overlay);
+}
+
+function openItemBuyPopup(item) {
+    if (!item) return;
+
+    let qty = 1;
+    const maxQty = Math.max(1, getMaxAffordableQty(item.cost));
+    const overlay = document.createElement("div");
+    overlay.className = "popup-overlay hub-popup-overlay";
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+    function refreshBuyPopup() {
+        const totalCost = multiplyCost(item.cost, qty);
+        const afford = canAffordCost(totalCost);
+        const qtyEl = overlay.querySelector(".hub-popup-qty-value");
+        const totalEl = overlay.querySelector(".hub-popup-total-cost");
+        const minusBtn = overlay.querySelector(".hub-popup-qty-minus");
+        const plusBtn = overlay.querySelector(".hub-popup-qty-plus");
+        const buyBtn = overlay.querySelector(".hub-popup-buy-btn");
+        if (qtyEl) qtyEl.textContent = String(qty);
+        if (totalEl) totalEl.innerHTML = formatCost(totalCost);
+        if (minusBtn) minusBtn.disabled = qty <= 1;
+        if (plusBtn) plusBtn.disabled = qty >= maxQty;
+        if (buyBtn) buyBtn.disabled = !afford;
     }
+
+    overlay.innerHTML = `
+        <div class="hub-popup-frame hub-frame" onclick="event.stopPropagation()">
+            <button type="button" class="hub-popup-close-left" aria-label="Close">&times;</button>
+            <div class="hub-popup-inner">
+                <h3 class="hub-popup-title">BUY — ${item.name.toUpperCase()}</h3>
+                <p class="hub-popup-sub">${item.desc}</p>
+                <div class="hub-popup-qty-row">
+                    <button type="button" class="hub-popup-qty-btn hub-popup-qty-minus" aria-label="Decrease">−</button>
+                    <span class="hub-popup-qty-value">1</span>
+                    <button type="button" class="hub-popup-qty-btn hub-popup-qty-plus" aria-label="Increase">+</button>
+                </div>
+                <div class="hub-popup-total">
+                    <span class="hub-popup-total-label">TOTAL COST</span>
+                    <span class="hub-popup-total-cost">${formatCost(item.cost)}</span>
+                </div>
+                <div class="hub-popup-actions">
+                    <button type="button" class="hub-popup-btn hub-popup-btn-primary hub-popup-buy-btn">BUY</button>
+                </div>
+            </div>
+        </div>`;
+
+    overlay.querySelector(".hub-popup-close-left").onclick = () => overlay.remove();
+    overlay.querySelector(".hub-popup-qty-minus").onclick = () => {
+        if (qty > 1) {
+            qty--;
+            refreshBuyPopup();
+        }
+    };
+    overlay.querySelector(".hub-popup-qty-plus").onclick = () => {
+        if (qty < maxQty) {
+            qty++;
+            refreshBuyPopup();
+        }
+    };
+    overlay.querySelector(".hub-popup-buy-btn").onclick = () => {
+        if (!executeShopPurchase(item, qty)) {
+            showHubNotice("Not enough resources!<br>Need: " + formatCost(multiplyCost(item.cost, qty)), "CAN'T BUY");
+            return;
+        }
+        overlay.remove();
+        const qtyLabel = qty > 1 ? " ×" + qty : "";
+        showHubNotice("Purchased " + item.name + qtyLabel + "!", "PURCHASED");
+    };
+
+    document.body.appendChild(overlay);
+    refreshBuyPopup();
+}
+
+function buyMonball() {
+    openItemBuyPopup(MONBALL_QUICK_BUY);
 }
 
 // Spend KB's Onion + Gold to level a party member up by one (also fully heals it).
@@ -10653,18 +10917,7 @@ function levelUpMonManual(index) {
 function buyShopItem(itemId) {
     const item = SHOP_ITEMS.find(i => i.id === itemId);
     if (!item) return;
-    if (!canAffordCost(item.cost)) {
-        alert("Not enough resources!\nNeed: " + formatCost(item.cost));
-        return;
-    }
-    spendCost(item.cost);
-    if (item.grant.monballs) monballs += item.grant.monballs;
-    if (item.grant.essence) essence += item.grant.essence;
-    if (item.grant.monShards) monShards += item.grant.monShards;
-    saveData();
-    updateUI();
-    renderShop();
-    alert("Purchased " + item.name + "!");
+    openItemBuyPopup(item);
 }
 
 function setShopCategory(categoryId) {
@@ -11095,54 +11348,33 @@ function swapPartyWithBox(partyIndex, boxIndex) {
     }
 }
 
-function showConfirmModal(message, onConfirm) {
-    const modal = document.createElement("div");
-    modal.className = "popup-overlay";
-    modal.style.background = "rgba(0,0,0,0.6)";
-
-    modal.innerHTML = `
-        <div style="
-            background: white;
-            border: 4px solid #6B21A8;
-            box-shadow: 4px 4px 0px #6B21A8;
-            padding: 30px;
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-        ">
-            <p style="font-size: 16px; margin-bottom: 25px;">${message}</p>
-            <div style="display: flex; gap: 15px; justify-content: center;">
-                <button id="confirm-yes" style="
-                    padding: 10px 25px;
-                    background: #ef4444;
-                    color: white;
-                    border: none;
-                    font-weight: bold;
-                    cursor: pointer;
-                ">Yes, Release</button>
-                
-                <button id="confirm-no" style="
-                    padding: 10px 25px;
-                    background: #f0f0f0;
-                    color: #111;
-                    border: none;
-                    font-weight: bold;
-                    cursor: pointer;
-                ">Cancel</button>
+function showConfirmModal(message, onConfirm, options = {}) {
+    const confirmLabel = options.confirmLabel || "Yes, Release";
+    const cancelLabel = options.cancelLabel || "Cancel";
+    const title = options.title || "CONFIRM";
+    const overlay = document.createElement("div");
+    overlay.className = "popup-overlay hub-popup-overlay";
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    overlay.innerHTML = `
+        <div class="hub-popup-frame hub-frame" onclick="event.stopPropagation()">
+            <button type="button" class="hub-popup-close-left" aria-label="Close">&times;</button>
+            <div class="hub-popup-inner">
+                <h3 class="hub-popup-title">${title}</h3>
+                <p class="hub-popup-sub">${message}</p>
+                <div class="hub-popup-actions hub-popup-actions-split">
+                    <button type="button" class="hub-popup-btn hub-popup-btn-danger" id="confirm-yes">${confirmLabel}</button>
+                    <button type="button" class="hub-popup-btn hub-popup-btn-muted" id="confirm-no">${cancelLabel}</button>
+                </div>
             </div>
         </div>
     `;
-
-    document.body.appendChild(modal);
-
-    modal.querySelector("#confirm-yes").onclick = () => {
-        modal.remove();
+    document.body.appendChild(overlay);
+    overlay.querySelector(".hub-popup-close-left").onclick = () => overlay.remove();
+    overlay.querySelector("#confirm-yes").onclick = () => {
+        overlay.remove();
         onConfirm();
     };
-
-    modal.querySelector("#confirm-no").onclick = () => {
-        modal.remove();
-    };
+    overlay.querySelector("#confirm-no").onclick = () => overlay.remove();
 }
 function releaseFromBox(index) {
     showConfirmModal("Are you sure you want to release this monanimal?", () => {
@@ -12990,19 +13222,23 @@ function renderInventory() {
 
 // Warning when trying to leave during battle
 function showBattleLeaveWarning(targetTab) {
-    const modal = document.createElement("div");
-    modal.className = "popup-overlay";
-    modal.style.background = "rgba(0,0,0,0.75)";
-    modal.innerHTML = `
-        <div class="battle-leave-panel">
-            <p>Leaving the battle now will count as a loss.<br>Are you sure you want to leave?</p>
-            <div style="display:flex; gap:15px; justify-content:center;">
-                <button class="battle-leave-confirm" onclick="confirmLeaveBattle('${targetTab}')">Yes, Leave (Lose)</button>
-                <button class="battle-leave-stay" onclick="stayInBattleFromWarning()">No, Stay in Battle</button>
+    const overlay = document.createElement("div");
+    overlay.className = "popup-overlay hub-popup-overlay";
+    overlay.onclick = (e) => { if (e.target === overlay) stayInBattleFromWarning(); };
+    overlay.innerHTML = `
+        <div class="hub-popup-frame hub-frame" onclick="event.stopPropagation()">
+            <button type="button" class="hub-popup-close-left" aria-label="Close" onclick="stayInBattleFromWarning()">&times;</button>
+            <div class="hub-popup-inner">
+                <h3 class="hub-popup-title">LEAVE BATTLE?</h3>
+                <p class="hub-popup-sub">Leaving the battle now will count as a loss.<br>Are you sure you want to leave?</p>
+                <div class="hub-popup-actions hub-popup-actions-split">
+                    <button type="button" class="hub-popup-btn hub-popup-btn-danger" onclick="confirmLeaveBattle('${targetTab}')">Yes, Leave (Lose)</button>
+                    <button type="button" class="hub-popup-btn hub-popup-btn-primary" onclick="stayInBattleFromWarning()">No, Stay in Battle</button>
+                </div>
             </div>
         </div>
     `;
-    document.body.appendChild(modal);
+    document.body.appendChild(overlay);
 }
 
 function confirmLeaveBattle(targetTab) {
