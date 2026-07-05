@@ -669,9 +669,21 @@ button.green:hover {
 #modal-party .hub-content-wrap {
     overflow: visible;
 }
+#modal-party .hub-frame,
 #modal-box .hub-frame,
 #modal-inventory .hub-frame {
     position: relative;
+}
+#modal-party .hub-frame > .hub-close-btn,
+#modal-box .hub-frame > .hub-close-btn,
+#modal-inventory .hub-frame > .hub-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 8;
+}
+#modal-box .hub-frame,
+#modal-inventory .hub-frame {
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
@@ -700,7 +712,7 @@ button.green:hover {
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 14px 6px 12px 16px;
+    padding: 14px 48px 14px 16px;
     margin: 0;
     box-sizing: border-box;
     border: none;
@@ -1466,6 +1478,11 @@ button.green:hover {
     display: block;
     position: fixed;
     z-index: 10050;
+    transform: none;
+    left: auto;
+    bottom: auto;
+    min-width: 148px;
+    box-sizing: border-box;
     background: linear-gradient(180deg, #3d2518 0%, #2a1810 100%);
     color: #ffe8c8;
     padding: 8px 11px;
@@ -1477,10 +1494,23 @@ button.green:hover {
     pointer-events: none;
 }
 .hover-tip-float .hover-tip-name {
+    display: block;
+    width: 100%;
     color: #fde68a;
+    font-family: "Press Start 2P", monospace;
+    font-size: 9px;
+    line-height: 1.5;
+    margin-bottom: 4px;
 }
 .hover-tip-float .hover-tip-desc {
+    display: block;
+    width: 100%;
     color: rgba(255, 232, 200, 0.92);
+    font-family: "Lato", sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.45;
+    white-space: normal;
 }
 .hover-tip-name {
     font-family: "Press Start 2P", monospace;
@@ -6603,9 +6633,8 @@ function showHoverFloatTip(el) {
     const panel = el.querySelector(":scope > .hover-tip-panel");
     if (!panel) return;
     const floatTip = panel.cloneNode(true);
+    floatTip.classList.remove("hover-tip-panel");
     floatTip.classList.add("hover-tip-float");
-    floatTip.style.position = "fixed";
-    floatTip.style.zIndex = "10050";
     floatTip.style.display = "block";
     el._hoverFloatTip = positionHoverFloatTip(el, floatTip);
 }
