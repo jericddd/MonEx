@@ -86,3 +86,22 @@ test("resource chest timestamp clamped to 24h window", () => {
   );
   assert.equal(save.resourceChestLastCollectAt, now - 24 * 60 * 60 * 1000);
 });
+
+test("preserves hero ascension fields on mons", () => {
+  const mon = sanitizeMon({
+    name: "Anago",
+    rarity: "Legendary",
+    level: 15,
+    max_hp: 500,
+    current_hp: 500,
+    ascensionStars: 1,
+    ascensionSkillPending: [
+      { name: "Sharp Claws", type: "passive", element: "passive", dmgDealt: 1.2, desc: "Deals 20% more damage." },
+      { name: "Flame Burst", type: "active", element: "fire", power: 1.1, desc: "Fire burst." },
+    ],
+  });
+  assert.equal(mon.ascensionStars, 1);
+  assert.equal(mon.ascensionSkillPending.length, 2);
+  assert.equal(mon.ascensionSkillPending[0].name, "Sharp Claws");
+  assert.equal(mon.ascensionSkillPending[0].dmgDealt, 1.2);
+});

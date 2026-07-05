@@ -133,6 +133,7 @@ function buildSavePayload(state) {
     resourceChestLastCollectAt: state.resourceChestLastCollectAt,
     adventureBattleActive: !!state.adventureBattleActive,
     saveVersion: state.saveVersion ?? 1,
+    updatedAt: state.updatedAt || new Date().toISOString(),
   };
 }
 

@@ -49,6 +49,8 @@ export const LIMITS = {
   stagesPerChapter: 40,
   gearEnhanceMax: 8,
   maxGearTier: 5,
+  ascensionStarsMax: 2,
+  ascensionSkillPendingMax: 3,
   resourceChestMaxMs: 24 * 60 * 60 * 1000,
   clockSkewMs: 5 * 60 * 1000,
   stringMaxLen: 120,
@@ -156,6 +158,26 @@ function sanitizeSkill(raw) {
   if (typeof raw.desc === "string") skill.desc = trimString(raw.desc, 200);
   if (raw.manaCost != null) skill.manaCost = clampInt(raw.manaCost, 0, 999);
   if (raw.cooldown != null) skill.cooldown = clampInt(raw.cooldown, 0, 99);
+  if (raw.healPower != null) skill.healPower = clampNum(raw.healPower, 0, 10);
+  if (raw.dmgTaken != null) skill.dmgTaken = clampNum(raw.dmgTaken, 0, 1);
+  if (raw.dmgDealt != null) skill.dmgDealt = clampNum(raw.dmgDealt, 0, 10);
+  if (raw.critBonus != null) skill.critBonus = clampInt(raw.critBonus, 0, 100);
+  if (raw.dodgeBonus != null) skill.dodgeBonus = clampInt(raw.dodgeBonus, 0, 100);
+  if (raw.blockBonus != null) skill.blockBonus = clampInt(raw.blockBonus, 0, 100);
+  if (raw.hitBonus != null) skill.hitBonus = clampInt(raw.hitBonus, 0, 100);
+  if (raw.pierceBonus != null) skill.pierceBonus = clampInt(raw.pierceBonus, 0, 100);
+  if (raw.spdBonus != null) skill.spdBonus = clampInt(raw.spdBonus, 0, 200);
+  if (raw.regen != null) skill.regen = clampNum(raw.regen, 0, 1);
+  if (raw.cleanse === true) skill.cleanse = true;
+  if (raw.effect && typeof raw.effect === "object" && typeof raw.effect.type === "string") {
+    skill.effect = {
+      type: trimString(raw.effect.type, 24),
+      turns: raw.effect.turns != null ? clampInt(raw.effect.turns, 1, 99) : undefined,
+    };
+  }
+  if (raw.selfBuff && typeof raw.selfBuff === "object") {
+    skill.selfBuff = raw.selfBuff;
+  }
   return skill.name ? skill : null;
 }
 
@@ -199,6 +221,15 @@ export function sanitizeMon(raw) {
   if (raw.ultimate && typeof raw.ultimate === "object") {
     const ultimate = sanitizeSkill(raw.ultimate);
     if (ultimate) mon.ultimate = ultimate;
+  }
+
+  mon.ascensionStars = clampInt(raw.ascensionStars ?? 0, 0, LIMITS.ascensionStarsMax);
+  if (Array.isArray(raw.ascensionSkillPending)) {
+    const pending = raw.ascensionSkillPending
+      .map(sanitizeSkill)
+      .filter(Boolean)
+      .slice(0, LIMITS.ascensionSkillPendingMax);
+    if (pending.length) mon.ascensionSkillPending = pending;
   }
 
   return mon;

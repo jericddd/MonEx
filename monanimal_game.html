@@ -10329,7 +10329,9 @@ function saveData() {
         highestStageCleared, adventureGlobalBest, currentChapter, currentStage,
         gearInventory, lastResetDate, xHandle,
         adventureBattleActive: isInAdventureBattle,
-        resourceChestLastCollectAt
+        resourceChestLastCollectAt,
+        saveVersion: 2,
+        updatedAt: new Date().toISOString(),
     };
     localStorage.setItem("monex_" + currentUser, JSON.stringify(payload));
     if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
@@ -10337,10 +10339,58 @@ function saveData() {
     }
 }
 
+function getSaveTimestamp(data) {
+    if (!data || typeof data !== "object") return 0;
+    const ts = Date.parse(data.updatedAt || "");
+    return Number.isFinite(ts) ? ts : 0;
+}
+
+function readLocalSaveData() {
+    if (!currentUser) return null;
+    const saved = localStorage.getItem("monex_" + currentUser);
+    if (!saved) return null;
+    try {
+        return JSON.parse(saved);
+    } catch (e) {
+        console.error("Corrupt local save — ignoring:", e);
+        return null;
+    }
+}
+
+function applyLoadedSave(data) {
+    party = data.party || [];
+    box = data.box || [];
+    monballs = data.monballs ?? 15;
+    money = data.money ?? 5000;
+    essence = data.essence ?? 0;
+    monShards = data.monShards ?? 0;
+    trainerXp = data.trainerXp ?? 0;
+    highestStageCleared = data.highestStageCleared ?? 0;
+    adventureGlobalBest = data.adventureGlobalBest ?? highestStageCleared ?? 0;
+    currentChapter = data.currentChapter ?? 1;
+    currentStage = data.currentStage ?? 1;
+    migrateAdventureSave();
+    gearInventory = (data.gearInventory || []).map(normalizeGear);
+    lastResetDate = data.lastResetDate || null;
+    xHandle = data.xHandle || xHandle || "";
+    loadResourceChestTimestamp(data, false);
+
+    [...party, ...box].forEach((mon) => {
+        try {
+            ensureMonReady(mon);
+            GEAR_SLOTS.forEach(slot => {
+                if (mon.equipment?.[slot]) normalizeGear(mon.equipment[slot]);
+            });
+        } catch (e) { console.error("Skipped invalid mon on load:", e); }
+    });
+    purgeRemovedMonanimalsFromSave();
+    sortBox();
+}
+
 async function loadData() {
     if (!currentUser) return;
-    let data = null;
-    let cloudWins = false;
+    const localData = readLocalSaveData();
+    let cloudData = null;
 
     if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
         try {
@@ -10348,59 +10398,36 @@ async function loadData() {
                 MonExAuth.loadCloudSave(),
                 delay(8000).then(() => null),
             ]);
-            if (cloud?.found && cloud.save) {
-                data = cloud.save;
-                cloudWins = true;
-            }
+            if (cloud?.found && cloud.save) cloudData = cloud.save;
             if (MonExAuth.getUsername()) xHandle = MonExAuth.getUsername();
         } catch (_) {}
     }
 
-    if (!data) {
-        const saved = localStorage.getItem("monex_" + currentUser);
-        if (saved) {
-            try {
-                data = JSON.parse(saved);
-            } catch (e) {
-                console.error("Corrupt local save — resetting:", e);
-                localStorage.removeItem("monex_" + currentUser);
-                data = null;
-            }
+    let data = null;
+    let shouldSyncCloud = false;
+    if (localData && cloudData) {
+        const localTs = getSaveTimestamp(localData);
+        const cloudTs = getSaveTimestamp(cloudData);
+        if (cloudTs > localTs) {
+            data = cloudData;
+            shouldSyncCloud = false;
+        } else if (localTs > cloudTs) {
+            data = localData;
+            shouldSyncCloud = true;
+        } else {
+            data = localData;
+            shouldSyncCloud = true;
         }
+    } else if (cloudData) {
+        data = cloudData;
+    } else {
+        data = localData;
     }
 
     if (data) {
-        party = data.party || [];
-        box = data.box || [];
-        monballs = data.monballs ?? 15;
-        money = data.money ?? 5000;
-        essence = data.essence ?? 0;
-        monShards = data.monShards ?? 0;
-        trainerXp = data.trainerXp ?? 0;
-        highestStageCleared = data.highestStageCleared ?? 0;
-        adventureGlobalBest = data.adventureGlobalBest ?? highestStageCleared ?? 0;
-        currentChapter = data.currentChapter ?? 1;
-        currentStage = data.currentStage ?? 1;
-        migrateAdventureSave();
-        gearInventory = (data.gearInventory || []).map(normalizeGear);
-        lastResetDate = data.lastResetDate || null;
-        xHandle = data.xHandle || xHandle || "";
-        loadResourceChestTimestamp(data, cloudWins);
-
-        [...party, ...box].forEach((mon) => {
-            try {
-                ensureMonReady(mon);
-                GEAR_SLOTS.forEach(slot => {
-                    if (mon.equipment?.[slot]) normalizeGear(mon.equipment[slot]);
-                });
-            } catch (e) { console.error("Skipped invalid mon on load:", e); }
-        });
-        purgeRemovedMonanimalsFromSave();
-        sortBox();
-
-        if (cloudWins) {
-            saveData();
-        }
+        applyLoadedSave(data);
+        if (shouldSyncCloud) saveData();
+        else if (cloudData && !localData) saveData();
     } else {
         party = [];
         box = [];
@@ -11191,11 +11218,14 @@ function isTestUser() {
 
 function applyTestUserStagingBoost() {
     if (!isStagingHost() || !isTestUser()) return false;
+    const flagKey = "monex_test_resources_granted_" + currentUser;
+    if (localStorage.getItem(flagKey)) return false;
     const boost = 999999;
     monballs = boost;
     money = boost;
     essence = boost;
     monShards = boost;
+    localStorage.setItem(flagKey, "1");
     saveData();
     return true;
 }
@@ -11788,6 +11818,19 @@ window.onload = async function() {
     normalizeRailTabIconSizes();
     bindHeaderCurrencyTips();
     window.addEventListener("resize", scheduleRailTabIconNormalize);
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState !== "hidden" || !currentUser) return;
+        if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return;
+        saveData();
+        MonExAuth.flushCloudSave({
+            party, box, monballs, money, essence, monShards, trainerXp,
+            highestStageCleared, adventureGlobalBest, currentChapter, currentStage,
+            gearInventory, lastResetDate, xHandle, resourceChestLastCollectAt,
+            adventureBattleActive: isInAdventureBattle,
+            saveVersion: 2,
+            updatedAt: new Date().toISOString(),
+        }).catch(() => {});
+    });
 };
 // ==================== ADVENTURE MODE ====================
 
