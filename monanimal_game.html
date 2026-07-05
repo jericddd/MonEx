@@ -1879,11 +1879,6 @@ button.green:hover {
     color: #fde68a;
     background: rgba(0, 0, 0, 0.55);
 }
-.hero-ascension-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
 .hero-ascension-workbench {
     display: flex;
     align-items: center;
@@ -1952,6 +1947,7 @@ button.green:hover {
     line-height: 1.2;
     pointer-events: none;
 }
+.hero-ascension-pick-item .hero-asc-pick-name {
     font-size: 6px;
     font-family: 'Press Start 2P', monospace;
     color: #ffe8c8;
@@ -1961,6 +1957,75 @@ button.green:hover {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+.hero-ascension-main-slot-btn {
+    border: none;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.hero-ascension-main-slot-btn:hover {
+    transform: scale(1.03);
+    box-shadow: inset 0 0 0 2px rgba(254, 243, 199, 0.35), 0 0 12px rgba(251, 191, 36, 0.35), 2px 2px 0 #92400e;
+}
+.hero-ascension-main-slot-btn.is-open {
+    box-shadow: inset 0 0 0 2px #fde68a, 0 0 14px rgba(251, 191, 36, 0.45), 2px 2px 0 #92400e;
+}
+#modal-armory .armory-pane.hero-ascension-pane {
+    padding: 14px 6px 14px 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.hero-ascension-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 0;
+    flex: 1;
+}
+.hero-ascension-lists {
+    flex: 1;
+    min-height: 140px;
+    max-height: min(44vh, 380px);
+    padding-right: 28px;
+    box-sizing: border-box;
+}
+.hero-ascension-list-section + .hero-ascension-list-section {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 2px solid rgba(212, 160, 74, 0.35);
+}
+.hero-ascension-list-title {
+    margin: 0 0 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: #fde68a;
+    line-height: 1.5;
+}
+.hero-ascension-pick-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 8px;
+    padding: 2px 4px 8px;
+}
+.hero-ascension-pick-item.is-disabled {
+    opacity: 0.38;
+    pointer-events: none;
+    filter: grayscale(0.35);
+}
+.hero-ascension-empty {
+    text-align: center;
+    color: rgba(255, 232, 200, 0.65);
+    font-size: 12px;
+    margin: 0;
+    padding: 12px 8px;
+    font-family: 'Lato', sans-serif;
+}
+#modal-armory .hero-ascension-lists.hub-scrollbar-panel::-webkit-scrollbar-track {
+    margin-top: 4px;
+    margin-bottom: 8px;
 }
 .hero-ascension-pick-item.selected {
     border-color: #fbbf24;
@@ -7235,6 +7300,7 @@ let armoryActiveTab = "synthesize";
 let gearEnhanceTargetId = null;
 let heroAscensionMainMon = null;
 let heroAscensionDupeMons = [];
+let heroAscensionMainPickerOpen = true;
 const HERO_ASCENSION_MAX_STARS = 2;
 const HERO_ASCENSION_DUPES_REQUIRED = [2, 4];
 const HERO_ASCENSION_SUCCESS_RATE = 0.75;
@@ -9512,8 +9578,11 @@ function getHeroAscensionDupeRequirement(stars) {
 
 function analyzeHeroAscension(mainMon, dupeMons) {
     const main = mainMon;
-    if (!main) return { type: "invalid", reason: "Select a <b>main hero</b> from your Party or Box." };
+    if (!main) return { type: "invalid", reason: "Click <b>MAIN</b> and choose a Legendary+ hero." };
     ensureMonReady(main);
+    if (!isLegendaryOrAbove(main.rarity)) {
+        return { type: "invalid", reason: "Only <b>Legendary</b> and above can use Hero Ascension." };
+    }
     const stars = main.ascensionStars || 0;
     if (stars >= HERO_ASCENSION_MAX_STARS) {
         return { type: "invalid", reason: `${main.name} already has ${HERO_ASCENSION_MAX_STARS} ascension stars.` };
@@ -9549,21 +9618,59 @@ function analyzeHeroAscension(mainMon, dupeMons) {
 }
 
 function describeHeroAscensionRecipe(recipe) {
-    if (!recipe) return "Select your <b>main hero</b> from Party or Box, then pick matching duplicates.";
+    if (!recipe) return "Click <b>MAIN</b> to choose a Legendary+ hero, then select duplicates below.";
     if (recipe.type === "pending_skill") {
         return `<b>Skill unlock ready</b> — tap <b>🔓 UNLOCK</b> on ${recipe.main.name}'s card to choose a skill (${HERO_SKILL_UNLOCK_GOLD} Gold).`;
     }
     if (recipe.type === "invalid") return recipe.reason;
     const pct = Math.round(recipe.rate * 100);
-    return `<b>Star ${recipe.nextStar}</b> — ${recipe.main.name} + ${recipe.required}× ${recipe.main.name} duplicate(s) · <b>${pct}%</b> success · fail consumes duplicates`;
+    return `<b>Star ${recipe.nextStar}</b> — ${recipe.main.name} + ${recipe.required}× duplicate(s) · <b>${pct}%</b> success · fail consumes duplicates`;
+}
+
+function canMonHeroAscendMain(mon) {
+    ensureMonReady(mon);
+    if (!isLegendaryOrAbove(mon.rarity)) return false;
+    if ((mon.ascensionStars || 0) >= HERO_ASCENSION_MAX_STARS) return false;
+    if (mon.ascensionSkillPending?.length) return false;
+    return true;
+}
+
+function listHeroAscensionMainCandidates() {
+    const entries = [];
+    party.forEach((mon, index) => {
+        if (isLegendaryOrAbove(mon.rarity)) entries.push({ mon, location: "party", index });
+    });
+    box.forEach((mon, index) => {
+        if (isLegendaryOrAbove(mon.rarity)) entries.push({ mon, location: "box", index });
+    });
+    return entries;
+}
+
+function listHeroAscensionDuplicates(mainMon) {
+    if (!mainMon) return [];
+    const entries = [];
+    party.forEach((mon, index) => {
+        if (mon !== mainMon && mon.name === mainMon.name) entries.push({ mon, location: "party", index });
+    });
+    box.forEach((mon, index) => {
+        if (mon !== mainMon && mon.name === mainMon.name) entries.push({ mon, location: "box", index });
+    });
+    return entries;
+}
+
+function toggleHeroAscensionMainPicker() {
+    heroAscensionMainPickerOpen = !heroAscensionMainPickerOpen;
+    renderArmoryPane();
 }
 
 function heroAscensionSelectMain(location, index) {
     const list = location === "party" ? party : box;
     const mon = list[index];
-    if (!mon) return;
+    if (!mon || !isLegendaryOrAbove(mon.rarity)) return;
+    if (!canMonHeroAscendMain(mon)) return;
     heroAscensionMainMon = mon;
     heroAscensionDupeMons = [];
+    heroAscensionMainPickerOpen = false;
     renderArmoryPane();
 }
 
@@ -9599,7 +9706,7 @@ function removeHeroAscensionDupes(dupeMons) {
 
 function executeHeroAscension() {
     if (!heroAscensionMainMon) {
-        alert("Select a main hero from your Party or Box first.");
+        alert("Click MAIN and choose a Legendary+ hero first.");
         return;
     }
     const recipe = analyzeHeroAscension(heroAscensionMainMon, heroAscensionDupeMons);
@@ -9672,41 +9779,31 @@ function confirmHeroAscensionSkill(location, monIndex, optionIndex) {
     alert(`${mon.name} learned ${skill.name}!`);
 }
 
-function renderHeroAscensionRosterPick(mainMon, dupeMons, mode) {
-    const sections = [];
-    const renderSection = (label, location, list) => {
-        if (!list.length) return;
-        const items = list.map((mon, index) => {
-            const isMainMode = mode === "main";
-            const selected = isMainMode
-                ? mainMon === mon
-                : dupeMons.includes(mon);
-            const isMain = mainMon === mon;
-            const disabled = !isMainMode && (isMain || (mainMon && mon.name !== mainMon.name));
-            const cls = [
-                "hero-ascension-pick-item",
-                selected ? (isMainMode ? "is-main" : "selected") : "",
-                disabled ? "used" : "",
-            ].filter(Boolean).join(" ");
-            const onclick = isMainMode
-                ? `heroAscensionSelectMain('${location}', ${index})`
-                : `heroAscensionToggleDupe('${location}', ${index})`;
-            const locTag = location === "party" ? "P" : "B";
-            return `<button type="button" class="${cls}" onclick="${onclick}" title="${mon.name} · ${label}" ${disabled ? "disabled" : ""}>
-                <span class="hero-asc-loc-tag">${locTag}</span>
-                <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
-                <span class="hero-asc-pick-name">${mon.name}</span>
-                <span class="hero-ascension-dupes-badge">★${mon.ascensionStars || 0}</span>
-            </button>`;
-        }).join("");
-        sections.push(`<p class="gear-synth-note" style="margin:8px 0 6px;"><b>${label}</b></p><div class="gear-synth-pick-grid" style="max-height:160px;">${items}</div>`);
-    };
-    renderSection("Party", "party", party);
-    renderSection("Box", "box", box);
-    if (!sections.length) {
-        return `<p style="text-align:center;color:rgba(255,232,200,0.65);font-size:12px;margin:0;">No heroes in Party or Box.</p>`;
-    }
-    return sections.join("");
+function renderHeroAscensionMainPickItem(entry) {
+    const { mon, location, index } = entry;
+    const selected = heroAscensionMainMon === mon;
+    const canAscend = canMonHeroAscendMain(mon);
+    const locTag = location === "party" ? "P" : "B";
+    let status = "";
+    if ((mon.ascensionStars || 0) >= HERO_ASCENSION_MAX_STARS) status = "Max ★";
+    else if (mon.ascensionSkillPending?.length) status = "Unlock skill";
+    return `<button type="button" class="hero-ascension-pick-item${selected ? " is-main" : ""}${canAscend ? "" : " is-disabled"}" onclick="heroAscensionSelectMain('${location}', ${index})" title="${mon.name} · ${mon.rarity}${status ? " · " + status : ""}">
+        <span class="hero-asc-loc-tag">${locTag}</span>
+        <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
+        <span class="hero-asc-pick-name">${mon.name}</span>
+        <span class="hero-ascension-dupes-badge">★${mon.ascensionStars || 0}</span>
+    </button>`;
+}
+
+function renderHeroAscensionDupePickItem(entry) {
+    const { mon, location, index } = entry;
+    const selected = heroAscensionDupeMons.includes(mon);
+    const locTag = location === "party" ? "P" : "B";
+    return `<button type="button" class="hero-ascension-pick-item${selected ? " selected" : ""}" onclick="heroAscensionToggleDupe('${location}', ${index})" title="${mon.name} Lv.${Math.floor(mon.level)} · ${location}">
+        <span class="hero-asc-loc-tag">${locTag}</span>
+        <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
+        <span class="hero-asc-pick-name">Lv.${Math.floor(mon.level)}</span>
+    </button>`;
 }
 
 function renderHeroAscensionPanel(container) {
@@ -9717,15 +9814,14 @@ function renderHeroAscensionPanel(container) {
     const recipe = analyzeHeroAscension(main, heroAscensionDupeMons);
     const recipeCls = recipe && (recipe.type === "ready" || recipe.type === "pending_skill") ? "" : " invalid";
     const canAscend = recipe?.type === "ready" && money >= (recipe.gold || 0);
-
-    const mainSlot = main
-        ? `<div class="hero-ascension-main-slot" title="${main.name}">
-            <img src="${getMonAvatarPath(main)}" alt="${main.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(main)}'">
-            <span class="hero-ascension-dupes-badge">★${main.ascensionStars || 0}</span>
-        </div>`
-        : `<div class="hero-ascension-main-slot" style="opacity:0.45;"><span style="font-size:22px;">+</span><span class="hero-ascension-dupes-badge">MAIN</span></div>`;
-
+    const showMainPicker = heroAscensionMainPickerOpen || !main;
     const required = main ? getHeroAscensionDupeRequirement(main.ascensionStars || 0) : null;
+
+    const mainSlotInner = main
+        ? `<img src="${getMonAvatarPath(main)}" alt="${main.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(main)}'">
+           <span class="hero-ascension-dupes-badge">★${main.ascensionStars || 0}</span>`
+        : `<span style="font-size:22px;">+</span><span class="hero-ascension-dupes-badge">MAIN</span>`;
+
     const dupeSlots = required
         ? Array.from({ length: required }, (_, i) => {
             const dupe = heroAscensionDupeMons[i];
@@ -9738,32 +9834,45 @@ function renderHeroAscensionPanel(container) {
         }).join('<span class="gear-synth-op">+</span>')
         : "";
 
-    const rosterMain = renderHeroAscensionRosterPick(main, heroAscensionDupeMons, "main");
-    const rosterDupes = main
-        ? renderHeroAscensionRosterPick(main, heroAscensionDupeMons, "dupe")
-        : `<p style="text-align:center;color:rgba(255,232,200,0.65);font-size:12px;margin:0;">Select a main hero to pick duplicates.</p>`;
+    const mainCandidates = listHeroAscensionMainCandidates();
+    const mainListHtml = showMainPicker
+        ? (mainCandidates.length
+            ? `<div class="hero-ascension-list-section">
+                <p class="hero-ascension-list-title">CHOOSE MAIN — LEGENDARY+ ONLY</p>
+                <div class="hero-ascension-pick-grid">${mainCandidates.map(renderHeroAscensionMainPickItem).join("")}</div>
+               </div>`
+            : `<p class="hero-ascension-empty">No Legendary+ heroes in Party or Box.</p>`)
+        : "";
+
+    const dupeEntries = main ? listHeroAscensionDuplicates(main) : [];
+    const dupeListHtml = main
+        ? `<div class="hero-ascension-list-section">
+            <p class="hero-ascension-list-title">DUPLICATES — ${main.name}${required ? ` (${heroAscensionDupeMons.length}/${required})` : ""}</p>
+            ${dupeEntries.length
+                ? `<div class="hero-ascension-pick-grid">${dupeEntries.map(renderHeroAscensionDupePickItem).join("")}</div>`
+                : `<p class="hero-ascension-empty">No other ${main.name} copies available as material.</p>`}
+           </div>`
+        : "";
 
     el.innerHTML = `
         <div class="hero-ascension-panel">
-            <p class="gear-synth-note">Hero Ascension: sacrifice duplicate copies to earn ★ stars. <b>Star 1</b> = 1 main + 2 dupes · <b>Star 2</b> = 1 main + 4 dupes · <b>75%</b> success. Each star unlocks a new skill (tap 🔓 on the hero card).</p>
+            <p class="gear-synth-note">Hero Ascension: <b>Legendary+</b> only. <b>Star 1</b> = 1 main + 2 dupes · <b>Star 2</b> = 1 main + 4 dupes · <b>75%</b> success. Tap 🔓 on the hero card to unlock skills.</p>
             <div class="gear-synth-recipe-bar${recipeCls}">${describeHeroAscensionRecipe(recipe)}</div>
             <div class="hero-ascension-workbench">
-                ${mainSlot}
+                <button type="button" class="hero-ascension-main-slot hero-ascension-main-slot-btn${main ? " filled" : ""}${showMainPicker ? " is-open" : ""}" onclick="toggleHeroAscensionMainPicker()" title="${main ? "Change main hero" : "Choose main hero"}">
+                    ${mainSlotInner}
+                </button>
                 ${required ? `<span class="gear-synth-op">+</span>${dupeSlots}` : ""}
                 ${required ? `<span class="gear-synth-op">⇒</span><div class="gear-synth-result">★${main ? (main.ascensionStars || 0) + 1 : "?"}<br>skill</div>` : ""}
             </div>
             <div class="gear-synth-actions">
                 <div class="gear-synth-cost">${currencyIcon("gold", 18)} <span>${recipe?.gold || 0} Gold</span></div>
                 <button type="button" class="gear-synth-btn" onclick="executeHeroAscension()" ${canAscend ? "" : "disabled"} style="border-color:#fbbf24;background:linear-gradient(180deg,#fde68a 0%,#f59e0b 100%);color:#451a03;box-shadow:3px 3px 0 #92400e;">ASCEND</button>
-                <button type="button" class="gear-synth-open-btn" onclick="heroAscensionMainMon=null;heroAscensionDupeMons=[];renderArmoryPane();">CLEAR</button>
+                <button type="button" class="gear-synth-open-btn" onclick="heroAscensionMainMon=null;heroAscensionDupeMons=[];heroAscensionMainPickerOpen=true;renderArmoryPane();">CLEAR</button>
             </div>
-            <div>
-                <p class="gear-synth-note" style="margin-bottom:8px;"><b>Main hero</b> — Party or Box</p>
-                ${rosterMain}
-            </div>
-            <div>
-                <p class="gear-synth-note" style="margin-bottom:8px;"><b>Duplicates</b> — same species (Party or Box, not the main)</p>
-                ${rosterDupes}
+            <div class="hero-ascension-lists hub-scrollbar-panel">
+                ${mainListHtml}
+                ${dupeListHtml}
             </div>
         </div>
     `;
@@ -9777,6 +9886,7 @@ function setArmoryTab(tab) {
 function renderArmoryPane() {
     const pane = document.getElementById("armory-pane-content");
     if (!pane) return;
+    pane.classList.toggle("hero-ascension-pane", armoryActiveTab === "ascension");
     document.getElementById("armory-tab-synthesize")?.classList.toggle("active", armoryActiveTab === "synthesize");
     document.getElementById("armory-tab-enhance")?.classList.toggle("active", armoryActiveTab === "enhance");
     document.getElementById("armory-tab-ascension")?.classList.toggle("active", armoryActiveTab === "ascension");
