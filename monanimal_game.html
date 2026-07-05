@@ -5573,10 +5573,13 @@ body.afk-layout .currency-pill .currency-tip {
                     <div class="profile-panel">
                         <div class="profile-tabs-row" role="tablist" aria-label="Profile sections">
                             <button type="button" class="profile-tab-btn active" id="profile-tab-account" onclick="setProfileTab('account')">ACCOUNT</button>
-                            <button type="button" class="profile-tab-btn" id="profile-tab-sync" onclick="setProfileTab('sync')">X SYNC</button>
                             <button type="button" class="profile-tab-btn" id="profile-tab-log" onclick="setProfileTab('log')">CATCH LOG</button>
                         </div>
                         <div id="profile-pane-account" class="profile-pane active">
+                            <div class="profile-pending" id="profile-pending-panel">
+                                <h3>X WILD SYNC</h3>
+                                <p id="profile-pending-text">Save your X @handle — catches auto-go to Party, then Box.</p>
+                            </div>
                             <p style="text-align:center; font-size:13px;">Your X account is linked on login. Wild catches from @monexmonad auto-sync to Party/Box.</p>
                             <div class="profile-x-row" id="profile-x-linked" style="display:none;">
                                 <span id="x-handle-display" style="font-weight:bold; color:#fde68a;"></span>
@@ -5586,12 +5589,6 @@ body.afk-layout .currency-pill .currency-tip {
                                 <button type="button" onclick="saveXHandle()">SAVE</button>
                             </div>
                             <p style="font-size:11px; margin:0;">On X post: <b>@monexmonad catch 10 monanimals</b> (1 Monball = 1 catch)</p>
-                        </div>
-                        <div id="profile-pane-sync" class="profile-pane">
-                            <div class="profile-pending" id="profile-pending-panel">
-                                <h3>X WILD SYNC</h3>
-                                <p id="profile-pending-text">Save your X @handle — catches auto-go to Party, then Box.</p>
-                            </div>
                         </div>
                         <div id="profile-pane-log" class="profile-pane">
                             <h3 style="font-size:12px; margin-bottom:8px;">YOUR X CATCH LOG</h3>
@@ -8066,8 +8063,29 @@ function renderSkillTipForFighter(fighter, skill) {
 }
 
 // Card "i" info icon: hover to reveal paired combat stats (includes gear bonuses).
+function getMonAttackRange(mon) {
+    ensureMonReady(mon);
+    syncUltimateFromSkills(mon);
+    const eff = getEffectiveStats(mon);
+    const stub = {
+        atkPower: eff.atk,
+        stats: mon.stats ? { ...mon.stats } : {},
+        skills: (mon.skills || []).map(s => ({ ...s })),
+        ultimate: mon.ultimate ? { ...mon.ultimate } : null,
+        status: [],
+        battleId: "__card__",
+    };
+    return getBattleAttackRange(stub);
+}
+
+function formatAttackRangeText(range) {
+    if (!range || (range.min === 0 && range.max === 0)) return "0";
+    return range.min === range.max ? String(range.max) : `${range.min} - ${range.max}`;
+}
+
 function renderStatsInfo(mon) {
     const eff = getEffectiveStats(mon);
+    const atkText = formatAttackRangeText(getMonAttackRange(mon));
     const sp = mon.stats.specialty;
     const cell = (key, label, val) => {
         const gold = sp === key ? " gold" : "";
@@ -8078,9 +8096,8 @@ function renderStatsInfo(mon) {
     <div class="info-icon">i
         <div class="stats-tooltip">
             <div class="st-title">COMBAT STATS</div>
-            <div class="st-note" style="text-align:center;font-size:10px;color:#a78bfa;margin-bottom:6px;font-family:'Lato',sans-serif;">CRIT = critical damage bonus</div>
-            <div style="text-align:center;font-size:11px;color:#c4b5fd;margin-bottom:6px;font-family:'Lato',sans-serif;">ATK ${eff.atk}</div>
-            ${pair("", cell("spd", "SPD", eff.spd), cell("crit", "CRIT", eff.crit))}
+            <div style="text-align:center;font-size:11px;color:#c4b5fd;margin-bottom:6px;font-family:'Lato',sans-serif;">ATK ${atkText}</div>
+            ${pair("", cell("spd", "SPD", eff.spd), cell("crit", "CRIT DMG", eff.crit))}
             ${pair("counter", cell("pierce", "PIERCE", eff.pierce), cell("block", "BLOCK", eff.block))}
             ${pair("counter", cell("hit", "HIT", eff.hit), cell("dodge", "DODGE", eff.dodge))}
         </div>
@@ -9775,7 +9792,7 @@ function renderProfile() {
 }
 
 function setProfileTab(tab) {
-    const valid = ["account", "sync", "log"];
+    const valid = ["account", "log"];
     profileActiveTab = valid.includes(tab) ? tab : "account";
     valid.forEach((t) => {
         document.getElementById("profile-pane-" + t)?.classList.toggle("active", t === profileActiveTab);
