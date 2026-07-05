@@ -474,12 +474,20 @@ button.green:hover {
     overflow: visible;
     max-height: none;
 }
-#modal-box .game-modal-panel {
+#modal-box .game-modal-panel,
+#modal-inventory .game-modal-panel {
     max-height: min(88vh, 920px);
     display: flex;
     flex-direction: column;
 }
 #modal-box .game-modal-body {
+    overflow: hidden;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+#modal-inventory .game-modal-body {
     overflow: hidden;
     flex: 1;
     min-height: 0;
@@ -643,28 +651,34 @@ button.green:hover {
 #modal-inventory .hub-content-wrap {
     overflow: visible;
 }
-#modal-box .hub-frame {
+#modal-box .hub-frame,
+#modal-inventory .hub-frame {
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: column;
 }
-#modal-box .hub-shell {
+#modal-box .hub-shell,
+#modal-inventory .hub-shell {
     flex: 1;
     min-height: 0;
 }
-#modal-box .hub-main {
+#modal-box .hub-main,
+#modal-inventory .hub-main {
     flex: 1;
     min-height: 0;
     overflow: hidden;
 }
-#modal-box .hub-content-wrap {
+#modal-box .hub-content-wrap,
+#modal-inventory .hub-content-wrap {
     flex: 1;
     min-height: 0;
     display: block;
     padding: 14px 6px 14px 16px;
+    overflow: visible;
 }
-#modal-box .box-scroll-wrap {
+#modal-box .box-scroll-wrap,
+#modal-inventory .box-scroll-wrap {
     overflow: visible;
     width: 100%;
     padding-right: 28px;
@@ -748,6 +762,14 @@ button.green:hover {
     background: rgba(0, 0, 0, 0.15);
     border: 2px solid rgba(212, 160, 74, 0.45);
     border-radius: 8px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 8px;
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: visible;
+    min-height: 120px;
 }
 .hub-main .box-scroll-wrap {
     flex: 1;
@@ -6258,8 +6280,10 @@ body.afk-layout .currency-pill .currency-tip {
                 <div class="hub-shell">
                     <nav class="hub-nav" id="inventory-nav" aria-label="Inventory categories"></nav>
                     <div class="hub-main">
-                        <div class="hub-content-wrap">
-                            <div id="inventory-grid" class="inventory-grid"></div>
+                        <div class="hub-content-wrap hub-scrollbar-panel">
+                            <div class="box-scroll-wrap">
+                                <div id="inventory-grid" class="inventory-grid"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
