@@ -427,8 +427,13 @@ button.green:hover {
     background: #15803d;
 }
 /* Hover symbol */
-/* ===== Shop (fantasy inventory layout) ===== */
-#modal-shop .game-modal-panel {
+/* ===== Hub panel layout (shop fantasy theme) ===== */
+#modal-shop .game-modal-panel,
+#modal-armory .game-modal-panel,
+#modal-party .game-modal-panel,
+#modal-box .game-modal-panel,
+#modal-inventory .game-modal-panel,
+#modal-profile .game-modal-panel {
     width: min(920px, 96vw);
     max-width: min(920px, 96vw);
     padding: 0;
@@ -437,12 +442,44 @@ button.green:hover {
     box-shadow: none;
     background: transparent;
 }
-#modal-shop .game-modal-header {
+#modal-box .game-modal-panel {
+    width: min(1120px, 96vw);
+    max-width: min(1120px, 96vw);
+}
+#modal-shop .game-modal-header,
+#modal-armory .game-modal-header,
+#modal-party .game-modal-header,
+#modal-box .game-modal-header,
+#modal-inventory .game-modal-header,
+#modal-profile .game-modal-header {
     display: none;
 }
-#modal-shop .game-modal-body {
+#modal-shop .game-modal-body,
+#modal-armory .game-modal-body,
+#modal-party .game-modal-body,
+#modal-box .game-modal-body,
+#modal-inventory .game-modal-body,
+#modal-profile .game-modal-body {
     padding: 0;
 }
+#modal-party .game-modal-panel,
+#modal-inventory .game-modal-panel {
+    overflow: visible;
+    max-height: none;
+}
+#modal-box .game-modal-panel {
+    max-height: min(88vh, 920px);
+    display: flex;
+    flex-direction: column;
+}
+#modal-box .game-modal-body {
+    overflow: hidden;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+.hub-frame,
 .shop-frame {
     position: relative;
     border: 4px solid #e07a2f;
@@ -454,11 +491,12 @@ button.green:hover {
     background: linear-gradient(180deg, #3d2518 0%, #2a1810 100%);
     overflow: hidden;
 }
+.hub-close-btn,
 .shop-close-btn {
     position: absolute;
     top: 10px;
     right: 10px;
-    z-index: 2;
+    z-index: 4;
     width: 32px;
     height: 32px;
     border: 2px solid #991b1b;
@@ -470,15 +508,28 @@ button.green:hover {
     cursor: pointer;
     box-shadow: 0 3px 0 #7f1d1d;
 }
+.hub-close-btn:hover,
 .shop-close-btn:hover {
     filter: brightness(1.08);
 }
-.shop-shell {
+.hub-shell,
+.shop-shell,
+.armory-shell {
     display: flex;
     min-height: 320px;
     max-height: min(72vh, 560px);
 }
-.shop-categories {
+#modal-box .hub-shell {
+    max-height: min(78vh, 720px);
+}
+#modal-armory .hub-shell,
+#modal-armory .armory-shell {
+    min-height: 440px;
+    max-height: min(72vh, 640px);
+}
+.hub-nav,
+.shop-categories,
+.armory-nav {
     flex: 0 0 118px;
     display: flex;
     flex-direction: column;
@@ -487,8 +538,39 @@ button.green:hover {
     background: linear-gradient(180deg, #4a2f1c 0%, #362218 100%);
     border-right: 3px solid #8b4513;
     box-sizing: border-box;
+    overflow-y: auto;
 }
-.shop-cat-btn {
+.hub-nav-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    line-height: 1.5;
+    color: #ffe8c8;
+    text-align: center;
+    padding: 4px 2px 8px;
+}
+.hub-nav-title span {
+    display: block;
+    margin-top: 6px;
+    font-family: 'Lato', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fde68a;
+}
+.hub-nav-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    color: rgba(255, 232, 200, 0.55);
+    text-align: center;
+    margin-top: 4px;
+}
+.hub-nav-divider {
+    height: 2px;
+    margin: 4px 0;
+    background: rgba(139, 69, 19, 0.65);
+}
+.hub-nav-btn,
+.shop-cat-btn,
+.armory-nav-btn {
     width: 100%;
     padding: 14px 6px;
     border: 2px solid #c46a28;
@@ -503,17 +585,37 @@ button.green:hover {
     text-align: center;
     letter-spacing: 0.02em;
 }
+.hub-nav-btn--house {
+    padding: 10px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+}
+.hub-nav-btn--house img {
+    width: 28px;
+    height: 28px;
+    image-rendering: pixelated;
+    object-fit: contain;
+}
+.hub-nav-btn:hover,
+.hub-nav-btn:focus-visible,
 .shop-cat-btn:hover,
-.shop-cat-btn:focus-visible {
+.shop-cat-btn:focus-visible,
+.armory-nav-btn:hover,
+.armory-nav-btn:focus-visible {
     background: linear-gradient(180deg, #a85a2a 0%, #7a401e 100%);
     border-color: #f0a050;
 }
-.shop-cat-btn.active {
+.hub-nav-btn.active,
+.shop-cat-btn.active,
+.armory-nav-btn.active {
     background: linear-gradient(180deg, #f0a040 0%, #d07020 100%);
     border-color: #ffe0a0;
     color: #3d1a08;
     box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.35), 0 3px 0 #5c3010;
 }
+.hub-main,
 .shop-main {
     flex: 1;
     min-width: 0;
@@ -521,12 +623,20 @@ button.green:hover {
     flex-direction: column;
     background: linear-gradient(180deg, #5c3a24 0%, #4a2e1c 45%, #3d2518 100%);
 }
-.shop-grid-wrap {
+.hub-content-wrap,
+.shop-grid-wrap,
+.armory-pane {
     flex: 1;
     padding: 14px 48px 14px 16px;
     overflow-y: auto;
     min-height: 0;
+    box-sizing: border-box;
 }
+#modal-party .hub-content-wrap,
+#modal-inventory .hub-content-wrap {
+    overflow: visible;
+}
+.hub-empty-msg,
 .shop-empty-msg {
     margin: 0;
     padding: 24px 8px;
@@ -535,6 +645,90 @@ button.green:hover {
     font-size: 14px;
     color: #ffe8c8;
     opacity: 0.75;
+}
+.hub-main .profile-panel {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    max-width: none;
+    color: #ffe8c8;
+}
+.hub-main .profile-panel > p,
+.hub-main .profile-pending p {
+    color: rgba(255, 232, 200, 0.85);
+}
+.hub-main .profile-panel h3 {
+    color: #fde68a !important;
+}
+.hub-main .profile-x-row input {
+    border: 2px solid #c46a28;
+    background: #2a1810;
+    color: #ffe8c8;
+}
+.hub-main .profile-x-row button {
+    border: 2px solid #c46a28;
+    background: linear-gradient(180deg, #f0a040 0%, #d07020 100%);
+    color: #3d1a08;
+}
+.hub-main .profile-pending {
+    border: 2px solid #c46a28;
+    background: rgba(0, 0, 0, 0.2);
+}
+.hub-main .activity-feed {
+    border: 2px solid rgba(196, 106, 40, 0.45);
+    background: rgba(0, 0, 0, 0.18);
+    padding: 8px 12px;
+    border-radius: 6px;
+}
+.hub-main .activity-item {
+    border-bottom-color: rgba(196, 106, 40, 0.35);
+}
+.hub-main .activity-meta,
+.hub-main .activity-empty {
+    color: rgba(255, 232, 200, 0.7);
+}
+.hub-main .activity-user {
+    color: #fde68a;
+}
+.hub-main .gear-enhance-info {
+    border-color: rgba(212, 160, 74, 0.55);
+    background: rgba(0, 0, 0, 0.2);
+    color: #ffe8c8;
+}
+.hub-main .gear-enhance-info h4 {
+    color: #fde68a;
+}
+.hub-main .gear-enhance-rate {
+    color: #fbbf24;
+}
+.hub-main .gear-enhance-slot {
+    border-color: #d4a04a;
+    background: linear-gradient(145deg, #6b4426 0%, #4a2e18 100%);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35), 0 2px 0 #2a1810;
+}
+.hub-main .gear-enhance-slot.filled {
+    background: linear-gradient(145deg, #7a4e2c 0%, #5a3820 100%);
+}
+.hub-main .inventory-grid {
+    background: rgba(0, 0, 0, 0.15);
+    border: 2px solid rgba(212, 160, 74, 0.45);
+    border-radius: 8px;
+}
+.hub-main .box-scroll-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    width: 100%;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+}
+.profile-pane {
+    display: none;
+}
+.profile-pane.active {
+    display: block;
 }
 .shop-item-grid {
     display: grid;
@@ -615,18 +809,24 @@ button.green:hover {
     text-shadow: 1px 1px 0 #000;
 }
 @media (max-width: 720px) {
-    .shop-shell {
+    .hub-shell,
+    .shop-shell,
+    .armory-shell {
         flex-direction: column;
         max-height: none;
     }
-    .shop-categories {
+    .hub-nav,
+    .shop-categories,
+    .armory-nav {
         flex: none;
         flex-direction: row;
         flex-wrap: wrap;
         border-right: none;
         border-bottom: 3px solid #8b4513;
     }
-    .shop-cat-btn {
+    .hub-nav-btn,
+    .shop-cat-btn,
+    .armory-nav-btn {
         flex: 1 1 calc(50% - 8px);
     }
     .shop-item-grid {
@@ -1070,70 +1270,18 @@ button.green:hover {
     line-height: 1.45;
 }
 
-/* ===== Armory hub (synthesize / enhance) ===== */
+/* ===== Armory hub (synthesize / enhance) — uses hub layout ===== */
 #modal-armory .game-modal-panel {
-    width: min(1040px, 96vw);
-    max-width: min(1040px, 96vw);
-    overflow: hidden;
     display: flex;
     flex-direction: column;
 }
 #modal-armory .game-modal-body {
-    padding: 0;
     overflow: hidden;
     flex: 1;
     min-height: 0;
 }
-.armory-shell {
-    display: flex;
-    min-height: 440px;
-    max-height: min(72vh, 640px);
-}
-.armory-nav {
-    flex: 0 0 25%;
-    max-width: 25%;
-    border-right: 3px solid #ede9fe;
-    padding: 14px 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    box-sizing: border-box;
-    background: linear-gradient(180deg, #faf5ff 0%, #f5f3ff 100%);
-}
-.armory-nav-btn {
-    width: 100%;
-    padding: 12px 10px;
-    border: 2px solid #c4b5fd;
-    background: #fff;
-    color: #5b21b6;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 7px;
-    line-height: 1.5;
-    cursor: pointer;
-    box-shadow: 2px 2px 0 #7c3aed;
-    text-align: center;
-}
-.armory-nav-btn:hover,
-.armory-nav-btn:focus-visible {
-    background: #ede9fe;
-    border-color: #7c3aed;
-}
-.armory-nav-btn.active {
-    background: linear-gradient(180deg, #c084fc 0%, #7c3aed 100%);
-    border-color: #5b21b6;
-    color: #fff;
-    box-shadow: 3px 3px 0 #4c1d95;
-}
 .armory-nav-spacer {
-    flex: 1;
-    min-height: 56px;
-}
-.armory-pane {
-    flex: 1 1 75%;
-    min-width: 0;
-    padding: 14px 16px;
-    overflow-y: auto;
-    box-sizing: border-box;
+    display: none;
 }
 .gear-enhance-panel {
     display: flex;
@@ -3836,61 +3984,13 @@ body.afk-layout .currency-pill .currency-tip {
     max-width: 480px;
 }
 .game-modal-wide { max-width: 960px; }
-/* Party / Inventory — tooltips float above; Box scrolls inside its grid */
-#modal-party .game-modal-panel,
-#modal-inventory .game-modal-panel {
-    overflow: visible;
-    max-height: none;
-}
-#modal-party .game-modal-header,
-#modal-box .game-modal-header,
-#modal-inventory .game-modal-header {
-    border-bottom: none;
-    padding-bottom: 6px;
-}
-#modal-box .game-modal-panel {
-    width: min(1120px, 96vw);
-    max-width: min(1120px, 96vw);
-    max-height: min(88vh, 920px);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-#modal-box .game-modal-header {
-    flex-shrink: 0;
-    position: relative;
-    z-index: 3;
-    overflow: visible;
-}
-.box-header-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
-}
-#modal-box .game-modal-title-row {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-}
-#modal-box .box-capacity-label {
-    color: #666;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1;
-}
-#modal-party .game-modal-body,
-#modal-inventory .game-modal-body {
-    padding-top: 0;
-    overflow: visible;
-}
-#modal-box .game-modal-body {
-    padding: 0 18px 18px;
-    overflow: hidden;
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
+/* Party / Box / Inventory — tooltips float above inside hub panels */
+#modal-party .gear-slot.has-hover-tip:hover .hover-tip-panel,
+#modal-box .gear-slot.has-hover-tip:hover .hover-tip-panel,
+#modal-party .house-badge.has-hover-tip:hover .hover-tip-panel,
+#modal-box .house-badge.has-hover-tip:hover .hover-tip-panel,
+#modal-inventory .gear-inv-slot.has-hover-tip:hover .hover-tip-panel {
+    z-index: 1001;
 }
 .box-content-grid {
     display: grid;
@@ -4756,13 +4856,25 @@ body.afk-layout .currency-pill .currency-tip {
 
 <!-- Party modal -->
 <div id="modal-party" class="game-modal" onclick="if(event.target===this)closeGameModal('party')">
-    <div class="game-modal-panel game-modal-wide">
+    <div class="game-modal-panel game-modal-wide" onclick="event.stopPropagation()">
         <div class="game-modal-header">
             <h2>PARTY</h2>
             <button type="button" class="game-modal-close" onclick="closeGameModal('party')">×</button>
         </div>
         <div class="game-modal-body">
-            <div class="party-grid" id="party-grid"></div>
+            <div class="hub-frame">
+                <button type="button" class="hub-close-btn" onclick="closeGameModal('party')" aria-label="Close party">×</button>
+                <div class="hub-shell">
+                    <nav class="hub-nav" aria-label="Party">
+                        <button type="button" class="hub-nav-btn active">PARTY</button>
+                    </nav>
+                    <div class="hub-main">
+                        <div class="hub-content-wrap">
+                            <div class="party-grid" id="party-grid"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -4785,28 +4897,24 @@ body.afk-layout .currency-pill .currency-tip {
 
 <!-- Box modal -->
 <div id="modal-box" class="game-modal" onclick="if(event.target===this)closeGameModal('box')">
-    <div class="game-modal-panel game-modal-wide">
+    <div class="game-modal-panel game-modal-wide" onclick="event.stopPropagation()">
         <div class="game-modal-header">
-            <div class="box-header-left">
-                <div class="box-sort-wrap" id="box-sort-wrap">
-                    <button type="button" class="box-sort-btn" id="box-sort-btn" onclick="toggleBoxSortMenu(event)">SORT</button>
-                    <div class="box-sort-menu" id="box-sort-menu">
-                        <button type="button" data-sort="power" onclick="setBoxSort('power')">Sort by Power</button>
-                        <button type="button" data-sort="level" onclick="setBoxSort('level')">Sort by Level</button>
-                        <button type="button" data-sort="rarity" onclick="setBoxSort('rarity')">Sort by Rarity</button>
-                    </div>
-                </div>
-                <div class="box-house-filter" id="box-house-filter" aria-label="Filter by house"></div>
-                <div class="game-modal-title-row">
-                    <h2>BOX</h2>
-                    <span id="box-capacity-label" class="box-capacity-label"></span>
-                </div>
-            </div>
+            <h2>BOX</h2>
             <button type="button" class="game-modal-close" onclick="closeGameModal('box')">×</button>
         </div>
         <div class="game-modal-body">
-            <div class="box-scroll-wrap">
-                <div id="box-content" class="box-content-grid"></div>
+            <div class="hub-frame">
+                <button type="button" class="hub-close-btn" onclick="closeGameModal('box')" aria-label="Close box">×</button>
+                <div class="hub-shell">
+                    <nav class="hub-nav" id="box-nav" aria-label="Box filters"></nav>
+                    <div class="hub-main">
+                        <div class="hub-content-wrap">
+                            <div class="box-scroll-wrap">
+                                <div id="box-content" class="box-content-grid"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -4814,13 +4922,23 @@ body.afk-layout .currency-pill .currency-tip {
 
 <!-- Inventory modal -->
 <div id="modal-inventory" class="game-modal" onclick="if(event.target===this)closeGameModal('inventory')">
-    <div class="game-modal-panel game-modal-wide">
+    <div class="game-modal-panel game-modal-wide" onclick="event.stopPropagation()">
         <div class="game-modal-header">
             <h2>INVENTORY</h2>
             <button type="button" class="game-modal-close" onclick="closeGameModal('inventory')">×</button>
         </div>
         <div class="game-modal-body">
-            <div id="inventory-grid" class="inventory-grid"></div>
+            <div class="hub-frame">
+                <button type="button" class="hub-close-btn" onclick="closeGameModal('inventory')" aria-label="Close inventory">×</button>
+                <div class="hub-shell">
+                    <nav class="hub-nav" id="inventory-nav" aria-label="Inventory categories"></nav>
+                    <div class="hub-main">
+                        <div class="hub-content-wrap">
+                            <div id="inventory-grid" class="inventory-grid"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -4833,13 +4951,17 @@ body.afk-layout .currency-pill .currency-tip {
             <button type="button" class="game-modal-close" onclick="closeGameModal('armory')">×</button>
         </div>
         <div class="game-modal-body">
-            <div class="armory-shell">
-                <nav class="armory-nav" aria-label="Armory tabs">
-                    <button type="button" class="armory-nav-btn" id="armory-tab-synthesize" onclick="setArmoryTab('synthesize')">SYNTHESIZE</button>
-                    <button type="button" class="armory-nav-btn" id="armory-tab-enhance" onclick="setArmoryTab('enhance')">ENHANCE</button>
-                    <div class="armory-nav-spacer" aria-hidden="true"></div>
-                </nav>
-                <div class="armory-pane" id="armory-pane-content"></div>
+            <div class="hub-frame">
+                <button type="button" class="hub-close-btn" onclick="closeGameModal('armory')" aria-label="Close armory">×</button>
+                <div class="hub-shell armory-shell">
+                    <nav class="hub-nav armory-nav" aria-label="Armory tabs">
+                        <button type="button" class="hub-nav-btn armory-nav-btn" id="armory-tab-synthesize" onclick="setArmoryTab('synthesize')">SYNTHESIZE</button>
+                        <button type="button" class="hub-nav-btn armory-nav-btn" id="armory-tab-enhance" onclick="setArmoryTab('enhance')">ENHANCE</button>
+                    </nav>
+                    <div class="hub-main">
+                        <div class="hub-content-wrap armory-pane" id="armory-pane-content"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -4853,12 +4975,12 @@ body.afk-layout .currency-pill .currency-tip {
             <button type="button" class="game-modal-close" onclick="closeGameModal('shop')">×</button>
         </div>
         <div class="game-modal-body">
-            <div class="shop-frame">
-                <button type="button" class="shop-close-btn" onclick="closeGameModal('shop')" aria-label="Close shop">×</button>
-                <div class="shop-shell">
-                    <nav class="shop-categories" id="shop-categories" aria-label="Shop categories"></nav>
-                    <div class="shop-main">
-                        <div class="shop-grid-wrap">
+            <div class="hub-frame">
+                <button type="button" class="hub-close-btn shop-close-btn" onclick="closeGameModal('shop')" aria-label="Close shop">×</button>
+                <div class="hub-shell shop-shell">
+                    <nav class="hub-nav shop-categories" id="shop-categories" aria-label="Shop categories"></nav>
+                    <div class="hub-main shop-main">
+                        <div class="hub-content-wrap shop-grid-wrap">
                             <div id="shop-grid" class="shop-item-grid"></div>
                         </div>
                     </div>
@@ -4892,29 +5014,49 @@ body.afk-layout .currency-pill .currency-tip {
 
 <!-- Profile modal -->
 <div id="modal-profile" class="game-modal" onclick="if(event.target===this)closeGameModal('profile')">
-    <div class="game-modal-panel game-modal-wide">
+    <div class="game-modal-panel game-modal-wide" onclick="event.stopPropagation()">
         <div class="game-modal-header">
             <h2>TRAINER PROFILE</h2>
             <button type="button" class="game-modal-close" onclick="closeGameModal('profile')">×</button>
         </div>
         <div class="game-modal-body">
-            <div class="profile-panel" style="border:none; box-shadow:none; padding:0; max-width:none;">
-                <p style="text-align:center; color:#666; font-size:13px;">Your X account is linked on login. Wild catches from @monexmonad auto-sync to Party/Box.</p>
-                <div class="profile-x-row" id="profile-x-linked" style="display:none;">
-                    <span id="x-handle-display" style="font-weight:bold; color:#6B21A8;"></span>
-                </div>
-                <div class="profile-x-row" id="profile-x-manual">
-                    <input id="x-handle-input" type="text" placeholder="X username (e.g. jeric)" maxlength="40">
-                    <button type="button" onclick="saveXHandle()">SAVE</button>
-                </div>
-                <p style="font-size:11px; color:#888; margin:0 0 12px;">On X post: <b>@monexmonad catch 10 monanimals</b> (1 Monball = 1 catch)</p>
-                <div class="profile-pending" id="profile-pending-panel">
-                    <h3>X WILD SYNC</h3>
-                    <p id="profile-pending-text">Save your X @handle — catches auto-go to Party, then Box.</p>
-                </div>
-                <h3 style="color:#6B21A8; font-size:12px; margin-bottom:8px;">YOUR X CATCH LOG</h3>
-                <div id="profile-activity-feed" class="activity-feed">
-                    <p style="color:#888;">Save your X @handle above.</p>
+            <div class="hub-frame">
+                <button type="button" class="hub-close-btn" onclick="closeGameModal('profile')" aria-label="Close profile">×</button>
+                <div class="hub-shell">
+                    <nav class="hub-nav" id="profile-nav" aria-label="Profile sections">
+                        <button type="button" class="hub-nav-btn active" id="profile-tab-account" onclick="setProfileTab('account')">ACCOUNT</button>
+                        <button type="button" class="hub-nav-btn" id="profile-tab-sync" onclick="setProfileTab('sync')">X SYNC</button>
+                        <button type="button" class="hub-nav-btn" id="profile-tab-log" onclick="setProfileTab('log')">CATCH LOG</button>
+                    </nav>
+                    <div class="hub-main">
+                        <div class="hub-content-wrap">
+                            <div class="profile-panel">
+                                <div id="profile-pane-account" class="profile-pane active">
+                                    <p style="text-align:center; font-size:13px;">Your X account is linked on login. Wild catches from @monexmonad auto-sync to Party/Box.</p>
+                                    <div class="profile-x-row" id="profile-x-linked" style="display:none;">
+                                        <span id="x-handle-display" style="font-weight:bold; color:#fde68a;"></span>
+                                    </div>
+                                    <div class="profile-x-row" id="profile-x-manual">
+                                        <input id="x-handle-input" type="text" placeholder="X username (e.g. jeric)" maxlength="40">
+                                        <button type="button" onclick="saveXHandle()">SAVE</button>
+                                    </div>
+                                    <p style="font-size:11px; margin:0;">On X post: <b>@monexmonad catch 10 monanimals</b> (1 Monball = 1 catch)</p>
+                                </div>
+                                <div id="profile-pane-sync" class="profile-pane">
+                                    <div class="profile-pending" id="profile-pending-panel">
+                                        <h3>X WILD SYNC</h3>
+                                        <p id="profile-pending-text">Save your X @handle — catches auto-go to Party, then Box.</p>
+                                    </div>
+                                </div>
+                                <div id="profile-pane-log" class="profile-pane">
+                                    <h3 style="font-size:12px; margin-bottom:8px;">YOUR X CATCH LOG</h3>
+                                    <div id="profile-activity-feed" class="activity-feed">
+                                        <p style="color:#888;">Save your X @handle above.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -5546,6 +5688,17 @@ const SHOP_CATEGORIES = [
     { id: "food", label: "FOOD" },
 ];
 let shopActiveCategory = "potions";
+
+const INVENTORY_NAV = [
+    { id: "all", label: "ALL" },
+    { id: "materials", label: "MATS" },
+    { id: "weapon", label: "WEAPON" },
+    { id: "armor", label: "ARMOR" },
+    { id: "helmet", label: "HELMET" },
+    { id: "boots", label: "BOOTS" },
+];
+let inventoryActiveCategory = "all";
+let profileActiveTab = "account";
 
 const SHOP_ITEMS = [
     { id: "monball5",   category: "food",    name: "Monball Pack",    desc: "5 Monballs for catching.",     cost: { gold: 2000 },              grant: { monballs: 5 } },
@@ -6960,19 +7113,26 @@ function toggleBoxSortMenu(event) {
 function setBoxSort(mode) {
     if (!["power", "level", "rarity"].includes(mode)) return;
     boxSortMode = mode;
-    closeBoxSortMenu();
     sortBox();
     renderBox();
 }
 
-function renderBoxHouseFilter() {
-    const el = document.getElementById("box-house-filter");
-    if (!el) return;
-    el.innerHTML = `
-        <button type="button" class="box-house-filter-btn box-house-filter-btn--all${boxHouseFilter == null ? " active" : ""}" onclick="setBoxHouseFilter(null)" title="All houses" aria-label="All houses">ALL</button>
+function renderBoxNav() {
+    const nav = document.getElementById("box-nav");
+    if (!nav) return;
+    const sortLabels = { power: "POWER", level: "LEVEL", rarity: "RARITY" };
+    nav.innerHTML = `
+        <div class="hub-nav-title">BOX<span>${box.length}</span></div>
+        <div class="hub-nav-label">SORT</div>
+        ${["power", "level", "rarity"].map(mode => `
+            <button type="button" class="hub-nav-btn${boxSortMode === mode ? " active" : ""}" onclick="setBoxSort('${mode}')">${sortLabels[mode]}</button>
+        `).join("")}
+        <div class="hub-nav-divider"></div>
+        <div class="hub-nav-label">HOUSE</div>
+        <button type="button" class="hub-nav-btn${boxHouseFilter == null ? " active" : ""}" onclick="setBoxHouseFilter(null)">ALL</button>
         ${HOUSE_ORDER.map(id => {
             const meta = HOUSES[id];
-            return `<button type="button" class="box-house-filter-btn${boxHouseFilter === id ? " active" : ""}" data-house="${id}" onclick="setBoxHouseFilter('${id}')" title="${meta.label}" aria-label="${meta.label}">
+            return `<button type="button" class="hub-nav-btn hub-nav-btn--house${boxHouseFilter === id ? " active" : ""}" onclick="setBoxHouseFilter('${id}')" title="${meta.label}" aria-label="${meta.label}">
                 <img src="${meta.icon}" alt="">
             </button>`;
         }).join("")}
@@ -6986,7 +7146,6 @@ function setBoxHouseFilter(houseId) {
     } else {
         boxHouseFilter = boxHouseFilter === houseId ? null : houseId;
     }
-    renderBoxHouseFilter();
     renderBox();
 }
 
@@ -8682,7 +8841,7 @@ function renderPartyGrid() {
 
     if (party.length === 0) {
         grid.innerHTML = `
-            <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #666;">
+            <div class="hub-empty-msg" style="grid-column: 1 / -1;">
                 <p style="font-size: 18px; margin-bottom: 15px;">Your party is empty</p>
                 <p style="font-size: 15px;">Catch Monanimals on X via @monexmonad!</p>
             </div>
@@ -8757,11 +8916,9 @@ function renderParty() {
 
 function renderBox() {
     const content = document.getElementById("box-content");
-    const capLabel = document.getElementById("box-capacity-label");
-    if (capLabel) capLabel.textContent = String(box.length);
-    renderBoxHouseFilter();
+    if (!content) return;
+    renderBoxNav();
     sortBox();
-    updateBoxSortMenu();
     content.innerHTML = "";
 
     const displayList = getBoxDisplayList();
@@ -8769,9 +8926,9 @@ function renderBox() {
     if (!box || box.length === 0) {
         content.className = "";
         content.innerHTML = `
-            <div style="text-align: center; padding: 80px 20px; color: #666; min-width: 280px;">
-                <p style="font-size: 18px; margin-bottom: 15px;">Your box is empty</p>
-                <p style="font-size: 15px;">You have no Monanimals stored yet.</p>
+            <div class="hub-empty-msg" style="min-width:280px;">
+                <p style="font-size:18px; margin-bottom:15px;">Your box is empty</p>
+                <p style="font-size:15px;">You have no Monanimals stored yet.</p>
             </div>
         `;
         return;
@@ -8781,9 +8938,9 @@ function renderBox() {
         content.className = "";
         const filterLabel = boxHouseFilter ? getHouseMeta(boxHouseFilter)?.label : "";
         content.innerHTML = `
-            <div style="text-align: center; padding: 80px 20px; color: #666; min-width: 280px;">
-                <p style="font-size: 16px; margin-bottom: 12px;">No ${filterLabel} Monanimals in your box.</p>
-                <p style="font-size: 14px;">Try another house filter or tap ALL.</p>
+            <div class="hub-empty-msg" style="min-width:280px;">
+                <p style="font-size:16px; margin-bottom:12px;">No ${filterLabel} Monanimals in your box.</p>
+                <p style="font-size:14px;">Try another house filter or tap ALL.</p>
             </div>
         `;
         return;
@@ -8883,7 +9040,7 @@ function renderShopCategories() {
     if (!nav) return;
     nav.innerHTML = SHOP_CATEGORIES.map(cat => `
         <button type="button"
-            class="shop-cat-btn${shopActiveCategory === cat.id ? " active" : ""}"
+            class="hub-nav-btn shop-cat-btn${shopActiveCategory === cat.id ? " active" : ""}"
             onclick="setShopCategory('${cat.id}')">${cat.label}</button>
     `).join("");
 }
@@ -8993,6 +9150,8 @@ async function syncXWildMons(silent) {
 }
 
 function renderProfile() {
+    setProfileTab(profileActiveTab);
+
     const linked = document.getElementById("profile-x-linked");
     const manual = document.getElementById("profile-x-manual");
     const display = document.getElementById("x-handle-display");
@@ -9014,6 +9173,15 @@ function renderProfile() {
     const alreadyLoaded = feedEl?.dataset.profileActivityLoaded === "1";
     syncXWildMons(true);
     refreshProfileActivity({ silent: alreadyLoaded });
+}
+
+function setProfileTab(tab) {
+    const valid = ["account", "sync", "log"];
+    profileActiveTab = valid.includes(tab) ? tab : "account";
+    valid.forEach((t) => {
+        document.getElementById("profile-pane-" + t)?.classList.toggle("active", t === profileActiveTab);
+        document.getElementById("profile-tab-" + t)?.classList.toggle("active", t === profileActiveTab);
+    });
 }
 
 async function refreshProfileActivity(opts = {}) {
@@ -11064,9 +11232,32 @@ function showBattleResult(win, reward) {
     `;
     updateUI();
 }
+function setInventoryCategory(categoryId) {
+    inventoryActiveCategory = categoryId;
+    renderInventory();
+}
+
+function renderInventoryNav() {
+    const nav = document.getElementById("inventory-nav");
+    if (!nav) return;
+    nav.innerHTML = INVENTORY_NAV.map(cat => `
+        <button type="button"
+            class="hub-nav-btn${inventoryActiveCategory === cat.id ? " active" : ""}"
+            onclick="setInventoryCategory('${cat.id}')">${cat.label}</button>
+    `).join("");
+}
+
+function appendInventorySlot(grid, html, className) {
+    const slot = document.createElement("div");
+    slot.className = className || "gear-inv-slot";
+    slot.innerHTML = html;
+    grid.appendChild(slot);
+}
+
 function renderInventory() {
     const grid = document.getElementById("inventory-grid");
     if (!grid) return;
+    renderInventoryNav();
     grid.innerHTML = "";
 
     const materials = [
@@ -11075,30 +11266,62 @@ function renderInventory() {
         { key: "shards", count: monShards },
     ];
 
+    const slotStyle = `
+        width: 70px;
+        height: 70px;
+        border: 3px solid #d4a04a;
+        background: linear-gradient(145deg, #6b4426 0%, #4a2e18 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        color: #ffe8c8;
+        box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35), 0 2px 0 #2a1810;
+        position: relative;
+        border-radius: 10px;
+    `;
+
+    if (inventoryActiveCategory === "materials") {
+        materials.forEach((m) => {
+            const info = GAME_ICONS[m.key];
+            appendInventorySlot(grid, `
+                <img src="${info.src}" alt="" style="width:30px;height:30px;image-rendering:pixelated;">
+                <span style="position:absolute; bottom:2px; right:4px; font-size:12px; font-weight:bold; color:#fde68a; text-shadow:1px 1px 0 #000;">${m.count}</span>
+                ${renderHoverTip(info.name, String(m.count))}
+            `, "gear-inv-slot has-hover-tip");
+        });
+        return;
+    }
+
+    if (GEAR_SLOTS.includes(inventoryActiveCategory)) {
+        const filtered = gearInventory.filter(g => g.slot === inventoryActiveCategory);
+        if (!filtered.length) {
+            grid.innerHTML = `<p class="hub-empty-msg">No ${inventoryActiveCategory} gear in inventory.</p>`;
+            return;
+        }
+        filtered.forEach((g) => {
+            normalizeGear(g);
+            appendInventorySlot(grid, `
+                <span style="font-size: 22px;">${GEAR_SLOT_ICONS[g.slot]}</span>
+                <span style="font-size:8px;font-weight:bold;color:${GEAR_TIERS[g.tier].color};margin-top:2px;">${g.tierName}${g.enhanceLevel ? " +" + g.enhanceLevel : ""}</span>
+                ${renderHoverTip(formatGearDisplayName(g), formatGearBonuses(g.bonuses) + "\nEquip via mon card gear slots.")}
+            `, "gear-inv-slot has-hover-tip");
+        });
+        return;
+    }
+
     for (let i = 0; i < 40; i++) {
         const slot = document.createElement("div");
         slot.className = "gear-inv-slot";
-        slot.style.cssText = `
-            width: 70px; 
-            height: 70px; 
-            border: 3px solid #6B21A8; 
-            background: white; 
-            display: flex; 
-            flex-direction: column;
-            align-items: center; 
-            justify-content: center; 
-            font-size: 10px; 
-            color: #888; 
-            box-shadow: 2px 2px 0px #6B21A8;
-            position: relative;
-        `;
+        slot.style.cssText = slotStyle;
         if (i < materials.length) {
             const m = materials[i];
             const info = GAME_ICONS[m.key];
             slot.className = "gear-inv-slot has-hover-tip";
             slot.innerHTML = `
                 <img src="${info.src}" alt="" style="width:30px;height:30px;image-rendering:pixelated;">
-                <span style="position:absolute; bottom:2px; right:4px; font-size:12px; font-weight:bold; color:#111; background:rgba(255,255,255,0.85); padding:0 2px; border-radius:3px;">${m.count}</span>
+                <span style="position:absolute; bottom:2px; right:4px; font-size:12px; font-weight:bold; color:#fde68a; text-shadow:1px 1px 0 #000;">${m.count}</span>
                 ${renderHoverTip(info.name, String(m.count))}
             `;
         } else if (i - 3 < gearInventory.length) {
