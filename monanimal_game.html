@@ -779,8 +779,50 @@ button.green:hover {
     display: flex;
     gap: 8px;
     align-items: flex-start;
-    margin: 2px 0 8px;
-    padding-right: 18px;
+    margin: 0 0 8px;
+}
+.mon-card-chrome {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 24px;
+    margin-bottom: 6px;
+    position: relative;
+    z-index: 5;
+}
+.mon-card-chrome-house {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    min-width: 24px;
+    min-height: 24px;
+}
+.mon-card-chrome-info {
+    flex: 0 0 auto;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    min-height: 24px;
+}
+.hub-main .mon-card-chrome .house-badge,
+.hub-main .mon-card-chrome .house-badge--box {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: 24px;
+    height: 24px;
+}
+.hub-main .box-content-grid .mon-card-chrome .house-badge,
+.hub-main .box-content-grid .mon-card-chrome .house-badge--box {
+    width: 22px;
+    height: 22px;
+}
+.hub-main .mon-card-chrome .info-icon {
+    position: relative;
+    top: auto;
+    right: auto;
+    z-index: 6;
 }
 .hub-main .mon-sprite {
     flex: 0 0 auto;
@@ -925,8 +967,6 @@ button.green:hover {
     box-shadow: 0 2px 0 #5c3010;
 }
 .hub-main .info-icon {
-    top: 6px;
-    right: 6px;
     width: 20px;
     height: 20px;
     font-size: 10px;
@@ -936,8 +976,7 @@ button.green:hover {
     color: #8b4513;
 }
 .hub-main .house-badge {
-    top: 6px;
-    left: 6px;
+    z-index: 6;
 }
 .hub-main .stats-tooltip {
     border-color: #d4a04a;
@@ -9066,8 +9105,10 @@ function renderMonCardInner(mon, index, location) {
     const ascend = isParty ? renderAscendBtn(index, mon) : "";
 
     return `
-    ${renderStatsInfo(mon)}
-    ${renderHouseBadge(mon, location)}
+    <div class="mon-card-chrome">
+        <div class="mon-card-chrome-house">${renderHouseBadge(mon, location)}</div>
+        <div class="mon-card-chrome-info">${renderStatsInfo(mon)}</div>
+    </div>
     <div class="mon-card-top">
         <div class="mon-sprite">
             <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
