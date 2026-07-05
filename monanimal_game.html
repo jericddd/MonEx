@@ -8765,6 +8765,7 @@ function formatUltimateSkillDetail(monOrFighter, skill) {
     const atk = monOrFighter.atkPower != null
         ? getEffectiveAtkPower(monOrFighter)
         : getEffectiveStats(monOrFighter).atk;
+    const lvl = Math.max(1, Math.floor(monOrFighter.level || 1));
     const parts = [];
     if (skill.multiHit?.length) {
         let total = skill.multiHit.reduce((sum, p) => sum + p, 0);
@@ -8773,7 +8774,7 @@ function formatUltimateSkillDetail(monOrFighter, skill) {
     } else if (skill.power > 0) {
         parts.push("DMG: " + Math.floor(atk * skill.power) + " (ATK " + atk + " × " + skill.power + ")");
     }
-    if (skill.ultCritChanceBonus) parts.push("+" + skill.ultCritChanceBonus + "% crit chance on ult");
+    if (skill.ultCritChanceBonus) parts.push("+" + scaleLevelBonus(skill.ultCritChanceBonus, lvl) + "% crit chance on ult");
     if (skill.ultCritDamageMult) parts.push("+" + Math.round((skill.ultCritDamageMult - 1) * 100) + "% crit damage on ult");
     if (skill.executeThreshold) parts.push("+" + Math.round((skill.executeBonus || 0) * 100) + "% dmg if foe below " + Math.round(skill.executeThreshold * 100) + "% HP");
     if (skill.cannotBeBlocked) parts.push("Cannot be blocked");
@@ -8784,10 +8785,13 @@ function formatUltimateSkillDetail(monOrFighter, skill) {
     if (skill.bonusIfBurning) parts.push("+" + Math.round(skill.bonusIfBurning * 100) + "% if target is Burning");
     if (skill.lifesteal) parts.push("Heal " + Math.round(skill.lifesteal * 100) + "% of damage dealt");
     if (skill.shieldPct) parts.push("Shield " + Math.round(skill.shieldPct * 100) + "% max HP for " + (skill.shieldTurns || 2) + " turns");
-    if (skill.selfBuff?.statMods?.block) parts.push("+" + skill.selfBuff.statMods.block + " BLOCK for " + skill.selfBuff.turns + " turn(s)");
-    if (skill.selfBuff?.statMods?.spd) parts.push("+" + skill.selfBuff.statMods.spd + " SPD for " + skill.selfBuff.turns + " turn(s)");
-    if (skill.selfBuff?.statMods?.dodge) parts.push("+" + skill.selfBuff.statMods.dodge + " DODGE for " + skill.selfBuff.turns + " turn(s)");
-    if (skill.enemyDebuff?.statMods?.hit) parts.push(skill.enemyDebuff.statMods.hit + " enemy HIT for " + skill.enemyDebuff.turns + " turn(s)");
+    if (skill.selfBuff?.statMods?.block) parts.push("+" + scaleLevelBonus(skill.selfBuff.statMods.block, lvl) + " BLOCK for " + skill.selfBuff.turns + " turn(s)");
+    if (skill.selfBuff?.statMods?.spd) parts.push("+" + scaleLevelBonus(skill.selfBuff.statMods.spd, lvl) + " SPD for " + skill.selfBuff.turns + " turn(s)");
+    if (skill.selfBuff?.statMods?.dodge) parts.push("+" + scaleLevelBonus(skill.selfBuff.statMods.dodge, lvl) + " DODGE for " + skill.selfBuff.turns + " turn(s)");
+    if (skill.enemyDebuff?.statMods?.hit) {
+        const hitMod = skill.enemyDebuff.statMods.hit;
+        parts.push((hitMod < 0 ? "" : "+") + scaleLevelBonus(hitMod, lvl) + " enemy HIT for " + skill.enemyDebuff.turns + " turn(s)");
+    }
     if (skill.stunPerHit) parts.push(Math.round(skill.stunPerHit * 100) + "% Stun chance per hit");
     if (skill.stunIfBelowHp) parts.push("Stuns if foe survives below " + Math.round(skill.stunIfBelowHp * 100) + "% HP");
     if (skill.effect?.type === "poison") parts.push("Poison: " + Math.round(POISON_TICK_PCT * 100) + "% max HP/turn");
@@ -8801,7 +8805,7 @@ function formatUltimateSkillDetail(monOrFighter, skill) {
         const chance = skill.effect.chance != null ? Math.round(skill.effect.chance * 100) + "% " : "";
         parts.push(chance + "Freeze (heal/cleanse only)");
     }
-    if (skill.bonusHit) parts.push("Bonus hit if " + skill.bonusHit.spdLead + "+ SPD faster");
+    if (skill.bonusHit) parts.push("Bonus hit if " + scaleLevelBonus(skill.bonusHit.spdLead, lvl) + "+ SPD faster");
     return parts.join(" · ");
 }
 
@@ -9405,6 +9409,23 @@ function getGearBonuses(mon) {
 function scaleStatWithLevel(baseStat, level) {
     const lvl = Math.max(1, Math.floor(level || 1));
     return Math.round((baseStat || 0) * (1 + STAT_LEVEL_GROWTH_PCT * (lvl - 1)));
+}
+
+function scaleLevelBonus(baseValue, level) {
+    return scaleStatWithLevel(baseValue, level);
+}
+
+function scaleUltBuffDef(buffDef, level) {
+    if (!buffDef) return buffDef;
+    const out = { ...buffDef, statMods: { ...(buffDef.statMods || {}) } };
+    Object.keys(out.statMods).forEach((key) => {
+        const val = out.statMods[key];
+        if (typeof val === "number") {
+            const sign = val < 0 ? -1 : 1;
+            out.statMods[key] = sign * scaleLevelBonus(Math.abs(val), level);
+        }
+    });
+    return out;
 }
 
 function getEffectiveStats(mon) {
@@ -10493,8 +10514,11 @@ function applyDamageToFighter(fighter, rawDmg) {
 function getUltimateHitPowers(skill, atk, def) {
     if (skill.multiHit?.length) {
         const hits = [...skill.multiHit];
-        if (skill.bonusHit && getBattleStat(atk, "spd") >= getBattleStat(def, "spd") + (skill.bonusHit.spdLead || 0)) {
-            hits.push(skill.bonusHit.power);
+        if (skill.bonusHit) {
+            const spdLead = scaleLevelBonus(skill.bonusHit.spdLead || 0, atk.level || 1);
+            if (getBattleStat(atk, "spd") >= getBattleStat(def, "spd") + spdLead) {
+                hits.push(skill.bonusHit.power);
+            }
         }
         return hits;
     }
@@ -10503,7 +10527,7 @@ function getUltimateHitPowers(skill, atk, def) {
 
 function getUltimateCritChance(atk, skill) {
     let chance = getCritChance(atk);
-    if (skill.ultCritChanceBonus) chance += skill.ultCritChanceBonus;
+    if (skill.ultCritChanceBonus) chance += scaleLevelBonus(skill.ultCritChanceBonus, atk.level || 1);
     return chance;
 }
 
@@ -10543,7 +10567,7 @@ function applyUltimateExtras(atk, def, skill, totalDealt, atkSide) {
             if (atkSide) showDamage(atkSide, heal, "heal");
         }
     }
-    if (skill.selfBuff) applySelfBuff(atk, skill.selfBuff);
+    if (skill.selfBuff) applySelfBuff(atk, scaleUltBuffDef(skill.selfBuff, atk.level));
     if (skill.shieldPct) {
         addStatus(atk, {
             id: skill.shieldId || "ultshield",
@@ -10552,10 +10576,11 @@ function applyUltimateExtras(atk, def, skill, totalDealt, atkSide) {
         });
     }
     if (skill.enemyDebuff && def.hp >= 0) {
+        const debuff = scaleUltBuffDef(skill.enemyDebuff, atk.level);
         addStatus(def, {
-            id: skill.enemyDebuff.id || "ultdebuff",
-            turns: skill.enemyDebuff.turns || 2,
-            statMods: { ...(skill.enemyDebuff.statMods || {}) },
+            id: debuff.id || "ultdebuff",
+            turns: debuff.turns || 2,
+            statMods: { ...(debuff.statMods || {}) },
         });
     }
     if (skill.effect) tryApplySkillEffect(atk, def, skill);
