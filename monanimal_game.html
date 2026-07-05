@@ -1740,6 +1740,244 @@ button.green:hover {
     margin: 0;
     line-height: 1.45;
 }
+#modal-armory .hub-main .gear-synth-note {
+    color: rgba(255, 232, 200, 0.78);
+}
+#modal-armory .hub-main .gear-synth-note b {
+    color: #fde68a;
+}
+#modal-armory .hub-main .gear-synth-recipe-bar {
+    background: rgba(0, 0, 0, 0.22);
+    border: 2px solid rgba(212, 160, 74, 0.55);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35);
+    color: #ffe8c8;
+}
+#modal-armory .hub-main .gear-synth-recipe-bar b {
+    color: #fde68a;
+}
+#modal-armory .hub-main .gear-synth-recipe-bar.invalid {
+    border-color: rgba(148, 163, 184, 0.35);
+    background: rgba(0, 0, 0, 0.18);
+    color: rgba(255, 232, 200, 0.62);
+    box-shadow: none;
+}
+#modal-armory .hub-main .gear-synth-slot {
+    border-color: #d4a04a;
+    background: linear-gradient(145deg, #6b4426 0%, #4a2e18 100%);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35), 2px 2px 0 #2a1810;
+}
+#modal-armory .hub-main .gear-synth-slot.main-slot {
+    border-color: #f59e0b;
+    box-shadow: inset 0 0 0 2px rgba(254, 243, 199, 0.25), 2px 2px 0 #92400e;
+}
+#modal-armory .hub-main .gear-synth-slot.filled {
+    background: linear-gradient(145deg, #7a4e2c 0%, #5a3820 100%);
+}
+#modal-armory .hub-main .gear-synth-slot-label {
+    color: #fde68a;
+}
+#modal-armory .hub-main .gear-synth-op {
+    color: #fbbf24;
+}
+#modal-armory .hub-main .gear-synth-result {
+    border-color: rgba(251, 191, 36, 0.55);
+    background: rgba(0, 0, 0, 0.2);
+    color: #fde68a;
+}
+#modal-armory .hub-main .gear-synth-cost {
+    color: #ffe8c8;
+}
+#modal-armory .hub-main .gear-synth-pick-grid {
+    border: 2px solid rgba(212, 160, 74, 0.45);
+    background: rgba(0, 0, 0, 0.18);
+}
+#modal-armory .hub-main .gear-synth-pick-item {
+    border-color: #d4a04a;
+    background: linear-gradient(145deg, #6b4426 0%, #4a2e18 100%);
+    box-shadow: 2px 2px 0 #2a1810;
+}
+#modal-armory .hub-main .gear-synth-pick-item:hover:not(.used) {
+    background: linear-gradient(145deg, #7a4e2c 0%, #5a3820 100%);
+}
+#modal-armory .hub-main .gear-enhance-info {
+    border-color: rgba(212, 160, 74, 0.55);
+    background: rgba(0, 0, 0, 0.2);
+    color: #ffe8c8;
+}
+#modal-armory .hub-main .gear-enhance-info h4 {
+    color: #fde68a;
+}
+#modal-armory .hub-main .gear-enhance-info p {
+    color: rgba(255, 232, 200, 0.85);
+}
+#modal-armory .hub-main .gear-enhance-rate {
+    color: #fbbf24;
+}
+#modal-armory .hub-main .gear-enhance-rate.low {
+    color: #f87171;
+}
+#modal-armory .hub-main .gear-enhance-slot {
+    border-color: #d4a04a;
+    background: linear-gradient(145deg, #6b4426 0%, #4a2e18 100%);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35), 2px 2px 0 #2a1810;
+}
+#modal-armory .hub-main .gear-enhance-slot.filled {
+    background: linear-gradient(145deg, #7a4e2c 0%, #5a3820 100%);
+}
+#modal-armory .hub-main .gear-enhance-slot .gear-enhance-level {
+    color: #fde68a;
+    background: rgba(0, 0, 0, 0.55);
+}
+.hero-ascension-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.hero-ascension-workbench {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.hero-ascension-main-slot {
+    width: 92px;
+    height: 92px;
+    border: 3px solid #f59e0b;
+    background: linear-gradient(145deg, #7a4e2c 0%, #5a3820 100%);
+    box-shadow: inset 0 0 0 2px rgba(254, 243, 199, 0.2), 2px 2px 0 #92400e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    box-sizing: border-box;
+    position: relative;
+}
+.hero-ascension-main-slot img {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+.hero-ascension-dupes-badge {
+    font-size: 10px;
+    font-weight: 700;
+    color: #fde68a;
+    margin-top: 2px;
+}
+.hero-ascension-pick-item {
+    width: 72px;
+    height: 86px;
+    border: 2px solid #d4a04a;
+    background: linear-gradient(145deg, #6b4426 0%, #4a2e18 100%);
+    box-shadow: 2px 2px 0 #2a1810;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    padding: 4px;
+    box-sizing: border-box;
+    position: relative;
+}
+.hero-ascension-pick-item img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+.hero-ascension-pick-item .hero-asc-pick-name {
+    font-size: 6px;
+    font-family: 'Press Start 2P', monospace;
+    color: #ffe8c8;
+    text-align: center;
+    line-height: 1.3;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.hero-ascension-pick-item.selected {
+    border-color: #fbbf24;
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.35), 2px 2px 0 #92400e;
+    opacity: 1 !important;
+}
+.hero-ascension-pick-item.used {
+    opacity: 0.35;
+    pointer-events: none;
+}
+.hero-ascension-pick-item.is-main {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.35), 2px 2px 0 #92400e;
+}
+.hero-skill-unlock-panel {
+    border: 2px solid rgba(251, 191, 36, 0.55);
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 8px;
+    padding: 12px;
+}
+.hero-skill-unlock-panel h4 {
+    margin: 0 0 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #fde68a;
+    line-height: 1.5;
+}
+.hero-skill-option-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+.hero-skill-option-btn {
+    border: 2px solid #d4a04a;
+    background: linear-gradient(145deg, #6b4426 0%, #4a2e18 100%);
+    color: #ffe8c8;
+    padding: 10px 8px;
+    cursor: pointer;
+    font-family: 'Lato', sans-serif;
+    font-size: 11px;
+    line-height: 1.35;
+    text-align: center;
+    box-shadow: 2px 2px 0 #2a1810;
+}
+.hero-skill-option-btn b {
+    display: block;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: #fde68a;
+    margin-bottom: 4px;
+}
+.hero-skill-option-btn:hover {
+    border-color: #fbbf24;
+    background: linear-gradient(145deg, #7a4e2c 0%, #5a3820 100%);
+}
+.mon-ascension-stars {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin: 4px 0 2px;
+}
+.mon-ascension-stars .asc-star {
+    font-size: 13px;
+    line-height: 1;
+    color: rgba(120, 90, 60, 0.55);
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+.mon-ascension-stars .asc-star.filled {
+    color: #fbbf24;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.55), 0 1px 0 #78350f;
+}
+.mon-ascension-stars .asc-star-pending {
+    font-size: 11px;
+    color: #c4b5fd;
+    animation: asc-star-pulse 1.2s ease-in-out infinite;
+}
+@keyframes asc-star-pulse {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.15); }
+}
 
 /* ===== Armory hub (synthesize / enhance) — uses hub layout ===== */
 #modal-armory .game-modal-panel {
@@ -5727,6 +5965,7 @@ body.afk-layout .currency-pill .currency-tip {
                     <nav class="hub-nav armory-nav" aria-label="Armory tabs">
                         <button type="button" class="hub-nav-btn armory-nav-btn" id="armory-tab-synthesize" onclick="setArmoryTab('synthesize')">SYNTHESIZE</button>
                         <button type="button" class="hub-nav-btn armory-nav-btn" id="armory-tab-enhance" onclick="setArmoryTab('enhance')">ENHANCE</button>
+                        <button type="button" class="hub-nav-btn armory-nav-btn" id="armory-tab-ascension" onclick="setArmoryTab('ascension')">HERO ASCENSION</button>
                     </nav>
                     <div class="hub-main">
                         <div class="hub-content-wrap armory-pane" id="armory-pane-content"></div>
@@ -6908,7 +7147,7 @@ const GEAR_TIERS = [
     { name: "Epic",      color: "#a855f7" },
     { name: "Legendary", color: "#ca8a04" },
 ];
-const GEAR_SYNTH_UPGRADE_RATE = 0.40;
+const GEAR_SYNTH_UPGRADE_RATE = 0.75;
 const GEAR_SYNTH_REROLL_RATE = 0.99;
 const GEAR_SYNTH_REROLL_LOW_RATE = 0.75;
 const GEAR_SYNTH_UPGRADE_GOLD = [0, 1000, 2500, 6000, 15000];
@@ -6931,6 +7170,13 @@ let _gearIdSeq = 0;
 let gearSynthSlots = [null, null, null];
 let armoryActiveTab = "synthesize";
 let gearEnhanceTargetId = null;
+let heroAscensionMainIndex = null;
+let heroAscensionDupeBoxIndices = [];
+const HERO_ASCENSION_MAX_STARS = 2;
+const HERO_ASCENSION_DUPES_REQUIRED = [2, 4];
+const HERO_ASCENSION_SUCCESS_RATE = 0.75;
+const HERO_ASCENSION_GOLD_COST = [2000, 5000];
+const HERO_SKILL_UNLOCK_GOLD = 500;
 
 // ==================== HELPER FUNCTIONS ====================
 function getMonPngPath(name) {
@@ -7957,6 +8203,20 @@ function getSkillCount(rarity) {
     return 6;
 }
 
+function getMonSkillSlotCap(mon) {
+    return Math.min(BATTLE_METER_SKILL_SLOTS, getSkillCount(mon.rarity) + (mon.ascensionStars || 0));
+}
+
+function renderAscensionStars(mon) {
+    const stars = Math.min(HERO_ASCENSION_MAX_STARS, mon.ascensionStars || 0);
+    const pending = mon.ascensionSkillPending?.length ? ' <span class="asc-star-pending" title="Skill unlock ready">✦</span>' : "";
+    const cells = [];
+    for (let i = 1; i <= HERO_ASCENSION_MAX_STARS; i++) {
+        cells.push(`<span class="asc-star${i <= stars ? " filled" : ""}" aria-hidden="true">★</span>`);
+    }
+    return `<div class="mon-ascension-stars" aria-label="Ascension ${stars} of ${HERO_ASCENSION_MAX_STARS}">${cells.join("")}${pending}</div>`;
+}
+
 function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 function randF(min, max) { return Math.round((Math.random() * (max - min) + min) * 10) / 10; }
 
@@ -7988,8 +8248,10 @@ function getSpeciesUltimate(name) {
 }
 
 function needsSkillMigration(mon) {
-    const expected = getSkillCount(mon.rarity);
-    if (!mon.skills || mon.skills.length !== expected) return true;
+    const base = getSkillCount(mon.rarity);
+    const cap = getMonSkillSlotCap(mon);
+    const len = mon.skills?.length || 0;
+    if (len < base || len > cap) return true;
     if (mon.skills[0]?.type !== "ultimate") return true;
     if (mon.skills[1]?.type !== "passive") return true;
     for (let i = 2; i < mon.skills.length; i++) {
@@ -8013,13 +8275,14 @@ function syncUltimateFromSkills(mon) {
 
 function expandSkillsForRarity(mon) {
     const expected = getSkillCount(mon.rarity);
+    const cap = getMonSkillSlotCap(mon);
     const usedNames = new Set(mon.skills.map(skill => skill.name));
     while (mon.skills.length < expected) {
         const skill = pickUniqueSkill(getActiveSkillPoolForMon(mon.skills), usedNames);
         if (!skill) break;
         mon.skills.push(skill);
     }
-    if (mon.skills.length > expected) mon.skills = mon.skills.slice(0, expected);
+    if (mon.skills.length > cap) mon.skills = mon.skills.slice(0, cap);
 }
 
 function formatPassiveDetail(skill) {
@@ -8463,6 +8726,7 @@ function migrateSkillDefinitions(mon) {
 
 function ensureMonReady(mon) {
     if (!mon.equipment) mon.equipment = { weapon: null, armor: null, helmet: null, boots: null };
+    if (mon.ascensionStars == null) mon.ascensionStars = 0;
     if (!mon.stats || mon.stats.spd == null) mon.stats = generateStats(mon.rarity);
     if (mon.statVersion !== STAT_SYSTEM_VERSION) {
         mon.stats = generateStats(mon.rarity);
@@ -9119,8 +9383,277 @@ function renderGearEnhancePanel(container) {
     `;
 }
 
+function rollHeroAscensionSkillOptions(mon) {
+    const usedNames = new Set((mon.skills || []).map(skill => skill.name));
+    const pool = [...PASSIVE_SKILL_POOL, ...getActiveSkillPoolForMon(mon.skills)];
+    const options = [];
+    let guard = 0;
+    while (options.length < 3 && guard < 80) {
+        guard++;
+        const blocked = new Set([...usedNames, ...options.map(skill => skill.name)]);
+        const skill = pickUniqueSkill(pool, blocked);
+        if (!skill) break;
+        options.push(skill);
+    }
+    return options;
+}
+
+function getHeroAscensionDupeRequirement(stars) {
+    return HERO_ASCENSION_DUPES_REQUIRED[stars] ?? null;
+}
+
+function analyzeHeroAscension(mainIndex, dupeBoxIndices) {
+    const main = party[mainIndex];
+    if (!main) return { type: "invalid", reason: "Select a party hero as your main." };
+    ensureMonReady(main);
+    const stars = main.ascensionStars || 0;
+    if (stars >= HERO_ASCENSION_MAX_STARS) {
+        return { type: "invalid", reason: `${main.name} already has ${HERO_ASCENSION_MAX_STARS} ascension stars.` };
+    }
+    if (main.ascensionSkillPending?.length) {
+        return { type: "pending_skill", mainIndex, main };
+    }
+    const required = getHeroAscensionDupeRequirement(stars);
+    if (required == null) return { type: "invalid", reason: "Cannot ascend further." };
+    if (dupeBoxIndices.length !== required) {
+        return {
+            type: "invalid",
+            reason: `Star ${stars + 1} needs <b>1 main + ${required} duplicates</b> of the same species (${dupeBoxIndices.length}/${required} selected).`,
+        };
+    }
+    for (const boxIndex of dupeBoxIndices) {
+        const dupe = box[boxIndex];
+        if (!dupe) return { type: "invalid", reason: "One or more selected duplicates are no longer in your Box." };
+        if (dupe.name !== main.name) {
+            return { type: "invalid", reason: "All duplicates must match the main hero's species." };
+        }
+    }
+    return {
+        type: "ready",
+        mainIndex,
+        main,
+        stars,
+        nextStar: stars + 1,
+        required,
+        rate: HERO_ASCENSION_SUCCESS_RATE,
+        gold: HERO_ASCENSION_GOLD_COST[stars] || 0,
+    };
+}
+
+function describeHeroAscensionRecipe(recipe) {
+    if (!recipe) return "Select your <b>main party hero</b>, then pick matching duplicates from your Box.";
+    if (recipe.type === "pending_skill") {
+        return `<b>Skill unlock ready</b> — choose one of three skills for <b>${recipe.main.name}</b> (${HERO_SKILL_UNLOCK_GOLD} Gold).`;
+    }
+    if (recipe.type === "invalid") return recipe.reason;
+    const pct = Math.round(recipe.rate * 100);
+    return `<b>Star ${recipe.nextStar}</b> — ${recipe.main.name} + ${recipe.required}× ${recipe.main.name} duplicate(s) · <b>${pct}%</b> success · fail consumes duplicates`;
+}
+
+function heroAscensionSelectMain(partyIndex) {
+    if (!party[partyIndex]) return;
+    heroAscensionMainIndex = partyIndex;
+    heroAscensionDupeBoxIndices = [];
+    renderArmoryPane();
+}
+
+function heroAscensionToggleDupe(boxIndex) {
+    if (heroAscensionMainIndex == null || !party[heroAscensionMainIndex]) return;
+    const main = party[heroAscensionMainIndex];
+    const dupe = box[boxIndex];
+    if (!dupe || dupe.name !== main.name) return;
+    const stars = main.ascensionStars || 0;
+    const required = getHeroAscensionDupeRequirement(stars);
+    if (required == null) return;
+    const pos = heroAscensionDupeBoxIndices.indexOf(boxIndex);
+    if (pos >= 0) {
+        heroAscensionDupeBoxIndices.splice(pos, 1);
+    } else if (heroAscensionDupeBoxIndices.length < required) {
+        heroAscensionDupeBoxIndices.push(boxIndex);
+    }
+    renderArmoryPane();
+}
+
+function removeHeroAscensionDupesFromBox(indices) {
+    [...indices].sort((a, b) => b - a).forEach((boxIndex) => {
+        if (box[boxIndex]) box.splice(boxIndex, 1);
+    });
+    heroAscensionDupeBoxIndices = [];
+}
+
+function executeHeroAscension() {
+    if (heroAscensionMainIndex == null) {
+        alert("Select a main hero from your party first.");
+        return;
+    }
+    const recipe = analyzeHeroAscension(heroAscensionMainIndex, heroAscensionDupeBoxIndices);
+    if (recipe.type === "pending_skill") {
+        alert("Unlock the pending star skill before ascending again.");
+        return;
+    }
+    if (recipe.type !== "ready") {
+        alert(recipe.reason?.replace(/<[^>]+>/g, "") || "Invalid ascension setup.");
+        return;
+    }
+    if (money < recipe.gold) {
+        alert(`Need ${recipe.gold} Gold to ascend.\nYou have: ${money}`);
+        return;
+    }
+    const preview = describeHeroAscensionRecipe(recipe).replace(/<[^>]+>/g, "");
+    if (!confirm(`Attempt Hero Ascension?\n\n${preview}\n\nCost: ${recipe.gold} Gold\nDuplicates are consumed whether you succeed or fail.`)) return;
+
+    money -= recipe.gold;
+    const dupeIndices = [...heroAscensionDupeBoxIndices];
+    removeHeroAscensionDupesFromBox(dupeIndices);
+
+    const main = party[recipe.mainIndex];
+    const success = Math.random() < recipe.rate;
+    if (success) {
+        main.ascensionStars = (main.ascensionStars || 0) + 1;
+        main.ascensionSkillPending = rollHeroAscensionSkillOptions(main);
+        alert(`Ascension success! ${main.name} earned ★${main.ascensionStars}.\nChoose a skill to unlock (${HERO_SKILL_UNLOCK_GOLD} Gold).`);
+    } else {
+        alert(`Ascension failed.\nDuplicates were consumed.`);
+    }
+
+    sortBox();
+    saveData();
+    updateUI();
+    renderArmoryPane();
+}
+
+function confirmHeroAscensionSkill(partyIndex, optionIndex) {
+    const mon = party[partyIndex];
+    if (!mon?.ascensionSkillPending?.length) return;
+    const skill = mon.ascensionSkillPending[optionIndex];
+    if (!skill) return;
+    if (money < HERO_SKILL_UNLOCK_GOLD) {
+        alert(`Need ${HERO_SKILL_UNLOCK_GOLD} Gold to unlock this skill.\nYou have: ${money}`);
+        return;
+    }
+    if ((mon.skills || []).length >= getMonSkillSlotCap(mon)) {
+        alert("This hero has no free skill slots for ascension.");
+        return;
+    }
+    money -= HERO_SKILL_UNLOCK_GOLD;
+    mon.skills.push({ ...skill });
+    migrateSkillDefinitions(mon);
+    syncUltimateFromSkills(mon);
+    refreshMonDerivedStats(mon);
+    delete mon.ascensionSkillPending;
+    saveData();
+    updateUI();
+    renderArmoryPane();
+    alert(`${mon.name} learned ${skill.name}!`);
+}
+
+function renderHeroSkillUnlockPanel(main, partyIndex) {
+    const options = main.ascensionSkillPending || [];
+    if (!options.length) return "";
+    const cards = options.map((skill, i) => {
+        const afford = money >= HERO_SKILL_UNLOCK_GOLD;
+        return `<button type="button" class="hero-skill-option-btn" onclick="confirmHeroAscensionSkill(${partyIndex}, ${i})" ${afford ? "" : "disabled style='opacity:0.5'"}>
+            <b>${skill.name}</b>
+            ${skill.type === "passive" ? "Passive" : skill.element || "Active"}
+            <br><small>${skill.desc || ""}</small>
+        </button>`;
+    }).join("");
+    return `<div class="hero-skill-unlock-panel">
+        <h4>★ UNLOCK STAR SKILL — ${main.name}</h4>
+        <p class="gear-synth-note" style="margin-bottom:10px;">Pick one skill (${HERO_SKILL_UNLOCK_GOLD} Gold). These three options are locked in until you choose.</p>
+        <div class="hero-skill-option-grid">${cards}</div>
+    </div>`;
+}
+
+function renderHeroAscensionPanel(container) {
+    const el = container || document.getElementById("armory-pane-content");
+    if (!el) return;
+
+    const recipe = heroAscensionMainIndex != null
+        ? analyzeHeroAscension(heroAscensionMainIndex, heroAscensionDupeBoxIndices)
+        : null;
+    const recipeCls = recipe && (recipe.type === "ready" || recipe.type === "pending_skill") ? "" : " invalid";
+    const canAscend = recipe?.type === "ready" && money >= (recipe.gold || 0);
+    const main = heroAscensionMainIndex != null ? party[heroAscensionMainIndex] : null;
+
+    const mainSlot = main
+        ? `<div class="hero-ascension-main-slot" title="${main.name}">
+            <img src="${getMonAvatarPath(main)}" alt="${main.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(main)}'">
+            <span class="hero-ascension-dupes-badge">★${main.ascensionStars || 0}</span>
+        </div>`
+        : `<div class="hero-ascension-main-slot" style="opacity:0.45;"><span style="font-size:22px;">+</span><span class="hero-ascension-dupes-badge">MAIN</span></div>`;
+
+    const required = main ? getHeroAscensionDupeRequirement(main.ascensionStars || 0) : null;
+    const dupeSlots = required
+        ? Array.from({ length: required }, (_, i) => {
+            const boxIndex = heroAscensionDupeBoxIndices[i];
+            const dupe = boxIndex != null ? box[boxIndex] : null;
+            if (!dupe) {
+                return `<div class="hero-ascension-main-slot" style="width:78px;height:78px;border-color:#d4a04a;opacity:0.5;"><span style="font-size:18px;">+</span></div>`;
+            }
+            return `<div class="hero-ascension-main-slot" style="width:78px;height:78px;border-color:#d4a04a;" title="${dupe.name}">
+                <img src="${getMonAvatarPath(dupe)}" alt="${dupe.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(dupe)}'">
+            </div>`;
+        }).join('<span class="gear-synth-op">+</span>')
+        : "";
+
+    const partyPick = party.length
+        ? party.map((mon, index) => {
+            const selected = heroAscensionMainIndex === index;
+            return `<button type="button" class="hero-ascension-pick-item${selected ? " is-main" : ""}" onclick="heroAscensionSelectMain(${index})" title="${mon.name}">
+                <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
+                <span class="hero-asc-pick-name">${mon.name}</span>
+                <span class="hero-ascension-dupes-badge">★${mon.ascensionStars || 0}</span>
+            </button>`;
+        }).join("")
+        : `<p style="grid-column:1/-1;text-align:center;color:rgba(255,232,200,0.65);font-size:12px;margin:0;">Add heroes to your party first.</p>`;
+
+    const matchingDupes = main
+        ? box.map((mon, index) => ({ mon, index })).filter(({ mon }) => mon.name === main.name)
+        : [];
+    const dupePick = matchingDupes.length
+        ? matchingDupes.map(({ mon, index }) => {
+            const selected = heroAscensionDupeBoxIndices.includes(index);
+            return `<button type="button" class="hero-ascension-pick-item${selected ? " selected" : ""}" onclick="heroAscensionToggleDupe(${index})" title="${mon.name} Lv.${Math.floor(mon.level)}">
+                <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
+                <span class="hero-asc-pick-name">Lv.${Math.floor(mon.level)}</span>
+            </button>`;
+        }).join("")
+        : `<p style="grid-column:1/-1;text-align:center;color:rgba(255,232,200,0.65);font-size:12px;margin:0;">${main ? `No extra ${main.name} copies in your Box.` : "Select a main hero to see matching duplicates."}</p>`;
+
+    const skillUnlock = recipe?.type === "pending_skill"
+        ? renderHeroSkillUnlockPanel(recipe.main, recipe.mainIndex)
+        : (main?.ascensionSkillPending?.length ? renderHeroSkillUnlockPanel(main, heroAscensionMainIndex) : "");
+
+    el.innerHTML = `
+        <div class="hero-ascension-panel">
+            <p class="gear-synth-note">Hero Ascension: sacrifice duplicate copies to earn ★ stars. <b>Star 1</b> = 1 main + 2 dupes · <b>Star 2</b> = 1 main + 4 dupes · <b>75%</b> success. Each star unlocks a new skill (pick 1 of 3).</p>
+            <div class="gear-synth-recipe-bar${recipeCls}">${describeHeroAscensionRecipe(recipe)}</div>
+            ${skillUnlock}
+            <div class="hero-ascension-workbench">
+                ${mainSlot}
+                ${required ? `<span class="gear-synth-op">+</span>${dupeSlots}` : ""}
+                ${required ? `<span class="gear-synth-op">⇒</span><div class="gear-synth-result">★${main ? (main.ascensionStars || 0) + 1 : "?"}<br>skill</div>` : ""}
+            </div>
+            <div class="gear-synth-actions">
+                <div class="gear-synth-cost">${currencyIcon("gold", 18)} <span>${recipe?.gold || 0} Gold</span></div>
+                <button type="button" class="gear-synth-btn" onclick="executeHeroAscension()" ${canAscend ? "" : "disabled"} style="border-color:#fbbf24;background:linear-gradient(180deg,#fde68a 0%,#f59e0b 100%);color:#451a03;box-shadow:3px 3px 0 #92400e;">ASCEND</button>
+                <button type="button" class="gear-synth-open-btn" onclick="heroAscensionMainIndex=null;heroAscensionDupeBoxIndices=[];renderArmoryPane();">CLEAR</button>
+            </div>
+            <div>
+                <p class="gear-synth-note" style="margin-bottom:8px;"><b>Party — main hero</b></p>
+                <div class="gear-synth-pick-grid" style="max-height:140px;">${partyPick}</div>
+            </div>
+            <div>
+                <p class="gear-synth-note" style="margin-bottom:8px;"><b>Box — duplicates</b> (same species as main)</p>
+                <div class="gear-synth-pick-grid">${dupePick}</div>
+            </div>
+        </div>
+    `;
+}
+
 function setArmoryTab(tab) {
-    armoryActiveTab = tab === "enhance" ? "enhance" : "synthesize";
+    armoryActiveTab = tab === "enhance" ? "enhance" : (tab === "ascension" ? "ascension" : "synthesize");
     renderArmoryPane();
 }
 
@@ -9129,7 +9662,9 @@ function renderArmoryPane() {
     if (!pane) return;
     document.getElementById("armory-tab-synthesize")?.classList.toggle("active", armoryActiveTab === "synthesize");
     document.getElementById("armory-tab-enhance")?.classList.toggle("active", armoryActiveTab === "enhance");
+    document.getElementById("armory-tab-ascension")?.classList.toggle("active", armoryActiveTab === "ascension");
     if (armoryActiveTab === "enhance") renderGearEnhancePanel(pane);
+    else if (armoryActiveTab === "ascension") renderHeroAscensionPanel(pane);
     else renderGearSynthPanel(pane);
 }
 
@@ -9138,7 +9673,7 @@ function openArmoryModal(tab) {
         alert("Armory unlocks at Chapter 2 (Stage 9+). Keep progressing!");
         return;
     }
-    armoryActiveTab = tab === "enhance" ? "enhance" : "synthesize";
+    armoryActiveTab = tab === "enhance" ? "enhance" : (tab === "ascension" ? "ascension" : "synthesize");
     openGameModal("armory");
 }
 
@@ -9708,6 +10243,7 @@ function renderMonCardInner(mon, index, location) {
         </div>
         <div class="mon-card-identity">
             <div class="mon-name">${mon.name}</div>
+            ${renderAscensionStars(mon)}
             <div class="type-tags">
                 <span class="type-tag ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
             </div>
@@ -11334,7 +11870,7 @@ function renderBattleMeterLockedSlot(slotIndex) {
         <span class="skill-lock-icon" aria-hidden="true">🔒</span>
         <div class="skill-tip skill-tip-locked">
             <div class="skill-tip-name">LOCKED</div>
-            <div class="skill-tip-desc">Ascend your Monanimal to unlock more skill slots.</div>
+            <div class="skill-tip-desc">Unlock more skills via Hero Ascension in the Armory.</div>
         </div>
     </div>`;
 }
