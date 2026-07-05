@@ -660,9 +660,33 @@ button.green:hover {
 #modal-box .hub-content-wrap {
     flex: 1;
     min-height: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    display: block;
+    padding: 14px 6px 14px 16px;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: #c46a28 rgba(0, 0, 0, 0.2);
+}
+#modal-box .hub-content-wrap::-webkit-scrollbar {
+    width: 10px;
+}
+#modal-box .hub-content-wrap::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.22);
+    border-radius: 5px;
+    margin-top: 44px;
+    margin-bottom: 8px;
+}
+#modal-box .hub-content-wrap::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #d07020, #8b4a22);
+    border: 1px solid #c46a28;
+    border-radius: 5px;
+}
+#modal-box .box-scroll-wrap {
+    overflow: visible;
+    width: 100%;
+    padding-right: 28px;
+    box-sizing: border-box;
 }
 .hub-empty-msg,
 .shop-empty-msg {
