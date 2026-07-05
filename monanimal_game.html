@@ -433,7 +433,9 @@ button.green:hover {
 #modal-party .game-modal-panel,
 #modal-box .game-modal-panel,
 #modal-inventory .game-modal-panel,
-#modal-profile .game-modal-panel {
+#modal-profile .game-modal-panel,
+#modal-daily-quest .game-modal-panel,
+#modal-party-switch .game-modal-panel {
     width: min(920px, 96vw);
     max-width: min(920px, 96vw);
     padding: 0;
@@ -451,7 +453,9 @@ button.green:hover {
 #modal-party .game-modal-header,
 #modal-box .game-modal-header,
 #modal-inventory .game-modal-header,
-#modal-profile .game-modal-header {
+#modal-profile .game-modal-header,
+#modal-daily-quest .game-modal-header,
+#modal-party-switch .game-modal-header {
     display: none;
 }
 #modal-shop .game-modal-body,
@@ -459,7 +463,9 @@ button.green:hover {
 #modal-party .game-modal-body,
 #modal-box .game-modal-body,
 #modal-inventory .game-modal-body,
-#modal-profile .game-modal-body {
+#modal-profile .game-modal-body,
+#modal-daily-quest .game-modal-body,
+#modal-party-switch .game-modal-body {
     padding: 0;
 }
 #modal-party .game-modal-panel,
@@ -4436,7 +4442,7 @@ body.afk-layout .currency-pill .currency-tip {
     color: #6B21A8;
 }
 
-/* Party switch picker — box avatars over party modal */
+/* Party switch picker — hub-themed avatar grid */
 #modal-party-switch.game-modal { z-index: 260; }
 #modal-party-switch .game-modal-panel {
     --ps-cell: 58px;
@@ -4447,25 +4453,28 @@ body.afk-layout .currency-pill .currency-tip {
     min-width: 0;
     max-width: 98vw;
     max-height: min(92vh, 820px);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
 }
-#modal-party-switch .game-modal-header {
-    flex-shrink: 0;
-}
-#modal-party-switch .game-modal-body {
-    overflow: hidden;
-    padding: 0 10px 16px;
+.party-switch-hub-body {
+    padding: 14px 16px 16px;
+    background: linear-gradient(180deg, #5c3a24 0%, #4a2e1c 45%, #3d2518 100%);
     display: flex;
     flex-direction: column;
     min-height: 0;
-    flex: 1 1 auto;
+    max-height: min(88vh, 780px);
+}
+.party-switch-title {
+    margin: 0 0 6px;
+    text-align: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    line-height: 1.5;
+    color: #fde68a;
+    flex-shrink: 0;
 }
 .party-switch-subtitle {
     text-align: center;
-    font-size: 11px;
-    color: #666;
+    font-size: 12px;
+    color: rgba(255, 232, 200, 0.8);
     margin: 0 0 10px;
     font-family: 'Lato', sans-serif;
     flex-shrink: 0;
@@ -4479,6 +4488,9 @@ body.afk-layout .currency-pill .currency-tip {
     padding: 8px 6px 32px 4px;
     box-sizing: border-box;
     -webkit-overflow-scrolling: touch;
+    border: 2px solid rgba(212, 160, 74, 0.4);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.15);
 }
 .party-switch-grid {
     display: grid;
@@ -4496,9 +4508,9 @@ body.afk-layout .currency-pill .currency-tip {
     height: var(--ps-cell, 58px);
     padding: 4px;
     box-sizing: border-box;
-    background: white;
-    border: 2px solid #6a21a6;
-    box-shadow: 2px 2px 0 #6a21a6;
+    background: linear-gradient(180deg, #f8ecd8 0%, #edd9b8 100%);
+    border: 2px solid #d4a04a;
+    box-shadow: 1px 1px 0 #3d2010;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -4508,8 +4520,8 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .party-switch-avatar:hover,
 .party-switch-avatar.is-tip-open {
-    border-color: #A855F7 !important;
-    box-shadow: 0 4px 14px rgba(168, 85, 247, 0.45);
+    border-color: #f0a050 !important;
+    box-shadow: 0 4px 14px rgba(240, 160, 80, 0.45);
     filter: brightness(1.04);
     z-index: 50;
 }
@@ -4543,9 +4555,9 @@ body.afk-layout .currency-pill .currency-tip {
     font-size: 8px;
     font-weight: 700;
     line-height: 1.2;
-    color: #1a1028;
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid #6B21A8;
+    color: #3d1a08;
+    background: rgba(255, 232, 200, 0.92);
+    border: 1px solid #c46a28;
     pointer-events: none;
 }
 .party-switch-hover-tip,
@@ -4558,10 +4570,10 @@ body.afk-layout .currency-pill .currency-tip {
     min-width: 200px;
     max-width: 260px;
     padding: 10px 12px;
-    background: #1a1028;
-    border: 3px solid #6B21A8;
-    box-shadow: 4px 4px 0 #6B21A8;
-    z-index: 500;
+    background: #2a1810;
+    border: 2px solid #d4a04a;
+    box-shadow: 3px 3px 0 #3d2010;
+    z-index: 10001;
     text-align: left;
     pointer-events: none;
 }
@@ -4571,7 +4583,7 @@ body.afk-layout .currency-pill .currency-tip {
 .party-switch-tip-name {
     font-family: 'Press Start 2P', monospace;
     font-size: 9px;
-    color: #f5f3ff;
+    color: #fde68a;
     margin-bottom: 6px;
     line-height: 1.5;
     text-transform: uppercase;
@@ -4588,7 +4600,7 @@ body.afk-layout .currency-pill .currency-tip {
 .party-switch-tip-skills {
     font-family: 'Lato', sans-serif;
     font-size: 11px;
-    color: #ddd6fe;
+    color: rgba(255, 232, 200, 0.9);
     line-height: 1.45;
 }
 .party-switch-skill-line {
@@ -4646,8 +4658,139 @@ body.afk-layout .currency-pill .currency-tip {
     grid-column: 1 / -1;
     text-align: center;
     padding: 48px 20px;
-    color: #666;
+    color: rgba(255, 232, 200, 0.75);
     font-size: 14px;
+    font-family: 'Lato', sans-serif;
+}
+
+/* Profile hub — centered panel, horizontal tabs (no left nav) */
+.profile-hub-body {
+    padding: 16px 20px 20px;
+    background: linear-gradient(180deg, #5c3a24 0%, #4a2e1c 45%, #3d2518 100%);
+}
+.profile-hub-frame .profile-panel {
+    background: linear-gradient(180deg, #3d2518 0%, #2a1810 100%);
+    border: 3px solid #d4a04a;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 4px 0 #1a0f08;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 16px 18px 20px;
+    color: #ffe8c8;
+}
+.profile-tabs-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.profile-tab-btn {
+    flex: 1;
+    min-width: 96px;
+    padding: 10px 8px;
+    border: 2px solid #c46a28;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #8b4a22 0%, #6b3518 100%);
+    color: #ffe8c8;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    line-height: 1.45;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 220, 160, 0.25), 0 3px 0 #3d2010;
+    text-align: center;
+}
+.profile-tab-btn:hover {
+    background: linear-gradient(180deg, #a85a2a 0%, #7a401e 100%);
+    border-color: #f0a050;
+}
+.profile-tab-btn.active {
+    background: linear-gradient(180deg, #f0a040 0%, #d07020 100%);
+    border-color: #ffe0a0;
+    color: #3d1a08;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.35), 0 3px 0 #5c3010;
+}
+.profile-hub-frame .profile-panel > p,
+.profile-hub-frame .profile-pending p {
+    color: rgba(255, 232, 200, 0.85);
+}
+.profile-hub-frame .profile-panel h3 {
+    color: #fde68a !important;
+}
+.profile-hub-frame .profile-x-row input {
+    border: 2px solid #c46a28;
+    background: #1a0f08;
+    color: #ffe8c8;
+}
+.profile-hub-frame .profile-x-row button {
+    border: 2px solid #c46a28;
+    background: linear-gradient(180deg, #f0a040 0%, #d07020 100%);
+    color: #3d1a08;
+}
+.profile-hub-frame .profile-pending {
+    border: 2px solid #c46a28;
+    background: rgba(0, 0, 0, 0.2);
+}
+.profile-hub-frame .activity-feed {
+    border: 2px solid rgba(196, 106, 40, 0.45);
+    background: rgba(0, 0, 0, 0.18);
+    padding: 8px 12px;
+    border-radius: 6px;
+}
+.profile-hub-frame .activity-item {
+    border-bottom-color: rgba(196, 106, 40, 0.35);
+}
+.profile-hub-frame .activity-meta,
+.profile-hub-frame .activity-empty {
+    color: rgba(255, 232, 200, 0.7);
+}
+.profile-hub-frame .activity-user {
+    color: #fde68a;
+}
+
+/* Inventory slot grid (hub-themed) */
+.hub-main .gear-inv-slot {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 3px solid #d4a04a;
+    background: linear-gradient(145deg, #6b4426 0%, #4a2e18 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #ffe8c8;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35), 0 2px 0 #2a1810;
+    position: relative;
+    border-radius: 10px;
+    box-sizing: border-box;
+}
+.hub-main .gear-inv-slot .inv-slot-count {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #fde68a;
+    text-shadow: 1px 1px 0 #000;
+}
+.hub-main .gear-inv-slot .inv-slot-icon {
+    width: 30px;
+    height: 30px;
+    image-rendering: pixelated;
+}
+.hub-main .gear-inv-slot .inv-slot-gear-emoji {
+    font-size: 22px;
+    line-height: 1;
+}
+.hub-main .gear-inv-slot .inv-slot-tier {
+    font-size: 8px;
+    font-weight: bold;
+    margin-top: 2px;
+}
+.hub-main .gear-inv-slot .inv-slot-empty {
+    font-size: 22px;
+    opacity: 0.3;
+    line-height: 1;
 }
 
 #modal-party .skill-tip,
@@ -4698,34 +4841,27 @@ body.afk-layout .currency-pill .currency-tip {
 .game-modal-close:hover::before { display: none !important; }
 .game-modal-body { padding: 18px; }
 
-/* Daily Quest modal */
+/* Daily Quest modal — hub theme */
 #modal-daily-quest .game-modal-panel {
     max-width: min(720px, 96vw);
-    padding: 0;
-    overflow: hidden;
 }
-#modal-daily-quest .game-modal-header {
-    margin: 0;
-    border-bottom: none;
-    padding: 14px 18px 8px;
-    background: linear-gradient(180deg, #f7f4ff 0%, #fff 100%);
-}
-#modal-daily-quest .game-modal-body {
-    padding: 0;
+.quest-hub-content {
+    background: linear-gradient(180deg, #5c3a24 0%, #4a2e1c 45%, #3d2518 100%);
 }
 .quest-refresh-bar {
     text-align: center;
-    padding: 0 16px 12px;
+    padding: 12px 16px;
     font-family: 'Lato', sans-serif;
     font-size: 12px;
-    color: #6b21a8;
-    background: linear-gradient(180deg, #fff 0%, #faf5ff 100%);
+    color: #fde68a;
+    background: rgba(0, 0, 0, 0.15);
+    border-bottom: 2px solid rgba(212, 160, 74, 0.35);
 }
 .quest-milestone-section {
-    background: linear-gradient(180deg, #5b21b6 0%, #6b21a8 55%, #4c1d95 100%);
+    background: linear-gradient(180deg, #4a2f1c 0%, #362218 55%, #2a1810 100%);
     padding: 14px 16px 18px;
-    border-top: 3px solid #a855f7;
-    border-bottom: 3px solid #3b0764;
+    border-top: 2px solid rgba(212, 160, 74, 0.35);
+    border-bottom: 2px solid rgba(139, 69, 19, 0.65);
 }
 .quest-milestone-row {
     display: flex;
@@ -4764,8 +4900,8 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .quest-milestone-track {
     height: 10px;
-    background: rgba(0,0,0,0.35);
-    border: 2px solid rgba(255,255,255,0.25);
+    background: rgba(0, 0, 0, 0.35);
+    border: 2px solid rgba(212, 160, 74, 0.35);
     border-radius: 0;
     overflow: hidden;
 }
@@ -4804,8 +4940,8 @@ body.afk-layout .currency-pill .currency-tip {
     width: 34px;
     height: 30px;
     border: 2px solid #facc15;
-    background: linear-gradient(180deg, #a855f7 0%, #6b21a8 100%);
-    box-shadow: 2px 2px 0 #3b0764;
+    background: linear-gradient(180deg, #f0a040 0%, #c46a28 100%);
+    box-shadow: 2px 2px 0 #3d2010;
     cursor: pointer;
     font-size: 16px;
     line-height: 1;
@@ -4839,7 +4975,7 @@ body.afk-layout .currency-pill .currency-tip {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    background: #faf8ff;
+    background: rgba(0, 0, 0, 0.12);
     min-height: 200px;
     max-height: min(42vh, 360px);
     overflow-y: auto;
@@ -4850,13 +4986,13 @@ body.afk-layout .currency-pill .currency-tip {
     gap: 10px;
     align-items: center;
     padding: 10px 12px;
-    background: #fff;
-    border: 3px solid #6b21a8;
-    box-shadow: 3px 3px 0 #6b21a8;
+    background: linear-gradient(180deg, #f8ecd8 0%, #edd9b8 100%);
+    border: 3px solid #d4a04a;
+    box-shadow: 3px 3px 0 #3d2010;
 }
 .quest-task-card.is-done {
     opacity: 0.72;
-    background: #f3f4f6;
+    background: linear-gradient(180deg, #d4c4a8 0%, #c4b498 100%);
 }
 .quest-task-reward {
     display: flex;
@@ -4865,7 +5001,7 @@ body.afk-layout .currency-pill .currency-tip {
     gap: 2px;
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
-    color: #6b21a8;
+    color: #8b4513;
 }
 .quest-task-reward img {
     width: 28px;
@@ -4879,25 +5015,25 @@ body.afk-layout .currency-pill .currency-tip {
     font-family: 'Lato', sans-serif;
     font-size: 13px;
     font-weight: 700;
-    color: #1f1235;
+    color: #3d1a08;
     margin: 0 0 8px;
     line-height: 1.35;
 }
 .quest-task-progress {
     height: 8px;
-    background: #e5e7eb;
-    border: 1px solid #9ca3af;
+    background: rgba(61, 26, 8, 0.2);
+    border: 1px solid #c46a28;
     overflow: hidden;
 }
 .quest-task-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #a855f7, #6b21a8);
+    background: linear-gradient(90deg, #f0a040, #d07020);
     transition: width 0.3s ease;
 }
 .quest-task-progress-text {
     font-family: 'Lato', sans-serif;
     font-size: 11px;
-    color: #6b7280;
+    color: rgba(61, 26, 8, 0.65);
     margin-top: 4px;
 }
 .quest-task-action {
@@ -4905,18 +5041,18 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .quest-advance-btn {
     padding: 8px 10px;
-    border: 3px solid #6b21a8;
-    background: #f3e8ff;
-    color: #4c1d95;
+    border: 2px solid #c46a28;
+    background: linear-gradient(180deg, #f0a040 0%, #d07020 100%);
+    color: #3d1a08;
     font-family: 'Press Start 2P', monospace;
     font-size: 7px;
     cursor: pointer;
-    box-shadow: 2px 2px 0 #6b21a8;
+    box-shadow: 2px 2px 0 #3d2010;
     white-space: nowrap;
 }
 .quest-advance-btn:hover:not(:disabled) {
-    background: #ede9fe;
     filter: brightness(1.05);
+    border-color: #ffe0a0;
 }
 .quest-advance-btn:disabled {
     cursor: default;
@@ -4932,28 +5068,30 @@ body.afk-layout .currency-pill .currency-tip {
     display: flex;
     gap: 8px;
     padding: 12px 14px 16px;
-    background: #fff;
-    border-top: 3px solid #6b21a8;
+    background: rgba(0, 0, 0, 0.15);
+    border-top: 2px solid rgba(212, 160, 74, 0.35);
 }
 .quest-tab-btn {
     flex: 1;
     padding: 10px 8px;
-    border: 3px solid #6b21a8;
-    background: #fff;
-    color: #4c1d95;
+    border: 2px solid #c46a28;
+    background: linear-gradient(180deg, #8b4a22 0%, #6b3518 100%);
+    color: #ffe8c8;
     font-family: 'Press Start 2P', monospace;
     font-size: 7px;
     cursor: pointer;
-    box-shadow: 3px 3px 0 #6b21a8;
+    box-shadow: 2px 2px 0 #3d2010;
     transition: background 0.15s ease, color 0.15s ease;
 }
 .quest-tab-btn.active {
-    background: #6b21a8;
-    color: #fff;
-    box-shadow: 3px 3px 0 #3b0764;
+    background: linear-gradient(180deg, #f0a040 0%, #d07020 100%);
+    color: #3d1a08;
+    border-color: #ffe0a0;
+    box-shadow: 2px 2px 0 #5c3010;
 }
 .quest-tab-btn:hover:not(.active) {
-    background: #faf5ff;
+    background: linear-gradient(180deg, #a85a2a 0%, #7a401e 100%);
+    border-color: #f0a050;
 }
 
 @media (max-width: 720px) {
@@ -5236,9 +5374,15 @@ body.afk-layout .currency-pill .currency-tip {
             <button type="button" class="game-modal-close" onclick="closePartySwitchPicker()">×</button>
         </div>
         <div class="game-modal-body">
-            <p class="party-switch-subtitle" id="party-switch-subtitle">Pick a Monanimal from your Box to swap into this party slot</p>
-            <div class="party-switch-scroll">
-                <div class="party-switch-grid" id="party-switch-grid"></div>
+            <div class="hub-frame">
+                <button type="button" class="hub-close-btn" onclick="closePartySwitchPicker()" aria-label="Close switch picker">×</button>
+                <div class="party-switch-hub-body">
+                    <h2 class="party-switch-title" id="party-switch-title-display">SWITCH</h2>
+                    <p class="party-switch-subtitle" id="party-switch-subtitle">Pick a Monanimal from your Box to swap into this party slot</p>
+                    <div class="party-switch-scroll">
+                        <div class="party-switch-grid" id="party-switch-grid"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -5346,7 +5490,12 @@ body.afk-layout .currency-pill .currency-tip {
             <h2 id="quest-modal-title">QUESTS</h2>
             <button type="button" class="game-modal-close" onclick="closeGameModal('daily-quest')">×</button>
         </div>
-        <div class="game-modal-body" id="daily-quest-content"></div>
+        <div class="game-modal-body">
+            <div class="hub-frame">
+                <button type="button" class="hub-close-btn" onclick="closeGameModal('daily-quest')" aria-label="Close quests">×</button>
+                <div id="daily-quest-content" class="quest-hub-content"></div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -5369,40 +5518,36 @@ body.afk-layout .currency-pill .currency-tip {
             <button type="button" class="game-modal-close" onclick="closeGameModal('profile')">×</button>
         </div>
         <div class="game-modal-body">
-            <div class="hub-frame">
+            <div class="hub-frame profile-hub-frame">
                 <button type="button" class="hub-close-btn" onclick="closeGameModal('profile')" aria-label="Close profile">×</button>
-                <div class="hub-shell">
-                    <nav class="hub-nav" id="profile-nav" aria-label="Profile sections">
-                        <button type="button" class="hub-nav-btn active" id="profile-tab-account" onclick="setProfileTab('account')">ACCOUNT</button>
-                        <button type="button" class="hub-nav-btn" id="profile-tab-sync" onclick="setProfileTab('sync')">X SYNC</button>
-                        <button type="button" class="hub-nav-btn" id="profile-tab-log" onclick="setProfileTab('log')">CATCH LOG</button>
-                    </nav>
-                    <div class="hub-main">
-                        <div class="hub-content-wrap">
-                            <div class="profile-panel">
-                                <div id="profile-pane-account" class="profile-pane active">
-                                    <p style="text-align:center; font-size:13px;">Your X account is linked on login. Wild catches from @monexmonad auto-sync to Party/Box.</p>
-                                    <div class="profile-x-row" id="profile-x-linked" style="display:none;">
-                                        <span id="x-handle-display" style="font-weight:bold; color:#fde68a;"></span>
-                                    </div>
-                                    <div class="profile-x-row" id="profile-x-manual">
-                                        <input id="x-handle-input" type="text" placeholder="X username (e.g. jeric)" maxlength="40">
-                                        <button type="button" onclick="saveXHandle()">SAVE</button>
-                                    </div>
-                                    <p style="font-size:11px; margin:0;">On X post: <b>@monexmonad catch 10 monanimals</b> (1 Monball = 1 catch)</p>
-                                </div>
-                                <div id="profile-pane-sync" class="profile-pane">
-                                    <div class="profile-pending" id="profile-pending-panel">
-                                        <h3>X WILD SYNC</h3>
-                                        <p id="profile-pending-text">Save your X @handle — catches auto-go to Party, then Box.</p>
-                                    </div>
-                                </div>
-                                <div id="profile-pane-log" class="profile-pane">
-                                    <h3 style="font-size:12px; margin-bottom:8px;">YOUR X CATCH LOG</h3>
-                                    <div id="profile-activity-feed" class="activity-feed">
-                                        <p style="color:#888;">Save your X @handle above.</p>
-                                    </div>
-                                </div>
+                <div class="profile-hub-body">
+                    <div class="profile-panel">
+                        <div class="profile-tabs-row" role="tablist" aria-label="Profile sections">
+                            <button type="button" class="profile-tab-btn active" id="profile-tab-account" onclick="setProfileTab('account')">ACCOUNT</button>
+                            <button type="button" class="profile-tab-btn" id="profile-tab-sync" onclick="setProfileTab('sync')">X SYNC</button>
+                            <button type="button" class="profile-tab-btn" id="profile-tab-log" onclick="setProfileTab('log')">CATCH LOG</button>
+                        </div>
+                        <div id="profile-pane-account" class="profile-pane active">
+                            <p style="text-align:center; font-size:13px;">Your X account is linked on login. Wild catches from @monexmonad auto-sync to Party/Box.</p>
+                            <div class="profile-x-row" id="profile-x-linked" style="display:none;">
+                                <span id="x-handle-display" style="font-weight:bold; color:#fde68a;"></span>
+                            </div>
+                            <div class="profile-x-row" id="profile-x-manual">
+                                <input id="x-handle-input" type="text" placeholder="X username (e.g. jeric)" maxlength="40">
+                                <button type="button" onclick="saveXHandle()">SAVE</button>
+                            </div>
+                            <p style="font-size:11px; margin:0;">On X post: <b>@monexmonad catch 10 monanimals</b> (1 Monball = 1 catch)</p>
+                        </div>
+                        <div id="profile-pane-sync" class="profile-pane">
+                            <div class="profile-pending" id="profile-pending-panel">
+                                <h3>X WILD SYNC</h3>
+                                <p id="profile-pending-text">Save your X @handle — catches auto-go to Party, then Box.</p>
+                            </div>
+                        </div>
+                        <div id="profile-pane-log" class="profile-pane">
+                            <h3 style="font-size:12px; margin-bottom:8px;">YOUR X CATCH LOG</h3>
+                            <div id="profile-activity-feed" class="activity-feed">
+                                <p style="color:#888;">Save your X @handle above.</p>
                             </div>
                         </div>
                     </div>
@@ -6449,7 +6594,7 @@ function renderDailyQuest() {
     const tasks = questState.tasks[tab] || [];
     const tasksHtml = tasks.length
         ? tasks.map(renderQuestTaskCard).join("")
-        : `<p style="text-align:center;color:#666;padding:24px;font-family:Lato,sans-serif;">No quests in this tab yet.</p>`;
+        : `<p class="hub-empty-msg" style="padding:24px 8px;">No quests in this tab yet.</p>`;
 
     root.innerHTML = `
         <div class="quest-refresh-bar">${refreshLabels[tab] || ""}</div>
@@ -9573,7 +9718,8 @@ function setProfileTab(tab) {
     profileActiveTab = valid.includes(tab) ? tab : "account";
     valid.forEach((t) => {
         document.getElementById("profile-pane-" + t)?.classList.toggle("active", t === profileActiveTab);
-        document.getElementById("profile-tab-" + t)?.classList.toggle("active", t === profileActiveTab);
+        const tabBtn = document.getElementById("profile-tab-" + t);
+        tabBtn?.classList.toggle("active", t === profileActiveTab);
     });
 }
 
@@ -9817,7 +9963,7 @@ function openPartySwitchPicker(partyIndex) {
     if (!party[partyIndex]) return;
     _partySwitchIndex = partyIndex;
     _partySwitchBoxIndex = null;
-    const title = document.getElementById("party-switch-title");
+    const title = document.getElementById("party-switch-title-display");
     const subtitle = document.getElementById("party-switch-subtitle");
     if (title) title.textContent = `SWITCH — ${party[partyIndex].name}`;
     if (subtitle) subtitle.textContent = "Pick a Monanimal from your Box to swap into this party slot";
@@ -9829,7 +9975,7 @@ function openBoxSwitchPicker(boxIndex) {
     if (!box[boxIndex]) return;
     _partySwitchBoxIndex = boxIndex;
     _partySwitchIndex = null;
-    const title = document.getElementById("party-switch-title");
+    const title = document.getElementById("party-switch-title-display");
     const subtitle = document.getElementById("party-switch-subtitle");
     if (title) title.textContent = `SWITCH — ${box[boxIndex].name}`;
     if (subtitle) subtitle.textContent = "Pick a party member to swap with this Box Monanimal";
@@ -11640,11 +11786,50 @@ function renderInventoryNav() {
     `).join("");
 }
 
-function appendInventorySlot(grid, html, className) {
-    const slot = document.createElement("div");
-    slot.className = className || "gear-inv-slot";
-    slot.innerHTML = html;
-    grid.appendChild(slot);
+const INVENTORY_SLOT_COUNT = 40;
+
+function renderInventoryMaterialSlotHtml(m) {
+    const info = GAME_ICONS[m.key];
+    return `
+        <img class="inv-slot-icon" src="${info.src}" alt="">
+        <span class="inv-slot-count">${m.count}</span>
+        ${renderHoverTip(info.name, String(m.count))}`;
+}
+
+function renderInventoryGearSlotHtml(g) {
+    normalizeGear(g);
+    return `
+        <span class="inv-slot-gear-emoji">${GEAR_SLOT_ICONS[g.slot]}</span>
+        <span class="inv-slot-tier" style="color:${GEAR_TIERS[g.tier].color}">${g.tierName}${g.enhanceLevel ? " +" + g.enhanceLevel : ""}</span>
+        ${renderHoverTip(formatGearDisplayName(g), formatGearBonuses(g.bonuses) + "\nEquip via mon card gear slots.")}`;
+}
+
+function renderInventoryEmptySlotHtml() {
+    return `<span class="inv-slot-empty">\uD83D\uDCE6</span>`;
+}
+
+function buildInventorySlotList() {
+    const materials = [
+        { key: "gold", count: money },
+        { key: "essence", count: essence },
+        { key: "shards", count: monShards },
+    ];
+    const items = [];
+
+    if (inventoryActiveCategory === "all") {
+        materials.forEach(m => items.push({ type: "material", data: m }));
+        gearInventory.forEach(g => items.push({ type: "gear", data: g }));
+    } else if (inventoryActiveCategory === "materials") {
+        materials.forEach(m => items.push({ type: "material", data: m }));
+    } else if (GEAR_SLOTS.includes(inventoryActiveCategory)) {
+        gearInventory
+            .filter(g => g.slot === inventoryActiveCategory)
+            .forEach(g => items.push({ type: "gear", data: g }));
+    }
+
+    const slots = new Array(INVENTORY_SLOT_COUNT).fill(null);
+    items.slice(0, INVENTORY_SLOT_COUNT).forEach((item, i) => { slots[i] = item; });
+    return slots;
 }
 
 function renderInventory() {
@@ -11653,85 +11838,22 @@ function renderInventory() {
     renderInventoryNav();
     grid.innerHTML = "";
 
-    const materials = [
-        { key: "gold", count: money },
-        { key: "essence", count: essence },
-        { key: "shards", count: monShards },
-    ];
-
-    const slotStyle = `
-        width: 70px;
-        height: 70px;
-        border: 3px solid #d4a04a;
-        background: linear-gradient(145deg, #6b4426 0%, #4a2e18 100%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        font-size: 10px;
-        color: #ffe8c8;
-        box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35), 0 2px 0 #2a1810;
-        position: relative;
-        border-radius: 10px;
-    `;
-
-    if (inventoryActiveCategory === "materials") {
-        materials.forEach((m) => {
-            const info = GAME_ICONS[m.key];
-            appendInventorySlot(grid, `
-                <img src="${info.src}" alt="" style="width:30px;height:30px;image-rendering:pixelated;">
-                <span style="position:absolute; bottom:2px; right:4px; font-size:12px; font-weight:bold; color:#fde68a; text-shadow:1px 1px 0 #000;">${m.count}</span>
-                ${renderHoverTip(info.name, String(m.count))}
-            `, "gear-inv-slot has-hover-tip");
-        });
-        return;
-    }
-
-    if (GEAR_SLOTS.includes(inventoryActiveCategory)) {
-        const filtered = gearInventory.filter(g => g.slot === inventoryActiveCategory);
-        if (!filtered.length) {
-            grid.innerHTML = `<p class="hub-empty-msg">No ${inventoryActiveCategory} gear in inventory.</p>`;
-            return;
-        }
-        filtered.forEach((g) => {
-            normalizeGear(g);
-            appendInventorySlot(grid, `
-                <span style="font-size: 22px;">${GEAR_SLOT_ICONS[g.slot]}</span>
-                <span style="font-size:8px;font-weight:bold;color:${GEAR_TIERS[g.tier].color};margin-top:2px;">${g.tierName}${g.enhanceLevel ? " +" + g.enhanceLevel : ""}</span>
-                ${renderHoverTip(formatGearDisplayName(g), formatGearBonuses(g.bonuses) + "\nEquip via mon card gear slots.")}
-            `, "gear-inv-slot has-hover-tip");
-        });
-        return;
-    }
-
-    for (let i = 0; i < 40; i++) {
+    const slots = buildInventorySlotList();
+    slots.forEach((item) => {
         const slot = document.createElement("div");
-        slot.className = "gear-inv-slot";
-        slot.style.cssText = slotStyle;
-        if (i < materials.length) {
-            const m = materials[i];
-            const info = GAME_ICONS[m.key];
+        if (!item) {
+            slot.className = "gear-inv-slot";
+            slot.innerHTML = renderInventoryEmptySlotHtml();
+        } else if (item.type === "material") {
             slot.className = "gear-inv-slot has-hover-tip";
-            slot.innerHTML = `
-                <img src="${info.src}" alt="" style="width:30px;height:30px;image-rendering:pixelated;">
-                <span style="position:absolute; bottom:2px; right:4px; font-size:12px; font-weight:bold; color:#fde68a; text-shadow:1px 1px 0 #000;">${m.count}</span>
-                ${renderHoverTip(info.name, String(m.count))}
-            `;
-        } else if (i - 3 < gearInventory.length) {
-            const g = gearInventory[i - 3];
-            normalizeGear(g);
-            slot.className = "gear-inv-slot has-hover-tip";
-            slot.style.borderColor = GEAR_TIERS[g.tier].color;
-            slot.innerHTML = `
-                <span style="font-size: 22px;">${GEAR_SLOT_ICONS[g.slot]}</span>
-                <span style="font-size:8px;font-weight:bold;color:${GEAR_TIERS[g.tier].color};margin-top:2px;">${g.tierName}${g.enhanceLevel ? " +" + g.enhanceLevel : ""}</span>
-                ${renderHoverTip(formatGearDisplayName(g), formatGearBonuses(g.bonuses) + "\nEquip via mon card gear slots.")}
-            `;
+            slot.innerHTML = renderInventoryMaterialSlotHtml(item.data);
         } else {
-            slot.innerHTML = `<span style="font-size: 22px; opacity: 0.3;">\uD83D\uDCE6</span>`;
+            slot.className = "gear-inv-slot has-hover-tip";
+            slot.style.borderColor = GEAR_TIERS[item.data.tier].color;
+            slot.innerHTML = renderInventoryGearSlotHtml(item.data);
         }
         grid.appendChild(slot);
-    }
+    });
 }
 // ==================== BATTLE PROTECTION ====================
 // (isInAdventureBattle is declared once in the STATE section above)
