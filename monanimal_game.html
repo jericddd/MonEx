@@ -12379,18 +12379,18 @@ function isTestUser() {
     return String(currentUser).replace(/^@/, "").toLowerCase() === "test";
 }
 
-function applyTestUserStagingBoost() {
-    if (!isStagingHost() || !isTestUser()) return false;
-    const flagKey = "monex_test_resources_granted_" + currentUser;
-    if (localStorage.getItem(flagKey)) return false;
-    const boost = 999999;
-    monballs = boost;
-    money = boost;
-    essence = boost;
-    monShards = boost;
-    localStorage.setItem(flagKey, "1");
-    saveData();
-    return true;
+const STAGING_BETA_RESOURCE_MIN = 999999;
+
+function applyStagingBetaResources() {
+    if (!isStagingHost() || !currentUser) return false;
+    const boost = STAGING_BETA_RESOURCE_MIN;
+    let changed = false;
+    if (monballs < boost) { monballs = boost; changed = true; }
+    if (money < boost) { money = boost; changed = true; }
+    if (essence < boost) { essence = boost; changed = true; }
+    if (monShards < boost) { monShards = boost; changed = true; }
+    if (changed) saveData();
+    return changed;
 }
 
 function grantTestBattleParty() {
@@ -12537,7 +12537,7 @@ async function logout() {
 }
 
 async function runPostLoginBootstrap() {
-    try { applyTestUserStagingBoost(); } catch (e) { console.error("applyTestUserStagingBoost failed:", e); }
+    try { applyStagingBetaResources(); } catch (e) { console.error("applyStagingBetaResources failed:", e); }
     try { grantTestBattleParty(); } catch (e) { console.error("grantTestBattleParty failed:", e); }
     try { grantTestChogToBox(); } catch (e) { console.error("grantTestChogToBox failed:", e); }
     try { ensureLegendaryBoxRoster(); } catch (e) { console.error("ensureLegendaryBoxRoster failed:", e); }
