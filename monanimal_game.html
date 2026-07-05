@@ -1666,7 +1666,7 @@ button.green:hover {
     padding: 0;
     line-height: 28px;
 }
-.gear-slot.filled { background: #ede9fe; box-shadow: 0 0 0 2px rgba(250,204,21,0.5); }
+.gear-slot.filled { background: #ede9fe; }
 .gear-slot.empty {
     background: linear-gradient(145deg, #b8bcc4 0%, #8b919a 100%);
     border-color: #6b7280;
@@ -1693,73 +1693,152 @@ button.green:hover {
     pointer-events: none;
     display: block;
 }
-.gear-slot .gear-tier-dot {
-    position: absolute;
-    bottom: 1px;
-    right: 1px;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    border: 1px solid #111;
-}
 .gear-inv-slot {
     cursor: pointer;
     transition: transform 0.1s;
 }
-.gear-inv-slot:hover { transform: scale(1.05); }
-.equip-modal-bg {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.65);
-    display: flex;
-    align-items: flex-start;
+.gear-inv-slot .inv-slot-enhance,
+.gear-synth-slot .gear-enhance-badge,
+.gear-synth-pick-item .gear-enhance-badge {
+    position: absolute;
+    bottom: 2px;
+    right: 3px;
+    font-size: 8px;
+    font-weight: 700;
+    color: #fde68a;
+    text-shadow: 1px 1px 0 #000;
+    line-height: 1;
+}
+.equip-gear-icon-wrap {
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
-    padding: var(--modal-drop) 20px 20px;
+    width: 28px;
+    height: 28px;
+    border: 2px solid #111;
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.28);
+    flex-shrink: 0;
     box-sizing: border-box;
-    z-index: 300;
 }
-.equip-modal {
-    background: white;
-    border: 4px solid #6B21A8;
-    box-shadow: 4px 4px 0 #6B21A8;
-    padding: 20px;
-    max-width: 420px;
-    width: 92%;
-    max-height: 80vh;
-    overflow-y: auto;
-    font-family: 'Lato', sans-serif;
+.equip-gear-icon-wrap .gear-inv-icon {
+    width: 22px;
+    height: 22px;
+    max-width: 22px;
+    max-height: 22px;
+    object-fit: contain;
 }
-.equip-modal h3 {
-    margin: 0 0 12px;
-    color: #6B21A8;
+.gear-inv-slot:hover { transform: scale(1.05); }
+.equip-modal-overlay {
+    z-index: 700;
+}
+.equip-modal-frame {
+    width: min(92vw, 400px);
+    max-height: min(84vh, 640px);
+    display: flex;
+    flex-direction: column;
+}
+.equip-modal-frame > .hub-close-btn {
+    top: 10px;
+    right: 10px;
+}
+.equip-modal-inner {
+    padding: 44px 16px 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+}
+.equip-modal-note {
+    font-size: 11px;
+    color: rgba(255, 232, 200, 0.72);
     text-align: center;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 9px;
-    line-height: 1.6;
+    margin: 0 0 10px;
+    line-height: 1.4;
 }
-.equip-modal p,
-.equip-modal small {
-    font-family: 'Lato', sans-serif;
-}
-.equip-modal .equip-action {
+.equip-modal-section-label {
     font-family: 'Press Start 2P', monospace;
     font-size: 7px;
+    color: #fde68a;
+    margin: 0 0 6px;
+    letter-spacing: 0.02em;
 }
-.equip-modal #equip-close {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 8px;
+.equip-modal-divider {
+    border: none;
+    border-top: 2px solid rgba(196, 106, 40, 0.45);
+    margin: 12px 0;
+}
+.equip-modal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: min(42vh, 300px);
+    overflow-y: auto;
+    padding-right: 2px;
+}
+.equip-modal-empty {
+    font-size: 12px;
+    color: rgba(255, 232, 200, 0.65);
+    text-align: center;
+    margin: 0;
+    line-height: 1.45;
 }
 .equip-option {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px;
-    margin: 6px 0;
-    border: 2px solid #ddd;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 2px solid rgba(212, 160, 74, 0.45);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.22);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11px;
+    font-family: 'Lato', sans-serif;
+    color: #ffe8c8;
+    text-align: left;
+    box-sizing: border-box;
+    transition: border-color 0.12s, background 0.12s;
+    appearance: none;
+    -webkit-appearance: none;
 }
-.equip-option:hover { border-color: #6B21A8; background: #faf5ff; }
+.equip-option:hover {
+    border-color: #f4a442;
+    background: rgba(0, 0, 0, 0.34);
+}
+.equip-option-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.equip-option-text {
+    min-width: 0;
+}
+.equip-option-text b {
+    display: block;
+    font-size: 12px;
+    color: #fde68a;
+    line-height: 1.3;
+    word-break: break-word;
+}
+.equip-option-text small {
+    display: block;
+    margin-top: 2px;
+    font-size: 10px;
+    color: rgba(255, 232, 200, 0.72);
+    line-height: 1.35;
+}
+.equip-action {
+    flex-shrink: 0;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    line-height: 1.4;
+}
+.equip-action-unequip { color: #fca5a5; }
+.equip-action-equip { color: #86efac; }
 
 /* ===== Pockie-style gear synthesis ===== */
 .gear-synth-header-actions {
@@ -1846,13 +1925,6 @@ button.green:hover {
     object-fit: contain;
 }
 .gear-synth-slot .gear-slot-emoji { font-size: 26px; line-height: 1; }
-.gear-synth-slot .gear-slot-tier {
-    font-size: 8px;
-    font-weight: 700;
-    margin-top: 4px;
-    text-align: center;
-    line-height: 1.2;
-}
 .gear-synth-slot .gear-slot-clear {
     position: absolute;
     top: 2px;
@@ -1938,7 +2010,6 @@ button.green:hover {
 .gear-synth-pick-item.used { opacity: 0.35; pointer-events: none; }
 .gear-synth-pick-item:hover:not(.used) { transform: scale(1.04); background: #faf5ff; }
 .gear-synth-pick-item .gear-slot-emoji { font-size: 22px; }
-.gear-synth-pick-item .gear-slot-tier { font-size: 7px; font-weight: 700; margin-top: 2px; }
 .gear-synth-note {
     font-size: 11px;
     color: #666;
@@ -5719,10 +5790,14 @@ body.afk-layout .currency-pill .currency-tip {
     height: 72%;
     object-fit: contain;
 }
-.hub-main .gear-inv-slot .inv-slot-tier {
-    font-size: 8px;
+.hub-main .gear-inv-slot .inv-slot-enhance {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 10px;
     font-weight: bold;
-    margin-top: 2px;
+    color: #fde68a;
+    text-shadow: 1px 1px 0 #000;
 }
 .hub-main .gear-inv-slot .inv-slot-empty {
     font-size: 22px;
@@ -9311,6 +9386,10 @@ function getGearIconPath(gear) {
     return `game_icons/gear/${gear.house}/${gear.slot}-${getGearTierKey(gear.tier)}.png`;
 }
 
+function getGearTierColor(gear) {
+    return GEAR_TIERS[gear?.tier]?.color || "#111111";
+}
+
 function renderGearIconHtml(gear, className = "gear-slot-icon") {
     const path = getGearIconPath(gear);
     if (!path) {
@@ -9338,7 +9417,7 @@ function generateHouseGear(houseId, tier, slot) {
     gear.house = houseId;
     gear.lineName = line.label;
     gear.iconVersion = GEAR_ICON_SYSTEM_VERSION;
-    gear.name = `${line.label} ${gear.tierName} ${GEAR_SLOT_LABELS[slot]}`;
+    gear.name = `${line.label} ${GEAR_SLOT_LABELS[slot]}`;
     return gear;
 }
 
@@ -9366,11 +9445,11 @@ function renderGearRow(location, index, mon) {
     return `<div class="gear-row">${GEAR_SLOTS.map(slot => {
         const g = mon.equipment && mon.equipment[slot];
         const filled = g ? " filled" : " empty";
-        const tierDot = g ? `<span class="gear-tier-dot" style="background:${GEAR_TIERS[g.tier].color}"></span>` : "";
+        const tierBorder = g ? ` style="border-color:${getGearTierColor(g)}"` : "";
         const tipName = g ? formatGearDisplayName(g) : "Equip " + GEAR_SLOT_LABELS[slot];
         const tipDesc = g ? formatGearBonusesForMon(g, mon) : "Empty slot — tap to equip house gear.";
-        const inner = g ? `${renderGearIconHtml(g)}${tierDot}` : renderEmptyGearSlotHtml(slot);
-        return `<button class="gear-slot has-hover-tip${filled}" onclick="openEquipModal('${location}',${index},'${slot}')">${inner}${renderHoverTip(tipName, tipDesc)}</button>`;
+        const inner = g ? renderGearIconHtml(g) : renderEmptyGearSlotHtml(slot);
+        return `<button class="gear-slot has-hover-tip${filled}"${tierBorder} onclick="openEquipModal('${location}',${index},'${slot}')">${inner}${renderHoverTip(tipName, tipDesc)}</button>`;
     }).join("")}</div>`;
 }
 
@@ -9791,9 +9870,9 @@ function refreshGearTierLabels(gear) {
     const line = gear.house && HOUSE_GEAR_LINES[gear.house];
     if (line) {
         gear.lineName = line.label;
-        gear.name = `${line.label} ${t.name} ${GEAR_SLOT_LABELS[gear.slot]}`;
+        gear.name = `${line.label} ${GEAR_SLOT_LABELS[gear.slot]}`;
     } else {
-        gear.name = t.name + " " + GEAR_SLOT_LABELS[gear.slot];
+        gear.name = GEAR_SLOT_LABELS[gear.slot];
     }
 }
 
@@ -9958,7 +10037,7 @@ function generateGear(tier, slot, houseId = null) {
         slot,
         tier,
         tierName: t.name,
-        name: t.name + " " + GEAR_SLOT_LABELS[slot],
+        name: GEAR_SLOT_LABELS[slot],
         baseBonuses: { ...bonuses },
         bonuses: { ...bonuses },
         enhanceLevel: 0,
@@ -9968,7 +10047,7 @@ function generateGear(tier, slot, houseId = null) {
         gear.house = houseId;
         gear.lineName = HOUSE_GEAR_LINES[houseId].label;
         gear.iconVersion = GEAR_ICON_SYSTEM_VERSION;
-        gear.name = `${gear.lineName} ${t.name} ${GEAR_SLOT_LABELS[slot]}`;
+        gear.name = `${gear.lineName} ${GEAR_SLOT_LABELS[slot]}`;
     }
     return gear;
 }
@@ -10021,6 +10100,19 @@ function unequipGear(location, monIndex, slot) {
     updateUI();
     if (location === "box") renderBox();
 }
+function renderEquipOptionHtml(gear, mon, action, actionClass, options = {}) {
+    const bonuses = mon ? formatGearBonusesForMon(gear, mon) : formatGearBonuses(gear.bonuses);
+    const dataGid = options.dataGid ? ` data-gid="${options.dataGid}"` : "";
+    const onclick = options.onclick ? ` onclick="${options.onclick}"` : "";
+    return `<button type="button" class="equip-option"${dataGid}${onclick}>
+        <span class="equip-option-main">
+            <span class="equip-gear-icon-wrap" style="border-color:${getGearTierColor(gear)}">${renderGearIconHtml(gear, "gear-inv-icon")}</span>
+            <span class="equip-option-text"><b>${formatGearDisplayName(gear)}</b><small>${bonuses}</small></span>
+        </span>
+        <span class="equip-action ${actionClass}">${action}</span>
+    </button>`;
+}
+
 function openEquipModal(location, monIndex, slot) {
     if (!isEquipmentUnlocked()) {
         alert("Equipment unlocks at Chapter 2 (Stage 9+). Keep progressing!");
@@ -10035,36 +10127,45 @@ function openEquipModal(location, monIndex, slot) {
         return g.house === monHouse;
     });
     const houseNote = monHouse
-        ? `<p style="font-size:10px;color:#666;margin:0 0 8px;text-align:center;">Showing ${getHouseMeta(monHouse)?.label || "house"} gear only.</p>`
+        ? `<p class="equip-modal-note">Showing ${getHouseMeta(monHouse)?.label || "house"} gear only.</p>`
         : "";
-    const bg = document.createElement("div");
-    bg.className = "equip-modal-bg";
-    bg.innerHTML = `
-        <div class="equip-modal">
-            <h3>${GEAR_SLOT_LABELS[slot]} — ${mon.name}</h3>
-            ${houseNote}
-            ${equipped ? `<div class="equip-option" onclick="unequipGear('${location}',${monIndex},'${slot}'); this.closest('.equip-modal-bg').remove();">
-                <span style="display:flex;align-items:center;gap:8px;">${renderGearIconHtml(equipped, "gear-inv-icon")}<span><b style="color:${GEAR_TIERS[equipped.tier].color}">${formatGearDisplayName(equipped)}</b><br><small>${formatGearBonusesForMon(equipped, mon)}</small></span></span>
-                <span class="equip-action" style="color:#ef4444;">UNEQUIP</span>
-            </div>` : `<p style="font-size:12px;color:#666;text-align:center;">Nothing equipped</p>`}
-            <hr style="border:none;border-top:1px solid #ddd;margin:12px 0;">
-            <p style="font-size:11px;color:#666;margin:0 0 8px;">Inventory (${options.length})</p>
-            ${options.length ? options.map(g => `
-                <div class="equip-option" data-gid="${g.id}">
-                    <span style="display:flex;align-items:center;gap:8px;">${renderGearIconHtml(g, "gear-inv-icon")}<span><b style="color:${GEAR_TIERS[g.tier].color}">${formatGearDisplayName(g)}</b><br><small>${formatGearBonuses(g.bonuses)}</small></span></span>
-                    <span class="equip-action" style="color:#6B21A8;">EQUIP</span>
-                </div>`).join("") : `<p style="font-size:12px;color:#888;text-align:center;">No ${GEAR_SLOT_LABELS[slot]} for this house in inventory.<br>Win adventure battles to find gear!</p>`}
-            <button style="margin-top:14px;width:100%;padding:10px;border:2px solid #6B21A8;background:white;cursor:pointer;" id="equip-close">CLOSE</button>
+    const equippedHtml = equipped
+        ? renderEquipOptionHtml(equipped, mon, "UNEQUIP", "equip-action-unequip", {
+            onclick: `unequipGear('${location}',${monIndex},'${slot}'); this.closest('.equip-modal-overlay').remove();`,
+        })
+        : `<p class="equip-modal-empty">Nothing equipped</p>`;
+    const inventoryHtml = options.length
+        ? options.map(g => renderEquipOptionHtml(g, null, "EQUIP", "equip-action-equip", { dataGid: g.id })).join("")
+        : `<p class="equip-modal-empty">No ${GEAR_SLOT_LABELS[slot]} for this house in inventory.<br>Win adventure battles to find gear!</p>`;
+
+    const overlay = document.createElement("div");
+    overlay.className = "popup-overlay hub-popup-overlay equip-modal-overlay";
+    overlay.innerHTML = `
+        <div class="hub-popup-frame hub-frame equip-modal-frame" onclick="event.stopPropagation()">
+            <button type="button" class="hub-close-btn equip-modal-close" aria-label="Close">&times;</button>
+            <div class="hub-popup-inner equip-modal-inner">
+                <h3 class="hub-popup-title">${GEAR_SLOT_LABELS[slot].toUpperCase()} — ${mon.name}</h3>
+                ${houseNote}
+                <div class="equip-modal-section">
+                    <div class="equip-modal-section-label">EQUIPPED</div>
+                    ${equippedHtml}
+                </div>
+                <hr class="equip-modal-divider">
+                <div class="equip-modal-section">
+                    <div class="equip-modal-section-label">INVENTORY (${options.length})</div>
+                    <div class="equip-modal-list hub-scrollbar-panel">${inventoryHtml}</div>
+                </div>
+            </div>
         </div>`;
-    document.body.appendChild(bg);
-    bg.querySelector("#equip-close").onclick = () => bg.remove();
-    bg.querySelectorAll(".equip-option[data-gid]").forEach(el => {
+    overlay.querySelector(".equip-modal-close").onclick = () => overlay.remove();
+    overlay.querySelectorAll(".equip-option[data-gid]").forEach(el => {
         el.onclick = () => {
             equipGearOnMon(location, monIndex, el.dataset.gid);
-            bg.remove();
+            overlay.remove();
         };
     });
-    bg.onclick = (e) => { if (e.target === bg) bg.remove(); };
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
 }
 
 function getGearSynthCatalystTier(mainTier) {
@@ -10229,13 +10330,13 @@ function renderGearSynthSlotHtml(gear, index) {
             <div class="${slotCls}" onclick="gearSynthClearSlot(${index})"><span style="font-size:20px;opacity:0.35;">+</span></div>
         </div>`;
     }
-    const tier = GEAR_TIERS[gear.tier];
+    const tierColor = getGearTierColor(gear);
     return `<div class="gear-synth-slot-wrap">
         <div class="gear-synth-slot-label">${label}</div>
-        <div class="${slotCls}" onclick="gearSynthClearSlot(${index})" title="${gear.name}">
+        <div class="${slotCls}" style="border-color:${tierColor}" onclick="gearSynthClearSlot(${index})" title="${gear.name}">
             <span class="gear-slot-clear">×</span>
             ${renderGearIconHtml(gear, "gear-slot-icon")}
-            <span class="gear-slot-tier" style="color:${tier.color}">${tier.name}</span>
+            ${gear.enhanceLevel ? `<span class="gear-enhance-badge">+${gear.enhanceLevel}</span>` : ""}
         </div>
     </div>`;
 }
@@ -10250,11 +10351,11 @@ function renderGearSynthPanel(container) {
 
     const pickItems = gearInventory.length
         ? gearInventory.map(g => {
-            const tier = GEAR_TIERS[g.tier];
+            const tierColor = getGearTierColor(g);
             const used = usedIds.includes(g.id);
-            return `<button type="button" class="gear-synth-pick-item${used ? " used" : ""}" onclick="gearSynthAssignNext('${g.id}')" title="${formatGearDisplayName(g)}\n${formatGearBonuses(g.bonuses)}">
+            return `<button type="button" class="gear-synth-pick-item${used ? " used" : ""}" style="border-color:${tierColor};box-shadow:2px 2px 0 ${tierColor}" onclick="gearSynthAssignNext('${g.id}')" title="${formatGearDisplayName(g)}\n${formatGearBonuses(g.bonuses)}">
                 ${renderGearIconHtml(g, "gear-slot-icon")}
-                <span class="gear-slot-tier" style="color:${tier.color}">${tier.name}${g.enhanceLevel ? " +" + g.enhanceLevel : ""}</span>
+                ${g.enhanceLevel ? `<span class="gear-enhance-badge">+${g.enhanceLevel}</span>` : ""}
             </button>`;
         }).join("")
         : `<p style="grid-column:1/-1;text-align:center;color:#888;font-size:12px;margin:0;">No gear in inventory. Win adventure battles to find materials.</p>`;
@@ -10301,9 +10402,9 @@ function renderGearEnhancePanel(container) {
 
     const slotInner = gear
         ? `<span class="gear-enhance-level">+${level}</span>
-           ${renderGearIconHtml(gear, "gear-slot-icon")}
-           <span class="gear-slot-tier" style="color:${GEAR_TIERS[gear.tier].color}">${gear.tierName}</span>`
+           ${renderGearIconHtml(gear, "gear-slot-icon")}`
         : `<span style="font-size:22px;opacity:0.35;">+</span>`;
+    const enhanceSlotStyle = gear ? ` style="border-color:${getGearTierColor(gear)}"` : "";
 
     const infoHtml = !gear
         ? `<h4>Select gear to enhance</h4><p>Pick an item from your inventory. Pockie-style enhancement: +1–+10 safe growth, <b>milestone bonuses at +11 and +21</b> (max +${GEAR_ENHANCE_MAX}). Stats scale with wearer level (+${Math.round(STAT_LEVEL_GROWTH_PCT * 1000) / 10}%/level).</p>`
@@ -10319,11 +10420,12 @@ function renderGearEnhancePanel(container) {
     const pickItems = gearInventory.length
         ? gearInventory.map(g => {
             normalizeGear(g);
-            const tier = GEAR_TIERS[g.tier];
+            const tierColor = getGearTierColor(g);
             const selected = gearEnhanceTargetId === g.id;
-            return `<button type="button" class="gear-synth-pick-item${selected ? " used" : ""}" onclick="gearEnhanceSelect('${g.id}')" title="${formatGearDisplayName(g)}\n${formatGearBonuses(g.bonuses)}" style="${selected ? "opacity:1;border-color:#f59e0b;box-shadow:2px 2px 0 #b45309;" : ""}">
+            const selectedStyle = selected ? "opacity:1;border-color:#f59e0b;box-shadow:2px 2px 0 #b45309;" : `border-color:${tierColor};box-shadow:2px 2px 0 ${tierColor};`;
+            return `<button type="button" class="gear-synth-pick-item${selected ? " used" : ""}" onclick="gearEnhanceSelect('${g.id}')" title="${formatGearDisplayName(g)}\n${formatGearBonuses(g.bonuses)}" style="${selectedStyle}">
                 ${renderGearIconHtml(g, "gear-slot-icon")}
-                <span class="gear-slot-tier" style="color:${tier.color}">${tier.name}${g.enhanceLevel ? " +" + g.enhanceLevel : ""}</span>
+                ${g.enhanceLevel ? `<span class="gear-enhance-badge">+${g.enhanceLevel}</span>` : ""}
             </button>`;
         }).join("")
         : `<p style="grid-column:1/-1;text-align:center;color:#888;font-size:12px;margin:0;">No gear in inventory. Win adventure battles to find equipment.</p>`;
@@ -10334,7 +10436,7 @@ function renderGearEnhancePanel(container) {
             <div class="gear-enhance-workbench">
                 <div class="gear-enhance-slot-wrap">
                     <div class="gear-synth-slot-label">Equipment</div>
-                    <div class="gear-enhance-slot${gear ? " filled" : ""}" onclick="gearEnhanceClear()">${slotInner}</div>
+                    <div class="gear-enhance-slot${gear ? " filled" : ""}"${enhanceSlotStyle} onclick="gearEnhanceClear()">${slotInner}</div>
                 </div>
                 <div class="gear-enhance-info">${infoHtml}</div>
             </div>
@@ -13948,7 +14050,7 @@ function showBattleResult(win, reward) {
                <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("gold", 20)} <b>+${reward.gold}</b></div>
                <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("essence", 20)} <b>+${reward.essence}</b></div>
                ${reward.shards > 0 ? `<div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("shards", 20)} <b>+${reward.shards}</b></div>` : ""}
-               ${reward.gear ? `<div>&#9876;&#65039; Gear: <b style="color:${GEAR_TIERS[reward.gear.tier].color}">${reward.gear.name}</b></div>` : ''}
+               ${reward.gear ? `<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:6px 0;">&#9876;&#65039; Gear: <span class="equip-gear-icon-wrap" style="border-color:${getGearTierColor(reward.gear)};width:28px;height:28px;">${renderGearIconHtml(reward.gear, "gear-inv-icon")}</span> <b>${formatGearDisplayName(reward.gear)}</b></div>` : ''}
                <div>&#11088; Trainer XP <b>+${reward.trainerXp}</b></div>
                <div style="margin-top:8px; color:#666; font-size:13px;">Materials added to your Inventory. Team restored to full HP.</div>
            </div>`
@@ -13992,7 +14094,7 @@ function renderInventoryGearSlotHtml(g) {
     normalizeGear(g);
     return `
         ${renderGearIconHtml(g, "gear-inv-icon")}
-        <span class="inv-slot-tier" style="color:${GEAR_TIERS[g.tier].color}">${g.tierName}${g.enhanceLevel ? " +" + g.enhanceLevel : ""}</span>
+        ${g.enhanceLevel ? `<span class="inv-slot-enhance">+${g.enhanceLevel}</span>` : ""}
         ${renderHoverTip(formatGearDisplayName(g), formatGearBonuses(g.bonuses) + "\nEquip via mon card gear slots.")}`;
 }
 
@@ -14042,7 +14144,7 @@ function renderInventory() {
             slot.innerHTML = renderInventoryMaterialSlotHtml(item.data);
         } else {
             slot.className = "gear-inv-slot has-hover-tip";
-            slot.style.borderColor = GEAR_TIERS[item.data.tier].color;
+            slot.style.borderColor = getGearTierColor(item.data);
             slot.innerHTML = renderInventoryGearSlotHtml(item.data);
         }
         grid.appendChild(slot);
