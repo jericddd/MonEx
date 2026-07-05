@@ -21,11 +21,11 @@ export const GEAR_SLOT_LABELS = {
 
 export const GEAR_TIERS = [
   null,
-  { name: "Worn", color: "#9ca3af" },
-  { name: "Fine", color: "#22c55e" },
+  { name: "Common", color: "#111111" },
+  { name: "Uncommon", color: "#16a34a" },
   { name: "Rare", color: "#2563eb" },
-  { name: "Epic", color: "#a855f7" },
   { name: "Legendary", color: "#ca8a04" },
+  { name: "Mythic", color: "#9f1239" },
 ];
 
 export const STAT_SPECIALTIES = new Set(["spd", "crit", "pierce", "block", "hit", "dodge"]);
@@ -120,8 +120,8 @@ export function sanitizeGear(raw) {
   if (!tierInfo) return null;
 
   const enhanceLevel = clampInt(raw.enhanceLevel ?? 0, 0, LIMITS.gearEnhanceMax);
-  const name = trimString(raw.name) || `${tierInfo.name} ${GEAR_SLOT_LABELS[slot]}`;
-  const tierName = trimString(raw.tierName) || tierInfo.name;
+  const tierName = tierInfo.name;
+  const name = `${tierInfo.name} ${GEAR_SLOT_LABELS[slot]}`;
   const id = trimString(raw.id, LIMITS.gearIdMaxLen) || `gear_srv_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
   return {

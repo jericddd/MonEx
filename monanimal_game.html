@@ -7513,11 +7513,11 @@ const GEAR_SLOT_LABELS = { weapon: "Weapon", armor: "Armor", helmet: "Helmet", b
 const GEAR_SLOT_ICONS = { weapon: "\u2694\uFE0F", armor: "\uD83D\uDEE1\uFE0F", helmet: "\u2B50", boots: "\uD83D\uDC5E" };
 const GEAR_TIERS = [
     null,
-    { name: "Worn",      color: "#9ca3af" },
-    { name: "Fine",      color: "#22c55e" },
+    { name: "Common",    color: "#111111" },
+    { name: "Uncommon",  color: "#16a34a" },
     { name: "Rare",      color: "#2563eb" },
-    { name: "Epic",      color: "#a855f7" },
     { name: "Legendary", color: "#ca8a04" },
+    { name: "Mythic",    color: "#9f1239" },
 ];
 const GEAR_SYNTH_UPGRADE_RATE = 0.75;
 const GEAR_SYNTH_REROLL_RATE = 0.99;
@@ -9468,13 +9468,25 @@ function rebuildGearBonuses(gear) {
     });
 }
 
+function refreshGearTierLabels(gear) {
+    if (!gear?.slot) return;
+    const t = GEAR_TIERS[gear.tier];
+    if (!t) return;
+    gear.tierName = t.name;
+    gear.name = t.name + " " + GEAR_SLOT_LABELS[gear.slot];
+}
+
 function migrateAllGear() {
-    gearInventory.forEach(migrateGearBonuses);
-    gearSynthSlots.forEach((g, i) => { if (g) migrateGearBonuses(g); });
+    const migrate = (g) => {
+        migrateGearBonuses(g);
+        refreshGearTierLabels(g);
+    };
+    gearInventory.forEach(migrate);
+    gearSynthSlots.forEach((g, i) => { if (g) migrate(g); });
     const migrateMonGear = (mon) => {
         if (!mon?.equipment) return;
         GEAR_SLOTS.forEach((slot) => {
-            if (mon.equipment[slot]) migrateGearBonuses(mon.equipment[slot]);
+            if (mon.equipment[slot]) migrate(mon.equipment[slot]);
         });
     };
     party.forEach(migrateMonGear);
@@ -9781,7 +9793,7 @@ function describeGearSynthRecipe(recipe) {
     const slotLabel = GEAR_SLOT_LABELS[recipe.slot];
     const mainName = GEAR_TIERS[recipe.mainTier].name;
     const catName = GEAR_TIERS[getGearSynthCatalystTier(recipe.mainTier)].name;
-    const catNote = (recipe.mainTier === 4 && recipe.rate < 0.9) ? "Worn" : catName;
+    const catNote = (recipe.mainTier === 4 && recipe.rate < 0.9) ? "Common" : catName;
     return `<b>${mainName} Reroll</b> — ${mainName} ${slotLabel} + 2× ${catNote} → new <b>${resultName} ${slotLabel}</b> · <b>${pct}%</b> success · fail consumes all 3`;
 }
 

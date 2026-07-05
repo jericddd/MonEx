@@ -48,7 +48,9 @@ test("sanitizes gear and inventory cap", () => {
     enhanceLevel: 50,
   });
   assert.equal(gear.tier, 5);
-  assert.equal(gear.enhanceLevel, 8);
+  assert.equal(gear.tierName, "Mythic");
+  assert.equal(gear.name, "Mythic Weapon");
+  assert.equal(gear.enhanceLevel, 21);
   assert.equal(gear.bonuses.atk, 9999);
   assert.equal(gear.bonuses.fake, undefined);
 
@@ -57,7 +59,7 @@ test("sanitizes gear and inventory cap", () => {
       id: `g${i}`,
       slot: "boots",
       tier: 1,
-      name: "Worn Boots",
+      name: "Common Boots",
       bonuses: { spd: 5 },
     })),
   });
