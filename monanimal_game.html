@@ -730,6 +730,225 @@ button.green:hover {
 .profile-pane.active {
     display: block;
 }
+/* Hub mon cards — keeps card feel, fits modal theme */
+.hub-main .party-grid {
+    gap: 12px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.hub-main .box-content-grid {
+    grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+    gap: 10px;
+}
+.hub-main .mon-card {
+    background: linear-gradient(180deg, #f8ecd8 0%, #edd9b8 100%);
+    border: 3px solid #d4a04a;
+    border-radius: 10px;
+    padding: 10px 10px 8px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        0 3px 0 #3d2010;
+    overflow: visible;
+}
+.hub-main .mon-card.rarity-uncommon {
+    border-color: #16a34a;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 3px 0 #14532d;
+}
+.hub-main .mon-card.rarity-rare {
+    border-color: #2563eb;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 3px 0 #1e3a8a;
+}
+.hub-main .mon-card.rarity-legendary {
+    border-color: #ca8a04;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 3px 0 #5c4010;
+}
+.hub-main .mon-card.rarity-mythic {
+    border-color: #9f1239;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 3px 0 #4c0519;
+}
+.hub-main .mon-card.rarity-common {
+    border-color: #8b7355;
+}
+.hub-main .mon-card:hover {
+    border-color: #ffe08a !important;
+    box-shadow:
+        inset 0 0 14px rgba(255, 200, 80, 0.22),
+        0 4px 0 #2a1810 !important;
+    transform: translateY(-1px);
+}
+.mon-card-top {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin: 2px 0 8px;
+    padding-right: 18px;
+}
+.hub-main .mon-sprite {
+    flex: 0 0 auto;
+    width: 76px;
+    height: 76px;
+    margin: 0;
+    border: 2px solid rgba(139, 69, 19, 0.35);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.08);
+}
+.hub-main .mon-sprite img {
+    width: 68px;
+    height: 68px;
+    max-width: 68px;
+    max-height: 68px;
+}
+.hub-main .box-content-grid .mon-sprite {
+    width: 64px;
+    height: 64px;
+}
+.hub-main .box-content-grid .mon-sprite img {
+    width: 56px;
+    height: 56px;
+    max-width: 56px;
+    max-height: 56px;
+}
+.mon-card-identity {
+    flex: 1;
+    min-width: 0;
+}
+.hub-main .mon-name {
+    font-size: 8px;
+    line-height: 1.4;
+    margin: 0 0 5px;
+    text-align: left;
+    color: #3d1a08;
+    word-break: break-word;
+}
+.hub-main .type-tags {
+    justify-content: flex-start;
+    margin-bottom: 6px;
+}
+.hub-main .type-tag {
+    font-size: 6px;
+    padding: 2px 7px;
+    border-radius: 4px;
+}
+.mon-stats-compact .stat-row {
+    margin: 2px 0;
+}
+.mon-stats-compact .stat-row span:first-child {
+    font-size: 9px;
+    color: rgba(61, 26, 8, 0.7);
+}
+.mon-stats-compact .stat-row span:last-child {
+    font-size: 10px;
+    color: #3d1a08;
+}
+.mon-card-loadout {
+    border-top: 1px solid rgba(139, 69, 19, 0.28);
+    border-bottom: 1px solid rgba(139, 69, 19, 0.28);
+    padding: 6px 0 5px;
+    margin-bottom: 6px;
+}
+.hub-main .skills-grid {
+    margin: 0 0 5px;
+    gap: 3px;
+    justify-content: flex-start;
+}
+.hub-main .skill-square {
+    width: 22px;
+    height: 22px;
+    border: 2px solid #8b4513;
+    background: linear-gradient(145deg, #a85a2a, #6b3518);
+    box-shadow: 1px 1px 0 #3d2010;
+}
+.hub-main .skill-square .skill-icon-img {
+    width: 16px;
+    height: 16px;
+}
+.hub-main .skill-square:hover {
+    box-shadow: 2px 2px 0 #3d2010;
+    border-color: #f0a050;
+}
+.hub-main .gear-row {
+    margin: 0;
+    gap: 4px;
+    justify-content: flex-start;
+}
+.hub-main .gear-slot {
+    width: 28px;
+    height: 28px;
+    line-height: 24px;
+    font-size: 12px;
+    border: 2px solid #c46a28;
+    background: rgba(61, 26, 8, 0.12);
+    border-radius: 6px;
+}
+.hub-main .gear-slot.filled {
+    background: rgba(61, 26, 8, 0.2);
+    box-shadow: inset 0 0 0 1px rgba(255, 220, 160, 0.45);
+}
+.mon-card-status {
+    font-family: 'Lato', sans-serif;
+    font-size: 10px;
+    color: rgba(61, 26, 8, 0.62);
+    text-align: center;
+    margin: 0 0 6px;
+}
+.hub-main .mon-actions {
+    margin-top: 0;
+    gap: 6px;
+}
+.hub-main .mon-actions button {
+    background: linear-gradient(180deg, #8b4a22 0%, #6b3518 100%);
+    color: #ffe8c8;
+    border: 2px solid #c46a28;
+    box-shadow: 0 2px 0 #3d2010;
+    font-size: 6px;
+    padding: 7px 4px;
+}
+.hub-main .mon-actions button:hover::before {
+    content: none;
+}
+.hub-main .mon-actions button.green {
+    background: linear-gradient(180deg, #4ade80, #16a34a);
+    border-color: #15803d;
+    color: #fff;
+    box-shadow: 0 2px 0 #14532d;
+}
+.hub-main .mon-actions button.red {
+    background: linear-gradient(180deg, #ef4444, #b91c1c);
+    border-color: #991b1b;
+    color: #fff;
+    box-shadow: 0 2px 0 #7f1d1d;
+}
+.hub-main .ascend-btn {
+    margin-top: 6px;
+    background: linear-gradient(180deg, #f0a040 0%, #d07020 100%);
+    border: 2px solid #c46a28;
+    color: #3d1a08;
+    box-shadow: 0 2px 0 #5c3010;
+}
+.hub-main .info-icon {
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+    line-height: 17px;
+    border-color: #c46a28;
+    background: #f8ecd8;
+    color: #8b4513;
+}
+.hub-main .house-badge {
+    top: 6px;
+    left: 6px;
+}
+.hub-main .stats-tooltip {
+    border-color: #d4a04a;
+    background: #2a1810;
+}
+.hub-main .st-title {
+    color: #fde68a;
+}
+.hub-main .stat-row span strong {
+    font-weight: 700;
+}
 .shop-item-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
@@ -8834,6 +9053,46 @@ function updateUI() {
     try { renderBox(); } catch (e) { console.error("renderBox failed:", e); }
 }
 
+function renderMonCardInner(mon, index, location) {
+    const cap = getLevelCap(mon);
+    const isParty = location === "party";
+    const atCap = Math.floor(mon.level) >= cap;
+    const cost = getLevelCost(mon);
+    const levelBtn = isParty ? renderLevelUpBtn(index, mon, cost, atCap, cap) : "";
+    const footerBtns = isParty
+        ? `<button onclick="event.stopPropagation(); openPartySwitchPicker(${index})">SWITCH</button>${levelBtn}`
+        : `<button onclick="event.stopPropagation(); openBoxSwitchPicker(${index})">SWITCH</button><button onclick="releaseFromBox(${index})" class="red">RELEASE</button>`;
+    const statusLine = isParty ? `<div class="mon-card-status">Ready for battle</div>` : "";
+    const ascend = isParty ? renderAscendBtn(index, mon) : "";
+
+    return `
+    ${renderStatsInfo(mon)}
+    ${renderHouseBadge(mon, location)}
+    <div class="mon-card-top">
+        <div class="mon-sprite">
+            <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
+        </div>
+        <div class="mon-card-identity">
+            <div class="mon-name">${mon.name}</div>
+            <div class="type-tags">
+                <span class="type-tag ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
+            </div>
+            <div class="mon-stats mon-stats-compact">
+                <div class="stat-row"><span><strong>LV</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
+                <div class="stat-row"><span><strong>HP</strong></span><span>${mon.max_hp}</span></div>
+            </div>
+        </div>
+    </div>
+    <div class="mon-card-loadout">
+        ${renderSkillsGrid(mon)}
+        ${renderGearRow(location, index, mon)}
+    </div>
+    ${statusLine}
+    <div class="mon-actions">${footerBtns}</div>
+    ${ascend}
+    `;
+}
+
 function renderPartyGrid() {
     const grid = document.getElementById("party-grid");
     if (!grid) return;
@@ -8851,38 +9110,10 @@ function renderPartyGrid() {
 
     party.forEach((mon, index) => {
         ensureMonReady(mon);
-
-        const cap = getLevelCap(mon);
-        const atCap = Math.floor(mon.level) >= cap;
-        const cost = getLevelCost(mon);
-        const levelBtn = renderLevelUpBtn(index, mon, cost, atCap, cap);
-
         const card = document.createElement("div");
         card.className = `mon-card ${getRarityClass(mon.rarity)}`;
         card.style.cursor = "pointer";
-        card.innerHTML = `
-    ${renderStatsInfo(mon)}
-    ${renderHouseBadge(mon, "party")}
-    <div class="mon-sprite">
-        <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
-    </div>
-    <div class="mon-name">${mon.name}</div>
-    <div class="type-tags">
-        <span class="type-tag ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
-    </div>
-    ${renderSkillsGrid(mon)}
-    ${renderGearRow("party", index, mon)}
-    <div class="mon-stats">
-        <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
-        <div class="stat-row"><span><strong>HP</strong></span><span>${mon.max_hp}</span></div>
-    </div>
-    <div class="currently-text">Currently: ready for battle</div>
-    <div class="mon-actions">
-        <button onclick="event.stopPropagation(); openPartySwitchPicker(${index})">SWITCH</button>
-        ${levelBtn}
-    </div>
-    ${renderAscendBtn(index, mon)}
-`;
+        card.innerHTML = renderMonCardInner(mon, index, "party");
         grid.appendChild(card);
     });
 }
@@ -8952,31 +9183,9 @@ function renderBox() {
     displayList.forEach((mon) => {
         const i = box.indexOf(mon);
         ensureMonReady(mon);
-        const cap = getLevelCap(mon);
-
         const card = document.createElement("div");
         card.className = `mon-card ${getRarityClass(mon.rarity)}`;
-        card.innerHTML = `
-    ${renderStatsInfo(mon)}
-    ${renderHouseBadge(mon, "box")}
-    <div class="mon-sprite">
-        <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
-    </div>
-    <div class="mon-name">${mon.name}</div>
-    <div class="type-tags">
-        <span class="type-tag ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
-    </div>
-    ${renderSkillsGrid(mon)}
-    ${renderGearRow("box", i, mon)}
-    <div class="mon-stats">
-        <div class="stat-row"><span><strong>LEVEL</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
-        <div class="stat-row"><span><strong>HP</strong></span><span>${mon.max_hp}</span></div>
-    </div>
-    <div class="mon-actions">
-        <button onclick="event.stopPropagation(); openBoxSwitchPicker(${i})">SWITCH</button>
-        <button onclick="releaseFromBox(${i})" class="red">RELEASE</button>
-    </div>
-`;
+        card.innerHTML = renderMonCardInner(mon, i, "box");
         content.appendChild(card);
     });
 }
