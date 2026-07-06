@@ -25,7 +25,29 @@ export async function loadCloudSave(kv, xUserId, options = {}) {
   return { found: true, save };
 }
 
-export async function writeCloudSave(kv, xUserId, payload) {
+export async function writeCloudSave(kv, xUserId, payload, options = {}) {
+  if (!options.skipStaleCheck) {
+    const raw = await kv.get(saveKey(xUserId));
+    if (raw) {
+      let existingUpdatedAt = 0;
+      try {
+        existingUpdatedAt = Date.parse(JSON.parse(raw).updatedAt || "");
+      } catch {
+        existingUpdatedAt = 0;
+      }
+      const incomingUpdatedAt = Date.parse(payload.updatedAt || "");
+      if (
+        Number.isFinite(existingUpdatedAt)
+        && Number.isFinite(incomingUpdatedAt)
+        && incomingUpdatedAt < existingUpdatedAt
+      ) {
+        const err = new Error("stale_save");
+        err.code = "stale_save";
+        err.existingSave = validateAndSanitizeSave(JSON.parse(raw), {}, options);
+        throw err;
+      }
+    }
+  }
   await kv.put(saveKey(xUserId), JSON.stringify(payload));
   return payload;
 }

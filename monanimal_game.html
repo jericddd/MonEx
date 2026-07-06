@@ -11384,7 +11384,15 @@ function resolveAbandonedAdventureBattle() {
 
 function saveData() {
     if (!currentUser) return;
-    const payload = {
+    const payload = buildSavePayload();
+    writeLocalSave(payload);
+    if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+        MonExAuth.scheduleCloudSave(payload);
+    }
+}
+
+function buildSavePayload() {
+    return {
         party, box, monballs, money, essence, monShards, trainerXp,
         highestStageCleared, adventureGlobalBest, currentChapter, currentStage,
         gearInventory, lastResetDate, xHandle,
@@ -11394,10 +11402,18 @@ function saveData() {
         saveVersion: 2,
         updatedAt: new Date().toISOString(),
     };
+}
+
+function writeLocalSave(payload) {
+    if (!currentUser || !payload) return;
     localStorage.setItem("monex_" + currentUser, JSON.stringify(payload));
-    if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
-        MonExAuth.scheduleCloudSave(payload);
-    }
+}
+
+function flushSaveToCloud() {
+    if (!currentUser || typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return;
+    const payload = buildSavePayload();
+    writeLocalSave(payload);
+    return MonExAuth.flushCloudSave(payload);
 }
 
 function getSaveTimestamp(data) {
@@ -11469,29 +11485,31 @@ async function loadData() {
 
     let data = null;
     let shouldSyncCloud = false;
+    let shouldPersistLocal = false;
     if (localData && cloudData) {
         const localTs = getSaveTimestamp(localData);
         const cloudTs = getSaveTimestamp(cloudData);
         if (cloudTs > localTs) {
             data = cloudData;
-            shouldSyncCloud = false;
+            shouldPersistLocal = true;
         } else if (localTs > cloudTs) {
             data = localData;
             shouldSyncCloud = true;
         } else {
-            data = localData;
-            shouldSyncCloud = true;
+            data = cloudData;
+            shouldPersistLocal = true;
         }
     } else if (cloudData) {
         data = cloudData;
+        shouldPersistLocal = true;
     } else {
         data = localData;
     }
 
     if (data) {
         applyLoadedSave(data);
+        if (shouldPersistLocal) writeLocalSave(data);
         if (shouldSyncCloud) saveData();
-        else if (cloudData && !localData) saveData();
     } else {
         party = [];
         box = [];
@@ -12391,6 +12409,8 @@ function countMonsByNameRarity(name, rarity) {
 
 function applyStagingBetaGear() {
     if (!isStagingHost() || !currentUser) return false;
+    const expected = HOUSE_ORDER.length * 5 * GEAR_SLOTS.length * GEAR_INVENTORY_DUPES_PER_VARIANT;
+    if (gearInventory.length >= expected && gearInventorySeedVersion >= GEAR_INVENTORY_SEED_VERSION) return false;
     seedHouseGearInventory();
     gearInventorySeedVersion = GEAR_INVENTORY_SEED_VERSION;
     return true;
@@ -12574,12 +12594,7 @@ function attemptCatch() {
 async function logout() {
     if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
         try {
-            await MonExAuth.flushCloudSave({
-                party, box, monballs, money, essence, monShards, trainerXp,
-                highestStageCleared, adventureGlobalBest, currentChapter, currentStage,
-                gearInventory, lastResetDate, xHandle, resourceChestLastCollectAt,
-                gearInventorySeedVersion,
-            });
+            await MonExAuth.flushCloudSave(buildSavePayload());
         } catch (_) {}
         await MonExAuth.logout();
     }
@@ -13035,17 +13050,11 @@ window.onload = async function() {
     window.addEventListener("resize", scheduleRailTabIconNormalize);
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState !== "hidden" || !currentUser) return;
-        if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return;
-        saveData();
-        MonExAuth.flushCloudSave({
-            party, box, monballs, money, essence, monShards, trainerXp,
-            highestStageCleared, adventureGlobalBest, currentChapter, currentStage,
-            gearInventory, lastResetDate, xHandle, resourceChestLastCollectAt,
-            gearInventorySeedVersion,
-            adventureBattleActive: isInAdventureBattle,
-            saveVersion: 2,
-            updatedAt: new Date().toISOString(),
-        }).catch(() => {});
+        flushSaveToCloud().catch(() => {});
+    });
+    window.addEventListener("pagehide", () => {
+        if (!currentUser) return;
+        flushSaveToCloud().catch(() => {});
     });
 };
 // ==================== ADVENTURE MODE ====================

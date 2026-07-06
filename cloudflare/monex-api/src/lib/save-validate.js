@@ -84,6 +84,13 @@ function clampNum(value, min, max) {
   return Math.min(max, Math.max(min, n));
 }
 
+function resolveUpdatedAt(input, now) {
+  const parsed = Date.parse(input?.updatedAt || "");
+  if (!Number.isFinite(parsed)) return new Date(now).toISOString();
+  const latest = now + LIMITS.clockSkewMs;
+  return new Date(clampNum(parsed, 0, latest)).toISOString();
+}
+
 function trimString(value, maxLen = LIMITS.stringMaxLen) {
   if (typeof value !== "string") return "";
   return value.trim().slice(0, maxLen);
@@ -355,6 +362,6 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
     adventureBattleActive: false,
     saveVersion: Number.isFinite(input.saveVersion) ? clampInt(input.saveVersion, 1, 999) : 1,
     xHandle: session.username || trimString(input.xHandle, 48) || "",
-    updatedAt: new Date(now).toISOString(),
+    updatedAt: resolveUpdatedAt(input, now),
   };
 }
