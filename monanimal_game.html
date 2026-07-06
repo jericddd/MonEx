@@ -7910,6 +7910,61 @@ function refreshAdventureChapterBackground() {
     setBattleSceneBackground(getChapterBackgroundPath(currentChapter));
     applyBattleStageChapterBackground(currentChapter);
 }
+
+const _imagePreloadCache = new Map();
+
+function preloadImage(url) {
+    if (!url) return Promise.resolve(false);
+    if (_imagePreloadCache.has(url)) return _imagePreloadCache.get(url);
+    const promise = new Promise((resolve) => {
+        const img = new Image();
+        img.decoding = "async";
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
+        img.src = url;
+    });
+    _imagePreloadCache.set(url, promise);
+    return promise;
+}
+
+function preloadImages(urls) {
+    const unique = [...new Set((urls || []).filter(Boolean))];
+    if (!unique.length) return Promise.resolve([]);
+    return Promise.all(unique.map(preloadImage));
+}
+
+function warmCoreSceneAssets() {
+    return preloadImages([
+        MAIN_SCENE_BG,
+        BATTLE_HUB_BG,
+        getAdventureModeHubBackgroundPath(),
+        getChapterBackgroundPath(currentChapter),
+    ]);
+}
+
+function warmBattleHubSceneAssets() {
+    const hubBtnUrls = (typeof BATTLE_HUB_MAIN_BUTTONS !== "undefined")
+        ? BATTLE_HUB_MAIN_BUTTONS.map((btn) => btn.src)
+        : [];
+    return preloadImages([
+        BATTLE_HUB_BG,
+        getAdventureModeHubBackgroundPath(),
+        getChapterBackgroundPath(currentChapter),
+        ...hubBtnUrls,
+    ]);
+}
+
+function warmAdventureHubSceneAssets() {
+    return preloadImages([
+        getAdventureModeHubBackgroundPath(),
+        getChapterBackgroundPath(currentChapter),
+    ]);
+}
+
+function warmPatrolBattleAssets() {
+    return preloadImage(getChapterBackgroundPath(currentChapter));
+}
+
 let currentChapter = 1;
 let currentStage = 1;
 const STAGES_PER_CHAPTER = 40;
@@ -14148,6 +14203,7 @@ function showMainScene() {
     updateResourceChestWidget();
     startResourceChestTimer();
     ensureCoverStagesSync();
+    void warmCoreSceneAssets();
 }
 
 function closeAllModals() {
@@ -14312,12 +14368,14 @@ function openBattleHub() {
     setActiveRailTab("rail-battle");
     renderBattleHubMenu();
     ensureCoverStagesSync();
+    void warmBattleHubSceneAssets();
 }
 
 function renderBattleHubMenu() {
     battleScreen = "menu";
     setBattleSceneBackground(BATTLE_HUB_BG);
     renderBattleHubButtons(BATTLE_HUB_MAIN_BUTTONS);
+    void warmBattleHubSceneAssets();
 }
 
 function showBattleTowerHub() {
@@ -14345,6 +14403,7 @@ function prepareAdventureHubScene() {
 }
 
 function openAdventureModePicker() {
+    void warmAdventureHubSceneAssets();
     prepareAdventureHubScene();
     battleScreen = "adventure-picker";
     activeBattleMode = "campaign";
@@ -14557,6 +14616,7 @@ function beginPatrolScan() {
     patrolScansUsed++;
     saveData();
 
+    void warmPatrolBattleAssets();
     const encounter = rollPatrolEncounter();
     activePatrolEncounter = encounter;
     patrolScanToken++;
@@ -14671,6 +14731,7 @@ function showPatrolBattleResult(win, reward, encounter) {
 }
 
 function openAdventureStagePrep() {
+    void warmAdventureHubSceneAssets();
     setAdventureHubMode(false);
     prepareAdventureBattleScene(getChapterBackgroundPath(currentChapter));
     startStageSelection();
