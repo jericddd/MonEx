@@ -7712,10 +7712,9 @@ const BOX_MAX = Infinity;
 const SHOP_CATEGORIES = [
     { id: "weapon", label: "WEAPON" },
     { id: "armor", label: "ARMOR" },
-    { id: "potions", label: "POTIONS" },
-    { id: "food", label: "FOOD" },
+    { id: "mats", label: "MATS" },
 ];
-let shopActiveCategory = "potions";
+let shopActiveCategory = "mats";
 
 const INVENTORY_NAV = [
     { id: "all", label: "ALL" },
@@ -7733,9 +7732,9 @@ const SHOP_ITEMS = [
     { id: "shop_weapon_t2", category: "weapon",  name: "Field Blade",      iconKey: null, gearGrant: { tier: 2, slot: "weapon", gearLevelTier: 2 }, desc: "Uncommon house weapon (Lv 20 req). Random house.", cost: { gold: 8500, essence: 20 } },
     { id: "shop_armor_t1",  category: "armor",   name: "Training Vest",    iconKey: null, gearGrant: { tier: 1, slot: "armor", gearLevelTier: 1 },  desc: "Common house armor (Lv 10 req). Random house.",  cost: { gold: 3200 } },
     { id: "shop_armor_t2",  category: "armor",   name: "Field Vest",       iconKey: null, gearGrant: { tier: 2, slot: "armor", gearLevelTier: 2 },  desc: "Uncommon house armor (Lv 20 req). Random house.", cost: { gold: 7800, essence: 18 } },
-    { id: "monball5",       category: "food",    name: "Monball Pack",     iconKey: "monball",  desc: "5 Monballs for catching.",     cost: { gold: 2000 },              grant: { monballs: 5 } },
-    { id: "essence25",      category: "potions", name: "KB's Onion Pack",  iconKey: "essence",  desc: "25 KB's Onion for leveling.", cost: { gold: 900 },               grant: { essence: 25 } },
-    { id: "shards3",        category: "food",    name: "Shard Pack",       iconKey: "shards",   desc: "3 Mon Shards.",                cost: { gold: 1800, essence: 15 }, grant: { monShards: 3 } },
+    { id: "monball5",       category: "mats",    name: "Monball Pack",     iconKey: "monball",  desc: "5 Monballs for catching.",     cost: { gold: 2000 },              grant: { monballs: 5 } },
+    { id: "essence25",      category: "mats",    name: "KB's Onion Pack",  iconKey: "essence",  desc: "25 KB's Onion for leveling.", cost: { gold: 900 },               grant: { essence: 25 } },
+    { id: "shards3",        category: "mats",    name: "Shard Pack",       iconKey: "shards",   desc: "3 Mon Shards.",                cost: { gold: 1800, essence: 15 }, grant: { monShards: 3 } },
 ];
 
 const QUEST_MILESTONES = [20, 40, 60, 80, 100];
