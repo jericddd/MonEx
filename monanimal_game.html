@@ -7728,10 +7728,10 @@ let inventoryActiveCategory = "all";
 let profileActiveTab = "account";
 
 const SHOP_ITEMS = [
-    { id: "shop_weapon_t1", category: "weapon",  name: "Training Blade",   iconKey: null, gearGrant: { tier: 1, slot: "weapon", gearLevelTier: 1 }, desc: "Common house weapon (Lv 10 req). Random house.", cost: { gold: 3500 } },
-    { id: "shop_weapon_t2", category: "weapon",  name: "Field Blade",      iconKey: null, gearGrant: { tier: 2, slot: "weapon", gearLevelTier: 2 }, desc: "Uncommon house weapon (Lv 20 req). Random house.", cost: { gold: 8500, essence: 20 } },
-    { id: "shop_armor_t1",  category: "armor",   name: "Training Vest",    iconKey: null, gearGrant: { tier: 1, slot: "armor", gearLevelTier: 1 },  desc: "Common house armor (Lv 10 req). Random house.",  cost: { gold: 3200 } },
-    { id: "shop_armor_t2",  category: "armor",   name: "Field Vest",       iconKey: null, gearGrant: { tier: 2, slot: "armor", gearLevelTier: 2 },  desc: "Uncommon house armor (Lv 20 req). Random house.", cost: { gold: 7800, essence: 18 } },
+    { id: "shop_weapon_t1", category: "weapon",  name: "Training Blade",   iconKey: null, gearGrant: { tier: 1, slot: "weapon", gearLevelTier: 1 }, desc: "Common house weapon (Lv 1 req). Random house.", cost: { gold: 3500 } },
+    { id: "shop_weapon_t2", category: "weapon",  name: "Field Blade",      iconKey: null, gearGrant: { tier: 2, slot: "weapon", gearLevelTier: 2 }, desc: "Uncommon house weapon (Lv 21 req). Random house.", cost: { gold: 8500, essence: 20 } },
+    { id: "shop_armor_t1",  category: "armor",   name: "Training Vest",    iconKey: null, gearGrant: { tier: 1, slot: "armor", gearLevelTier: 1 },  desc: "Common house armor (Lv 1 req). Random house.",  cost: { gold: 3200 } },
+    { id: "shop_armor_t2",  category: "armor",   name: "Field Vest",       iconKey: null, gearGrant: { tier: 2, slot: "armor", gearLevelTier: 2 },  desc: "Uncommon house armor (Lv 21 req). Random house.", cost: { gold: 7800, essence: 18 } },
     { id: "monball5",       category: "mats",    name: "Monball Pack",     iconKey: "monball",  desc: "5 Monballs for catching.",     cost: { gold: 2000 },              grant: { monballs: 5 } },
     { id: "essence25",      category: "mats",    name: "KB's Onion Pack",  iconKey: "essence",  desc: "25 KB's Onion for leveling.", cost: { gold: 900 },               grant: { essence: 25 } },
     { id: "shards3",        category: "mats",    name: "Shard Pack",       iconKey: "shards",   desc: "3 Mon Shards.",                cost: { gold: 1800, essence: 15 }, grant: { monShards: 3 } },
@@ -8184,7 +8184,7 @@ const GEAR_SYNTH_UPGRADE_GOLD = [0, 1000, 2500, 6000, 15000];
 const GEAR_SYNTH_REROLL_GOLD = [0, 500, 1200, 3000, 8000, 20000];
 const GEAR_SYNTH_SLOT_LABELS = ["Main Item", "Catalyst", "Catalyst"];
 const GEAR_SYSTEM_VERSION = 4;
-const GEAR_LEVEL_TIERS = [10, 20, 30, 40, 50];
+const GEAR_LEVEL_REQ_STEP = 20;
 const GEAR_LEVEL_STAT_MULT = [1.0, 1.15, 1.32, 1.52, 1.75];
 const GEAR_STAT_LABELS = { atk: "ATK", hp: "HP", spd: "SPD", crit: "Crit", dodge: "Dodge", block: "Block", hit: "Hit", pierce: "Pierce" };
 const GEAR_STAT_PRIMARY_LABELS = { atk: "ATK", hp: "HP", dodge: "Dodge", spd: "Speed" };
@@ -9887,6 +9887,10 @@ function renderEmptyGearSlotHtml(slot) {
     return `<span class="gear-slot-empty" aria-hidden="true"><span class="gear-slot-empty-icon">${GEAR_SLOT_ICONS[slot]}</span></span>`;
 }
 
+function getGearRequiredLevelForTier(gearLevelTier) {
+    return (Math.max(1, gearLevelTier || 1) - 1) * GEAR_LEVEL_REQ_STEP + 1;
+}
+
 function getGearLevelTier(gear) {
     if (!gear) return 1;
     const tier = Math.max(1, Math.min(5, gear.gearLevelTier || gear.tier || 1));
@@ -9894,15 +9898,13 @@ function getGearLevelTier(gear) {
 }
 
 function getGearRequiredLevel(gear) {
-    if (!gear) return GEAR_LEVEL_TIERS[0];
-    if (gear.requiredLevel != null) return gear.requiredLevel;
-    return GEAR_LEVEL_TIERS[getGearLevelTier(gear) - 1] || GEAR_LEVEL_TIERS[0];
+    return getGearRequiredLevelForTier(getGearLevelTier(gear));
 }
 
 function ensureGearLevelFields(gear) {
     if (!gear) return;
     if (gear.gearLevelTier == null) gear.gearLevelTier = Math.max(1, Math.min(5, gear.tier || 1));
-    if (gear.requiredLevel == null) gear.requiredLevel = GEAR_LEVEL_TIERS[getGearLevelTier(gear) - 1] || GEAR_LEVEL_TIERS[0];
+    gear.requiredLevel = getGearRequiredLevelForTier(getGearLevelTier(gear));
 }
 
 function getGearLevelStatMult(gearLevelTier) {
@@ -10870,7 +10872,7 @@ function generateGear(tier, slot, houseId = null, gearLevelTier = null) {
         tier,
         tierName: t.name,
         gearLevelTier: lvlTier,
-        requiredLevel: GEAR_LEVEL_TIERS[lvlTier - 1] || GEAR_LEVEL_TIERS[0],
+        requiredLevel: getGearRequiredLevelForTier(lvlTier),
         name: GEAR_SLOT_LABELS[slot],
         primaryRoll,
         rngLines,

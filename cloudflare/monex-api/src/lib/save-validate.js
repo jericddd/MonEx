@@ -137,6 +137,10 @@ function sanitizeGearRollLine(raw) {
   };
 }
 
+function gearRequiredLevelForTier(gearLevelTier) {
+  return (Math.max(1, gearLevelTier) - 1) * 20 + 1;
+}
+
 export function sanitizeGear(raw) {
   if (!raw || typeof raw !== "object") return null;
   const slot = GEAR_SLOTS.includes(raw.slot) ? raw.slot : null;
@@ -180,7 +184,7 @@ export function sanitizeGear(raw) {
     : tier;
   gear.gearLevelTier = gearLevelTier;
   gear.requiredLevel = clampInt(
-    raw.requiredLevel ?? (gearLevelTier * 10),
+    gearRequiredLevelForTier(gearLevelTier),
     1,
     LIMITS.monLevelMax,
   );
