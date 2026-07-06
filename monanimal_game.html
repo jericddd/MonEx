@@ -1646,29 +1646,7 @@ button.green:hover {
     margin: 8px 0;
     opacity: 0.85;
 }
-.gear-tooltip-primary {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 8px;
-    font-family: "Lato", sans-serif;
-    font-size: 11px;
-    color: #e0e7ff;
-    margin-bottom: 2px;
-}
-.gear-tooltip-primary-val {
-    color: #60a5fa;
-    font-weight: 700;
-    white-space: nowrap;
-}
-.gear-tooltip-rolled {
-    font-family: "Lato", sans-serif;
-    font-size: 11px;
-    color: #c7d2fe;
-    margin-bottom: 2px;
-}
-.gear-tooltip-rolled b {
-    color: #60a5fa;
+.gear-tooltip-stat.primary .gear-tooltip-stat-label {
     font-weight: 700;
 }
 .gear-tooltip-enhance {
@@ -10448,9 +10426,8 @@ function renderGearTooltipHtml(gear, mon) {
     if (gear.primaryRoll) {
         const pr = gear.primaryRoll;
         const primaryLabel = GEAR_STAT_PRIMARY_LABELS[pr.stat] || GEAR_STAT_LABELS[pr.stat];
-        const statLabel = GEAR_STAT_LABELS[pr.stat] || pr.stat;
-        primaryHtml = `<div class="gear-tooltip-primary"><span>${escapeGearHtml(primaryLabel)}</span><span class="gear-tooltip-primary-val">${pr.min} – ${pr.max}</span></div>
-            <div class="gear-tooltip-rolled"><span>${escapeGearHtml(statLabel)}</span> <b>+${pr.value}</b></div>`;
+        const perfectCls = isGearRollPerfect(pr) ? " perfect" : "";
+        primaryHtml = `<div class="gear-tooltip-stat primary${perfectCls}"><span class="gear-tooltip-stat-label">${escapeGearHtml(primaryLabel)}</span> <span class="gear-tooltip-stat-val">+${pr.value}</span> <span class="gear-tooltip-stat-max">| Max ${pr.max}</span></div>`;
     }
 
     let enhanceHtml = "";
