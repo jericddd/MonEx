@@ -56,7 +56,7 @@ export const LIMITS = {
   stagesPerChapter: 40,
   gearEnhanceMax: 21,
   maxGearTier: 5,
-  ascensionStarsMax: 2,
+  ascensionStarsMax: 99,
   ascensionSkillPendingMax: 3,
   resourceChestMaxMs: 24 * 60 * 60 * 1000,
   clockSkewMs: 5 * 60 * 1000,
@@ -171,7 +171,8 @@ export function sanitizeGear(raw) {
   const primaryRoll = sanitizeGearRollLine(raw.primaryRoll);
   if (primaryRoll) gear.primaryRoll = primaryRoll;
   if (Array.isArray(raw.rngLines)) {
-    gear.rngLines = raw.rngLines.map(sanitizeGearRollLine).filter(Boolean).slice(0, 2);
+    const maxLines = tier >= 5 ? 3 : 2;
+    gear.rngLines = raw.rngLines.map(sanitizeGearRollLine).filter(Boolean).slice(0, maxLines);
   }
   return gear;
 }

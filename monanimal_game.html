@@ -2455,6 +2455,18 @@ button.green:hover {
     gap: 3px;
     margin: 4px 0 2px;
 }
+.mon-ascension-stars .asc-plus-badge {
+    display: inline-block;
+    font-family: "Press Start 2P", monospace;
+    font-size: 10px;
+    line-height: 1;
+    color: #fbbf24;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.55), 0 1px 0 #78350f;
+    padding: 2px 4px;
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    border-radius: 3px;
+    background: rgba(69, 26, 3, 0.35);
+}
 .mon-ascension-stars .asc-star {
     font-size: 13px;
     line-height: 1;
@@ -8026,6 +8038,7 @@ const GEAR_RNG_RANGES = {
     hp_bonus: [[20, 40], [40, 70], [80, 120], [120, 180], [150, 220]],
 };
 const GEAR_RNG_LINE_COUNT = 2;
+const GEAR_MYTHIC_RNG_LINE_COUNT = 3;
 const GEAR_TIER_ROLL_EXPONENT = [0, 1, 1.12, 1.25, 1.42, 1.65];
 const GEAR_ENHANCE_MAX = 21;
 const GEAR_ENHANCE_MILESTONE_LEVELS = [11, 21];
@@ -8063,10 +8076,12 @@ let gearEnhanceTargetId = null;
 let heroAscensionMainMon = null;
 let heroAscensionDupeMons = [];
 let heroAscensionMainPickerOpen = true;
-const HERO_ASCENSION_MAX_STARS = 2;
-const HERO_ASCENSION_DUPES_REQUIRED = [2, 4];
+const HERO_ASCENSION_SKILL_CAP = 6;
+const HERO_ASCENSION_DUPES_FIRST = 2;
+const HERO_ASCENSION_DUPES_AFTER = 4;
 const HERO_ASCENSION_SUCCESS_RATE = 0.75;
-const HERO_ASCENSION_GOLD_COST = [2000, 5000];
+const HERO_ASCENSION_GOLD_BASE = 2000;
+const HERO_ASCENSION_GOLD_STEP = 1500;
 const HERO_SKILL_UNLOCK_GOLD = 500;
 
 // ==================== HELPER FUNCTIONS ====================
@@ -9040,18 +9055,29 @@ function getSkillCount(rarity) {
     return 6;
 }
 
+function getAscensionSkillLevel(mon) {
+    return Math.min(mon?.ascensionStars || 0, HERO_ASCENSION_SKILL_CAP);
+}
+
 function getMonSkillSlotCap(mon) {
-    return Math.min(BATTLE_METER_SKILL_SLOTS, getSkillCount(mon.rarity) + (mon.ascensionStars || 0));
+    return Math.min(BATTLE_METER_SKILL_SLOTS, getSkillCount(mon.rarity) + getAscensionSkillLevel(mon));
+}
+
+function canAscensionGrantSkill(mon) {
+    const stars = mon?.ascensionStars || 0;
+    if (stars <= 0 || stars > HERO_ASCENSION_SKILL_CAP) return false;
+    return countUnlockedAscensionSkills(mon) < stars;
 }
 
 function renderAscensionStars(mon) {
-    const stars = Math.min(HERO_ASCENSION_MAX_STARS, mon.ascensionStars || 0);
-    const pending = mon.ascensionSkillPending?.length ? ' <span class="asc-star-pending" title="Skill unlock ready">✦</span>' : "";
-    const cells = [];
-    for (let i = 1; i <= HERO_ASCENSION_MAX_STARS; i++) {
-        cells.push(`<span class="asc-star${i <= stars ? " filled" : ""}" aria-hidden="true">★</span>`);
+    const level = mon.ascensionStars || 0;
+    const pending = mon.ascensionSkillPending?.length
+        ? ' <span class="asc-star-pending" title="Skill unlock ready">🔓</span>'
+        : "";
+    if (level <= 0) {
+        return pending ? `<div class="mon-ascension-stars">${pending}</div>` : "";
     }
-    return `<div class="mon-ascension-stars" aria-label="Ascension ${stars} of ${HERO_ASCENSION_MAX_STARS}">${cells.join("")}${pending}</div>`;
+    return `<div class="mon-ascension-stars" aria-label="Ascension +${level}"><span class="asc-plus-badge">+${level}</span>${pending}</div>`;
 }
 
 function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
@@ -9175,7 +9201,7 @@ function repairAscensionSkillState(mon) {
         return;
     }
 
-    if (unlocked >= stars && mon.ascensionSkillPending?.length) {
+    if (unlocked >= getAscensionSkillLevel(mon) && mon.ascensionSkillPending?.length) {
         delete mon.ascensionSkillPending;
         delete mon.ascensionSkillFreePick;
         return;
@@ -9192,7 +9218,7 @@ function reconcileAscensionSkillState(mon) {
     const base = getSkillCount(mon.rarity);
     const stars = mon.ascensionStars || 0;
     const unlocked = countUnlockedAscensionSkills(mon);
-    if (stars <= 0 || unlocked >= stars || mon.ascensionSkillPending?.length) return;
+    if (stars <= 0 || unlocked >= getAscensionSkillLevel(mon) || mon.ascensionSkillPending?.length) return;
     const options = rollHeroAscensionSkillOptions(mon, { skipEnsure: true });
     if (!options.length) return;
     mon.ascensionSkillPending = options;
@@ -9756,7 +9782,7 @@ function openAscensionSkillPicker(location, monIndex) {
         <div class="hub-popup-frame hub-frame hub-popup-wide" onclick="event.stopPropagation()">
             <button type="button" class="hub-popup-close-left" aria-label="Close" onclick="closeAscensionSkillPicker()">&times;</button>
             <div class="hub-popup-inner">
-                <h3 class="hub-popup-title">★ UNLOCK SKILL — ${mon.name}</h3>
+                <h3 class="hub-popup-title">+ UNLOCK SKILL — ${mon.name}</h3>
                 <p class="hub-popup-sub">${costNote}</p>
                 <div class="hero-skill-option-grid">${cards}</div>
             </div>
@@ -10045,7 +10071,7 @@ function getBaseAtk(level, rarity) {
     return atk;
 }
 function getAscensionStatMult(mon) {
-    const stars = Math.min(HERO_ASCENSION_MAX_STARS, mon?.ascensionStars || 0);
+    const stars = mon?.ascensionStars || 0;
     return 1 + stars * HERO_ASCENSION_STAT_BONUS_PCT;
 }
 
@@ -10112,6 +10138,7 @@ function migrateGearBonuses(gear) {
         migrateGearToRngSystem(gear);
         gear.gearVersion = GEAR_SYSTEM_VERSION;
     }
+    ensureGearRngLineCount(gear);
     rebuildGearBonuses(gear);
 }
 
@@ -10137,10 +10164,15 @@ function rollGearStatInRange(min, max, tier) {
     return min + Math.min(span, Math.floor(normalized * (span + 1)));
 }
 
-function pickGearRngStats(slot) {
+function getGearRngLineCount(tier) {
+    return (tier || 1) >= 5 ? GEAR_MYTHIC_RNG_LINE_COUNT : GEAR_RNG_LINE_COUNT;
+}
+
+function pickGearRngStats(slot, tier) {
     const pool = GEAR_SLOT_RNG_POOL[slot] || GEAR_SLOT_RNG_POOL.weapon;
+    const count = getGearRngLineCount(tier);
     const picks = [];
-    for (let i = 0; i < GEAR_RNG_LINE_COUNT; i++) {
+    for (let i = 0; i < count; i++) {
         picks.push(pool[randInt(0, pool.length - 1)]);
     }
     return picks;
@@ -10216,12 +10248,13 @@ function migrateGearToRngSystem(gear) {
         if (val > 0) rngLines.push(buildSyntheticRngLine(stat, val, slot, tier));
     });
     const pool = GEAR_SLOT_RNG_POOL[slot] || [];
-    while (rngLines.length < GEAR_RNG_LINE_COUNT) {
+    const rngLineCount = getGearRngLineCount(tier);
+    while (rngLines.length < rngLineCount) {
         const stat = pool[randInt(0, pool.length - 1)];
         const range = getGearRngRange(stat, slot, tier);
         rngLines.push({ stat, value: range.min, min: range.min, max: range.max });
     }
-    gear.rngLines = rngLines.slice(0, GEAR_RNG_LINE_COUNT);
+    gear.rngLines = rngLines.slice(0, rngLineCount);
 
     const legacySecondary = computeLegacySecondaryEnhanceAdds(gear);
     Object.entries(legacySecondary).forEach(([stat, bonus]) => {
@@ -10229,7 +10262,7 @@ function migrateGearToRngSystem(gear) {
         let line = gear.rngLines.find((l) => l.stat === stat);
         if (!line) {
             line = buildSyntheticRngLine(stat, 0, slot, tier);
-            if (gear.rngLines.length >= GEAR_RNG_LINE_COUNT) gear.rngLines[GEAR_RNG_LINE_COUNT - 1] = line;
+            if (gear.rngLines.length >= rngLineCount) gear.rngLines[rngLineCount - 1] = line;
             else gear.rngLines.push(line);
             line = gear.rngLines.find((l) => l.stat === stat) || gear.rngLines[gear.rngLines.length - 1];
         }
@@ -10237,6 +10270,19 @@ function migrateGearToRngSystem(gear) {
         line.max = Math.max(line.max, line.value);
     });
 
+    syncGearBaseBonusesFromRolls(gear);
+}
+
+function ensureGearRngLineCount(gear) {
+    if (!gear?.slot) return;
+    const need = getGearRngLineCount(gear.tier);
+    if (!Array.isArray(gear.rngLines)) gear.rngLines = [];
+    if (gear.rngLines.length >= need) return;
+    const pool = GEAR_SLOT_RNG_POOL[gear.slot] || [];
+    while (gear.rngLines.length < need) {
+        const stat = pool[randInt(0, pool.length - 1)];
+        gear.rngLines.push(rollGearRngLine(stat, gear.slot, gear.tier || 1));
+    }
     syncGearBaseBonusesFromRolls(gear);
 }
 
@@ -10310,7 +10356,7 @@ function scaleLevelBonus(baseValue, level) {
 
 function scaleUltBuffDef(buffDef, level, ascensionStars = 0) {
     if (!buffDef) return buffDef;
-    const ascMult = 1 + Math.min(HERO_ASCENSION_MAX_STARS, ascensionStars || 0) * HERO_ASCENSION_STAT_BONUS_PCT;
+    const ascMult = 1 + (ascensionStars || 0) * HERO_ASCENSION_STAT_BONUS_PCT;
     const out = { ...buffDef, statMods: { ...(buffDef.statMods || {}) } };
     Object.keys(out.statMods).forEach((key) => {
         const val = out.statMods[key];
@@ -10352,7 +10398,7 @@ function refreshMonDerivedStats(mon) {
 function formatGearBonuses(b, options = {}) {
     const lvl = options.monLevel ? Math.floor(options.monLevel) : 0;
     const ascMult = options.ascensionStars != null
-        ? 1 + Math.min(HERO_ASCENSION_MAX_STARS, options.ascensionStars) * HERO_ASCENSION_STAT_BONUS_PCT
+        ? 1 + (options.ascensionStars) * HERO_ASCENSION_STAT_BONUS_PCT
         : 1;
     const fmt = (k, label) => {
         if (!b[k]) return null;
@@ -10502,7 +10548,7 @@ function stripGearEnhanceLevels(gear, targetLevel) {
 function generateGear(tier, slot, houseId = null) {
     const t = GEAR_TIERS[tier];
     const primaryRoll = rollGearPrimary(slot, tier);
-    const rngLines = pickGearRngStats(slot).map((stat) => rollGearRngLine(stat, slot, tier));
+    const rngLines = pickGearRngStats(slot, tier).map((stat) => rollGearRngLine(stat, slot, tier));
     const gear = {
         id: nextGearId(),
         slot,
@@ -10953,8 +10999,12 @@ function rollHeroAscensionSkillOptions(mon, options = {}) {
     return picks;
 }
 
-function getHeroAscensionDupeRequirement(stars) {
-    return HERO_ASCENSION_DUPES_REQUIRED[stars] ?? null;
+function getHeroAscensionDupeRequirement(level) {
+    return (level || 0) === 0 ? HERO_ASCENSION_DUPES_FIRST : HERO_ASCENSION_DUPES_AFTER;
+}
+
+function getHeroAscensionGoldCost(level) {
+    return HERO_ASCENSION_GOLD_BASE + (level || 0) * HERO_ASCENSION_GOLD_STEP;
 }
 
 function analyzeHeroAscension(mainMon, dupeMons) {
@@ -10965,19 +11015,15 @@ function analyzeHeroAscension(mainMon, dupeMons) {
         return { type: "invalid", reason: "Only <b>Legendary</b> and above can use Hero Ascension." };
     }
     const stars = main.ascensionStars || 0;
-    if (stars >= HERO_ASCENSION_MAX_STARS) {
-        return { type: "invalid", reason: `${main.name} already has ${HERO_ASCENSION_MAX_STARS} ascension stars.` };
-    }
     if (main.ascensionSkillPending?.length) {
         return { type: "pending_skill", main };
     }
     const required = getHeroAscensionDupeRequirement(stars);
-    if (required == null) return { type: "invalid", reason: "Cannot ascend further." };
     const dupes = dupeMons || [];
     if (dupes.length !== required) {
         return {
             type: "invalid",
-            reason: `Star ${stars + 1} needs <b>1 main + ${required} duplicates</b> of the same species (${dupes.length}/${required} selected).`,
+            reason: `+${stars + 1} needs <b>1 main + ${required} duplicates</b> of the same species (${dupes.length}/${required} selected).`,
         };
     }
     for (const dupe of dupes) {
@@ -10994,7 +11040,7 @@ function analyzeHeroAscension(mainMon, dupeMons) {
         nextStar: stars + 1,
         required,
         rate: HERO_ASCENSION_SUCCESS_RATE,
-        gold: HERO_ASCENSION_GOLD_COST[stars] || 0,
+        gold: getHeroAscensionGoldCost(stars),
     };
 }
 
@@ -11005,13 +11051,12 @@ function describeHeroAscensionRecipe(recipe) {
     }
     if (recipe.type === "invalid") return recipe.reason;
     const pct = Math.round(recipe.rate * 100);
-    return `<b>Star ${recipe.nextStar}</b> — ${recipe.main.name} + ${recipe.required}× duplicate(s) · <b>${pct}%</b> success · fail consumes duplicates`;
+    return `<b>+${recipe.nextStar}</b> — ${recipe.main.name} + ${recipe.required}× duplicate(s) · <b>${pct}%</b> success · fail consumes duplicates`;
 }
 
 function canMonHeroAscendMain(mon) {
     ensureMonReady(mon);
     if (!isLegendaryOrAbove(mon.rarity)) return false;
-    if ((mon.ascensionStars || 0) >= HERO_ASCENSION_MAX_STARS) return false;
     if (mon.ascensionSkillPending?.length) return false;
     return true;
 }
@@ -11122,15 +11167,17 @@ function executeHeroAscension() {
     if (success) {
         main.ascensionStars = (main.ascensionStars || 0) + 1;
         repairAscensionSkillState(main);
-        if (!main.ascensionSkillPending?.length) {
+        if (canAscensionGrantSkill(main) && !main.ascensionSkillPending?.length) {
             const options = rollHeroAscensionSkillOptions(main, { skipEnsure: true });
             if (options.length) main.ascensionSkillPending = options;
         }
-        if (!main.ascensionSkillPending?.length) {
-            alert(`Ascension success! ${main.name} earned ★${main.ascensionStars}.\n+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% stats on base stats & gear.\nCould not roll skill options — try reopening the hero card or armory.`);
-        } else {
-            alert(`Ascension success! ${main.name} earned ★${main.ascensionStars}.\n+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% stats on base stats & gear.\nTap 🔓 UNLOCK on their card to choose a skill (${HERO_SKILL_UNLOCK_GOLD} Gold).`);
-        }
+        const statPct = Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100);
+        const skillNote = (main.ascensionSkillPending?.length || canAscensionGrantSkill(main))
+            ? `\nTap 🔓 UNLOCK on their card to choose a skill (${HERO_SKILL_UNLOCK_GOLD} Gold).`
+            : (main.ascensionStars > HERO_ASCENSION_SKILL_CAP
+                ? `\nSkill unlock cap (+${HERO_ASCENSION_SKILL_CAP}) reached — further + levels grant stats only.`
+                : "");
+        alert(`Ascension success! ${main.name} is now +${main.ascensionStars}.\n+${statPct}% stats on base stats & gear.${skillNote}`);
     } else {
         alert("Ascension failed.\nDuplicates were consumed.");
     }
@@ -11196,13 +11243,12 @@ function renderHeroAscensionMainPickItem(entry) {
     const canAscend = canMonHeroAscendMain(mon);
     const locTag = location === "party" ? "P" : "B";
     let status = "";
-    if ((mon.ascensionStars || 0) >= HERO_ASCENSION_MAX_STARS) status = "Max ★";
-    else if (mon.ascensionSkillPending?.length) status = "Unlock skill";
+    if (mon.ascensionSkillPending?.length) status = "Unlock skill";
     return `<button type="button" class="hero-ascension-pick-item${selected ? " is-main" : ""}${canAscend ? "" : " is-disabled"}" onclick="heroAscensionSelectMain('${location}', ${index})" title="${mon.name} · ${mon.rarity}${status ? " · " + status : ""}">
         <span class="hero-asc-loc-tag">${locTag}</span>
         <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
         <span class="hero-asc-pick-name">${mon.name}</span>
-        <span class="hero-ascension-dupes-badge">★${mon.ascensionStars || 0}</span>
+        <span class="hero-ascension-dupes-badge">+${mon.ascensionStars || 0}</span>
     </button>`;
 }
 
@@ -11231,7 +11277,7 @@ function renderHeroAscensionPanel(container) {
 
     const mainSlotInner = main
         ? `<img src="${getMonAvatarPath(main)}" alt="${main.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(main)}'">
-           <span class="hero-ascension-dupes-badge">★${main.ascensionStars || 0}</span>`
+           <span class="hero-ascension-dupes-badge">+${main.ascensionStars || 0}</span>`
         : `<span style="font-size:22px;">+</span><span class="hero-ascension-dupes-badge">MAIN</span>`;
 
     const dupeSlots = required
@@ -11266,16 +11312,19 @@ function renderHeroAscensionPanel(container) {
            </div>`
         : "";
 
+    const nextPlus = main ? (main.ascensionStars || 0) + 1 : "?";
+    const resultSub = main && nextPlus <= HERO_ASCENSION_SKILL_CAP ? "skill" : "stats";
+
     el.innerHTML = `
         <div class="hero-ascension-panel">
-            <p class="gear-synth-note">Hero Ascension: <b>Legendary+</b> only. <b>★1</b> = main + 2 dupes · <b>★2</b> = main + 4 dupes · <b>75%</b> success. Each ★ grants <b>+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% base & gear stats</b> (stacks with level growth). Tap 🔓 to unlock skills.</p>
+            <p class="gear-synth-note">Hero Ascension: <b>Legendary+</b> only. <b>+1</b> = main + 2 dupes · <b>+2+</b> = main + 4 dupes · <b>75%</b> success. Each + level grants <b>+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% base & gear stats</b>. Skills unlock through <b>+${HERO_ASCENSION_SKILL_CAP}</b> only — higher + is stats-only. Tap 🔓 to unlock skills.</p>
             <div class="gear-synth-recipe-bar${recipeCls}">${describeHeroAscensionRecipe(recipe)}</div>
             <div class="hero-ascension-workbench">
                 <button type="button" class="hero-ascension-main-slot hero-ascension-main-slot-btn${main ? " filled" : ""}${showMainPicker ? " is-open" : ""}" onclick="toggleHeroAscensionMainPicker()" title="${main ? "Change main hero" : "Choose main hero"}">
                     ${mainSlotInner}
                 </button>
                 ${required ? `<span class="gear-synth-op">+</span>${dupeSlots}` : ""}
-                ${required ? `<span class="gear-synth-op">⇒</span><div class="gear-synth-result">★${main ? (main.ascensionStars || 0) + 1 : "?"}<br>skill</div>` : ""}
+                ${required ? `<span class="gear-synth-op">⇒</span><div class="gear-synth-result">+${nextPlus}<br>${resultSub}</div>` : ""}
             </div>
             <div class="gear-synth-actions">
                 <div class="gear-synth-cost">${currencyIcon("gold", 18)} <span>${recipe?.gold || 0} Gold</span></div>
