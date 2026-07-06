@@ -2496,9 +2496,6 @@ button.green:hover {
     opacity: 0.35;
     pointer-events: none;
 }
-.hero-ascension-main-slot-btn {
-    position: relative;
-}
 .hero-asc-main-clear {
     position: absolute;
     top: 2px;
@@ -7389,7 +7386,7 @@ function getSkillIconPath(skill) {
 let currentUser = null;
 let party = [];
 let box = [];
-let boxSortMode = "rarity";
+let boxSortMode = "ascension";
 let boxHouseFilter = null;
 let monballs = 15;
 let money = 5000;
@@ -9043,8 +9040,58 @@ function getMonPower(mon) {
     return eff.atk + mon.max_hp + eff.spd + eff.crit + eff.dodge + eff.block + eff.hit + eff.pierce;
 }
 
+function getGearPower(gear) {
+    if (!gear) return 0;
+    migrateGearBonuses(gear);
+    const b = gear.bonuses || {};
+    return (b.atk || 0) + (b.hp || 0) + (b.spd || 0) + (b.crit || 0)
+        + (b.dodge || 0) + (b.block || 0) + (b.hit || 0) + (b.pierce || 0);
+}
+
+function compareGearRarityPower(a, b) {
+    const tierDiff = (b.tier || 1) - (a.tier || 1);
+    if (tierDiff) return tierDiff;
+    const powerDiff = getGearPower(b) - getGearPower(a);
+    if (powerDiff) return powerDiff;
+    return formatGearDisplayName(a).localeCompare(formatGearDisplayName(b));
+}
+
+function sortGearByRarityPower(list) {
+    return [...list].sort(compareGearRarityPower);
+}
+
+function compareHeroAscensionEntry(a, b) {
+    const partyDiff = (b.location === "party" ? 1 : 0) - (a.location === "party" ? 1 : 0);
+    if (partyDiff) return partyDiff;
+    const ascDiff = (b.mon.ascensionStars || 0) - (a.mon.ascensionStars || 0);
+    if (ascDiff) return ascDiff;
+    const powerDiff = getMonPower(b.mon) - getMonPower(a.mon);
+    if (powerDiff) return powerDiff;
+    return a.mon.name.localeCompare(b.mon.name);
+}
+
+function sortHeroAscensionEntries(entries) {
+    return [...entries].sort(compareHeroAscensionEntry);
+}
+
+function renderHeroAscensionLocTag(location) {
+    return location === "party" ? `<span class="hero-asc-loc-tag">P</span>` : "";
+}
+
 function sortBox() {
     const tieName = (a, b) => a.name.localeCompare(b.name);
+    if (boxSortMode === "ascension") {
+        box.sort((a, b) => {
+            const ascDiff = (b.ascensionStars || 0) - (a.ascensionStars || 0);
+            if (ascDiff) return ascDiff;
+            const powerDiff = getMonPower(b) - getMonPower(a);
+            if (powerDiff) return powerDiff;
+            const rarityDiff = getRarityRank(b.rarity) - getRarityRank(a.rarity);
+            if (rarityDiff) return rarityDiff;
+            return tieName(a, b);
+        });
+        return;
+    }
     if (boxSortMode === "level") {
         box.sort((a, b) => {
             const levelDiff = Math.floor(b.level) - Math.floor(a.level);
@@ -9102,7 +9149,7 @@ function toggleBoxSortMenu(event) {
 }
 
 function setBoxSort(mode) {
-    if (!["power", "level", "rarity"].includes(mode)) return;
+    if (!["power", "level", "rarity", "ascension"].includes(mode)) return;
     boxSortMode = mode;
     sortBox();
     renderBox();
@@ -9111,11 +9158,11 @@ function setBoxSort(mode) {
 function renderBoxNav() {
     const nav = document.getElementById("box-nav");
     if (!nav) return;
-    const sortLabels = { power: "POWER", level: "LEVEL", rarity: "RARITY" };
+    const sortLabels = { ascension: "ASCEND+", power: "POWER", level: "LEVEL", rarity: "RARITY" };
     nav.innerHTML = `
         <div class="hub-nav-title">BOX<span>${box.length}</span></div>
         <div class="hub-nav-label">SORT</div>
-        ${["power", "level", "rarity"].map(mode => `
+        ${["ascension", "power", "level", "rarity"].map(mode => `
             <button type="button" class="hub-nav-btn${boxSortMode === mode ? " active" : ""}" onclick="setBoxSort('${mode}')">${sortLabels[mode]}</button>
         `).join("")}
         <div class="hub-nav-divider"></div>
@@ -11043,7 +11090,7 @@ function renderGearSynthPanel(container) {
     const usedIds = getGearSynthUsedIds();
 
     const pickItems = gearInventory.length
-        ? gearInventory.map(g => {
+        ? sortGearByRarityPower(gearInventory).map(g => {
             const tierColor = getGearTierColor(g);
             const used = usedIds.includes(g.id);
             return `<button type="button" class="gear-synth-pick-item${used ? " used" : ""}" style="border-color:${tierColor};box-shadow:2px 2px 0 ${tierColor}" onclick="gearSynthAssignNext('${g.id}')" title="${formatGearDisplayName(g)}\n${formatGearRngSummary(g)}">
@@ -11112,7 +11159,7 @@ function renderGearEnhancePanel(container) {
                    <p style="font-size:11px;color:#64748b;">Success adds slot bonuses (Pockie armory enhance).</p>`}`;
 
     const pickItems = gearInventory.length
-        ? gearInventory.map(g => {
+        ? sortGearByRarityPower(gearInventory).map(g => {
             normalizeGear(g);
             const tierColor = getGearTierColor(g);
             const selected = gearEnhanceTargetId === g.id;
@@ -11245,7 +11292,7 @@ function listHeroAscensionMainCandidates() {
     box.forEach((mon, index) => {
         if (isLegendaryOrAbove(mon.rarity)) entries.push({ mon, location: "box", index });
     });
-    return entries;
+    return sortHeroAscensionEntries(entries);
 }
 
 function listHeroAscensionDuplicates(mainMon) {
@@ -11257,7 +11304,7 @@ function listHeroAscensionDuplicates(mainMon) {
     box.forEach((mon, index) => {
         if (mon !== mainMon && mon.name === mainMon.name) entries.push({ mon, location: "box", index });
     });
-    return entries;
+    return sortHeroAscensionEntries(entries);
 }
 
 function syncHeroAscensionMainMon() {
@@ -11463,12 +11510,11 @@ function renderHeroAscensionMainPickItem(entry) {
     const { mon, location, index } = entry;
     const selected = isHeroAscensionMainAt(location, index);
     const canAscend = canMonHeroAscendMain(mon);
-    const locTag = location === "party" ? "P" : "B";
     let status = "";
     if (mon.ascensionSkillPending?.length) status = "Unlock skill";
     const disabledCls = selected || canAscend ? "" : " is-disabled";
     return `<button type="button" class="hero-ascension-pick-item${selected ? " is-main" : ""}${disabledCls}" onclick="heroAscensionSelectMain('${location}', ${index})" title="${mon.name} · ${mon.rarity}${status ? " · " + status : ""}${selected ? " · Click to remove" : ""}">
-        <span class="hero-asc-loc-tag">${locTag}</span>
+        ${renderHeroAscensionLocTag(location)}
         <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
         <span class="hero-asc-pick-name">${mon.name}</span>
         <span class="hero-ascension-dupes-badge">+${mon.ascensionStars || 0}</span>
@@ -11478,9 +11524,8 @@ function renderHeroAscensionMainPickItem(entry) {
 function renderHeroAscensionDupePickItem(entry) {
     const { mon, location, index } = entry;
     const selected = heroAscensionDupeMons.includes(mon);
-    const locTag = location === "party" ? "P" : "B";
     return `<button type="button" class="hero-ascension-pick-item${selected ? " selected" : ""}" onclick="heroAscensionToggleDupe('${location}', ${index})" title="${mon.name} Lv.${Math.floor(mon.level)} · ${location}">
-        <span class="hero-asc-loc-tag">${locTag}</span>
+        ${renderHeroAscensionLocTag(location)}
         <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
         <span class="hero-asc-pick-name">Lv.${Math.floor(mon.level)}</span>
     </button>`;
@@ -15036,12 +15081,11 @@ function buildInventorySlotList() {
 
     if (inventoryActiveCategory === "all") {
         materials.forEach(m => items.push({ type: "material", data: m }));
-        gearInventory.forEach(g => items.push({ type: "gear", data: g }));
+        sortGearByRarityPower(gearInventory).forEach(g => items.push({ type: "gear", data: g }));
     } else if (inventoryActiveCategory === "materials") {
         materials.forEach(m => items.push({ type: "material", data: m }));
     } else if (GEAR_SLOTS.includes(inventoryActiveCategory)) {
-        gearInventory
-            .filter(g => g.slot === inventoryActiveCategory)
+        sortGearByRarityPower(gearInventory.filter(g => g.slot === inventoryActiveCategory))
             .forEach(g => items.push({ type: "gear", data: g }));
     }
 
