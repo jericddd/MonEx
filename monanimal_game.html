@@ -7401,6 +7401,27 @@ let profileActivitySignature = "";
 let profileActivityHandle = "";
 
 const PARTY_MAX = 3;
+
+function partyHasSpecies(name, excludeIndex = -1) {
+    if (!name) return false;
+    return party.some((mon, index) => index !== excludeIndex && mon?.name === name);
+}
+
+function dedupePartySpecies() {
+    const seen = new Set();
+    let changed = false;
+    for (let i = party.length - 1; i >= 0; i--) {
+        const name = party[i]?.name;
+        if (!name || seen.has(name)) {
+            box.push(party.splice(i, 1)[0]);
+            changed = true;
+            continue;
+        }
+        seen.add(name);
+    }
+    if (changed) sortBox();
+    return changed;
+}
 const BOX_MAX = Infinity;
 
 const SHOP_CATEGORIES = [
@@ -11568,6 +11589,7 @@ function applyLoadedSave(data) {
         } catch (e) { console.error("Skipped invalid mon on load:", e); }
     });
     purgeRemovedMonanimalsFromSave();
+    if (dedupePartySpecies()) saveData();
     migrateAllGear();
     ensureHouseGearInventorySeed();
     sortBox();
@@ -12064,8 +12086,13 @@ async function syncXWildMons(silent) {
         const data = await MonExActivity.syncWild(xHandle, party.length, box.length);
         let added = 0;
         for (const raw of data.party || []) {
-            party.push(importWildMon(raw));
-            added++;
+            const mon = importWildMon(raw);
+            if (party.length >= PARTY_MAX || partyHasSpecies(mon.name)) {
+                box.push(mon);
+            } else {
+                party.push(mon);
+                added++;
+            }
         }
         for (const raw of data.box || []) {
             box.push(importWildMon(raw));
@@ -12347,8 +12374,20 @@ function renderPartySwitchGrid() {
             return;
         }
 
-        const entries = box.map((mon, i) => ({ mon, i }));
+        const excludeIndex = _partySwitchAddMode ? -1 : _partySwitchIndex;
+        const entries = box
+            .map((mon, i) => ({ mon, i }))
+            .filter(({ mon }) => !partyHasSpecies(mon.name, excludeIndex));
         entries.sort((a, b) => getRarityRank(b.mon.rarity) - getRarityRank(a.mon.rarity));
+
+        if (!entries.length) {
+            grid.innerHTML = `
+                <div class="party-switch-empty">
+                    <p style="font-size:16px; margin-bottom:10px;">No eligible Monanimals</p>
+                    <p style="font-size:13px;">Party allows one of each species. Swap out a duplicate or pick a different mon.</p>
+                </div>`;
+            return;
+        }
 
         entries.forEach(({ mon, i }) => {
             const onPick = _partySwitchAddMode
@@ -12381,7 +12420,9 @@ function openPartyAddPicker() {
     const title = document.getElementById("party-switch-title-display");
     const subtitle = document.getElementById("party-switch-subtitle");
     if (title) title.textContent = "ADD TO PARTY";
-    if (subtitle) subtitle.textContent = "Pick a Monanimal from your Box to fill this party slot";
+    if (subtitle) subtitle.textContent = _partySwitchAddMode
+        ? "Pick a Monanimal from your Box to fill this party slot (one per species)"
+        : "Pick a Monanimal from your Box to swap into this party slot (one per species)";
     renderPartySwitchGrid();
     document.getElementById("modal-party-switch")?.classList.add("open");
 }
@@ -12394,7 +12435,7 @@ function openPartySwitchPicker(partyIndex) {
     const title = document.getElementById("party-switch-title-display");
     const subtitle = document.getElementById("party-switch-subtitle");
     if (title) title.textContent = `SWITCH — ${party[partyIndex].name}`;
-    if (subtitle) subtitle.textContent = "Pick a Monanimal from your Box to swap into this party slot";
+    if (subtitle) subtitle.textContent = "Pick a Monanimal from your Box to swap into this party slot (one per species)";
     renderPartySwitchGrid();
     document.getElementById("modal-party-switch")?.classList.add("open");
 }
@@ -12414,6 +12455,11 @@ function openBoxSwitchPicker(boxIndex) {
 
 function addToPartyFromBox(boxIndex) {
     if (party.length >= PARTY_MAX || !box[boxIndex]) return;
+    const mon = box[boxIndex];
+    if (partyHasSpecies(mon.name)) {
+        alert(`You already have ${mon.name} in your party.\nOnly one of each species allowed.`);
+        return;
+    }
     party.push(box.splice(boxIndex, 1)[0]);
     saveData();
     updateUI();
@@ -12425,8 +12471,13 @@ function addToPartyFromBox(boxIndex) {
 
 function swapPartyWithBox(partyIndex, boxIndex) {
     if (!party[partyIndex] || !box[boxIndex]) return;
+    const incoming = box[boxIndex];
+    if (partyHasSpecies(incoming.name, partyIndex)) {
+        alert(`You already have ${incoming.name} in your party.\nOnly one of each species allowed.`);
+        return;
+    }
     const temp = party[partyIndex];
-    party[partyIndex] = box[boxIndex];
+    party[partyIndex] = incoming;
     box[boxIndex] = temp;
     saveData();
     updateUI();
@@ -12712,9 +12763,11 @@ function attemptCatch() {
         const newMon = createMonanimal(name, rarity, 1);
         newMon.ultimate = { ...newMon.skills[0] };
 
-        if (party.length >= PARTY_MAX) {
+        if (party.length >= PARTY_MAX || partyHasSpecies(name)) {
             box.push(newMon);
-            result.innerHTML = `<span style="color:green">Caught ${rarity} ${name}! Sent to Box.</span>`;
+            result.innerHTML = partyHasSpecies(name)
+                ? `<span style="color:green">Caught ${rarity} ${name}! Sent to Box (already in party).</span>`
+                : `<span style="color:green">Caught ${rarity} ${name}! Sent to Box.</span>`;
         } else {
             party.push(newMon);
             result.innerHTML = `<span style="color:green">GOTCHA! Caught ${rarity} ${name}!</span>`;
