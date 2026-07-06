@@ -1597,6 +1597,134 @@ button.green:hover {
     z-index: 1001;
 }
 
+/* Gear tooltip — Pockie Ninja inspired */
+.gear-tooltip-panel {
+    max-width: 300px;
+    min-width: 220px;
+    padding: 10px 12px;
+}
+.gear-tooltip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+.gear-tooltip-name {
+    font-family: "Press Start 2P", monospace;
+    font-size: 8px;
+    line-height: 1.55;
+    flex: 1;
+    word-break: break-word;
+}
+.gear-tooltip-icon {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0f0f1a;
+    border: 2px solid #6b21a8;
+    box-shadow: 0 0 6px rgba(107, 33, 168, 0.45);
+}
+.gear-tooltip-icon .gear-tooltip-icon-img,
+.gear-tooltip-icon .gear-slot-icon {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+.gear-tooltip-meta {
+    font-family: "Lato", sans-serif;
+    font-size: 10px;
+    color: #a5b4fc;
+    margin-top: 5px;
+    line-height: 1.4;
+}
+.gear-tooltip-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #c4a35a 20%, #fde68a 50%, #c4a35a 80%, transparent);
+    margin: 8px 0;
+    opacity: 0.85;
+}
+.gear-tooltip-primary {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    font-family: "Lato", sans-serif;
+    font-size: 11px;
+    color: #e0e7ff;
+    margin-bottom: 2px;
+}
+.gear-tooltip-primary-val {
+    color: #60a5fa;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.gear-tooltip-rolled {
+    font-family: "Lato", sans-serif;
+    font-size: 11px;
+    color: #c7d2fe;
+    margin-bottom: 2px;
+}
+.gear-tooltip-rolled b {
+    color: #60a5fa;
+    font-weight: 700;
+}
+.gear-tooltip-enhance {
+    margin: 6px 0 2px;
+}
+.gear-tooltip-enhance-label {
+    display: block;
+    font-family: "Press Start 2P", monospace;
+    font-size: 7px;
+    color: #fde68a;
+    margin-bottom: 4px;
+    letter-spacing: 0.02em;
+}
+.gear-tooltip-enhance-line {
+    font-family: "Lato", sans-serif;
+    font-size: 10px;
+    color: #fcd34d;
+    margin: 2px 0;
+}
+.gear-tooltip-rng {
+    margin-top: 2px;
+}
+.gear-tooltip-stat {
+    font-family: "Lato", sans-serif;
+    font-size: 11px;
+    color: #c7d2fe;
+    margin: 4px 0;
+    line-height: 1.35;
+}
+.gear-tooltip-stat-label {
+    color: #e0e7ff;
+}
+.gear-tooltip-stat-val {
+    color: #60a5fa;
+    font-weight: 700;
+}
+.gear-tooltip-stat-max {
+    color: #94a3b8;
+    font-size: 10px;
+}
+.gear-tooltip-stat.perfect .gear-tooltip-stat-val,
+.gear-tooltip-stat.perfect .gear-tooltip-stat-max,
+.gear-tooltip-stat.perfect .gear-tooltip-stat-label {
+    color: #facc15 !important;
+}
+.gear-tooltip-wearer {
+    margin-top: 6px;
+    font-family: "Lato", sans-serif;
+    font-size: 10px;
+    color: #a5b4fc;
+    line-height: 1.4;
+}
+.hover-tip-float.gear-tooltip-panel {
+    max-width: 310px;
+}
+
 /* X activity feed (profile + shared) */
 .activity-feed {
     max-height: 360px;
@@ -7895,7 +8023,32 @@ const GEAR_SYNTH_REROLL_LOW_RATE = 0.75;
 const GEAR_SYNTH_UPGRADE_GOLD = [0, 1000, 2500, 6000, 15000];
 const GEAR_SYNTH_REROLL_GOLD = [0, 500, 1200, 3000, 8000, 20000];
 const GEAR_SYNTH_SLOT_LABELS = ["Main Item", "Catalyst", "Catalyst"];
-const GEAR_SYSTEM_VERSION = 2;
+const GEAR_SYSTEM_VERSION = 3;
+const GEAR_STAT_LABELS = { atk: "ATK", hp: "HP", spd: "SPD", crit: "Crit", dodge: "Dodge", block: "Block", hit: "Hit", pierce: "Pierce" };
+const GEAR_STAT_PRIMARY_LABELS = { atk: "Attack Power", hp: "Max HP", dodge: "Dodge", spd: "Speed" };
+const GEAR_SLOT_PRIMARY = { weapon: "atk", armor: "hp", helmet: "dodge", boots: "spd" };
+const GEAR_SLOT_RNG_POOL = {
+    weapon: ["crit", "pierce", "hit"],
+    armor: ["block", "hp", "crit"],
+    helmet: ["hp", "block", "hit"],
+    boots: ["hit", "dodge", "pierce"],
+};
+const GEAR_PRIMARY_RANGES = {
+    atk: [[8, 12], [14, 20], [22, 32], [32, 45], [42, 58]],
+    hp: [[80, 120], [150, 220], [280, 380], [420, 550], [580, 750]],
+    dodge: [[3, 6], [5, 9], [8, 13], [12, 18], [16, 24]],
+    spd: [[4, 8], [7, 12], [11, 17], [15, 23], [20, 30]],
+};
+const GEAR_RNG_RANGES = {
+    crit: [[2, 4], [4, 7], [6, 10], [9, 14], [12, 18]],
+    pierce: [[2, 5], [4, 8], [6, 12], [10, 16], [14, 22]],
+    hit: [[2, 4], [3, 6], [5, 9], [7, 12], [10, 16]],
+    block: [[2, 4], [3, 5], [4, 8], [5, 10], [6, 12]],
+    dodge: [[2, 4], [3, 5], [5, 8], [6, 10], [6, 12]],
+    hp_bonus: [[20, 40], [40, 70], [80, 120], [120, 180], [150, 220]],
+};
+const GEAR_RNG_LINE_COUNT = 2;
+const GEAR_TIER_ROLL_EXPONENT = [0, 1, 1.12, 1.25, 1.42, 1.65];
 const GEAR_ENHANCE_MAX = 21;
 const GEAR_ENHANCE_MILESTONE_LEVELS = [11, 21];
 const GEAR_ENHANCE_MILESTONE_11_MULT = 1.25;
@@ -7915,10 +8068,10 @@ const GEAR_ENHANCE_FAIL_DROP = [
 ];
 const GEAR_ENHANCE_GOLD = [0, 150, 400, 900, 2200, 5500, 12000, 18000, 26000, 36000, 50000, 70000, 95000, 125000, 160000, 200000, 250000, 310000, 380000, 460000, 550000];
 const GEAR_ENHANCE_STAT_PER_LEVEL = {
-    weapon: { atk: 3, crit: 2 },
-    armor: { hp: 28, block: 2 },
-    helmet: { hp: 18, dodge: 2 },
-    boots: { spd: 2, hit: 2 },
+    weapon: { atk: 3 },
+    armor: { hp: 28 },
+    helmet: { dodge: 2 },
+    boots: { spd: 2 },
 };
 const HERO_ASCENSION_STAT_BONUS_PCT = 0.05;
 const RARITY_ORDER = ["Common", "Uncommon", "Rare", "Legendary", "Mythic"];
@@ -9547,9 +9700,10 @@ function renderGearRow(location, index, mon) {
         const filled = g ? " filled" : " empty";
         const tierBorder = g ? ` style="border-color:${getGearTierColor(g)}"` : "";
         const tipName = g ? formatGearDisplayName(g) : "Equip " + GEAR_SLOT_LABELS[slot];
-        const tipDesc = g ? formatGearBonusesForMon(g, mon) : "Empty slot — tap to equip house gear.";
+        const tipDesc = g ? null : "Empty slot — tap to equip house gear.";
         const inner = g ? renderGearIconHtml(g) : renderEmptyGearSlotHtml(slot);
-        return `<button class="gear-slot has-hover-tip${filled}"${tierBorder} onclick="openEquipModal('${location}',${index},'${slot}')">${inner}${renderHoverTip(tipName, tipDesc)}</button>`;
+        const tipHtml = g ? renderGearTooltipHtml(g, mon) : renderHoverTip(tipName, tipDesc);
+        return `<button class="gear-slot has-hover-tip${filled}"${tierBorder} onclick="openEquipModal('${location}',${index},'${slot}')">${inner}${tipHtml}</button>`;
     }).join("")}</div>`;
 }
 
@@ -9940,21 +10094,172 @@ function computeLegacyEnhanceAdds(slot, level) {
     return adds;
 }
 
+function computeLegacySecondaryEnhanceAdds(gear) {
+    const legacyPer = {
+        weapon: { crit: 2 },
+        armor: { block: 2 },
+        helmet: { hp: 18 },
+        boots: { hit: 2 },
+    };
+    const per = legacyPer[gear.slot];
+    if (!per) return {};
+    const level = gear.enhanceLevel || 0;
+    const adds = {};
+    for (let i = 1; i <= level; i++) {
+        Object.keys(per).forEach((k) => { adds[k] = (adds[k] || 0) + per[k]; });
+    }
+    let mult = 1 + ((gear.tier || 1) - 1) * 0.08;
+    if (level >= 11) mult *= GEAR_ENHANCE_MILESTONE_11_MULT;
+    if (level >= 21) mult *= GEAR_ENHANCE_MILESTONE_21_MULT;
+    Object.keys(adds).forEach((k) => { adds[k] = Math.round((adds[k] || 0) * mult); });
+    return adds;
+}
+
 function migrateGearBonuses(gear) {
     if (!gear) return;
     normalizeGear(gear);
-    if (gear.gearVersion === GEAR_SYSTEM_VERSION) return;
     const level = gear.enhanceLevel || 0;
-    if (!gear.baseBonuses) {
-        const legacyAdds = computeLegacyEnhanceAdds(gear.slot, level);
-        gear.baseBonuses = {};
-        const keys = new Set([...Object.keys(gear.bonuses || {}), ...Object.keys(legacyAdds)]);
-        keys.forEach((k) => {
-            gear.baseBonuses[k] = Math.max(0, (gear.bonuses?.[k] || 0) - (legacyAdds[k] || 0));
-        });
+    if ((gear.gearVersion || 0) < 2) {
+        if (!gear.baseBonuses) {
+            const legacyAdds = computeLegacyEnhanceAdds(gear.slot, level);
+            gear.baseBonuses = {};
+            const keys = new Set([...Object.keys(gear.bonuses || {}), ...Object.keys(legacyAdds)]);
+            keys.forEach((k) => {
+                gear.baseBonuses[k] = Math.max(0, (gear.bonuses?.[k] || 0) - (legacyAdds[k] || 0));
+            });
+        }
+        gear.gearVersion = 2;
+    }
+    if ((gear.gearVersion || 0) < GEAR_SYSTEM_VERSION) {
+        migrateGearToRngSystem(gear);
+        gear.gearVersion = GEAR_SYSTEM_VERSION;
     }
     rebuildGearBonuses(gear);
-    gear.gearVersion = GEAR_SYSTEM_VERSION;
+}
+
+function getGearTierRange(table, tier) {
+    const idx = Math.max(1, Math.min(5, tier || 1)) - 1;
+    const pair = table[idx] || table[0];
+    return { min: pair[0], max: pair[1] };
+}
+
+function getGearRngRange(stat, slot, tier) {
+    if (stat === "hp" && (slot === "armor" || slot === "helmet")) {
+        return getGearTierRange(GEAR_RNG_RANGES.hp_bonus, tier);
+    }
+    return getGearTierRange(GEAR_RNG_RANGES[stat] || GEAR_RNG_RANGES.hit, tier);
+}
+
+function rollGearStatInRange(min, max, tier) {
+    if (min >= max) return min;
+    const exponent = GEAR_TIER_ROLL_EXPONENT[tier] || 1;
+    const u = Math.random();
+    const normalized = 1 - Math.pow(1 - u, exponent);
+    const span = max - min;
+    return min + Math.min(span, Math.floor(normalized * (span + 1)));
+}
+
+function pickGearRngStats(slot) {
+    const pool = GEAR_SLOT_RNG_POOL[slot] || GEAR_SLOT_RNG_POOL.weapon;
+    const picks = [];
+    for (let i = 0; i < GEAR_RNG_LINE_COUNT; i++) {
+        picks.push(pool[randInt(0, pool.length - 1)]);
+    }
+    return picks;
+}
+
+function rollGearPrimary(slot, tier) {
+    const stat = GEAR_SLOT_PRIMARY[slot];
+    const range = getGearTierRange(GEAR_PRIMARY_RANGES[stat], tier);
+    const value = rollGearStatInRange(range.min, range.max, tier);
+    return { stat, value, min: range.min, max: range.max };
+}
+
+function rollGearRngLine(stat, slot, tier) {
+    const range = getGearRngRange(stat, slot, tier);
+    const value = rollGearStatInRange(range.min, range.max, tier);
+    return { stat, value, min: range.min, max: range.max };
+}
+
+function syncGearBaseBonusesFromRolls(gear) {
+    const base = {};
+    if (gear.primaryRoll?.stat) base[gear.primaryRoll.stat] = gear.primaryRoll.value;
+    (gear.rngLines || []).forEach((line) => {
+        if (!line?.stat) return;
+        base[line.stat] = (base[line.stat] || 0) + (line.value || 0);
+    });
+    gear.baseBonuses = base;
+}
+
+function buildSyntheticRngLine(stat, value, slot, tier) {
+    const range = getGearRngRange(stat, slot, tier);
+    const val = Math.max(0, value || 0);
+    return {
+        stat,
+        value: val,
+        min: Math.min(range.min, val),
+        max: Math.max(range.max, val),
+    };
+}
+
+function migrateGearToRngSystem(gear) {
+    if (!gear?.slot) return;
+    if (gear.primaryRoll && Array.isArray(gear.rngLines)) {
+        syncGearBaseBonusesFromRolls(gear);
+        return;
+    }
+    const slot = gear.slot;
+    const tier = gear.tier || 1;
+    const primaryKey = GEAR_SLOT_PRIMARY[slot];
+    const base = gear.baseBonuses && Object.keys(gear.baseBonuses).length
+        ? { ...gear.baseBonuses }
+        : (() => {
+            const raw = { ...(gear.bonuses || {}) };
+            const enhanceAdds = computeLegacyEnhanceAdds(gear.slot, gear.enhanceLevel || 0);
+            Object.keys(enhanceAdds).forEach((k) => {
+                raw[k] = Math.max(0, (raw[k] || 0) - (enhanceAdds[k] || 0));
+            });
+            return raw;
+        })();
+
+    const primaryValue = Math.max(0, base[primaryKey] || 0);
+    delete base[primaryKey];
+    const primaryRange = getGearTierRange(GEAR_PRIMARY_RANGES[primaryKey], tier);
+    gear.primaryRoll = {
+        stat: primaryKey,
+        value: primaryValue,
+        min: Math.min(primaryRange.min, primaryValue),
+        max: Math.max(primaryRange.max, primaryValue),
+    };
+
+    const rngLines = [];
+    Object.keys(base).forEach((stat) => {
+        const val = base[stat];
+        if (val > 0) rngLines.push(buildSyntheticRngLine(stat, val, slot, tier));
+    });
+    const pool = GEAR_SLOT_RNG_POOL[slot] || [];
+    while (rngLines.length < GEAR_RNG_LINE_COUNT) {
+        const stat = pool[randInt(0, pool.length - 1)];
+        const range = getGearRngRange(stat, slot, tier);
+        rngLines.push({ stat, value: range.min, min: range.min, max: range.max });
+    }
+    gear.rngLines = rngLines.slice(0, GEAR_RNG_LINE_COUNT);
+
+    const legacySecondary = computeLegacySecondaryEnhanceAdds(gear);
+    Object.entries(legacySecondary).forEach(([stat, bonus]) => {
+        if (!bonus) return;
+        let line = gear.rngLines.find((l) => l.stat === stat);
+        if (!line) {
+            line = buildSyntheticRngLine(stat, 0, slot, tier);
+            if (gear.rngLines.length >= GEAR_RNG_LINE_COUNT) gear.rngLines[GEAR_RNG_LINE_COUNT - 1] = line;
+            else gear.rngLines.push(line);
+            line = gear.rngLines.find((l) => l.stat === stat) || gear.rngLines[gear.rngLines.length - 1];
+        }
+        line.value += bonus;
+        line.max = Math.max(line.max, line.value);
+    });
+
+    syncGearBaseBonusesFromRolls(gear);
 }
 
 function rebuildGearBonuses(gear) {
@@ -10091,6 +10396,93 @@ function formatGearBonusesForMon(gear, mon) {
         ascensionStars: mon?.ascensionStars,
     });
 }
+
+function escapeGearHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function getGearRngStatLabel(stat, slot) {
+    if (stat === "hp" && (slot === "armor" || slot === "helmet")) return "Max HP";
+    return GEAR_STAT_LABELS[stat] || stat;
+}
+
+function isGearRollPerfect(line) {
+    return !!line && line.value === line.max;
+}
+
+function formatGearRngLineCompact(line, slot) {
+    if (!line) return "";
+    const label = getGearRngStatLabel(line.stat, slot);
+    const perfect = isGearRollPerfect(line) ? " ★" : "";
+    return `${label} +${line.value} | Max ${line.max}${perfect}`;
+}
+
+function formatGearRngSummary(gear) {
+    migrateGearBonuses(gear);
+    if (!gear?.rngLines?.length) return formatGearBonuses(gear?.bonuses || {});
+    return gear.rngLines.map((line) => formatGearRngLineCompact(line, gear.slot)).join(" · ");
+}
+
+function renderGearRngLineHtml(line, slot) {
+    if (!line) return "";
+    const label = getGearRngStatLabel(line.stat, slot);
+    const perfectCls = isGearRollPerfect(line) ? " perfect" : "";
+    return `<div class="gear-tooltip-stat${perfectCls}"><span class="gear-tooltip-stat-label">${escapeGearHtml(label)}</span> <span class="gear-tooltip-stat-val">+${line.value}</span> <span class="gear-tooltip-stat-max">| Max ${line.max}</span></div>`;
+}
+
+function renderGearTooltipHtml(gear, mon) {
+    if (!gear) return renderHoverTip("", "");
+    migrateGearBonuses(gear);
+    const tierColor = getGearTierColor(gear);
+    const tierName = gear.tierName || GEAR_TIERS[gear.tier]?.name || "Common";
+    const slotLabel = GEAR_SLOT_LABELS[gear.slot] || gear.slot;
+    const housePrefix = gear.lineName ? `${gear.lineName} · ` : "";
+    const enhanceLvl = gear.enhanceLevel || 0;
+    const iconHtml = renderGearIconHtml(gear, "gear-tooltip-icon-img");
+
+    let primaryHtml = "";
+    if (gear.primaryRoll) {
+        const pr = gear.primaryRoll;
+        const primaryLabel = GEAR_STAT_PRIMARY_LABELS[pr.stat] || GEAR_STAT_LABELS[pr.stat];
+        const statLabel = GEAR_STAT_LABELS[pr.stat] || pr.stat;
+        primaryHtml = `<div class="gear-tooltip-primary"><span>${escapeGearHtml(primaryLabel)}</span><span class="gear-tooltip-primary-val">${pr.min} – ${pr.max}</span></div>
+            <div class="gear-tooltip-rolled"><span>${escapeGearHtml(statLabel)}</span> <b>+${pr.value}</b></div>`;
+    }
+
+    let enhanceHtml = "";
+    if (enhanceLvl > 0) {
+        const adds = computeEnhanceAdds(gear);
+        const enhanceLines = Object.keys(adds)
+            .filter((k) => adds[k] > 0)
+            .map((k) => `<div class="gear-tooltip-enhance-line">${escapeGearHtml(GEAR_STAT_LABELS[k] || k)} +${adds[k]}</div>`)
+            .join("");
+        if (enhanceLines) {
+            enhanceHtml = `<div class="gear-tooltip-enhance"><span class="gear-tooltip-enhance-label">★ Inscription +${enhanceLvl}</span>${enhanceLines}</div>`;
+        }
+    }
+
+    const rngHtml = (gear.rngLines || []).map((line) => renderGearRngLineHtml(line, gear.slot)).join("");
+    const wearerHtml = mon
+        ? `<div class="gear-tooltip-wearer">On ${escapeGearHtml(mon.name)}: ${escapeGearHtml(formatGearBonusesForMon(gear, mon))}</div>`
+        : "";
+
+    return `<span class="hover-tip-panel gear-tooltip-panel">
+        <div class="gear-tooltip-header">
+            <span class="gear-tooltip-name" style="color:${tierColor}">${escapeGearHtml(formatGearDisplayName(gear))}</span>
+            <span class="gear-tooltip-icon">${iconHtml}</span>
+        </div>
+        <div class="gear-tooltip-meta">${escapeGearHtml(housePrefix)}Bound · ${escapeGearHtml(slotLabel)} · ${escapeGearHtml(tierName)}</div>
+        <div class="gear-tooltip-divider"></div>
+        ${primaryHtml}
+        ${enhanceHtml}
+        ${rngHtml ? `<div class="gear-tooltip-divider"></div><div class="gear-tooltip-rng">${rngHtml}</div>` : ""}
+        ${wearerHtml}
+    </span>`;
+}
 function normalizeGear(gear) {
     if (!gear) return gear;
     if (gear.enhanceLevel == null) gear.enhanceLevel = 0;
@@ -10132,23 +10524,23 @@ function stripGearEnhanceLevels(gear, targetLevel) {
 }
 function generateGear(tier, slot, houseId = null) {
     const t = GEAR_TIERS[tier];
-    const scale = 4 + tier * 5;
-    const bonuses = {};
-    if (slot === "weapon") { bonuses.atk = scale + randInt(0, tier * 3); bonuses.crit = 4 + tier * 4; }
-    else if (slot === "armor") { bonuses.hp = scale * 10 + tier * 15; bonuses.block = 4 + tier * 3; }
-    else if (slot === "helmet") { bonuses.hp = scale * 6 + tier * 10; bonuses.dodge = 4 + tier * 3; }
-    else if (slot === "boots") { bonuses.spd = scale + tier * 4; bonuses.hit = 4 + tier * 3; }
+    const primaryRoll = rollGearPrimary(slot, tier);
+    const rngLines = pickGearRngStats(slot).map((stat) => rollGearRngLine(stat, slot, tier));
     const gear = {
         id: nextGearId(),
         slot,
         tier,
         tierName: t.name,
         name: GEAR_SLOT_LABELS[slot],
-        baseBonuses: { ...bonuses },
-        bonuses: { ...bonuses },
+        primaryRoll,
+        rngLines,
+        baseBonuses: {},
+        bonuses: {},
         enhanceLevel: 0,
         gearVersion: GEAR_SYSTEM_VERSION,
     };
+    syncGearBaseBonusesFromRolls(gear);
+    gear.bonuses = { ...gear.baseBonuses };
     if (houseId && HOUSE_GEAR_LINES[houseId]) {
         gear.house = houseId;
         gear.lineName = HOUSE_GEAR_LINES[houseId].label;
@@ -10207,7 +10599,7 @@ function unequipGear(location, monIndex, slot) {
     if (location === "box") renderBox();
 }
 function renderEquipOptionHtml(gear, mon, action, actionClass, options = {}) {
-    const bonuses = mon ? formatGearBonusesForMon(gear, mon) : formatGearBonuses(gear.bonuses);
+    const bonuses = mon ? formatGearBonusesForMon(gear, mon) : formatGearRngSummary(gear);
     const dataGid = options.dataGid ? ` data-gid="${options.dataGid}"` : "";
     const onclick = options.onclick ? ` onclick="${options.onclick}"` : "";
     return `<button type="button" class="equip-option"${dataGid}${onclick}>
@@ -10421,7 +10813,7 @@ function executeGearSynth() {
     renderInventory();
 
     if (success) {
-        alert("Synthesis success!\nObtained: " + result.name + "\n" + formatGearBonuses(result.bonuses));
+        alert("Synthesis success!\nObtained: " + result.name + "\n" + formatGearRngSummary(result));
     } else {
         alert("Synthesis failed.\nAll materials were consumed.");
     }
@@ -10459,7 +10851,7 @@ function renderGearSynthPanel(container) {
         ? gearInventory.map(g => {
             const tierColor = getGearTierColor(g);
             const used = usedIds.includes(g.id);
-            return `<button type="button" class="gear-synth-pick-item${used ? " used" : ""}" style="border-color:${tierColor};box-shadow:2px 2px 0 ${tierColor}" onclick="gearSynthAssignNext('${g.id}')" title="${formatGearDisplayName(g)}\n${formatGearBonuses(g.bonuses)}">
+            return `<button type="button" class="gear-synth-pick-item${used ? " used" : ""}" style="border-color:${tierColor};box-shadow:2px 2px 0 ${tierColor}" onclick="gearSynthAssignNext('${g.id}')" title="${formatGearDisplayName(g)}\n${formatGearRngSummary(g)}">
                 ${renderGearIconHtml(g, "gear-slot-icon")}
                 ${g.enhanceLevel ? `<span class="gear-enhance-badge">+${g.enhanceLevel}</span>` : ""}
             </button>`;
@@ -10468,7 +10860,7 @@ function renderGearSynthPanel(container) {
 
     el.innerHTML = `
         <div class="gear-synth-panel">
-            <p class="gear-synth-note">Pockie-style synthesis: <b>Main Item + Catalyst + Catalyst</b>. Upgrade with 3× same tier, or reroll stats with main + lower-tier catalysts.</p>
+            <p class="gear-synth-note">Pockie-style synthesis: <b>Main Item + Catalyst + Catalyst</b>. Upgrade with 3× same tier, or reroll RNG bonus stats with main + lower-tier catalysts.</p>
             <div class="gear-synth-recipe-bar${recipeCls}">${describeGearSynthRecipe(recipe)}</div>
             <div class="gear-synth-workbench">
                 ${renderGearSynthSlotHtml(gearSynthSlots[0], 0)}
@@ -10515,7 +10907,7 @@ function renderGearEnhancePanel(container) {
     const infoHtml = !gear
         ? `<h4>Select gear to enhance</h4><p>Pick an item from your inventory. Pockie-style enhancement: +1–+10 safe growth, <b>milestone bonuses at +11 and +21</b> (max +${GEAR_ENHANCE_MAX}). Stats scale with wearer level (+${Math.round(STAT_LEVEL_GROWTH_PCT * 1000) / 10}%/level).</p>`
         : `<h4>${formatGearDisplayName(gear)}</h4>
-           <p><b>Current stats:</b> ${formatGearBonuses(gear.bonuses)}</p>
+           <p><b>Current stats:</b> ${formatGearRngSummary(gear)}</p>
            <p><b>Enhance level:</b> +${level} / +${GEAR_ENHANCE_MAX}</p>
            ${atMax
                 ? `<p style="color:#ca8a04;font-weight:700;">Max enhancement reached.</p>`
@@ -10529,7 +10921,7 @@ function renderGearEnhancePanel(container) {
             const tierColor = getGearTierColor(g);
             const selected = gearEnhanceTargetId === g.id;
             const selectedStyle = selected ? "opacity:1;border-color:#f59e0b;box-shadow:2px 2px 0 #b45309;" : `border-color:${tierColor};box-shadow:2px 2px 0 ${tierColor};`;
-            return `<button type="button" class="gear-synth-pick-item${selected ? " used" : ""}" onclick="gearEnhanceSelect('${g.id}')" title="${formatGearDisplayName(g)}\n${formatGearBonuses(g.bonuses)}" style="${selectedStyle}">
+            return `<button type="button" class="gear-synth-pick-item${selected ? " used" : ""}" onclick="gearEnhanceSelect('${g.id}')" title="${formatGearDisplayName(g)}\n${formatGearRngSummary(g)}" style="${selectedStyle}">
                 ${renderGearIconHtml(g, "gear-slot-icon")}
                 ${g.enhanceLevel ? `<span class="gear-enhance-badge">+${g.enhanceLevel}</span>` : ""}
             </button>`;
@@ -11020,7 +11412,7 @@ function executeGearEnhance() {
     renderInventory();
 
     if (success) {
-        alert("Enhancement success!\n" + formatGearDisplayName(gear) + "\n" + formatGearBonuses(gear.bonuses));
+        alert("Enhancement success!\n" + formatGearDisplayName(gear) + "\n" + formatGearRngSummary(gear));
     } else if (failDrop != null && gear.enhanceLevel <= failDrop) {
         alert("Enhancement failed.\nEnhance level dropped to +" + gear.enhanceLevel + ".");
     } else {
@@ -14379,7 +14771,7 @@ function renderInventoryGearSlotHtml(g) {
     return `
         ${renderGearIconHtml(g, "gear-inv-icon")}
         ${g.enhanceLevel ? `<span class="inv-slot-enhance">+${g.enhanceLevel}</span>` : ""}
-        ${renderHoverTip(formatGearDisplayName(g), formatGearBonuses(g.bonuses) + "\nEquip via mon card gear slots.")}`;
+        ${renderGearTooltipHtml(g, null)}`;
 }
 
 function renderInventoryEmptySlotHtml() {

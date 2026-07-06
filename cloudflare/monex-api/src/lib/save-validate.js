@@ -124,6 +124,18 @@ function sanitizeGearBonuses(raw) {
   return bonuses;
 }
 
+function sanitizeGearRollLine(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const stat = GEAR_BONUS_KEYS.has(raw.stat) ? raw.stat : null;
+  if (!stat) return null;
+  return {
+    stat,
+    value: clampInt(raw.value, 0, LIMITS.gearBonusMax),
+    min: clampInt(raw.min, 0, LIMITS.gearBonusMax),
+    max: clampInt(raw.max, 0, LIMITS.gearBonusMax),
+  };
+}
+
 export function sanitizeGear(raw) {
   if (!raw || typeof raw !== "object") return null;
   const slot = GEAR_SLOTS.includes(raw.slot) ? raw.slot : null;
@@ -156,6 +168,11 @@ export function sanitizeGear(raw) {
   if (house) gear.house = house;
   if (lineName) gear.lineName = lineName;
   if (raw.iconVersion != null) gear.iconVersion = clampInt(raw.iconVersion, 1, 99);
+  const primaryRoll = sanitizeGearRollLine(raw.primaryRoll);
+  if (primaryRoll) gear.primaryRoll = primaryRoll;
+  if (Array.isArray(raw.rngLines)) {
+    gear.rngLines = raw.rngLines.map(sanitizeGearRollLine).filter(Boolean).slice(0, 2);
+  }
   return gear;
 }
 
