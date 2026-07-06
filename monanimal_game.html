@@ -1699,6 +1699,23 @@ button.green:hover {
     color: #a5b4fc;
     line-height: 1.4;
 }
+.gear-tooltip-house-restrict {
+    margin-top: 5px;
+    font-family: "Lato", sans-serif;
+    font-size: 10px;
+    color: #fbbf24;
+    line-height: 1.4;
+    font-weight: 700;
+}
+.gear-house-restrict {
+    display: block;
+    font-family: "Lato", sans-serif;
+    font-size: 10px;
+    color: #b45309;
+    margin-top: 3px;
+    line-height: 1.35;
+    font-weight: 700;
+}
 .hover-tip-float.gear-tooltip-panel {
     max-width: 310px;
 }
@@ -9837,6 +9854,13 @@ function canMonEquipGear(mon, gear) {
     return monHouse != null && monHouse === gear.house;
 }
 
+function getGearHouseRestrictionText(gear) {
+    if (!gear?.house) return "";
+    const meta = getHouseMeta(gear.house);
+    if (!meta) return "";
+    return `${meta.label} Monanimals only`;
+}
+
 function generateHouseGear(houseId, tier, slot) {
     const line = HOUSE_GEAR_LINES[houseId];
     if (!line) return generateGear(tier, slot);
@@ -10659,6 +10683,10 @@ function renderGearTooltipHtml(gear, mon) {
     }
 
     const rngHtml = (gear.rngLines || []).map((line) => renderGearRngLineHtml(line, gear.slot)).join("");
+    const houseRestrict = getGearHouseRestrictionText(gear);
+    const houseRestrictHtml = houseRestrict
+        ? `<div class="gear-tooltip-house-restrict">${escapeGearHtml(houseRestrict)}</div>`
+        : "";
     const wearerHtml = mon
         ? `<div class="gear-tooltip-wearer">On ${escapeGearHtml(mon.name)}: ${escapeGearHtml(formatGearBonusesForMon(gear, mon))}</div>`
         : "";
@@ -10669,6 +10697,7 @@ function renderGearTooltipHtml(gear, mon) {
             <span class="gear-tooltip-icon">${iconHtml}</span>
         </div>
         <div class="gear-tooltip-meta">${escapeGearHtml(housePrefix)}Bound · ${escapeGearHtml(slotLabel)} · ${escapeGearHtml(tierName)}</div>
+        ${houseRestrictHtml}
         <div class="gear-tooltip-divider"></div>
         ${primaryHtml}
         ${enhanceHtml}
@@ -10793,12 +10822,14 @@ function unequipGear(location, monIndex, slot) {
 }
 function renderEquipOptionHtml(gear, mon, action, actionClass, options = {}) {
     const bonuses = mon ? formatGearBonusesForMon(gear, mon) : formatGearRngSummary(gear);
+    const houseRestrict = getGearHouseRestrictionText(gear);
+    const houseRestrictHtml = houseRestrict ? `<small class="gear-house-restrict">${escapeGearHtml(houseRestrict)}</small>` : "";
     const dataGid = options.dataGid ? ` data-gid="${options.dataGid}"` : "";
     const onclick = options.onclick ? ` onclick="${options.onclick}"` : "";
     return `<button type="button" class="equip-option"${dataGid}${onclick}>
         <span class="equip-option-main">
             <span class="equip-gear-icon-wrap" style="border-color:${getGearTierColor(gear)}">${renderGearIconHtml(gear, "gear-inv-icon")}</span>
-            <span class="equip-option-text"><b>${formatGearDisplayName(gear)}</b><small>${bonuses}</small></span>
+            <span class="equip-option-text"><b>${formatGearDisplayName(gear)}</b><small>${bonuses}</small>${houseRestrictHtml}</span>
         </span>
         <span class="equip-action ${actionClass}">${action}</span>
     </button>`;
