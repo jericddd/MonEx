@@ -1342,6 +1342,40 @@ button.green:hover {
     font-size: 10px;
     color: #ffe8c8;
 }
+.shop-slot-icon-img {
+    width: 52%;
+    height: 52%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+.gear-level-req {
+    display: block;
+    font-size: 9px;
+    color: #86efac;
+    margin-top: 2px;
+}
+.gear-level-req.unmet {
+    color: #f87171;
+}
+.gear-tooltip-level-req {
+    font-size: 10px;
+    color: #86efac;
+    margin-top: 2px;
+}
+.gear-tooltip-level-req.unmet {
+    color: #f87171;
+}
+.inv-slot-level-req {
+    position: absolute;
+    top: 3px;
+    left: 4px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    color: #fde68a;
+    text-shadow: 1px 1px 0 #000;
+    pointer-events: none;
+}
 .shop-slot-qty {
     position: absolute;
     bottom: 5px;
@@ -1999,6 +2033,7 @@ button.green:hover {
 }
 .equip-action-unequip { color: #fca5a5; }
 .equip-action-equip { color: #86efac; }
+.equip-action-locked { color: #f87171; opacity: 0.75; }
 
 /* ===== Pockie-style gear synthesis ===== */
 .gear-synth-header-actions {
@@ -7694,9 +7729,13 @@ let inventoryActiveCategory = "all";
 let profileActiveTab = "account";
 
 const SHOP_ITEMS = [
-    { id: "monball5",   category: "food",    name: "Monball Pack",    desc: "5 Monballs for catching.",     cost: { gold: 2000 },              grant: { monballs: 5 } },
-    { id: "essence25",  category: "potions", name: "KB's Onion Pack", desc: "25 KB's Onion for leveling.", cost: { gold: 900 },               grant: { essence: 25 } },
-    { id: "shards3",    category: "food",    name: "Shard Pack",      desc: "3 Mon Shards.",                cost: { gold: 1800, essence: 15 }, grant: { monShards: 3 } },
+    { id: "shop_weapon_t1", category: "weapon",  name: "Training Blade",   iconKey: null, gearGrant: { tier: 1, slot: "weapon", gearLevelTier: 1 }, desc: "Common house weapon (Lv 10 req). Random house.", cost: { gold: 3500 } },
+    { id: "shop_weapon_t2", category: "weapon",  name: "Field Blade",      iconKey: null, gearGrant: { tier: 2, slot: "weapon", gearLevelTier: 2 }, desc: "Uncommon house weapon (Lv 20 req). Random house.", cost: { gold: 8500, essence: 20 } },
+    { id: "shop_armor_t1",  category: "armor",   name: "Training Vest",    iconKey: null, gearGrant: { tier: 1, slot: "armor", gearLevelTier: 1 },  desc: "Common house armor (Lv 10 req). Random house.",  cost: { gold: 3200 } },
+    { id: "shop_armor_t2",  category: "armor",   name: "Field Vest",       iconKey: null, gearGrant: { tier: 2, slot: "armor", gearLevelTier: 2 },  desc: "Uncommon house armor (Lv 20 req). Random house.", cost: { gold: 7800, essence: 18 } },
+    { id: "monball5",       category: "food",    name: "Monball Pack",     iconKey: "monball",  desc: "5 Monballs for catching.",     cost: { gold: 2000 },              grant: { monballs: 5 } },
+    { id: "essence25",      category: "potions", name: "KB's Onion Pack",  iconKey: "essence",  desc: "25 KB's Onion for leveling.", cost: { gold: 900 },               grant: { essence: 25 } },
+    { id: "shards3",        category: "food",    name: "Shard Pack",       iconKey: "shards",   desc: "3 Mon Shards.",                cost: { gold: 1800, essence: 15 }, grant: { monShards: 3 } },
 ];
 
 const QUEST_MILESTONES = [20, 40, 60, 80, 100];
@@ -8145,7 +8184,9 @@ const GEAR_SYNTH_REROLL_LOW_RATE = 0.75;
 const GEAR_SYNTH_UPGRADE_GOLD = [0, 1000, 2500, 6000, 15000];
 const GEAR_SYNTH_REROLL_GOLD = [0, 500, 1200, 3000, 8000, 20000];
 const GEAR_SYNTH_SLOT_LABELS = ["Main Item", "Catalyst", "Catalyst"];
-const GEAR_SYSTEM_VERSION = 3;
+const GEAR_SYSTEM_VERSION = 4;
+const GEAR_LEVEL_TIERS = [10, 20, 30, 40, 50];
+const GEAR_LEVEL_STAT_MULT = [1.0, 1.15, 1.32, 1.52, 1.75];
 const GEAR_STAT_LABELS = { atk: "ATK", hp: "HP", spd: "SPD", crit: "Crit", dodge: "Dodge", block: "Block", hit: "Hit", pierce: "Pierce" };
 const GEAR_STAT_PRIMARY_LABELS = { atk: "ATK", hp: "HP", dodge: "Dodge", spd: "Speed" };
 const GEAR_SLOT_PRIMARY = { weapon: "atk", armor: "hp", helmet: "dodge", boots: "spd" };
@@ -9847,8 +9888,46 @@ function renderEmptyGearSlotHtml(slot) {
     return `<span class="gear-slot-empty" aria-hidden="true"><span class="gear-slot-empty-icon">${GEAR_SLOT_ICONS[slot]}</span></span>`;
 }
 
+function getGearLevelTier(gear) {
+    if (!gear) return 1;
+    const tier = Math.max(1, Math.min(5, gear.gearLevelTier || gear.tier || 1));
+    return tier;
+}
+
+function getGearRequiredLevel(gear) {
+    if (!gear) return GEAR_LEVEL_TIERS[0];
+    if (gear.requiredLevel != null) return gear.requiredLevel;
+    return GEAR_LEVEL_TIERS[getGearLevelTier(gear) - 1] || GEAR_LEVEL_TIERS[0];
+}
+
+function ensureGearLevelFields(gear) {
+    if (!gear) return;
+    if (gear.gearLevelTier == null) gear.gearLevelTier = Math.max(1, Math.min(5, gear.tier || 1));
+    if (gear.requiredLevel == null) gear.requiredLevel = GEAR_LEVEL_TIERS[getGearLevelTier(gear) - 1] || GEAR_LEVEL_TIERS[0];
+}
+
+function getGearLevelStatMult(gearLevelTier) {
+    const idx = Math.max(1, Math.min(5, gearLevelTier || 1)) - 1;
+    return GEAR_LEVEL_STAT_MULT[idx] || 1;
+}
+
+function applyGearLevelStatScale(value, gearLevelTier) {
+    const scaled = Math.round((value || 0) * getGearLevelStatMult(gearLevelTier));
+    return Math.max(1, scaled);
+}
+
+function getGearLevelRequirementText(gear, mon) {
+    const req = getGearRequiredLevel(gear);
+    if (!req) return "";
+    const monLvl = Math.floor(mon?.level || 0);
+    const met = !mon || monLvl >= req;
+    return met ? `Requires Lv ${req}` : `Requires Lv ${req} (you: Lv ${monLvl})`;
+}
+
 function canMonEquipGear(mon, gear) {
     if (!gear) return false;
+    ensureGearLevelFields(gear);
+    if (Math.floor(mon?.level || 0) < getGearRequiredLevel(gear)) return false;
     if (!gear.house) return true;
     const monHouse = getSpeciesHouseId(mon?.name);
     return monHouse != null && monHouse === gear.house;
@@ -9861,10 +9940,19 @@ function getGearHouseRestrictionText(gear) {
     return `${meta.label} Monanimals only`;
 }
 
-function generateHouseGear(houseId, tier, slot) {
+function getGearHoverTitle(gear) {
+    const parts = [formatGearDisplayName(gear), formatGearRngSummary(gear)];
+    const req = getGearRequiredLevel(gear);
+    if (req) parts.push(`Requires Lv ${req}`);
+    const restrict = getGearHouseRestrictionText(gear);
+    if (restrict) parts.push(restrict);
+    return parts.join("\n");
+}
+
+function generateHouseGear(houseId, tier, slot, gearLevelTier = null) {
     const line = HOUSE_GEAR_LINES[houseId];
-    if (!line) return generateGear(tier, slot);
-    const gear = generateGear(tier, slot);
+    if (!line) return generateGear(tier, slot, null, gearLevelTier);
+    const gear = generateGear(tier, slot, houseId, gearLevelTier);
     gear.house = houseId;
     gear.lineName = line.label;
     gear.iconVersion = GEAR_ICON_SYSTEM_VERSION;
@@ -10330,10 +10418,17 @@ function migrateGearBonuses(gear) {
     }
     if ((gear.gearVersion || 0) < GEAR_SYSTEM_VERSION) {
         migrateGearToRngSystem(gear);
+        if ((gear.gearVersion || 0) < 4) migrateGearLevelFields(gear);
         gear.gearVersion = GEAR_SYSTEM_VERSION;
     }
+    ensureGearLevelFields(gear);
     ensureGearRngLineCount(gear);
     rebuildGearBonuses(gear);
+}
+
+function migrateGearLevelFields(gear) {
+    if (!gear) return;
+    ensureGearLevelFields(gear);
 }
 
 function getGearTierRange(table, tier) {
@@ -10372,17 +10467,25 @@ function pickGearRngStats(slot, tier) {
     return picks;
 }
 
-function rollGearPrimary(slot, tier) {
+function rollGearPrimary(slot, tier, gearLevelTier) {
+    const lvlTier = gearLevelTier || tier;
     const stat = GEAR_SLOT_PRIMARY[slot];
     const range = getGearTierRange(GEAR_PRIMARY_RANGES[stat], tier);
-    const value = rollGearStatInRange(range.min, range.max, tier);
-    return { stat, value, min: range.min, max: range.max };
+    let value = rollGearStatInRange(range.min, range.max, tier);
+    value = applyGearLevelStatScale(value, lvlTier);
+    const scaledMin = applyGearLevelStatScale(range.min, lvlTier);
+    const scaledMax = applyGearLevelStatScale(range.max, lvlTier);
+    return { stat, value, min: scaledMin, max: scaledMax };
 }
 
-function rollGearRngLine(stat, slot, tier) {
+function rollGearRngLine(stat, slot, tier, gearLevelTier) {
+    const lvlTier = gearLevelTier || tier;
     const range = getGearRngRange(stat, slot, tier);
-    const value = rollGearStatInRange(range.min, range.max, tier);
-    return { stat, value, min: range.min, max: range.max };
+    let value = rollGearStatInRange(range.min, range.max, tier);
+    value = applyGearLevelStatScale(value, lvlTier);
+    const scaledMin = applyGearLevelStatScale(range.min, lvlTier);
+    const scaledMax = applyGearLevelStatScale(range.max, lvlTier);
+    return { stat, value, min: scaledMin, max: scaledMax };
 }
 
 function syncGearBaseBonusesFromRolls(gear) {
@@ -10395,14 +10498,17 @@ function syncGearBaseBonusesFromRolls(gear) {
     gear.baseBonuses = base;
 }
 
-function buildSyntheticRngLine(stat, value, slot, tier) {
+function buildSyntheticRngLine(stat, value, slot, tier, gearLevelTier) {
+    const lvlTier = gearLevelTier || tier;
     const range = getGearRngRange(stat, slot, tier);
     const val = Math.max(0, value || 0);
+    const scaledMin = applyGearLevelStatScale(range.min, lvlTier);
+    const scaledMax = applyGearLevelStatScale(range.max, lvlTier);
     return {
         stat,
         value: val,
-        min: Math.min(range.min, val),
-        max: Math.max(range.max, val),
+        min: Math.min(scaledMin, val),
+        max: Math.max(scaledMax, val),
     };
 }
 
@@ -10414,6 +10520,7 @@ function migrateGearToRngSystem(gear) {
     }
     const slot = gear.slot;
     const tier = gear.tier || 1;
+    const lvlTier = getGearLevelTier(gear);
     const primaryKey = GEAR_SLOT_PRIMARY[slot];
     const base = gear.baseBonuses && Object.keys(gear.baseBonuses).length
         ? { ...gear.baseBonuses }
@@ -10429,24 +10536,27 @@ function migrateGearToRngSystem(gear) {
     const primaryValue = Math.max(0, base[primaryKey] || 0);
     delete base[primaryKey];
     const primaryRange = getGearTierRange(GEAR_PRIMARY_RANGES[primaryKey], tier);
+    const scaledMin = applyGearLevelStatScale(primaryRange.min, lvlTier);
+    const scaledMax = applyGearLevelStatScale(primaryRange.max, lvlTier);
     gear.primaryRoll = {
         stat: primaryKey,
         value: primaryValue,
-        min: Math.min(primaryRange.min, primaryValue),
-        max: Math.max(primaryRange.max, primaryValue),
+        min: Math.min(scaledMin, primaryValue),
+        max: Math.max(scaledMax, primaryValue),
     };
 
     const rngLines = [];
     Object.keys(base).forEach((stat) => {
         const val = base[stat];
-        if (val > 0) rngLines.push(buildSyntheticRngLine(stat, val, slot, tier));
+        if (val > 0) rngLines.push(buildSyntheticRngLine(stat, val, slot, tier, lvlTier));
     });
     const pool = GEAR_SLOT_RNG_POOL[slot] || [];
     const rngLineCount = getGearRngLineCount(tier);
     while (rngLines.length < rngLineCount) {
         const stat = pool[randInt(0, pool.length - 1)];
         const range = getGearRngRange(stat, slot, tier);
-        rngLines.push({ stat, value: range.min, min: range.min, max: range.max });
+        const minVal = applyGearLevelStatScale(range.min, lvlTier);
+        rngLines.push({ stat, value: minVal, min: minVal, max: applyGearLevelStatScale(range.max, lvlTier) });
     }
     gear.rngLines = rngLines.slice(0, rngLineCount);
 
@@ -10455,7 +10565,7 @@ function migrateGearToRngSystem(gear) {
         if (!bonus) return;
         let line = gear.rngLines.find((l) => l.stat === stat);
         if (!line) {
-            line = buildSyntheticRngLine(stat, 0, slot, tier);
+            line = buildSyntheticRngLine(stat, 0, slot, tier, lvlTier);
             if (gear.rngLines.length >= rngLineCount) gear.rngLines[rngLineCount - 1] = line;
             else gear.rngLines.push(line);
             line = gear.rngLines.find((l) => l.stat === stat) || gear.rngLines[gear.rngLines.length - 1];
@@ -10475,7 +10585,7 @@ function ensureGearRngLineCount(gear) {
     const pool = GEAR_SLOT_RNG_POOL[gear.slot] || [];
     while (gear.rngLines.length < need) {
         const stat = pool[randInt(0, pool.length - 1)];
-        gear.rngLines.push(rollGearRngLine(stat, gear.slot, gear.tier || 1));
+        gear.rngLines.push(rollGearRngLine(stat, gear.slot, gear.tier || 1, getGearLevelTier(gear)));
     }
     syncGearBaseBonusesFromRolls(gear);
 }
@@ -10687,6 +10797,11 @@ function renderGearTooltipHtml(gear, mon) {
     const houseRestrictHtml = houseRestrict
         ? `<div class="gear-tooltip-house-restrict">${escapeGearHtml(houseRestrict)}</div>`
         : "";
+    const reqLevel = getGearRequiredLevel(gear);
+    const levelMet = !mon || Math.floor(mon.level) >= reqLevel;
+    const levelReqHtml = reqLevel
+        ? `<div class="gear-tooltip-level-req${levelMet ? "" : " unmet"}">Requires Lv ${reqLevel}</div>`
+        : "";
     const wearerHtml = mon
         ? `<div class="gear-tooltip-wearer">On ${escapeGearHtml(mon.name)}: ${escapeGearHtml(formatGearBonusesForMon(gear, mon))}</div>`
         : "";
@@ -10697,6 +10812,7 @@ function renderGearTooltipHtml(gear, mon) {
             <span class="gear-tooltip-icon">${iconHtml}</span>
         </div>
         <div class="gear-tooltip-meta">${escapeGearHtml(housePrefix)}Bound · ${escapeGearHtml(slotLabel)} · ${escapeGearHtml(tierName)}</div>
+        ${levelReqHtml}
         ${houseRestrictHtml}
         <div class="gear-tooltip-divider"></div>
         ${primaryHtml}
@@ -10744,15 +10860,18 @@ function stripGearEnhanceLevels(gear, targetLevel) {
     gear.enhanceLevel = Math.max(0, targetLevel);
     rebuildGearBonuses(gear);
 }
-function generateGear(tier, slot, houseId = null) {
+function generateGear(tier, slot, houseId = null, gearLevelTier = null) {
+    const lvlTier = gearLevelTier || tier;
     const t = GEAR_TIERS[tier];
-    const primaryRoll = rollGearPrimary(slot, tier);
-    const rngLines = pickGearRngStats(slot, tier).map((stat) => rollGearRngLine(stat, slot, tier));
+    const primaryRoll = rollGearPrimary(slot, tier, lvlTier);
+    const rngLines = pickGearRngStats(slot, tier).map((stat) => rollGearRngLine(stat, slot, tier, lvlTier));
     const gear = {
         id: nextGearId(),
         slot,
         tier,
         tierName: t.name,
+        gearLevelTier: lvlTier,
+        requiredLevel: GEAR_LEVEL_TIERS[lvlTier - 1] || GEAR_LEVEL_TIERS[0],
         name: GEAR_SLOT_LABELS[slot],
         primaryRoll,
         rngLines,
@@ -10773,11 +10892,12 @@ function generateGear(tier, slot, houseId = null) {
 }
 function rollGearDrop(chapter, isBoss) {
     if (chapter < 2) return null;
-    let tier = chapter;
+    let tier = Math.min(5, chapter);
     if (isBoss && Math.random() < 0.35 && tier < 5) tier += 1;
+    const gearLevelTier = Math.min(5, Math.max(1, chapter));
     const slot = GEAR_SLOTS[randInt(0, GEAR_SLOTS.length - 1)];
     const houseId = HOUSE_ORDER[randInt(0, HOUSE_ORDER.length - 1)];
-    return generateHouseGear(houseId, tier, slot);
+    return generateHouseGear(houseId, tier, slot, gearLevelTier);
 }
 function getMonList(location) {
     return location === "box" ? box : party;
@@ -10798,6 +10918,10 @@ function equipGearOnMon(location, monIndex, gearId) {
     if (gi < 0) return;
     const gear = gearInventory[gi];
     if (!canMonEquipGear(mon, gear)) {
+        if (Math.floor(mon.level) < getGearRequiredLevel(gear)) {
+            alert(`${mon.name} must be level ${getGearRequiredLevel(gear)} or higher to equip this gear. (Current: Lv ${Math.floor(mon.level)})`);
+            return;
+        }
         const meta = getHouseMeta(gear.house);
         alert(`${meta ? meta.label + " gear" : "This gear"} can only be worn by that house's Monanimals.`);
         return;
@@ -10824,12 +10948,16 @@ function renderEquipOptionHtml(gear, mon, action, actionClass, options = {}) {
     const bonuses = mon ? formatGearBonusesForMon(gear, mon) : formatGearRngSummary(gear);
     const houseRestrict = getGearHouseRestrictionText(gear);
     const houseRestrictHtml = houseRestrict ? `<small class="gear-house-restrict">${escapeGearHtml(houseRestrict)}</small>` : "";
+    const reqLevel = getGearRequiredLevel(gear);
+    const levelMet = !mon || Math.floor(mon.level) >= reqLevel;
+    const levelReqHtml = reqLevel ? `<small class="gear-level-req${levelMet ? "" : " unmet"}">Requires Lv ${reqLevel}</small>` : "";
     const dataGid = options.dataGid ? ` data-gid="${options.dataGid}"` : "";
+    const disabled = options.disabled || (mon && !levelMet) ? " disabled" : "";
     const onclick = options.onclick ? ` onclick="${options.onclick}"` : "";
-    return `<button type="button" class="equip-option"${dataGid}${onclick}>
+    return `<button type="button" class="equip-option${disabled}"${dataGid}${onclick}${disabled}>
         <span class="equip-option-main">
             <span class="equip-gear-icon-wrap" style="border-color:${getGearTierColor(gear)}">${renderGearIconHtml(gear, "gear-inv-icon")}</span>
-            <span class="equip-option-text"><b>${formatGearDisplayName(gear)}</b><small>${bonuses}</small>${houseRestrictHtml}</span>
+            <span class="equip-option-text"><b>${formatGearDisplayName(gear)}</b><small>${bonuses}</small>${levelReqHtml}${houseRestrictHtml}</span>
         </span>
         <span class="equip-action ${actionClass}">${action}</span>
     </button>`;
@@ -10857,7 +10985,13 @@ function openEquipModal(location, monIndex, slot) {
         })
         : `<p class="equip-modal-empty">Nothing equipped</p>`;
     const inventoryHtml = options.length
-        ? options.map(g => renderEquipOptionHtml(g, null, "EQUIP", "equip-action-equip", { dataGid: g.id })).join("")
+        ? options.map(g => {
+            const levelOk = Math.floor(mon.level) >= getGearRequiredLevel(g);
+            return renderEquipOptionHtml(g, mon, levelOk ? "EQUIP" : "LV REQ", levelOk ? "equip-action-equip" : "equip-action-locked", {
+                dataGid: g.id,
+                disabled: !levelOk,
+            });
+        }).join("")
         : `<p class="equip-modal-empty">No ${GEAR_SLOT_LABELS[slot]} for this house in inventory.<br>Win adventure battles to find gear!</p>`;
 
     const overlay = document.createElement("div");
@@ -10880,7 +11014,7 @@ function openEquipModal(location, monIndex, slot) {
             </div>
         </div>`;
     overlay.querySelector(".equip-modal-close").onclick = () => overlay.remove();
-    overlay.querySelectorAll(".equip-option[data-gid]").forEach(el => {
+    overlay.querySelectorAll(".equip-option[data-gid]:not([disabled])").forEach(el => {
         el.onclick = () => {
             equipGearOnMon(location, monIndex, el.dataset.gid);
             overlay.remove();
@@ -11074,6 +11208,7 @@ function executeGearSynth() {
         money -= goldCost;
         gearInventory = gearInventory.filter(g => !ids.includes(g.id));
         const mainHouse = slotsSnapshot[0]?.house || HOUSE_ORDER[randInt(0, HOUSE_ORDER.length - 1)];
+        const mainLvlTier = getGearLevelTier(slotsSnapshot[0]);
         clearGearSynthSlots();
 
         const success = Math.random() < recipeSnapshot.rate;
@@ -11081,9 +11216,10 @@ function executeGearSynth() {
         if (success) {
             if (recipeSnapshot.type === "upgrade") {
                 const slot = GEAR_SLOTS[randInt(0, GEAR_SLOTS.length - 1)];
-                result = generateHouseGear(mainHouse, recipeSnapshot.resultTier, slot);
+                const resultLvlTier = Math.min(5, recipeSnapshot.resultTier);
+                result = generateHouseGear(mainHouse, recipeSnapshot.resultTier, slot, resultLvlTier);
             } else {
-                result = generateHouseGear(mainHouse, recipeSnapshot.resultTier, recipeSnapshot.slot);
+                result = generateHouseGear(mainHouse, recipeSnapshot.resultTier, recipeSnapshot.slot, mainLvlTier);
             }
             gearInventory.push(result);
             return { ok: true, text: `Synthesis success! Obtained: ${result.name} — ${formatGearRngSummary(result)}` };
@@ -11124,7 +11260,7 @@ function renderGearSynthPanel(container) {
         ? sortGearByRarityPower(gearInventory).map(g => {
             const tierColor = getGearTierColor(g);
             const used = usedIds.includes(g.id);
-            return `<button type="button" class="gear-synth-pick-item${used ? " used" : ""}" style="border-color:${tierColor};box-shadow:2px 2px 0 ${tierColor}" onclick="gearSynthAssignNext('${g.id}')" title="${formatGearDisplayName(g)}\n${formatGearRngSummary(g)}">
+            return `<button type="button" class="gear-synth-pick-item${used ? " used" : ""}" style="border-color:${tierColor};box-shadow:2px 2px 0 ${tierColor}" onclick="gearSynthAssignNext('${g.id}')" title="${getGearHoverTitle(g)}">
                 ${renderGearIconHtml(g, "gear-slot-icon")}
                 ${g.enhanceLevel ? `<span class="gear-enhance-badge">+${g.enhanceLevel}</span>` : ""}
             </button>`;
@@ -11195,7 +11331,7 @@ function renderGearEnhancePanel(container) {
             const tierColor = getGearTierColor(g);
             const selected = gearEnhanceTargetId === g.id;
             const selectedStyle = selected ? "opacity:1;border-color:#f59e0b;box-shadow:2px 2px 0 #b45309;" : `border-color:${tierColor};box-shadow:2px 2px 0 ${tierColor};`;
-            return `<button type="button" class="gear-synth-pick-item${selected ? " used" : ""}" onclick="gearEnhanceSelect('${g.id}')" title="${formatGearDisplayName(g)}\n${formatGearRngSummary(g)}" style="${selectedStyle}">
+            return `<button type="button" class="gear-synth-pick-item${selected ? " used" : ""}" onclick="gearEnhanceSelect('${g.id}')" title="${getGearHoverTitle(g)}" style="${selectedStyle}">
                 ${renderGearIconHtml(g, "gear-slot-icon")}
                 ${g.enhanceLevel ? `<span class="gear-enhance-badge">+${g.enhanceLevel}</span>` : ""}
             </button>`;
@@ -12576,9 +12712,33 @@ function getMaxAffordableQty(cost) {
 
 function grantShopItem(item, qty) {
     const mult = qty || 1;
-    if (item.grant.monballs) monballs += item.grant.monballs * mult;
-    if (item.grant.essence) essence += item.grant.essence * mult;
-    if (item.grant.monShards) monShards += item.grant.monShards * mult;
+    if (item.grant?.monballs) monballs += item.grant.monballs * mult;
+    if (item.grant?.essence) essence += item.grant.essence * mult;
+    if (item.grant?.monShards) monShards += item.grant.monShards * mult;
+    if (item.gearGrant) {
+        for (let i = 0; i < mult; i++) {
+            const houseId = HOUSE_ORDER[randInt(0, HOUSE_ORDER.length - 1)];
+            const g = item.gearGrant.house
+                ? generateHouseGear(item.gearGrant.house, item.gearGrant.tier, item.gearGrant.slot, item.gearGrant.gearLevelTier)
+                : generateHouseGear(houseId, item.gearGrant.tier, item.gearGrant.slot, item.gearGrant.gearLevelTier);
+            gearInventory.push(g);
+        }
+    }
+}
+
+function renderShopItemIconHtml(item) {
+    if (item.iconKey && GAME_ICONS[item.iconKey]) {
+        return `<img class="shop-slot-icon-img" src="${GAME_ICONS[item.iconKey].src}" alt="">`;
+    }
+    if (item.gearGrant) {
+        const preview = {
+            house: item.gearGrant.house || "chog",
+            slot: item.gearGrant.slot,
+            tier: item.gearGrant.tier,
+        };
+        return renderGearIconHtml(preview, "shop-slot-icon-img");
+    }
+    return `<div class="shop-slot-icon" title="${item.name}">?</div>`;
 }
 
 function executeShopPurchase(item, qty) {
@@ -12746,7 +12906,7 @@ function renderShop() {
         const costShort = item.cost.gold ? item.cost.gold + "G" : formatCost(item.cost);
         const tip = renderHoverTip(item.name, item.desc + " — " + formatCost(item.cost));
         const inner = `
-            <div class="shop-slot-icon" title="${item.name}">?</div>
+            ${renderShopItemIconHtml(item)}
             <span class="shop-slot-cost">${costShort}</span>
             ${tip}
         `;
@@ -15092,8 +15252,11 @@ function renderInventoryMaterialSlotHtml(m) {
 
 function renderInventoryGearSlotHtml(g) {
     normalizeGear(g);
+    ensureGearLevelFields(g);
+    const reqLvl = getGearRequiredLevel(g);
     return `
         ${renderGearIconHtml(g, "gear-inv-icon")}
+        <span class="inv-slot-level-req">Lv${reqLvl}</span>
         ${g.enhanceLevel ? `<span class="inv-slot-enhance">+${g.enhanceLevel}</span>` : ""}
         ${renderGearTooltipHtml(g, null)}`;
 }

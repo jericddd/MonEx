@@ -62,6 +62,7 @@ export const LIMITS = {
   clockSkewMs: 5 * 60 * 1000,
   stringMaxLen: 120,
   gearIdMaxLen: 80,
+  monLevelMax: 80,
 };
 
 const LEVEL_CAP_BY_RARITY = {
@@ -174,6 +175,15 @@ export function sanitizeGear(raw) {
     const maxLines = tier >= 5 ? 3 : 2;
     gear.rngLines = raw.rngLines.map(sanitizeGearRollLine).filter(Boolean).slice(0, maxLines);
   }
+  const gearLevelTier = raw.gearLevelTier != null
+    ? clampInt(raw.gearLevelTier, 1, LIMITS.maxGearTier)
+    : tier;
+  gear.gearLevelTier = gearLevelTier;
+  gear.requiredLevel = clampInt(
+    raw.requiredLevel ?? (gearLevelTier * 10),
+    1,
+    LIMITS.monLevelMax,
+  );
   return gear;
 }
 
