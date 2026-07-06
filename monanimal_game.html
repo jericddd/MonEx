@@ -11000,7 +11000,9 @@ function rollHeroAscensionSkillOptions(mon, options = {}) {
 }
 
 function getHeroAscensionDupeRequirement(level) {
-    return (level || 0) === 0 ? HERO_ASCENSION_DUPES_FIRST : HERO_ASCENSION_DUPES_AFTER;
+    const idx = level || 0;
+    if (idx >= HERO_ASCENSION_DUPES_BY_LEVEL.length) return HERO_ASCENSION_DUPES_MAX;
+    return HERO_ASCENSION_DUPES_BY_LEVEL[idx];
 }
 
 function getHeroAscensionGoldCost(level) {
@@ -11317,7 +11319,7 @@ function renderHeroAscensionPanel(container) {
 
     el.innerHTML = `
         <div class="hero-ascension-panel">
-            <p class="gear-synth-note">Hero Ascension: <b>Legendary+</b> only. <b>+1</b> = main + 2 dupes · <b>+2+</b> = main + 4 dupes · <b>75%</b> success. Each + level grants <b>+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% base & gear stats</b>. Skills unlock through <b>+${HERO_ASCENSION_SKILL_CAP}</b> only — higher + is stats-only. Tap 🔓 to unlock skills.</p>
+            <p class="gear-synth-note">Hero Ascension: <b>Legendary+</b> only. Dupes: <b>+1</b> = 2 · <b>+2</b> = 4 · <b>+3–5</b> = 5 · <b>+6+</b> = 6 · <b>75%</b> success. Each + grants <b>+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% base & gear stats</b>. Skills unlock through <b>+${HERO_ASCENSION_SKILL_CAP}</b> only. Tap 🔓 to unlock skills.</p>
             <div class="gear-synth-recipe-bar${recipeCls}">${describeHeroAscensionRecipe(recipe)}</div>
             <div class="hero-ascension-workbench">
                 <button type="button" class="hero-ascension-main-slot hero-ascension-main-slot-btn${main ? " filled" : ""}${showMainPicker ? " is-open" : ""}" onclick="toggleHeroAscensionMainPicker()" title="${main ? "Change main hero" : "Choose main hero"}">
