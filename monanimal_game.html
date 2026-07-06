@@ -12379,18 +12379,68 @@ function isTestUser() {
     return String(currentUser).replace(/^@/, "").toLowerCase() === "test";
 }
 
-function applyTestUserStagingBoost() {
-    if (!isStagingHost() || !isTestUser()) return false;
-    const flagKey = "monex_test_resources_granted_" + currentUser;
-    if (localStorage.getItem(flagKey)) return false;
-    const boost = 999999;
-    monballs = boost;
-    money = boost;
-    essence = boost;
-    monShards = boost;
-    localStorage.setItem(flagKey, "1");
-    saveData();
+const STAGING_BETA_RESOURCE_MIN = 999999;
+const STAGING_BETA_LEGENDARY_COPIES = 10;
+const STAGING_BETA_RARE_COPIES = 6;
+const STAGING_BETA_MON_LEVEL = 15;
+const STAGING_BETA_BOX_MAX = 500;
+
+function countMonsByNameRarity(name, rarity) {
+    return [...party, ...box].filter((m) => m?.name === name && m?.rarity === rarity).length;
+}
+
+function applyStagingBetaGear() {
+    if (!isStagingHost() || !currentUser) return false;
+    seedHouseGearInventory();
+    gearInventorySeedVersion = GEAR_INVENTORY_SEED_VERSION;
     return true;
+}
+
+function applyStagingBetaRoster() {
+    if (!isStagingHost() || !currentUser) return false;
+    let added = false;
+    for (const name of MONANIMAL_NAMES) {
+        if (isRemovedMonanimal(name)) continue;
+
+        let legendaryNeed = STAGING_BETA_LEGENDARY_COPIES - countMonsByNameRarity(name, "Legendary");
+        while (legendaryNeed > 0 && box.length < STAGING_BETA_BOX_MAX) {
+            box.push(createMonanimal(name, "Legendary", STAGING_BETA_MON_LEVEL));
+            legendaryNeed--;
+            added = true;
+        }
+
+        let rareNeed = STAGING_BETA_RARE_COPIES - countMonsByNameRarity(name, "Rare");
+        while (rareNeed > 0 && box.length < STAGING_BETA_BOX_MAX) {
+            box.push(createMonanimal(name, "Rare", STAGING_BETA_MON_LEVEL));
+            rareNeed--;
+            added = true;
+        }
+    }
+    if (added) sortBox();
+    return added;
+}
+
+function applyStagingBetaKit() {
+    if (!isStagingHost() || !currentUser) return false;
+    const gearChanged = applyStagingBetaGear();
+    const rosterChanged = applyStagingBetaRoster();
+    if (gearChanged || rosterChanged) {
+        saveData();
+        return true;
+    }
+    return false;
+}
+
+function applyStagingBetaResources() {
+    if (!isStagingHost() || !currentUser) return false;
+    const boost = STAGING_BETA_RESOURCE_MIN;
+    let changed = false;
+    if (monballs < boost) { monballs = boost; changed = true; }
+    if (money < boost) { money = boost; changed = true; }
+    if (essence < boost) { essence = boost; changed = true; }
+    if (monShards < boost) { monShards = boost; changed = true; }
+    if (changed) saveData();
+    return changed;
 }
 
 function grantTestBattleParty() {
@@ -12537,11 +12587,11 @@ async function logout() {
 }
 
 async function runPostLoginBootstrap() {
-    try { applyTestUserStagingBoost(); } catch (e) { console.error("applyTestUserStagingBoost failed:", e); }
-    try { grantTestBattleParty(); } catch (e) { console.error("grantTestBattleParty failed:", e); }
-    try { grantTestChogToBox(); } catch (e) { console.error("grantTestChogToBox failed:", e); }
-    try { ensureLegendaryBoxRoster(); } catch (e) { console.error("ensureLegendaryBoxRoster failed:", e); }
-    try { ensureLegendaryMoyakiInBox(); } catch (e) { console.error("ensureLegendaryMoyakiInBox failed:", e); }
+    try { applyStagingBetaResources(); } catch (e) { console.error("applyStagingBetaResources failed:", e); }
+    try { applyStagingBetaKit(); } catch (e) { console.error("applyStagingBetaKit failed:", e); }
+    if (isStagingHost() && isTestUser()) {
+        try { grantTestBattleParty(); } catch (e) { console.error("grantTestBattleParty failed:", e); }
+    }
     try { resolveAbandonedAdventureBattle(); } catch (e) { console.error("resolveAbandonedAdventureBattle failed:", e); }
     if (adventureForfeitNotice) {
         adventureForfeitNotice = false;
