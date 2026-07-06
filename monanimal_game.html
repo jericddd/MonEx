@@ -114,6 +114,35 @@ body {
     grid-template-columns: repeat(3, 1fr);
     gap: 20px;
 }
+.party-slot-empty {
+    background: rgba(255, 255, 255, 0.42);
+    border: 3px dashed #d4a04a;
+    border-radius: 10px;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+.party-slot-empty:hover {
+    background: rgba(255, 236, 210, 0.9);
+    border-color: #e07b20;
+}
+.party-slot-empty-plus {
+    font-size: 42px;
+    line-height: 1;
+    color: #c46a28;
+    font-weight: 300;
+}
+.party-slot-empty-label {
+    font-size: 11px;
+    color: #8b4513;
+    letter-spacing: 0.04em;
+}
 .box-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -830,6 +859,14 @@ button.green:hover {
 .hub-main .party-grid {
     gap: 12px;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.hub-main .party-slot-empty {
+    border-color: #d4a04a;
+    min-height: 160px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.hub-main .party-slot-empty:hover {
+    background: rgba(255, 236, 210, 0.92);
 }
 .hub-main .box-content-grid {
     grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
@@ -10675,6 +10712,13 @@ function heroAscensionSelectMain(location, index) {
     const list = location === "party" ? party : box;
     const mon = list[index];
     if (!mon || !isLegendaryOrAbove(mon.rarity)) return;
+    if (heroAscensionMainMon === mon) {
+        heroAscensionMainMon = null;
+        heroAscensionDupeMons = [];
+        heroAscensionMainPickerOpen = true;
+        renderArmoryPane();
+        return;
+    }
     if (!canMonHeroAscendMain(mon)) return;
     heroAscensionMainMon = mon;
     heroAscensionDupeMons = [];
@@ -11723,25 +11767,27 @@ function renderPartyGrid() {
     clearAllHubFloatTips();
     grid.innerHTML = "";
 
-    if (party.length === 0) {
-        grid.innerHTML = `
-            <div class="hub-empty-msg" style="grid-column: 1 / -1;">
-                <p style="font-size: 18px; margin-bottom: 15px;">Your party is empty</p>
-                <p style="font-size: 15px;">Catch Monanimals on X via @monexmonad!</p>
-            </div>
-        `;
-        return;
-    }
+    for (let slot = 0; slot < PARTY_MAX; slot++) {
+        const mon = party[slot];
+        if (mon) {
+            ensureMonReady(mon);
+            const card = document.createElement("div");
+            card.className = `mon-card ${getRarityClass(mon.rarity)}`;
+            card.style.cursor = "pointer";
+            card.innerHTML = renderMonCardInner(mon, slot, "party");
+            grid.appendChild(card);
+            bindHubMonCardTips(card);
+            continue;
+        }
 
-    party.forEach((mon, index) => {
-        ensureMonReady(mon);
-        const card = document.createElement("div");
-        card.className = `mon-card ${getRarityClass(mon.rarity)}`;
-        card.style.cursor = "pointer";
-        card.innerHTML = renderMonCardInner(mon, index, "party");
-        grid.appendChild(card);
-        bindHubMonCardTips(card);
-    });
+        const empty = document.createElement("button");
+        empty.type = "button";
+        empty.className = "party-slot-empty";
+        empty.setAttribute("aria-label", "Add Monanimal to party");
+        empty.innerHTML = `<span class="party-slot-empty-plus">+</span><span class="party-slot-empty-label">ADD TO PARTY</span>`;
+        empty.onclick = () => openPartyAddPicker();
+        grid.appendChild(empty);
+    }
 }
 
 function renderMainScene() {
@@ -12185,6 +12231,7 @@ function toBox(index) {
 
 let _partySwitchIndex = null;
 let _partySwitchBoxIndex = null;
+let _partySwitchAddMode = false;
 
 function renderPartySwitchSkillList(mon) {
     ensureMonReady(mon);
@@ -12311,6 +12358,7 @@ function closePartySwitchPicker() {
     document.getElementById("modal-party-switch")?.classList.remove("open");
     _partySwitchIndex = null;
     _partySwitchBoxIndex = null;
+    _partySwitchAddMode = false;
 }
 
 function bindPartySwitchTip(cell) {
@@ -12340,10 +12388,10 @@ function renderPartySwitchAvatarCell(mon, onClick) {
 
 function renderPartySwitchGrid() {
     const grid = document.getElementById("party-switch-grid");
-    if (!grid || (_partySwitchIndex === null && _partySwitchBoxIndex === null)) return;
+    if (!grid || (_partySwitchIndex === null && _partySwitchBoxIndex === null && !_partySwitchAddMode)) return;
     grid.innerHTML = "";
 
-    if (_partySwitchIndex !== null) {
+    if (_partySwitchAddMode || _partySwitchIndex !== null) {
         if (!box || box.length === 0) {
             grid.innerHTML = `
                 <div class="party-switch-empty">
@@ -12357,7 +12405,10 @@ function renderPartySwitchGrid() {
         entries.sort((a, b) => getRarityRank(b.mon.rarity) - getRarityRank(a.mon.rarity));
 
         entries.forEach(({ mon, i }) => {
-            grid.appendChild(renderPartySwitchAvatarCell(mon, () => swapPartyWithBox(_partySwitchIndex, i)));
+            const onPick = _partySwitchAddMode
+                ? () => addToPartyFromBox(i)
+                : () => swapPartyWithBox(_partySwitchIndex, i);
+            grid.appendChild(renderPartySwitchAvatarCell(mon, onPick));
         });
         return;
     }
@@ -12376,8 +12427,22 @@ function renderPartySwitchGrid() {
     });
 }
 
+function openPartyAddPicker() {
+    if (party.length >= PARTY_MAX) return;
+    _partySwitchIndex = null;
+    _partySwitchBoxIndex = null;
+    _partySwitchAddMode = true;
+    const title = document.getElementById("party-switch-title-display");
+    const subtitle = document.getElementById("party-switch-subtitle");
+    if (title) title.textContent = "ADD TO PARTY";
+    if (subtitle) subtitle.textContent = "Pick a Monanimal from your Box to fill this party slot";
+    renderPartySwitchGrid();
+    document.getElementById("modal-party-switch")?.classList.add("open");
+}
+
 function openPartySwitchPicker(partyIndex) {
     if (!party[partyIndex]) return;
+    _partySwitchAddMode = false;
     _partySwitchIndex = partyIndex;
     _partySwitchBoxIndex = null;
     const title = document.getElementById("party-switch-title-display");
@@ -12390,6 +12455,7 @@ function openPartySwitchPicker(partyIndex) {
 
 function openBoxSwitchPicker(boxIndex) {
     if (!box[boxIndex]) return;
+    _partySwitchAddMode = false;
     _partySwitchBoxIndex = boxIndex;
     _partySwitchIndex = null;
     const title = document.getElementById("party-switch-title-display");
@@ -12398,6 +12464,17 @@ function openBoxSwitchPicker(boxIndex) {
     if (subtitle) subtitle.textContent = "Pick a party member to swap with this Box Monanimal";
     renderPartySwitchGrid();
     document.getElementById("modal-party-switch")?.classList.add("open");
+}
+
+function addToPartyFromBox(boxIndex) {
+    if (party.length >= PARTY_MAX || !box[boxIndex]) return;
+    party.push(box.splice(boxIndex, 1)[0]);
+    saveData();
+    updateUI();
+    closePartySwitchPicker();
+    if (battleScreen === "chapter" && document.getElementById("team-arrange")) {
+        renderTeamArrangement();
+    }
 }
 
 function swapPartyWithBox(partyIndex, boxIndex) {
