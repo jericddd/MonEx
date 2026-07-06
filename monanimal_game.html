@@ -2098,6 +2098,97 @@ button.green:hover {
     padding: 6px;
     box-sizing: border-box;
 }
+
+/* Armory forge animation — hammer + progress above action buttons */
+.armory-forge-status {
+    min-height: 0;
+    margin: 4px 0 10px;
+    text-align: center;
+    font-family: "Lato", sans-serif;
+    font-size: 12px;
+    line-height: 1.45;
+}
+.armory-forge-status.is-busy {
+    min-height: 78px;
+    padding: 6px 8px 4px;
+    background: rgba(15, 12, 28, 0.35);
+    border: 2px solid rgba(107, 33, 168, 0.45);
+    border-radius: 6px;
+}
+.armory-forge-hammer {
+    font-size: 38px;
+    line-height: 1;
+    display: inline-block;
+    transform-origin: 70% 85%;
+    animation: armory-hammer-swing 0.42s ease-in-out infinite;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+}
+.armory-forge-progress {
+    height: 12px;
+    background: #1a1528;
+    border: 2px solid #6b21a8;
+    border-radius: 4px;
+    overflow: hidden;
+    max-width: 300px;
+    margin: 8px auto 6px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+.armory-forge-progress-fill {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #b45309 0%, #f59e0b 45%, #fde68a 100%);
+    animation: armory-forge-fill 2s linear forwards;
+}
+.armory-forge-busy-text {
+    margin: 0;
+    font-family: "Press Start 2P", monospace;
+    font-size: 8px;
+    color: #fde68a;
+    letter-spacing: 0.04em;
+}
+.armory-forge-status.is-success,
+.armory-forge-status.is-fail {
+    padding: 10px 12px;
+    border-radius: 6px;
+    animation: armory-forge-result-in 0.35s ease-out;
+}
+.armory-forge-status.is-success {
+    background: rgba(22, 101, 52, 0.2);
+    border: 2px solid #4ade80;
+}
+.armory-forge-status.is-success p {
+    margin: 0;
+    color: #86efac;
+    font-weight: 700;
+}
+.armory-forge-status.is-fail {
+    background: rgba(127, 29, 29, 0.22);
+    border: 2px solid #f87171;
+}
+.armory-forge-status.is-fail p {
+    margin: 0;
+    color: #fca5a5;
+    font-weight: 700;
+}
+@keyframes armory-hammer-swing {
+    0%, 100% { transform: rotate(-32deg) scale(1); }
+    50% { transform: rotate(18deg) scale(1.06); }
+}
+@keyframes armory-forge-fill {
+    from { width: 0%; }
+    to { width: 100%; }
+}
+@keyframes armory-forge-result-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.gear-synth-btn:disabled,
+.gear-synth-open-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 .gear-synth-actions {
     display: flex;
     align-items: center;
@@ -2405,8 +2496,14 @@ button.green:hover {
     pointer-events: none;
 }
 .hero-ascension-pick-item.is-main {
-    border-color: #f59e0b;
-    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.35), 2px 2px 0 #92400e;
+    border-color: #fbbf24;
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.35), 2px 2px 0 #b45309;
+    cursor: pointer;
+}
+.hero-ascension-pick-item.is-main.is-disabled {
+    opacity: 1;
+    pointer-events: auto;
+    filter: none;
 }
 .hero-skill-unlock-panel {
     border: 2px solid rgba(251, 191, 36, 0.55);
@@ -8076,6 +8173,10 @@ let gearEnhanceTargetId = null;
 let heroAscensionMainMon = null;
 let heroAscensionDupeMons = [];
 let heroAscensionMainPickerOpen = true;
+let armoryForgeBusy = false;
+let armoryForgeResult = null;
+let armoryForgeResultTimer = null;
+const ARMORY_FORGE_DURATION_MS = 2000;
 const HERO_ASCENSION_SKILL_CAP = 6;
 const HERO_ASCENSION_DUPES_BY_LEVEL = [2, 4, 5, 5, 5, 6];
 const HERO_ASCENSION_DUPES_MAX = 6;
@@ -10790,56 +10891,105 @@ function gearSynthClearSlot(index) {
     renderArmoryPane();
 }
 
-function executeGearSynth() {
-    if (!isEquipmentUnlocked()) {
-        alert("Gear synthesis unlocks at Chapter 2 (Stage 9+).");
-        return;
-    }
-    const recipe = analyzeGearSynthRecipe(gearSynthSlots);
-    if (!recipe || recipe.type === "invalid") {
-        alert("Invalid synthesis recipe. Check the recipe hint above your slots.");
-        return;
-    }
-    const ids = getGearSynthUsedIds();
-    if (ids.length !== 3 || ids.some(id => gearInventory.findIndex(g => g.id === id) < 0)) {
-        alert("Selected gear is no longer in your inventory.");
+function clearArmoryForgeResultSoon() {
+    if (armoryForgeResultTimer) clearTimeout(armoryForgeResultTimer);
+    armoryForgeResultTimer = setTimeout(() => {
+        armoryForgeResult = null;
+        armoryForgeResultTimer = null;
         renderArmoryPane();
-        return;
-    }
-    if (money < recipe.gold) {
-        alert("Need " + recipe.gold + " Gold to synthesize.\nYou have: " + money);
-        return;
-    }
-    const preview = describeGearSynthRecipe(recipe).replace(/<[^>]+>/g, "");
-    if (!confirm("Synthesize now?\n\n" + preview + "\n\nCost: " + recipe.gold + " Gold\nOn failure, all 3 items are lost.")) return;
+    }, 5000);
+}
 
-    money -= recipe.gold;
-    gearInventory = gearInventory.filter(g => !ids.includes(g.id));
-    clearGearSynthSlots();
+function showArmoryForgeMessage(ok, text) {
+    armoryForgeResult = { ok: !!ok, text: String(text || "") };
+    renderArmoryPane();
+    clearArmoryForgeResultSoon();
+}
 
-    const success = Math.random() < recipe.rate;
-    let result = null;
-    const mainHouse = gearSynthSlots[0]?.house || HOUSE_ORDER[randInt(0, HOUSE_ORDER.length - 1)];
-    if (success) {
-        if (recipe.type === "upgrade") {
-            const slot = GEAR_SLOTS[randInt(0, GEAR_SLOTS.length - 1)];
-            result = generateHouseGear(mainHouse, recipe.resultTier, slot);
-        } else {
-            result = generateHouseGear(mainHouse, recipe.resultTier, recipe.slot);
-        }
-        gearInventory.push(result);
+function renderArmoryForgeStatusHtml() {
+    if (armoryForgeBusy) {
+        return `<div class="armory-forge-status is-busy" aria-live="polite">
+            <div class="armory-forge-hammer" aria-hidden="true">🔨</div>
+            <div class="armory-forge-progress"><div class="armory-forge-progress-fill"></div></div>
+            <p class="armory-forge-busy-text">FORGING…</p>
+        </div>`;
     }
+    if (armoryForgeResult?.text) {
+        const cls = armoryForgeResult.ok ? "is-success" : "is-fail";
+        return `<div class="armory-forge-status ${cls}" aria-live="polite"><p>${escapeGearHtml(armoryForgeResult.text)}</p></div>`;
+    }
+    return `<div class="armory-forge-status" aria-live="polite"></div>`;
+}
 
+async function runArmoryForgeAction(workFn) {
+    if (armoryForgeBusy) return;
+    armoryForgeBusy = true;
+    armoryForgeResult = null;
+    if (armoryForgeResultTimer) {
+        clearTimeout(armoryForgeResultTimer);
+        armoryForgeResultTimer = null;
+    }
+    renderArmoryPane();
+    await new Promise((resolve) => setTimeout(resolve, ARMORY_FORGE_DURATION_MS));
+    try {
+        armoryForgeResult = workFn() || { ok: false, text: "Action failed." };
+    } catch (err) {
+        armoryForgeResult = { ok: false, text: String(err?.message || "Action failed.") };
+    }
+    armoryForgeBusy = false;
     saveData();
     updateUI();
     renderArmoryPane();
     renderInventory();
+    clearArmoryForgeResultSoon();
+}
 
-    if (success) {
-        alert("Synthesis success!\nObtained: " + result.name + "\n" + formatGearRngSummary(result));
-    } else {
-        alert("Synthesis failed.\nAll materials were consumed.");
+function executeGearSynth() {
+    if (armoryForgeBusy) return;
+    if (!isEquipmentUnlocked()) {
+        showArmoryForgeMessage(false, "Gear synthesis unlocks at Chapter 2 (Stage 9+).");
+        return;
     }
+    const recipe = analyzeGearSynthRecipe(gearSynthSlots);
+    if (!recipe || recipe.type === "invalid") {
+        showArmoryForgeMessage(false, "Invalid synthesis recipe. Check the recipe hint above your slots.");
+        return;
+    }
+    const ids = getGearSynthUsedIds();
+    if (ids.length !== 3 || ids.some(id => gearInventory.findIndex(g => g.id === id) < 0)) {
+        showArmoryForgeMessage(false, "Selected gear is no longer in your inventory.");
+        renderArmoryPane();
+        return;
+    }
+    if (money < recipe.gold) {
+        showArmoryForgeMessage(false, `Need ${recipe.gold} Gold to synthesize. You have: ${money}.`);
+        return;
+    }
+
+    const slotsSnapshot = gearSynthSlots.map((g) => g);
+    const recipeSnapshot = { ...recipe };
+    const goldCost = recipe.gold;
+
+    runArmoryForgeAction(() => {
+        money -= goldCost;
+        gearInventory = gearInventory.filter(g => !ids.includes(g.id));
+        const mainHouse = slotsSnapshot[0]?.house || HOUSE_ORDER[randInt(0, HOUSE_ORDER.length - 1)];
+        clearGearSynthSlots();
+
+        const success = Math.random() < recipeSnapshot.rate;
+        let result = null;
+        if (success) {
+            if (recipeSnapshot.type === "upgrade") {
+                const slot = GEAR_SLOTS[randInt(0, GEAR_SLOTS.length - 1)];
+                result = generateHouseGear(mainHouse, recipeSnapshot.resultTier, slot);
+            } else {
+                result = generateHouseGear(mainHouse, recipeSnapshot.resultTier, recipeSnapshot.slot);
+            }
+            gearInventory.push(result);
+            return { ok: true, text: `Synthesis success! Obtained: ${result.name} — ${formatGearRngSummary(result)}` };
+        }
+        return { ok: false, text: "Synthesis failed. All materials were consumed." };
+    });
 }
 
 function renderGearSynthSlotHtml(gear, index) {
@@ -10867,7 +11017,7 @@ function renderGearSynthPanel(container) {
     if (!el) return;
     const recipe = analyzeGearSynthRecipe(gearSynthSlots);
     const recipeCls = recipe && recipe.type !== "invalid" ? "" : " invalid";
-    const canSynth = recipe && recipe.type !== "invalid" && money >= (recipe.gold || 0);
+    const canSynth = recipe && recipe.type !== "invalid" && money >= (recipe.gold || 0) && !armoryForgeBusy;
     const usedIds = getGearSynthUsedIds();
 
     const pickItems = gearInventory.length
@@ -10894,10 +11044,11 @@ function renderGearSynthPanel(container) {
                 <span class="gear-synth-op">=</span>
                 <div class="gear-synth-result">${describeGearSynthResult(recipe)}</div>
             </div>
+            ${renderArmoryForgeStatusHtml()}
             <div class="gear-synth-actions">
                 <div class="gear-synth-cost">${currencyIcon("gold", 18)} <span>${recipe?.gold || 0} Gold</span></div>
                 <button type="button" class="gear-synth-btn" onclick="executeGearSynth()" ${canSynth ? "" : "disabled"}>SYNTHESIZE</button>
-                <button type="button" class="gear-synth-open-btn" onclick="clearGearSynthSlots(); renderArmoryPane();">CLEAR</button>
+                <button type="button" class="gear-synth-open-btn" onclick="clearGearSynthSlots(); renderArmoryPane();" ${armoryForgeBusy ? "disabled" : ""}>CLEAR</button>
             </div>
             <div>
                 <p class="gear-synth-note" style="margin-bottom:8px;"><b>Inventory gear</b> — click to fill the next empty slot (Main → Catalyst → Catalyst).</p>
@@ -10918,7 +11069,7 @@ function renderGearEnhancePanel(container) {
     const goldCost = gear ? getGearEnhanceGoldCost(gear) : 0;
     const successRate = gear ? getGearEnhanceSuccessRate(gear) : 0;
     const failDrop = gear ? getGearEnhanceFailDropLevel(gear) : null;
-    const canEnhance = gear && !atMax && money >= goldCost;
+    const canEnhance = gear && !atMax && money >= goldCost && !armoryForgeBusy;
     const rateCls = successRate > 0 && successRate < 70 ? " low" : "";
 
     const slotInner = gear
@@ -10961,10 +11112,11 @@ function renderGearEnhancePanel(container) {
                 </div>
                 <div class="gear-enhance-info">${infoHtml}</div>
             </div>
+            ${renderArmoryForgeStatusHtml()}
             <div class="gear-synth-actions">
                 <div class="gear-synth-cost">${currencyIcon("gold", 18)} <span>${goldCost} Gold</span></div>
                 <button type="button" class="gear-synth-btn" onclick="executeGearEnhance()" ${canEnhance ? "" : "disabled"} style="border-color:#f59e0b;background:linear-gradient(180deg,#fde68a 0%,#f59e0b 100%);color:#451a03;box-shadow:3px 3px 0 #92400e;">ENHANCE</button>
-                <button type="button" class="gear-synth-open-btn" onclick="gearEnhanceClear(); renderArmoryPane();">CLEAR</button>
+                <button type="button" class="gear-synth-open-btn" onclick="gearEnhanceClear(); renderArmoryPane();" ${armoryForgeBusy ? "disabled" : ""}>CLEAR</button>
             </div>
             <div>
                 <p class="gear-synth-note" style="margin-bottom:8px;"><b>Inventory gear</b> — click to place in the enhance slot.</p>
@@ -11140,54 +11292,57 @@ function removeHeroAscensionDupes(dupeMons) {
 }
 
 function executeHeroAscension() {
+    if (armoryForgeBusy) return;
     if (!heroAscensionMainMon) {
-        alert("Click MAIN and choose a Legendary+ hero first.");
+        showArmoryForgeMessage(false, "Click MAIN and choose a Legendary+ hero first.");
         return;
     }
     const recipe = analyzeHeroAscension(heroAscensionMainMon, heroAscensionDupeMons);
     if (recipe.type === "pending_skill") {
-        alert("Unlock the pending star skill on the hero's card (🔓 slot) before ascending again.");
+        showArmoryForgeMessage(false, "Unlock the pending skill on the hero's card (🔓 slot) before ascending again.");
         return;
     }
     if (recipe.type !== "ready") {
-        alert(recipe.reason?.replace(/<[^>]+>/g, "") || "Invalid ascension setup.");
+        showArmoryForgeMessage(false, recipe.reason?.replace(/<[^>]+>/g, "") || "Invalid ascension setup.");
         return;
     }
     if (money < recipe.gold) {
-        alert(`Need ${recipe.gold} Gold to ascend.\nYou have: ${money}`);
+        showArmoryForgeMessage(false, `Need ${recipe.gold} Gold to ascend. You have: ${money}.`);
         return;
     }
-    const preview = describeHeroAscensionRecipe(recipe).replace(/<[^>]+>/g, "");
-    if (!confirm(`Attempt Hero Ascension?\n\n${preview}\n\nCost: ${recipe.gold} Gold\nDuplicates are consumed whether you succeed or fail.`)) return;
 
-    money -= recipe.gold;
     const dupesToRemove = [...heroAscensionDupeMons];
-    removeHeroAscensionDupes(dupesToRemove);
+    const goldCost = recipe.gold;
+    const successRate = recipe.rate;
 
-    const main = heroAscensionMainMon;
-    const success = Math.random() < recipe.rate;
-    if (success) {
-        main.ascensionStars = (main.ascensionStars || 0) + 1;
-        repairAscensionSkillState(main);
-        if (canAscensionGrantSkill(main) && !main.ascensionSkillPending?.length) {
-            const options = rollHeroAscensionSkillOptions(main, { skipEnsure: true });
-            if (options.length) main.ascensionSkillPending = options;
+    runArmoryForgeAction(() => {
+        money -= goldCost;
+        removeHeroAscensionDupes(dupesToRemove);
+
+        const main = heroAscensionMainMon;
+        if (!main) return { ok: false, text: "Main hero is no longer available." };
+
+        const success = Math.random() < successRate;
+        if (success) {
+            main.ascensionStars = (main.ascensionStars || 0) + 1;
+            repairAscensionSkillState(main);
+            if (canAscensionGrantSkill(main) && !main.ascensionSkillPending?.length) {
+                const options = rollHeroAscensionSkillOptions(main, { skipEnsure: true });
+                if (options.length) main.ascensionSkillPending = options;
+            }
+            const statPct = Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100);
+            let text = `Ascension success! ${main.name} is now +${main.ascensionStars}. +${statPct}% stats on base & gear.`;
+            if (main.ascensionSkillPending?.length || canAscensionGrantSkill(main)) {
+                text += ` Tap 🔓 UNLOCK on their card to choose a skill (${HERO_SKILL_UNLOCK_GOLD} Gold).`;
+            } else if (main.ascensionStars > HERO_ASCENSION_SKILL_CAP) {
+                text += ` Skill unlock cap (+${HERO_ASCENSION_SKILL_CAP}) reached — further + levels grant stats only.`;
+            }
+            sortBox();
+            return { ok: true, text };
         }
-        const statPct = Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100);
-        const skillNote = (main.ascensionSkillPending?.length || canAscensionGrantSkill(main))
-            ? `\nTap 🔓 UNLOCK on their card to choose a skill (${HERO_SKILL_UNLOCK_GOLD} Gold).`
-            : (main.ascensionStars > HERO_ASCENSION_SKILL_CAP
-                ? `\nSkill unlock cap (+${HERO_ASCENSION_SKILL_CAP}) reached — further + levels grant stats only.`
-                : "");
-        alert(`Ascension success! ${main.name} is now +${main.ascensionStars}.\n+${statPct}% stats on base stats & gear.${skillNote}`);
-    } else {
-        alert("Ascension failed.\nDuplicates were consumed.");
-    }
-
-    sortBox();
-    saveData();
-    updateUI();
-    renderArmoryPane();
+        sortBox();
+        return { ok: false, text: "Ascension failed. Duplicates were consumed." };
+    });
 }
 
 function confirmHeroAscensionSkill(location, monIndex, optionIndex) {
@@ -11246,7 +11401,8 @@ function renderHeroAscensionMainPickItem(entry) {
     const locTag = location === "party" ? "P" : "B";
     let status = "";
     if (mon.ascensionSkillPending?.length) status = "Unlock skill";
-    return `<button type="button" class="hero-ascension-pick-item${selected ? " is-main" : ""}${canAscend ? "" : " is-disabled"}" onclick="heroAscensionSelectMain('${location}', ${index})" title="${mon.name} · ${mon.rarity}${status ? " · " + status : ""}">
+    const disabledCls = selected || canAscend ? "" : " is-disabled";
+    return `<button type="button" class="hero-ascension-pick-item${selected ? " is-main" : ""}${disabledCls}" onclick="heroAscensionSelectMain('${location}', ${index})" title="${mon.name} · ${mon.rarity}${status ? " · " + status : ""}${selected ? " · Click to remove" : ""}">
         <span class="hero-asc-loc-tag">${locTag}</span>
         <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
         <span class="hero-asc-pick-name">${mon.name}</span>
@@ -11272,7 +11428,7 @@ function renderHeroAscensionPanel(container) {
     const main = heroAscensionMainMon;
     const recipe = analyzeHeroAscension(main, heroAscensionDupeMons);
     const recipeCls = recipe && (recipe.type === "ready" || recipe.type === "pending_skill") ? "" : " invalid";
-    const canAscend = recipe?.type === "ready" && money >= (recipe.gold || 0);
+    const canAscend = recipe?.type === "ready" && money >= (recipe.gold || 0) && !armoryForgeBusy;
     const pendingUnlock = recipe?.type === "pending_skill";
     const showMainPicker = heroAscensionMainPickerOpen || !main;
     const required = main ? getHeroAscensionDupeRequirement(main.ascensionStars || 0) : null;
@@ -11322,18 +11478,19 @@ function renderHeroAscensionPanel(container) {
             <p class="gear-synth-note">Hero Ascension: <b>Legendary+</b> only. Dupes: <b>+1</b> = 2 · <b>+2</b> = 4 · <b>+3–5</b> = 5 · <b>+6+</b> = 6 · <b>75%</b> success. Each + grants <b>+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% base & gear stats</b>. Skills unlock through <b>+${HERO_ASCENSION_SKILL_CAP}</b> only. Tap 🔓 to unlock skills.</p>
             <div class="gear-synth-recipe-bar${recipeCls}">${describeHeroAscensionRecipe(recipe)}</div>
             <div class="hero-ascension-workbench">
-                <button type="button" class="hero-ascension-main-slot hero-ascension-main-slot-btn${main ? " filled" : ""}${showMainPicker ? " is-open" : ""}" onclick="toggleHeroAscensionMainPicker()" title="${main ? "Change main hero" : "Choose main hero"}">
+                <button type="button" class="hero-ascension-main-slot hero-ascension-main-slot-btn${main ? " filled" : ""}${showMainPicker ? " is-open" : ""}" onclick="toggleHeroAscensionMainPicker()" title="${main ? "Click to change main — select the highlighted hero again to remove" : "Choose main hero"}">
                     ${mainSlotInner}
                 </button>
                 ${required ? `<span class="gear-synth-op">+</span>${dupeSlots}` : ""}
                 ${required ? `<span class="gear-synth-op">⇒</span><div class="gear-synth-result">+${nextPlus}<br>${resultSub}</div>` : ""}
             </div>
+            ${renderArmoryForgeStatusHtml()}
             <div class="gear-synth-actions">
                 <div class="gear-synth-cost">${currencyIcon("gold", 18)} <span>${recipe?.gold || 0} Gold</span></div>
                 ${pendingUnlock
                     ? `<button type="button" class="gear-synth-btn" onclick="openHeroAscensionSkillUnlock()" style="border-color:#a855f7;background:linear-gradient(180deg,#e9d5ff 0%,#c084fc 100%);color:#3b0764;box-shadow:3px 3px 0 #6b21a8;">🔓 UNLOCK SKILL</button>`
                     : `<button type="button" class="gear-synth-btn" onclick="executeHeroAscension()" ${canAscend ? "" : "disabled"} style="border-color:#fbbf24;background:linear-gradient(180deg,#fde68a 0%,#f59e0b 100%);color:#451a03;box-shadow:3px 3px 0 #92400e;">ASCEND</button>`}
-                <button type="button" class="gear-synth-open-btn" onclick="heroAscensionMainMon=null;heroAscensionDupeMons=[];heroAscensionMainPickerOpen=true;renderArmoryPane();">CLEAR</button>
+                <button type="button" class="gear-synth-open-btn" onclick="heroAscensionMainMon=null;heroAscensionDupeMons=[];heroAscensionMainPickerOpen=true;renderArmoryPane();" ${armoryForgeBusy ? "disabled" : ""}>CLEAR</button>
             </div>
             <div class="hero-ascension-lists hub-scrollbar-panel">
                 ${mainListHtml}
@@ -11398,54 +11555,51 @@ function refreshEquippedGearStats() {
 }
 
 function executeGearEnhance() {
+    if (armoryForgeBusy) return;
     if (!isEquipmentUnlocked()) {
-        alert("Gear enhancement unlocks at Chapter 2 (Stage 9+).");
+        showArmoryForgeMessage(false, "Gear enhancement unlocks at Chapter 2 (Stage 9+).");
         return;
     }
     const idx = gearInventory.findIndex(g => g.id === gearEnhanceTargetId);
     if (idx < 0) {
-        alert("Selected gear is no longer in your inventory.");
+        showArmoryForgeMessage(false, "Selected gear is no longer in your inventory.");
         gearEnhanceClear();
         return;
     }
     const gear = gearInventory[idx];
     normalizeGear(gear);
     if (gear.enhanceLevel >= GEAR_ENHANCE_MAX) {
-        alert("This gear is already at max enhancement (+" + GEAR_ENHANCE_MAX + ").");
+        showArmoryForgeMessage(false, `This gear is already at max enhancement (+${GEAR_ENHANCE_MAX}).`);
         renderArmoryPane();
         return;
     }
     const goldCost = getGearEnhanceGoldCost(gear);
     if (money < goldCost) {
-        alert("Need " + goldCost + " Gold to enhance.\nYou have: " + money);
+        showArmoryForgeMessage(false, `Need ${goldCost} Gold to enhance. You have: ${money}.`);
         return;
     }
     const successRate = getGearEnhanceSuccessRate(gear);
     const failDrop = getGearEnhanceFailDropLevel(gear);
-    const failNote = failDrop != null ? "\nOn failure: drops to +" + failDrop + "." : "\nOn failure: no level drop.";
-    if (!confirm("Enhance " + formatGearDisplayName(gear) + "?\n\nCost: " + goldCost + " Gold\nSuccess rate: " + successRate + "%" + failNote)) return;
+    const gearId = gear.id;
 
-    money -= goldCost;
-    const success = Math.random() < (successRate / 100);
-    if (success) {
-        applyGearEnhanceLevelUp(gear);
-    } else if (failDrop != null && gear.enhanceLevel > failDrop) {
-        stripGearEnhanceLevels(gear, failDrop);
-    }
-
-    refreshEquippedGearStats();
-    saveData();
-    updateUI();
-    renderArmoryPane();
-    renderInventory();
-
-    if (success) {
-        alert("Enhancement success!\n" + formatGearDisplayName(gear) + "\n" + formatGearRngSummary(gear));
-    } else if (failDrop != null && gear.enhanceLevel <= failDrop) {
-        alert("Enhancement failed.\nEnhance level dropped to +" + gear.enhanceLevel + ".");
-    } else {
-        alert("Enhancement failed.\nNo change to enhance level.");
-    }
+    runArmoryForgeAction(() => {
+        const g = gearInventory.find((item) => item.id === gearId);
+        if (!g) return { ok: false, text: "Selected gear is no longer in your inventory." };
+        money -= goldCost;
+        const success = Math.random() < (successRate / 100);
+        if (success) {
+            applyGearEnhanceLevelUp(g);
+            refreshEquippedGearStats();
+            return { ok: true, text: `Enhancement success! ${formatGearDisplayName(g)} — ${formatGearRngSummary(g)}` };
+        }
+        if (failDrop != null && g.enhanceLevel > failDrop) {
+            stripGearEnhanceLevels(g, failDrop);
+            refreshEquippedGearStats();
+            return { ok: false, text: `Enhancement failed. Enhance level dropped to +${g.enhanceLevel}.` };
+        }
+        refreshEquippedGearStats();
+        return { ok: false, text: "Enhancement failed. No change to enhance level." };
+    });
 }
 
 function openGearSynthModal() {
