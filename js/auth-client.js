@@ -144,24 +144,38 @@ async function pushCloudSave(payload) {
     headers: authHeaders(),
     body: JSON.stringify({ save: payload }),
   });
+  if (res.status === 409) {
+    const data = await res.json().catch(() => ({}));
+    return { conflict: true, save: data.save || null };
+  }
   if (!res.ok) throw new Error("cloud save failed");
   const data = await res.json();
-  return data.save || null;
+  return { conflict: false, save: data.save || null };
 }
 
 function scheduleCloudSave(state, delayMs = 800) {
   if (!isLoggedIn()) return;
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => {
-    _saveInflight = pushCloudSave(buildSavePayload(state)).catch(() => {});
+    _saveInflight = pushCloudSave(buildSavePayload(state))
+      .then((result) => {
+        if (result?.conflict && result.save && typeof window.handleCloudSaveConflict === "function") {
+          window.handleCloudSaveConflict(result.save);
+        }
+      })
+      .catch(() => {});
   }, delayMs);
 }
 
 async function flushCloudSave(state) {
-  if (!isLoggedIn()) return;
+  if (!isLoggedIn()) return null;
   clearTimeout(_saveTimer);
   if (_saveInflight) await _saveInflight;
-  await pushCloudSave(buildSavePayload(state));
+  const result = await pushCloudSave(buildSavePayload(state));
+  if (result?.conflict && result.save && typeof window.handleCloudSaveConflict === "function") {
+    window.handleCloudSaveConflict(result.save);
+  }
+  return result;
 }
 
 window.MonExAuth = {

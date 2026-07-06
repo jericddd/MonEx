@@ -107,3 +107,13 @@ test("preserves hero ascension fields on mons", () => {
   assert.equal(mon.ascensionSkillPending[0].name, "Sharp Claws");
   assert.equal(mon.ascensionSkillPending[0].dmgDealt, 1.2);
 });
+
+test("preserves updatedAt when sanitizing saves", () => {
+  const ts = "2024-06-15T12:00:00.000Z";
+  const save = validateAndSanitizeSave(
+    { money: 100, updatedAt: ts },
+    {},
+    { now: Date.parse("2025-01-01T00:00:00.000Z") },
+  );
+  assert.equal(save.updatedAt, ts);
+});
