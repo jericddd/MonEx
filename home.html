@@ -122,8 +122,8 @@
 
     #showcase {
         position: relative;
-        flex: 1 1 auto;
-        min-height: 160px;
+        flex: 0 0 160px;
+        height: 160px;
         overflow: hidden;
         background: #ffffff;
         display: flex;
@@ -132,10 +132,18 @@
     }
 
     #showcase-img {
-        width: 100%;
-        height: 100%;
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
         object-fit: contain;
-        transition: all 0.6s ease;
+        transition: opacity 0.6s ease;
+    }
+
+    .showcase-panel-spacer {
+        flex: 1 1 auto;
+        min-height: 0;
     }
 
     .showcase-name {
@@ -267,12 +275,12 @@
         }
         .showcase-panel,
         .right-sidebar .side-box-grow,
-        .central-banner-visual {
+        .central-banner-visual,
+        .showcase-panel-spacer {
             flex: 0 0 auto;
         }
         #showcase {
-            flex: 0 0 auto;
-            min-height: 160px;
+            flex: 0 0 160px;
             height: 160px;
         }
         .showcase-panel,
@@ -489,6 +497,7 @@
             <button type="button" onclick="prevMon()" aria-label="Previous">←</button>
             <button type="button" onclick="nextMon()" aria-label="Next">→</button>
         </div>
+        <div class="showcase-panel-spacer" aria-hidden="true"></div>
     </div>
 </div>
 
