@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MonEx — Future Roadmap</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #222; }
+        h1 { font-family: "Press Start 2P", sans-serif; font-size: 16px; color: #6B21A8; }
+        h2 { font-family: "Press Start 2P", sans-serif; font-size: 10px; color: #6B21A8; margin-top: 24px; }
+        h3 { font-size: 15px; color: #333; margin-top: 18px; }
+        pre, code { background: #f3e8ff; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+        pre { padding: 12px; overflow-x: auto; }
+        .step { border: 3px solid #6B21A8; padding: 16px; margin: 16px 0; box-shadow: 4px 4px 0 #6B21A8; }
+        .planned { border-color: #b45309; background: #fffbeb; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #e9d5ff; vertical-align: top; }
+        ol li { margin-bottom: 8px; }
+        a { color: #6B21A8; }
+        .tag { display: inline-block; background: #ede9fe; color: #5b21b6; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <h1>Future Roadmap</h1>
+    <p>Planned features to implement later. <b>Not live yet.</b> Use this doc when we start building so decisions and flows stay consistent.</p>
+    <p><span class="tag">Staging first</span> Test on <code>staging</code> branch before promoting to <code>main</code> / monexmonad.xyz.</p>
+
+    <div class="step planned">
+        <h2>1. X API (expanded)</h2>
+        <p><b>Status:</b> Partial today — catch sync via <code>@monexmonad</code> bot + Cloudflare Worker. Full X API integration is a future milestone.</p>
+
+        <h3>What exists now</h3>
+        <ul>
+            <li>X login / session (<code>js/auth-client.js</code>)</li>
+            <li>Wild catch parsing from tweets (<code>cloudflare/monex-api</code>, <code>x-bot/</code>)</li>
+            <li>Activity feed + claim flow in game</li>
+            <li>Setup guide: <a href="x-live-setup.html">x-live-setup.html</a></li>
+        </ul>
+
+        <h3>What to bring when we implement</h3>
+        <ol>
+            <li><b>X Developer app</b> — keys for @monexmonad (see x-live-setup)</li>
+            <li><b>Paid X API tier</b> if required for search/stream volume</li>
+            <li><b>Cloudflare Worker secrets</b> — <code>X_API_KEY</code>, <code>X_API_SECRET</code>, tokens</li>
+            <li><b>Webhook or polling</b> — detect <code>@monexmonad catch N monanimals</code> in near real time</li>
+            <li><b>Link tweet → player</b> — match author handle to logged-in X account</li>
+            <li><b>Idempotent claims</b> — one tweet / one catch batch, no double-claim</li>
+            <li><b>Game UI</b> — feed, claim button, Monball deduction on catch</li>
+        </ol>
+
+        <h3>Target flow (player)</h3>
+        <ol>
+            <li>Player logs in with X in MonEx.</li>
+            <li>Player tweets e.g. <code>@monexmonad catch 10 monanimals</code> (1 Monball per catch).</li>
+            <li>X API / bot detects valid tweet.</li>
+            <li>Backend stores pending catch for that handle.</li>
+            <li>Player opens Catch / Activity in game → sees result → claims → Mons go to Party/Box.</li>
+        </ol>
+
+        <h3>Backend touchpoints</h3>
+        <table>
+            <tr><th>Area</th><th>File / service</th></tr>
+            <tr><td>API</td><td><code>cloudflare/monex-api/src/index.js</code></td></tr>
+            <tr><td>Catch engine</td><td><code>cloudflare/monex-api/src/lib/catch-engine.js</code></td></tr>
+            <tr><td>Game client</td><td><code>js/activity-client.js</code>, <code>monanimal_game.html</code></td></tr>
+            <tr><td>Config</td><td><code>js/monex-config.js</code></td></tr>
+        </table>
+    </div>
+
+    <div class="step planned">
+        <h2>2. $MONEX payment — Option A (pay per purchase)</h2>
+        <p><b>Status:</b> Not implemented. Chosen approach: <b>Option A</b> — each shop buy = one on-chain payment. No in-game $MONEX balance (no deposit model).</p>
+        <p><b>Chain:</b> Monad &nbsp;|&nbsp; <b>First item:</b> Monball packs in Shop tab &nbsp;|&nbsp; <b>MVP architecture:</b> Treasury wallet + server verification (A1).</p>
+
+        <h3>What exists now (ready to extend)</h3>
+        <ul>
+            <li>Shop tab with gold / essence prices (<code>SHOP_ITEMS</code> in game)</li>
+            <li>X login + cloud save (<code>MonExAuth</code>, Cloudflare API)</li>
+            <li>No wallet connect, no on-chain verification yet</li>
+        </ul>
+
+        <h3>What to bring when we implement</h3>
+        <table>
+            <tr><th>Piece</th><th>What to build</th></tr>
+            <tr><td>Token</td><td>ERC-20 <b>$MONEX</b> on Monad (testnet first, then mainnet)</td></tr>
+            <tr><td>Treasury</td><td>Team wallet address (or Shop contract later — A2)</td></tr>
+            <tr><td>Game UI</td><td>Connect Wallet, link wallet to X account, $MONEX prices in Shop, Buy button</td></tr>
+            <tr><td>Wallet lib</td><td>wagmi + viem or ethers — Monad chain ID in config</td></tr>
+            <tr><td>API tables</td><td><code>linked_wallets</code>, <code>purchases</code>, <code>used_tx_hashes</code></td></tr>
+            <tr><td>API routes</td><td>Link wallet (sign message), verify purchase (tx hash), grant items to save</td></tr>
+            <tr><td>Shop data</td><td>Add <code>cost: { monex: N }</code> on items (start with Monball pack only)</td></tr>
+        </table>
+
+        <h3>One-time setup flow</h3>
+        <ol>
+            <li>Deploy or designate $MONEX token on Monad testnet.</li>
+            <li>Create treasury wallet; set prices (e.g. 5 Monballs = 25 $MONEX).</li>
+            <li>Add Connect Wallet + “Link to @handle” (sign message, no gas).</li>
+            <li>Backend stores X user ↔ wallet address mapping.</li>
+            <li>Backend can verify txs on Monad and reject reused hashes.</li>
+        </ol>
+
+        <h3>Every purchase flow (Option A1 — treasury)</h3>
+        <ol>
+            <li>Player logged in with X → opens Shop → sees Monball pack priced in $MONEX.</li>
+            <li>Connect wallet (Monad network). Link wallet if first time.</li>
+            <li>Click <b>Buy with $MONEX</b> → wallet approves token (if needed) → sends $MONEX to treasury.</li>
+            <li>Player pays gas in <b>MON</b> (native), price in <b>$MONEX</b>.</li>
+            <li>Game sends <code>txHash + itemId</code> to API after confirmation.</li>
+            <li>API verifies on-chain: correct chain, token, amount, recipient, sender = linked wallet, hash unused.</li>
+            <li>API grants Monballs to cloud save → UI updates.</li>
+        </ol>
+
+        <h3>Security rules (non-negotiable)</h3>
+        <ul>
+            <li>Never grant items from client-only “payment succeeded” — always verify on server.</li>
+            <li>One transaction hash = one purchase (replay protection).</li>
+            <li>Payment wallet must match linked wallet for that X account.</li>
+            <li>Wait for block confirmations before granting.</li>
+        </ul>
+
+        <h3>Phased rollout</h3>
+        <table>
+            <tr><th>Phase</th><th>Scope</th></tr>
+            <tr><td>1 — MVP</td><td>Option A1, one Monball pack, testnet, server verify</td></tr>
+            <tr><td>2 — Polish</td><td>Mainnet, tx history in Profile, more $MONEX shop items</td></tr>
+            <tr><td>3 — Optional</td><td>Shop smart contract (A2) or deposit balance (Option B) only if needed</td></tr>
+        </table>
+
+        <h3>Not in scope for Option A MVP</h3>
+        <ul>
+            <li>In-game $MONEX balance (that’s Option B — deposit model)</li>
+            <li>Replacing gold/essence economy — those stay for grind/free path</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h2>Other ideas (later)</h2>
+        <ul>
+            <li>Adventure mode, Arena, PVP Wager</li>
+            <li>Shop smart contract (Option A2) after treasury MVP is stable</li>
+        </ul>
+    </div>
+
+    <p style="margin-top: 32px; font-size: 13px; color: #666;">
+        Last updated for agent handoff — when user says “implement X API” or “implement MONEX payment”, start from this doc and <code>docs/x-live-setup.html</code>.
+    </p>
+</body>
+</html>

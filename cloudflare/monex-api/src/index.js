@@ -221,8 +221,15 @@ async function handleRequest(request, env) {
       if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status);
       const body = await request.json();
       const payload = buildSavePayload(body?.save || body, auth.session);
-      await writeCloudSave(env.MONEX_KV, auth.session.xUserId, payload);
-      return json({ ok: true, savedAt: payload.updatedAt });
+      try {
+        await writeCloudSave(env.MONEX_KV, auth.session.xUserId, payload);
+      } catch (err) {
+        if (err?.code === "stale_save") {
+          return json({ ok: false, error: "stale_save", save: err.existingSave }, 409);
+        }
+        throw err;
+      }
+      return json({ ok: true, savedAt: payload.updatedAt, save: payload });
     }
 
     if (path === "/api/activity" && request.method === "GET") {

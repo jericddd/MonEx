@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>MonEx - Home</title>
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -193,8 +194,28 @@
     }
     .wild-log-table-wrap {
         overflow-x: auto;
+        overflow-y: auto;
+        max-height: min(52vh, 480px);
         min-height: 120px;
+        scrollbar-gutter: stable;
+        scrollbar-width: thin;
+        scrollbar-color: #6B21A8 rgba(107, 33, 168, 0.15);
+        -webkit-overflow-scrolling: touch;
+        padding-right: 4px;
     }
+    .wild-log-table-wrap::-webkit-scrollbar { width: 10px; }
+    .wild-log-table-wrap::-webkit-scrollbar-track {
+        background: rgba(107, 33, 168, 0.12);
+        border-radius: 5px;
+        margin-top: 8px;
+        margin-bottom: 8px;
+    }
+    .wild-log-table-wrap::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #a855f7, #6b21a8);
+        border: 1px solid #6b21a8;
+        border-radius: 5px;
+    }
+    .wild-log-table tr.activity-row-clickable { cursor: pointer; }
     .wild-log-table {
         width: 100%;
         border-collapse: collapse;
@@ -373,7 +394,7 @@
     <div class="wild-log-header">
         <div>
             <h2><span class="activity-live"></span>X WILD LOG</h2>
-            <p class="wild-log-sub">Live catches from X — tweet <b>@monexmonad catch 10 monanimals</b></p>
+            <p class="wild-log-sub">Live catches from X — tweet <b>@monexmonad catch 10 monanimals</b> · click a row for full catch log</p>
         </div>
         <p class="wild-log-sub" id="wild-log-status">Loading…</p>
     </div>
@@ -389,7 +410,7 @@
 // Monanimal Showcase
 const monanimals = [
     {name: "Chog", path: "128x128/chog.gif"},
-    {name: "Mopo", path: "128x128/mopo.gif"},
+    {name: "Salmonad", path: "128x128/salmonad.png"},
     {name: "Molandak", path: "128x128/molandak.gif"},
     {name: "Monavara", path: "128x128/monavara.png"},
     {name: "Moxy", path: "128x128/moxy.png"}
@@ -515,7 +536,8 @@ function showCustomModal(message) {
 }
 
 function goToProfile() {
-    window.location.href = 'monanimal_game.html#profile';
+    sessionStorage.setItem("monex_open_profile", "1");
+    window.location.href = "monanimal_game.html";
 }
 
 async function logout() {
