@@ -5407,7 +5407,18 @@ body.afk-layout .currency-pill .currency-tip {
     margin-left: 6px;
     vertical-align: middle;
 }
-/* ── Patrol mode: adventure picker + grass scan ── */
+/* ── Patrol mode: Monad office scan + adventure hub ── */
+.adventure-panel.adventure-panel--hub-overlay {
+    background: linear-gradient(180deg, rgba(52, 34, 22, 0.9) 0%, rgba(38, 24, 16, 0.94) 100%);
+    box-shadow:
+        inset 0 0 0 2px #5c2e0e,
+        inset 0 0 0 4px #f4a442,
+        0 8px 32px rgba(0, 0, 0, 0.65);
+}
+.game-container.adventure-hub-mode .game-container-bg {
+    object-fit: fill;
+    object-position: center center;
+}
 .adventure-mode-picker {
     display: flex;
     gap: 16px;
@@ -5464,14 +5475,14 @@ body.afk-layout .currency-pill .currency-tip {
     margin: 18px auto 22px;
     width: min(420px, 88%);
     aspect-ratio: 16 / 10;
-    border: 3px solid #4ade80;
+    border: 3px solid #67e8f9;
     border-radius: 12px;
     background:
-        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(34, 197, 94, 0.35) 0%, transparent 70%),
-        linear-gradient(180deg, #1a3d22 0%, #0f2918 55%, #0a1f12 100%);
+        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(34, 211, 238, 0.22) 0%, transparent 70%),
+        linear-gradient(180deg, rgba(15, 23, 42, 0.75) 0%, rgba(8, 14, 28, 0.85) 100%);
     box-shadow:
-        inset 0 0 40px rgba(74, 222, 128, 0.12),
-        0 0 24px rgba(34, 197, 94, 0.2);
+        inset 0 0 40px rgba(34, 211, 238, 0.1),
+        0 0 24px rgba(103, 232, 249, 0.18);
     position: relative;
     overflow: hidden;
     cursor: pointer;
@@ -5481,8 +5492,8 @@ body.afk-layout .currency-pill .currency-tip {
     position: absolute;
     inset: 0;
     background-image:
-        repeating-linear-gradient(0deg, transparent, transparent 14px, rgba(74, 222, 128, 0.06) 14px, rgba(74, 222, 128, 0.06) 15px),
-        repeating-linear-gradient(90deg, transparent, transparent 14px, rgba(74, 222, 128, 0.04) 14px, rgba(74, 222, 128, 0.04) 15px);
+        repeating-linear-gradient(0deg, transparent, transparent 14px, rgba(103, 232, 249, 0.07) 14px, rgba(103, 232, 249, 0.07) 15px),
+        repeating-linear-gradient(90deg, transparent, transparent 14px, rgba(167, 139, 250, 0.05) 14px, rgba(167, 139, 250, 0.05) 15px);
     pointer-events: none;
 }
 .patrol-scan-zone-label {
@@ -5493,8 +5504,8 @@ body.afk-layout .currency-pill .currency-tip {
     justify-content: center;
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
-    color: rgba(187, 247, 208, 0.75);
-    text-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
+    color: rgba(186, 230, 253, 0.9);
+    text-shadow: 0 0 12px rgba(34, 211, 238, 0.55);
     pointer-events: none;
 }
 .patrol-scan-btn {
@@ -5522,15 +5533,14 @@ body.afk-layout .currency-pill .currency-tip {
     justify-content: center;
     overflow: hidden;
 }
-.patrol-grass-field {
+.patrol-office-field {
     position: absolute;
     inset: 0;
-    background:
-        radial-gradient(ellipse 90% 70% at 50% 110%, rgba(34, 197, 94, 0.45) 0%, transparent 55%),
-        linear-gradient(180deg, #0c2415 0%, #14361f 40%, #1a4228 100%);
+    background: rgba(8, 12, 28, 0.52);
+    backdrop-filter: blur(1px);
 }
 .game-container.patrol-scan-active .game-container-bg {
-    filter: hue-rotate(25deg) saturate(1.2) brightness(0.55);
+    filter: brightness(0.62) saturate(1.1) hue-rotate(-8deg);
 }
 .patrol-scan-hud {
     position: relative;
@@ -5548,14 +5558,14 @@ body.afk-layout .currency-pill .currency-tip {
     align-items: center;
     font-family: 'Press Start 2P', monospace;
     font-size: 7px;
-    color: #bbf7d0;
+    color: #bae6fd;
     text-shadow: 1px 1px 0 #000;
 }
 .patrol-scan-viewport {
     position: relative;
     width: 100%;
     aspect-ratio: 16 / 11;
-    border: 2px solid rgba(74, 222, 128, 0.55);
+    border: 2px solid rgba(103, 232, 249, 0.55);
     border-radius: 8px;
     background: rgba(0, 0, 0, 0.35);
     overflow: hidden;
@@ -5565,8 +5575,8 @@ body.afk-layout .currency-pill .currency-tip {
     position: absolute;
     inset: 0;
     background-image:
-        linear-gradient(rgba(74, 222, 128, 0.12) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(74, 222, 128, 0.12) 1px, transparent 1px);
+        linear-gradient(rgba(103, 232, 249, 0.14) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(167, 139, 250, 0.1) 1px, transparent 1px);
     background-size: 24px 24px;
     opacity: 0.6;
 }
@@ -5582,19 +5592,19 @@ body.afk-layout .currency-pill .currency-tip {
     position: absolute;
     inset: -8%;
     border-radius: 50%;
-    background: conic-gradient(from 0deg, transparent 0deg, rgba(74, 222, 128, 0.55) 42deg, transparent 84deg);
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(103, 232, 249, 0.55) 42deg, transparent 84deg);
     animation: patrol-sweep 2.2s linear infinite;
 }
 .patrol-scan-ring {
     position: absolute;
     inset: 12%;
-    border: 2px solid rgba(134, 239, 172, 0.65);
+    border: 2px solid rgba(186, 230, 253, 0.65);
     border-radius: 50%;
-    box-shadow: 0 0 16px rgba(74, 222, 128, 0.25);
+    box-shadow: 0 0 16px rgba(34, 211, 238, 0.3);
 }
 .patrol-scan-ring--2 {
     inset: 28%;
-    border-color: rgba(134, 239, 172, 0.35);
+    border-color: rgba(167, 139, 250, 0.4);
     animation: patrol-pulse-ring 1.4s ease-out infinite;
 }
 .patrol-scan-dot {
@@ -5604,9 +5614,9 @@ body.afk-layout .currency-pill .currency-tip {
     width: 8px;
     height: 8px;
     margin: -4px 0 0 -4px;
-    background: #4ade80;
+    background: #22d3ee;
     border-radius: 50%;
-    box-shadow: 0 0 12px #4ade80;
+    box-shadow: 0 0 12px #22d3ee;
 }
 .patrol-scan-blips {
     position: absolute;
@@ -5618,8 +5628,8 @@ body.afk-layout .currency-pill .currency-tip {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #86efac;
-    box-shadow: 0 0 8px #4ade80;
+    background: #67e8f9;
+    box-shadow: 0 0 8px #22d3ee;
     opacity: 0;
     animation: patrol-blip 1.8s ease-in-out infinite;
 }
@@ -5636,7 +5646,7 @@ body.afk-layout .currency-pill .currency-tip {
 }
 .patrol-scan-progress-track {
     height: 10px;
-    border: 2px solid rgba(74, 222, 128, 0.45);
+    border: 2px solid rgba(103, 232, 249, 0.45);
     border-radius: 6px;
     background: rgba(0, 0, 0, 0.4);
     overflow: hidden;
@@ -5644,18 +5654,18 @@ body.afk-layout .currency-pill .currency-tip {
 .patrol-scan-progress-fill {
     height: 100%;
     width: 0%;
-    background: linear-gradient(90deg, #16a34a, #4ade80, #bbf7d0);
+    background: linear-gradient(90deg, #0e7490, #22d3ee, #a5f3fc);
     transition: width 0.35s ease-out;
-    box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
 }
 .patrol-scan-hint {
     margin: 10px 0 0;
     font-size: 12px;
-    color: rgba(187, 247, 208, 0.8);
+    color: rgba(186, 230, 253, 0.85);
     min-height: 1.2em;
 }
 .patrol-scan-stage.patrol-encounter-rare .patrol-scan-status { color: #fde68a; text-shadow: 0 0 10px rgba(251, 191, 36, 0.6); }
-.patrol-scan-stage.patrol-encounter-uncommon .patrol-scan-status { color: #86efac; }
+.patrol-scan-stage.patrol-encounter-uncommon .patrol-scan-status { color: #67e8f9; }
 .patrol-scan-stage.patrol-encounter-trash .patrol-scan-status { color: #9ca3af; }
 .patrol-scan-stage.is-lock-on .patrol-scan-viewport {
     border-color: #fbbf24;
@@ -7743,6 +7753,7 @@ const BATTLE_HUB_BG_VER = 3;
 const BATTLE_HUB_BG = `${BANNER_DIR}/battlescene_background.png?v=${BATTLE_HUB_BG_VER}`;
 const BATTLE_HUB_ART = { w: 1672, h: 941 };
 const CHAPTER_BG_MAX = 2;
+const ADVENTURE_MODE_HUB_BG = `${BANNER_DIR}/adventure_chapter1.jpg`;
 const ADVENTURE_CHAPTER_PLACEHOLDER = BANNER_DIR + "/adventure_chapter_placeholder.png";
 const CHAPTER_BG_FALLBACK = ADVENTURE_CHAPTER_PLACEHOLDER;
 const BATTLE_HUB_BTN_DIR = BANNER_DIR + "/battle_hub";
@@ -7881,6 +7892,18 @@ function applyBattleStageChapterBackground(chapter) {
     stage.style.backgroundSize = "100% 100%";
     stage.style.backgroundPosition = "center center";
     stage.style.backgroundRepeat = "no-repeat";
+}
+
+function getAdventureModeHubBackgroundPath() {
+    return ADVENTURE_MODE_HUB_BG;
+}
+
+function refreshAdventureModeHubBackground() {
+    setBattleSceneBackground(getAdventureModeHubBackgroundPath());
+}
+
+function setAdventureHubMode(active) {
+    document.querySelector(".game-container")?.classList.toggle("adventure-hub-mode", !!active);
 }
 
 function refreshAdventureChapterBackground() {
@@ -14283,6 +14306,7 @@ function openBattleHub() {
     setMainSceneVisible(false);
     document.getElementById("battle-scene").classList.add("open");
     setAdventureMode(false);
+    setAdventureHubMode(false);
     setBattleFightingUI(false);
     setBattleSceneBackground(BATTLE_HUB_BG);
     setActiveRailTab("rail-battle");
@@ -14306,17 +14330,22 @@ function launchAdventureFromHub() {
     openAdventureModePicker();
 }
 
-function prepareAdventureBattleScene() {
+function prepareAdventureBattleScene(bgUrl) {
     loadAdventureProgress();
     closeAllModals();
     stopSceneIdleBattle();
     ensureBattleSceneOpen();
-    enterAdventureFullMode(getChapterBackgroundPath(currentChapter));
+    enterAdventureFullMode(bgUrl || getChapterBackgroundPath(currentChapter));
     setActiveRailTab("rail-battle");
 }
 
+function prepareAdventureHubScene() {
+    setAdventureHubMode(true);
+    prepareAdventureBattleScene(getAdventureModeHubBackgroundPath());
+}
+
 function openAdventureModePicker() {
-    prepareAdventureBattleScene();
+    prepareAdventureHubScene();
     battleScreen = "adventure-picker";
     activeBattleMode = "campaign";
     setPatrolScanUI(false);
@@ -14325,9 +14354,9 @@ function openAdventureModePicker() {
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui cover-art-layer";
     content.innerHTML = `
-        <div class="adventure-panel">
+        <div class="adventure-panel adventure-panel--hub-overlay">
             <h2>ADVENTURE</h2>
-            <p class="adv-desc">Choose how you want to explore.</p>
+            <p class="adv-desc">Monad office HQ — choose your route.</p>
             <div class="adventure-mode-picker">
                 <button type="button" class="adventure-mode-card" onclick="openAdventureStagePrep()">
                     <h3>CAMPAIGN</h3>
@@ -14336,7 +14365,7 @@ function openAdventureModePicker() {
                 </button>
                 <button type="button" class="adventure-mode-card" onclick="openPatrolScreen()">
                     <h3>PATROL</h3>
-                    <p>Scan the wilds for random fights and loot.</p>
+                    <p>Scan the Monad office for intruders and loot.</p>
                     <span class="mode-card-stat">${remaining}/${PATROL_DAILY_MAX} scans today</span>
                 </button>
             </div>
@@ -14347,7 +14376,7 @@ function openAdventureModePicker() {
 }
 
 function openPatrolScreen() {
-    prepareAdventureBattleScene();
+    prepareAdventureHubScene();
     battleScreen = "patrol";
     activeBattleMode = "patrol";
     setPatrolScanUI(false);
@@ -14360,24 +14389,24 @@ function renderPatrolLobby() {
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui cover-art-layer";
     content.innerHTML = `
-        <div class="adventure-panel">
+        <div class="adventure-panel adventure-panel--hub-overlay">
             <h2>PATROL</h2>
             <p class="patrol-lobby-scans${depleted ? " depleted" : ""}">${remaining} / ${PATROL_DAILY_MAX} scans left today</p>
-            <p class="adv-desc">Scan the grass for wild Monanimals. ${escapeGearHtml(getPatrolGearLevelLabel())}.</p>
-            <div class="patrol-scan-zone" onclick="beginPatrolScan()" role="button" tabindex="0" aria-label="Scan wild grass">
-                <span class="patrol-scan-zone-label">${depleted ? "NO SCANS LEFT" : "TAP TO SCAN"}</span>
+            <p class="adv-desc">Scan the Monad office for hostile Monanimals. ${escapeGearHtml(getPatrolGearLevelLabel())}.</p>
+            <div class="patrol-scan-zone" onclick="beginPatrolScan()" role="button" tabindex="0" aria-label="Scan Monad office">
+                <span class="patrol-scan-zone-label">${depleted ? "NO SCANS LEFT" : "TAP TO SCAN OFFICE"}</span>
             </div>
-            <button type="button" class="adventure-start-btn patrol-scan-btn" onclick="beginPatrolScan()" ${depleted ? "disabled" : ""}>SCAN THE WILDS</button>
+            <button type="button" class="adventure-start-btn patrol-scan-btn" onclick="beginPatrolScan()" ${depleted ? "disabled" : ""}>SCAN MONAD OFFICE</button>
             <button type="button" class="adventure-continue-btn" style="margin-top:10px;background:linear-gradient(180deg,#6b4426,#4a2e18);color:#ffe8c8;border-color:#8b5a2b;" onclick="openAdventureModePicker()">BACK</button>
         </div>`;
     syncCoverStages();
 }
 
 const PATROL_ENCOUNTER_TABLE = [
-    { id: "trash", weight: 12, label: "Faint rustling…", hint: "Quick skirmish — supplies recovered" },
-    { id: "common", weight: 53, label: "Wild encounter!", hint: "Standard patrol battle" },
-    { id: "uncommon", weight: 24, label: "Strong presence!", hint: "Better rewards possible" },
-    { id: "rare", weight: 11, label: "RARE SIGNAL!", hint: "High gear drop chance" },
+    { id: "trash", weight: 12, label: "Empty cubicle…", hint: "Quick sweep — office supplies recovered" },
+    { id: "common", weight: 53, label: "Office intruder!", hint: "Standard patrol battle" },
+    { id: "uncommon", weight: 24, label: "Strong bio-sign!", hint: "Better rewards possible" },
+    { id: "rare", weight: 11, label: "RARE OFFICE ALERT!", hint: "High gear drop chance" },
 ];
 
 function rollPatrolEncounter() {
@@ -14431,11 +14460,11 @@ function renderPatrolScanStage(encounter) {
     content.className = "battle-scene-ui battle-scene-ui--patrol-scan cover-art-layer";
     content.innerHTML = `
         <div class="patrol-scan-stage patrol-encounter-${encounter.id}" id="patrol-scan-stage">
-            <div class="patrol-grass-field"></div>
+            <div class="patrol-office-field"></div>
             <div class="patrol-scan-hud">
                 <div class="patrol-scan-top">
-                    <span class="patrol-scan-title">◈ PATROL SCAN</span>
-                    <span class="patrol-scan-chapter">Ch.${currentChapter}</span>
+                    <span class="patrol-scan-title">◈ OFFICE SCAN</span>
+                    <span class="patrol-scan-chapter">Monad HQ · Ch.${currentChapter}</span>
                 </div>
                 <div class="patrol-scan-viewport" id="patrol-scan-viewport">
                     <div class="patrol-scan-grid"></div>
@@ -14448,7 +14477,7 @@ function renderPatrolScanStage(encounter) {
                     <div class="patrol-scan-blips" id="patrol-scan-blips"></div>
                 </div>
                 <div class="patrol-scan-footer">
-                    <p class="patrol-scan-status" id="patrol-scan-status">Booting field scanner…</p>
+                    <p class="patrol-scan-status" id="patrol-scan-status">Booting office scanner…</p>
                     <div class="patrol-scan-progress-track">
                         <div class="patrol-scan-progress-fill" id="patrol-scan-progress"></div>
                     </div>
@@ -14476,22 +14505,23 @@ async function animatePatrolScanProgress(from, to, ms) {
 async function runPatrolScanSequence(encounter, scanToken) {
     battleScreen = "patrol-scan";
     setPatrolScanUI(true);
+    refreshAdventureModeHubBackground();
     renderPatrolScanStage(encounter);
     setPatrolScanProgress(0);
     setPatrolScanHint("");
 
     await delay(350);
     if (scanToken !== patrolScanToken) return;
-    setPatrolScanStatus("Sweeping grass sector…");
+    setPatrolScanStatus("Sweeping Monad office floor…");
     await animatePatrolScanProgress(0, 28, 900);
     if (scanToken !== patrolScanToken) return;
 
-    setPatrolScanStatus("Analyzing movement patterns…");
+    setPatrolScanStatus("Cross-referencing desk sectors…");
     spawnPatrolScanBlips();
     await animatePatrolScanProgress(28, 58, 1000);
     if (scanToken !== patrolScanToken) return;
 
-    setPatrolScanStatus("Bio-sign detected!");
+    setPatrolScanStatus("Bio-sign in the break room!");
     document.getElementById("patrol-scan-stage")?.classList.add("is-lock-on");
     await animatePatrolScanProgress(58, 82, 800);
     if (scanToken !== patrolScanToken) return;
@@ -14501,7 +14531,7 @@ async function runPatrolScanSequence(encounter, scanToken) {
     await delay(500);
     if (scanToken !== patrolScanToken) return;
 
-    setPatrolScanStatus("ENGAGING!");
+    setPatrolScanStatus("DEPLOYING TEAM!");
     document.getElementById("patrol-scan-stage")?.classList.add("is-engage");
     await animatePatrolScanProgress(82, 100, 450);
     if (scanToken !== patrolScanToken) return;
@@ -14581,6 +14611,8 @@ function rollPatrolRewards(encounter, win) {
 function startPatrolBattle(encounter) {
     activeBattleMode = "patrol";
     activePatrolEncounter = encounter;
+    setAdventureHubMode(false);
+    refreshAdventureChapterBackground();
     isInAdventureBattle = true;
     start3v3Battle(party.slice(0, 3), {
         enemyTeam: makePatrolEnemyTeam(currentChapter, encounter),
@@ -14608,7 +14640,8 @@ function endPatrolBattle(win, player) {
 
 function showPatrolBattleResult(win, reward, encounter) {
     battleScreen = "patrol-result";
-    refreshAdventureChapterBackground();
+    setAdventureHubMode(true);
+    refreshAdventureModeHubBackground();
     const remaining = getPatrolScansRemaining();
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui cover-art-layer";
@@ -14626,7 +14659,7 @@ function showPatrolBattleResult(win, reward, encounter) {
         : `<p class="adv-desc" style="font-size:15px; margin:20px 0;">Patrol failed — team restored to full HP. Try again!</p>`;
     const scanAgainDisabled = remaining <= 0;
     content.innerHTML = `
-        <div class="adventure-panel">
+        <div class="adventure-panel adventure-panel--hub-overlay">
             <h2 style="color:${win ? "#16a34a" : "#ef4444"};">${win ? "PATROL CLEAR" : "PATROL FAILED"}</h2>
             <p class="patrol-lobby-scans${scanAgainDisabled ? " depleted" : ""}">${remaining} / ${PATROL_DAILY_MAX} scans left</p>
             ${drops}
@@ -14638,7 +14671,8 @@ function showPatrolBattleResult(win, reward, encounter) {
 }
 
 function openAdventureStagePrep() {
-    prepareAdventureBattleScene();
+    setAdventureHubMode(false);
+    prepareAdventureBattleScene(getChapterBackgroundPath(currentChapter));
     startStageSelection();
 }
 
@@ -14743,6 +14777,7 @@ async function waitWhilePaused(battleToken) {
 function closeBattleScene() {
     setBattleFightingUI(false);
     setAdventureMode(false);
+    setAdventureHubMode(false);
     setPatrolScanUI(false);
     patrolScanToken++;
     document.querySelector(".game-container")?.classList.remove("patrol-scan-active");
@@ -14830,7 +14865,7 @@ function ensureBattleSceneOpen() {
 }
 
 function enterAdventureMode() {
-    openAdventureStagePrep();
+    openAdventureModePicker();
 }
 
 function startStageSelection() {
