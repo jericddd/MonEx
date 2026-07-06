@@ -65,9 +65,15 @@
 
     .main-columns {
         display: flex;
+        align-items: stretch;
         gap: 15px;
-        flex-wrap: wrap;
         width: 100%;
+    }
+
+    @media (min-width: 901px) {
+        .main-columns {
+            flex-wrap: nowrap;
+        }
     }
 
     .home-wrap {
@@ -79,11 +85,73 @@
 
     /* Left Sidebar */
     .left-sidebar {
-        width: 100%;
+        flex: 0 0 240px;
+        width: 240px;
         max-width: 240px;
         display: flex;
         flex-direction: column;
         gap: 12px;
+    }
+
+    .sidebar-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        flex-shrink: 0;
+    }
+
+    .showcase-panel {
+        margin-top: auto;
+        background: white;
+        border: 4px solid #6B21A8;
+        box-shadow: 4px 4px 0px #6B21A8;
+        padding: 12px;
+        text-align: center;
+        box-sizing: border-box;
+    }
+
+    .showcase-panel h3 {
+        margin: 0 0 10px 0;
+        font-family: "Press Start 2P", monospace;
+        color: #6B21A8;
+        font-size: 12px;
+    }
+
+    #showcase {
+        position: relative;
+        height: 160px;
+        overflow: hidden;
+        background: #ffffff;
+    }
+
+    #showcase-img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        transition: all 0.6s ease;
+    }
+
+    .showcase-name {
+        margin-top: 8px;
+        font-family: "Press Start 2P", monospace;
+        font-size: 12px;
+    }
+
+    .showcase-nav {
+        margin-top: 10px;
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .showcase-nav button {
+        background: #6B21A8;
+        color: white;
+        border: none;
+        width: 35px;
+        height: 35px;
+        cursor: pointer;
+        font-size: 16px;
     }
 
     .sidebar-btn {
@@ -105,22 +173,37 @@
 
     /* Central Banner */
     .central-banner {
-        flex: 1;
+        flex: 1 1 0;
         min-width: 280px;
+        display: flex;
+        flex-direction: column;
         background: rgba(255,255,255,0.92);
         border: 4px solid #6B21A8;
         box-shadow: 4px 4px 0px #6B21A8;
         padding: 20px;
         text-align: center;
+        box-sizing: border-box;
+    }
+
+    .central-banner img {
+        max-width: 100%;
+        height: auto;
+        border: 4px solid #6B21A8;
+        margin: 15px 0;
     }
 
     /* Right Sidebar */
     .right-sidebar {
-        width: 100%;
+        flex: 0 0 260px;
+        width: 260px;
         max-width: 260px;
         display: flex;
         flex-direction: column;
         gap: 15px;
+    }
+
+    .right-sidebar .side-box:last-child {
+        margin-top: auto;
     }
 
     .side-box {
@@ -143,10 +226,20 @@
     @media (max-width: 900px) {
         .main-columns {
             flex-direction: column;
-            align-items: center;
+            align-items: stretch;
+            flex-wrap: wrap;
         }
-        .left-sidebar, .right-sidebar {
+        .left-sidebar,
+        .right-sidebar,
+        .central-banner {
+            flex: 1 1 auto;
+            width: 100%;
             max-width: 100%;
+            min-width: 0;
+        }
+        .showcase-panel,
+        .right-sidebar .side-box:last-child {
+            margin-top: 0;
         }
         .nav-btn {
             font-size: 10px;
@@ -328,6 +421,7 @@
 <div class="main-columns">
 <!-- Left Sidebar -->
 <div class="left-sidebar">
+    <div class="sidebar-nav">
     <div class="sidebar-btn" onclick="handleGameStart()" 
      style="background: linear-gradient(145deg, #c084fc, #7c3aed); 
             color: white; 
@@ -342,20 +436,20 @@
     <div class="sidebar-btn" onclick="window.location.href='docs.html'">DOCS</div>
     
     <div class="sidebar-btn" onclick="window.location.href='monanimal_game.html'">SHOP</div>
+    </div>
 
-    <!-- Monanimal Showcase - Below Shop -->
-<div style="margin-top: 15px; background: white; border: 4px solid #6B21A8; box-shadow: 4px 4px 0px #6B21A8; padding: 12px; text-align: center;">
-    <h3 style="margin: 0 0 10px 0; font-family: 'Press Start 2P', monospace; color: #6B21A8; font-size: 12px;">MONANIMAL SHOWCASE</h3>
+    <div class="showcase-panel">
+    <h3>MONANIMAL SHOWCASE</h3>
     
-    <div id="showcase" style="position: relative; height: 160px; overflow: hidden; background: #ffffff;">
-            <img id="showcase-img" src="" style="width: 100%; height: 100%; object-fit: contain; transition: all 0.6s ease;">
+    <div id="showcase">
+            <img id="showcase-img" src="" alt="">
         </div>
         
-        <div style="margin-top: 8px; font-family: 'Press Start 2P', monospace; font-size: 12px;" id="showcase-name"></div>
+        <div class="showcase-name" id="showcase-name"></div>
         
-        <div style="margin-top: 10px; display: flex; justify-content: center; gap: 15px;">
-            <button onclick="prevMon()" style="background: #6B21A8; color: white; border: none; width: 35px; height: 35px; cursor: pointer; font-size: 16px;">←</button>
-            <button onclick="nextMon()" style="background: #6B21A8; color: white; border: none; width: 35px; height: 35px; cursor: pointer; font-size: 16px;">→</button>
+        <div class="showcase-nav">
+            <button type="button" onclick="prevMon()" aria-label="Previous">←</button>
+            <button type="button" onclick="nextMon()" aria-label="Next">→</button>
         </div>
     </div>
 </div>
@@ -364,8 +458,7 @@
     <div class="central-banner">
         <h2>WELCOME TO MONEX</h2>
         <p style="font-size: 18px; margin: 20px 0;">Catch. Train. Battle.</p>
-        <img src="for result banner/homepagebackground.jpg" 
-             style="max-width: 100%; border: 4px solid #6B21A8; margin: 15px 0;">
+        <img src="for%20result%20banner/homepagebackground.jpg" alt="MonEx heroes">
     </div>
 
     <!-- Right Sidebar -->
