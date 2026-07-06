@@ -391,6 +391,8 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
     gearInventory: sanitizeGearInventory(input.gearInventory),
     gearInventorySeedVersion: clampInt(input.gearInventorySeedVersion ?? 0, 0, 99),
     lastResetDate: typeof input.lastResetDate === "string" ? trimString(input.lastResetDate, 32) || null : null,
+    patrolScansUsed: clampInt(input.patrolScansUsed ?? 0, 0, 50),
+    patrolScansDay: typeof input.patrolScansDay === "string" ? trimString(input.patrolScansDay, 32) || null : null,
     resourceChestLastCollectAt: sanitizeResourceChestTimestamp(input.resourceChestLastCollectAt, now),
     adventureBattleActive: false,
     saveVersion: Number.isFinite(input.saveVersion) ? clampInt(input.saveVersion, 1, 999) : 1,

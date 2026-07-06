@@ -5407,6 +5407,279 @@ body.afk-layout .currency-pill .currency-tip {
     margin-left: 6px;
     vertical-align: middle;
 }
+/* ── Patrol mode: adventure picker + grass scan ── */
+.adventure-mode-picker {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 20px 0 8px;
+}
+.adventure-mode-card {
+    width: min(220px, 42vw);
+    padding: 18px 14px 16px;
+    border: 3px solid #d4a04a;
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.28) 100%);
+    box-shadow: 2px 2px 0 #3d2010;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.12s ease, border-color 0.12s ease, filter 0.12s ease;
+    font-family: 'Lato', sans-serif;
+    color: #ffe8c8;
+}
+.adventure-mode-card:hover {
+    transform: translateY(-2px);
+    border-color: #fbbf24;
+    filter: brightness(1.06);
+}
+.adventure-mode-card h3 {
+    margin: 0 0 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: #fde68a;
+    line-height: 1.5;
+}
+.adventure-mode-card p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: rgba(255, 232, 200, 0.85);
+}
+.adventure-mode-card .mode-card-stat {
+    display: block;
+    margin-top: 10px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: #86efac;
+}
+.patrol-lobby-scans {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: #fde68a;
+    margin: 0 0 6px;
+}
+.patrol-lobby-scans.depleted { color: #f87171; }
+.patrol-scan-zone {
+    margin: 18px auto 22px;
+    width: min(420px, 88%);
+    aspect-ratio: 16 / 10;
+    border: 3px solid #4ade80;
+    border-radius: 12px;
+    background:
+        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(34, 197, 94, 0.35) 0%, transparent 70%),
+        linear-gradient(180deg, #1a3d22 0%, #0f2918 55%, #0a1f12 100%);
+    box-shadow:
+        inset 0 0 40px rgba(74, 222, 128, 0.12),
+        0 0 24px rgba(34, 197, 94, 0.2);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+.patrol-scan-zone::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 14px, rgba(74, 222, 128, 0.06) 14px, rgba(74, 222, 128, 0.06) 15px),
+        repeating-linear-gradient(90deg, transparent, transparent 14px, rgba(74, 222, 128, 0.04) 14px, rgba(74, 222, 128, 0.04) 15px);
+    pointer-events: none;
+}
+.patrol-scan-zone-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: rgba(187, 247, 208, 0.75);
+    text-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
+    pointer-events: none;
+}
+.patrol-scan-btn {
+    padding: 14px 40px;
+    font-size: 9px;
+}
+.patrol-scan-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none !important;
+}
+.battle-scene-ui--patrol-scan {
+    display: flex !important;
+    align-items: stretch;
+    justify-content: center;
+    padding: 0 !important;
+}
+.patrol-scan-stage {
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.patrol-grass-field {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 90% 70% at 50% 110%, rgba(34, 197, 94, 0.45) 0%, transparent 55%),
+        linear-gradient(180deg, #0c2415 0%, #14361f 40%, #1a4228 100%);
+}
+.game-container.patrol-scan-active .game-container-bg {
+    filter: hue-rotate(25deg) saturate(1.2) brightness(0.55);
+}
+.patrol-scan-hud {
+    position: relative;
+    z-index: 2;
+    width: min(640px, 94%);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    box-sizing: border-box;
+}
+.patrol-scan-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: #bbf7d0;
+    text-shadow: 1px 1px 0 #000;
+}
+.patrol-scan-viewport {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 11;
+    border: 2px solid rgba(74, 222, 128, 0.55);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
+}
+.patrol-scan-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(74, 222, 128, 0.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(74, 222, 128, 0.12) 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.6;
+}
+.patrol-scan-reticle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: min(200px, 52%);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+}
+.patrol-scan-sweep {
+    position: absolute;
+    inset: -8%;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(74, 222, 128, 0.55) 42deg, transparent 84deg);
+    animation: patrol-sweep 2.2s linear infinite;
+}
+.patrol-scan-ring {
+    position: absolute;
+    inset: 12%;
+    border: 2px solid rgba(134, 239, 172, 0.65);
+    border-radius: 50%;
+    box-shadow: 0 0 16px rgba(74, 222, 128, 0.25);
+}
+.patrol-scan-ring--2 {
+    inset: 28%;
+    border-color: rgba(134, 239, 172, 0.35);
+    animation: patrol-pulse-ring 1.4s ease-out infinite;
+}
+.patrol-scan-dot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    margin: -4px 0 0 -4px;
+    background: #4ade80;
+    border-radius: 50%;
+    box-shadow: 0 0 12px #4ade80;
+}
+.patrol-scan-blips {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+.patrol-scan-blip {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #86efac;
+    box-shadow: 0 0 8px #4ade80;
+    opacity: 0;
+    animation: patrol-blip 1.8s ease-in-out infinite;
+}
+.patrol-scan-footer {
+    text-align: center;
+}
+.patrol-scan-status {
+    margin: 0 0 10px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    line-height: 1.6;
+    color: #fde68a;
+    min-height: 2.8em;
+}
+.patrol-scan-progress-track {
+    height: 10px;
+    border: 2px solid rgba(74, 222, 128, 0.45);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+.patrol-scan-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #16a34a, #4ade80, #bbf7d0);
+    transition: width 0.35s ease-out;
+    box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+}
+.patrol-scan-hint {
+    margin: 10px 0 0;
+    font-size: 12px;
+    color: rgba(187, 247, 208, 0.8);
+    min-height: 1.2em;
+}
+.patrol-scan-stage.patrol-encounter-rare .patrol-scan-status { color: #fde68a; text-shadow: 0 0 10px rgba(251, 191, 36, 0.6); }
+.patrol-scan-stage.patrol-encounter-uncommon .patrol-scan-status { color: #86efac; }
+.patrol-scan-stage.patrol-encounter-trash .patrol-scan-status { color: #9ca3af; }
+.patrol-scan-stage.is-lock-on .patrol-scan-viewport {
+    border-color: #fbbf24;
+    box-shadow: inset 0 0 40px rgba(251, 191, 36, 0.15), 0 0 20px rgba(251, 191, 36, 0.25);
+}
+.patrol-scan-stage.is-engage .patrol-scan-viewport {
+    animation: patrol-engage-flash 0.45s ease-out forwards;
+}
+@keyframes patrol-sweep {
+    to { transform: rotate(360deg); }
+}
+@keyframes patrol-pulse-ring {
+    0% { transform: scale(0.92); opacity: 0.9; }
+    100% { transform: scale(1.15); opacity: 0; }
+}
+@keyframes patrol-blip {
+    0%, 100% { opacity: 0; transform: scale(0.5); }
+    40%, 60% { opacity: 1; transform: scale(1); }
+}
+@keyframes patrol-engage-flash {
+    0% { filter: brightness(1); }
+    40% { filter: brightness(2.2); }
+    100% { filter: brightness(1); }
+}
 #battle-content { flex: 1; width: 100%; min-height: 0; }
 #battle-content .battle-stage {
     position: absolute;
@@ -7456,6 +7729,12 @@ let adventureForfeitNotice = false;
 let battlePaused = false;
 let pendingBattleLeaveTab = "main";
 let battleScreen = "main";
+let activeBattleMode = "campaign";
+let activePatrolEncounter = null;
+let patrolScansUsed = 0;
+let patrolScansDay = null;
+let patrolScanToken = 0;
+const PATROL_DAILY_MAX = 50;
 const BANNER_DIR = "for%20result%20banner";
 const BATTLE_BG_MENU = BANNER_DIR + "/battlebackground.jpg";
 const BATTLE_BG_MAP = BANNER_DIR + "/map1.gif";
@@ -12309,14 +12588,37 @@ function calculateDamage(attacker, defender, skill) {
 
 // ==================== STATE MANAGEMENT ====================
 function checkDailyReset() {
-    const now = new Date();
-    const utc8 = new Date(now.getTime() + (8 * 60 * 60 * 1000));
-    const today = utc8.toISOString().split('T')[0];
+    const today = getDailyResetDateKey();
     if (lastResetDate !== today) {
         monballs = 15;
         lastResetDate = today;
         saveData();
     }
+    ensurePatrolDailyReset(today);
+}
+
+function getDailyResetDateKey() {
+    const now = new Date();
+    const utc8 = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+    return utc8.toISOString().split("T")[0];
+}
+
+function ensurePatrolDailyReset(todayKey) {
+    const today = todayKey || getDailyResetDateKey();
+    if (patrolScansDay !== today) {
+        patrolScansUsed = 0;
+        patrolScansDay = today;
+    }
+}
+
+function getPatrolScansRemaining() {
+    ensurePatrolDailyReset();
+    return Math.max(0, PATROL_DAILY_MAX - patrolScansUsed);
+}
+
+function getPatrolGearLevelLabel() {
+    const req = getGearRequiredLevelForTier(chapterToGearLevelTier(currentChapter));
+    return `Lv ${req} tier gear (Ch.${currentChapter})`;
 }
 
 function adventureBattleSessionKey() {
@@ -12360,7 +12662,11 @@ function forfeitAdventureBattle(options = {}) {
     applyAdventureForfeit();
 
     if (showResult && inBattle) {
-        showBattleResult(false, { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null });
+        if (activeBattleMode === "patrol") {
+            endPatrolBattle(false, null);
+        } else {
+            showBattleResult(false, { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null });
+        }
     }
     return true;
 }
@@ -12398,6 +12704,7 @@ function buildSavePayload() {
         gearInventorySeedVersion,
         adventureBattleActive: isInAdventureBattle,
         resourceChestLastCollectAt,
+        patrolScansUsed, patrolScansDay,
         saveVersion: 2,
         updatedAt: new Date().toISOString(),
     };
@@ -12463,6 +12770,9 @@ function applyLoadedSave(data) {
     lastResetDate = data.lastResetDate || null;
     xHandle = data.xHandle || xHandle || "";
     loadResourceChestTimestamp(data, false);
+    patrolScansUsed = data.patrolScansUsed ?? 0;
+    patrolScansDay = data.patrolScansDay || null;
+    ensurePatrolDailyReset();
 
     [...party, ...box].forEach((mon) => {
         try {
@@ -13993,7 +14303,7 @@ function showBattleTowerHub() {
 }
 
 function launchAdventureFromHub() {
-    openAdventureStagePrep();
+    openAdventureModePicker();
 }
 
 function prepareAdventureBattleScene() {
@@ -14003,6 +14313,328 @@ function prepareAdventureBattleScene() {
     ensureBattleSceneOpen();
     enterAdventureFullMode(getChapterBackgroundPath(currentChapter));
     setActiveRailTab("rail-battle");
+}
+
+function openAdventureModePicker() {
+    prepareAdventureBattleScene();
+    battleScreen = "adventure-picker";
+    activeBattleMode = "campaign";
+    setPatrolScanUI(false);
+    const remaining = getPatrolScansRemaining();
+    const reqLabel = getPatrolGearLevelLabel();
+    const content = document.getElementById("battle-content");
+    content.className = "battle-scene-ui cover-art-layer";
+    content.innerHTML = `
+        <div class="adventure-panel">
+            <h2>ADVENTURE</h2>
+            <p class="adv-desc">Choose how you want to explore.</p>
+            <div class="adventure-mode-picker">
+                <button type="button" class="adventure-mode-card" onclick="openAdventureStagePrep()">
+                    <h3>CAMPAIGN</h3>
+                    <p>Chapter battles — push the story and unlock content.</p>
+                    <span class="mode-card-stat">Ch.${currentChapter} · Stage ${currentStage}</span>
+                </button>
+                <button type="button" class="adventure-mode-card" onclick="openPatrolScreen()">
+                    <h3>PATROL</h3>
+                    <p>Scan the wilds for random fights and loot.</p>
+                    <span class="mode-card-stat">${remaining}/${PATROL_DAILY_MAX} scans today</span>
+                </button>
+            </div>
+            <p class="adv-desc" style="margin-top:16px;font-size:12px;">Patrol drops: ${escapeGearHtml(reqLabel)} — any rarity.</p>
+            <button type="button" class="adventure-continue-btn" style="margin-top:12px;background:linear-gradient(180deg,#6b4426,#4a2e18);color:#ffe8c8;border-color:#8b5a2b;" onclick="openBattleHub()">BACK TO BATTLE HUB</button>
+        </div>`;
+    syncCoverStages();
+}
+
+function openPatrolScreen() {
+    prepareAdventureBattleScene();
+    battleScreen = "patrol";
+    activeBattleMode = "patrol";
+    setPatrolScanUI(false);
+    renderPatrolLobby();
+}
+
+function renderPatrolLobby() {
+    const remaining = getPatrolScansRemaining();
+    const depleted = remaining <= 0;
+    const content = document.getElementById("battle-content");
+    content.className = "battle-scene-ui cover-art-layer";
+    content.innerHTML = `
+        <div class="adventure-panel">
+            <h2>PATROL</h2>
+            <p class="patrol-lobby-scans${depleted ? " depleted" : ""}">${remaining} / ${PATROL_DAILY_MAX} scans left today</p>
+            <p class="adv-desc">Scan the grass for wild Monanimals. ${escapeGearHtml(getPatrolGearLevelLabel())}.</p>
+            <div class="patrol-scan-zone" onclick="beginPatrolScan()" role="button" tabindex="0" aria-label="Scan wild grass">
+                <span class="patrol-scan-zone-label">${depleted ? "NO SCANS LEFT" : "TAP TO SCAN"}</span>
+            </div>
+            <button type="button" class="adventure-start-btn patrol-scan-btn" onclick="beginPatrolScan()" ${depleted ? "disabled" : ""}>SCAN THE WILDS</button>
+            <button type="button" class="adventure-continue-btn" style="margin-top:10px;background:linear-gradient(180deg,#6b4426,#4a2e18);color:#ffe8c8;border-color:#8b5a2b;" onclick="openAdventureModePicker()">BACK</button>
+        </div>`;
+    syncCoverStages();
+}
+
+const PATROL_ENCOUNTER_TABLE = [
+    { id: "trash", weight: 12, label: "Faint rustling…", hint: "Quick skirmish — supplies recovered" },
+    { id: "common", weight: 53, label: "Wild encounter!", hint: "Standard patrol battle" },
+    { id: "uncommon", weight: 24, label: "Strong presence!", hint: "Better rewards possible" },
+    { id: "rare", weight: 11, label: "RARE SIGNAL!", hint: "High gear drop chance" },
+];
+
+function rollPatrolEncounter() {
+    const total = PATROL_ENCOUNTER_TABLE.reduce((s, e) => s + e.weight, 0);
+    let r = Math.random() * total;
+    for (const entry of PATROL_ENCOUNTER_TABLE) {
+        r -= entry.weight;
+        if (r <= 0) return { ...entry };
+    }
+    return { ...PATROL_ENCOUNTER_TABLE[1] };
+}
+
+function setPatrolScanUI(active) {
+    const backBtn = document.getElementById("battle-back-btn");
+    if (backBtn) backBtn.style.display = active ? "none" : "block";
+    document.querySelector(".game-container")?.classList.toggle("patrol-scan-active", !!active);
+}
+
+function setPatrolScanStatus(text) {
+    const el = document.getElementById("patrol-scan-status");
+    if (el) el.textContent = text;
+}
+
+function setPatrolScanHint(text) {
+    const el = document.getElementById("patrol-scan-hint");
+    if (el) el.textContent = text || "";
+}
+
+function setPatrolScanProgress(pct) {
+    const el = document.getElementById("patrol-scan-progress");
+    if (el) el.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+}
+
+function spawnPatrolScanBlips() {
+    const layer = document.getElementById("patrol-scan-blips");
+    if (!layer) return;
+    layer.innerHTML = "";
+    const count = 6 + randInt(0, 5);
+    for (let i = 0; i < count; i++) {
+        const blip = document.createElement("span");
+        blip.className = "patrol-scan-blip";
+        blip.style.left = `${12 + Math.random() * 76}%`;
+        blip.style.top = `${18 + Math.random() * 58}%`;
+        blip.style.animationDelay = `${Math.random() * 1.4}s`;
+        layer.appendChild(blip);
+    }
+}
+
+function renderPatrolScanStage(encounter) {
+    const content = document.getElementById("battle-content");
+    content.className = "battle-scene-ui battle-scene-ui--patrol-scan cover-art-layer";
+    content.innerHTML = `
+        <div class="patrol-scan-stage patrol-encounter-${encounter.id}" id="patrol-scan-stage">
+            <div class="patrol-grass-field"></div>
+            <div class="patrol-scan-hud">
+                <div class="patrol-scan-top">
+                    <span class="patrol-scan-title">◈ PATROL SCAN</span>
+                    <span class="patrol-scan-chapter">Ch.${currentChapter}</span>
+                </div>
+                <div class="patrol-scan-viewport" id="patrol-scan-viewport">
+                    <div class="patrol-scan-grid"></div>
+                    <div class="patrol-scan-reticle" aria-hidden="true">
+                        <div class="patrol-scan-sweep"></div>
+                        <div class="patrol-scan-ring patrol-scan-ring--1"></div>
+                        <div class="patrol-scan-ring patrol-scan-ring--2"></div>
+                        <div class="patrol-scan-dot"></div>
+                    </div>
+                    <div class="patrol-scan-blips" id="patrol-scan-blips"></div>
+                </div>
+                <div class="patrol-scan-footer">
+                    <p class="patrol-scan-status" id="patrol-scan-status">Booting field scanner…</p>
+                    <div class="patrol-scan-progress-track">
+                        <div class="patrol-scan-progress-fill" id="patrol-scan-progress"></div>
+                    </div>
+                    <p class="patrol-scan-hint" id="patrol-scan-hint"></p>
+                </div>
+            </div>
+        </div>`;
+    spawnPatrolScanBlips();
+    syncCoverStages();
+}
+
+async function animatePatrolScanProgress(from, to, ms) {
+    const start = performance.now();
+    return new Promise((resolve) => {
+        function frame(now) {
+            const t = Math.min(1, (now - start) / ms);
+            setPatrolScanProgress(from + (to - from) * t);
+            if (t < 1) requestAnimationFrame(frame);
+            else resolve();
+        }
+        requestAnimationFrame(frame);
+    });
+}
+
+async function runPatrolScanSequence(encounter, scanToken) {
+    battleScreen = "patrol-scan";
+    setPatrolScanUI(true);
+    renderPatrolScanStage(encounter);
+    setPatrolScanProgress(0);
+    setPatrolScanHint("");
+
+    await delay(350);
+    if (scanToken !== patrolScanToken) return;
+    setPatrolScanStatus("Sweeping grass sector…");
+    await animatePatrolScanProgress(0, 28, 900);
+    if (scanToken !== patrolScanToken) return;
+
+    setPatrolScanStatus("Analyzing movement patterns…");
+    spawnPatrolScanBlips();
+    await animatePatrolScanProgress(28, 58, 1000);
+    if (scanToken !== patrolScanToken) return;
+
+    setPatrolScanStatus("Bio-sign detected!");
+    document.getElementById("patrol-scan-stage")?.classList.add("is-lock-on");
+    await animatePatrolScanProgress(58, 82, 800);
+    if (scanToken !== patrolScanToken) return;
+
+    setPatrolScanStatus(encounter.label);
+    setPatrolScanHint(encounter.hint);
+    await delay(500);
+    if (scanToken !== patrolScanToken) return;
+
+    setPatrolScanStatus("ENGAGING!");
+    document.getElementById("patrol-scan-stage")?.classList.add("is-engage");
+    await animatePatrolScanProgress(82, 100, 450);
+    if (scanToken !== patrolScanToken) return;
+
+    await delay(380);
+    if (scanToken !== patrolScanToken) return;
+
+    setPatrolScanUI(false);
+    document.querySelector(".game-container")?.classList.remove("patrol-scan-active");
+    startPatrolBattle(encounter);
+}
+
+function beginPatrolScan() {
+    if (party.length < 3) {
+        alert("You need at least 3 Monanimals in your party!");
+        return;
+    }
+    ensurePatrolDailyReset();
+    if (getPatrolScansRemaining() <= 0) {
+        alert("No patrol scans left today. Come back after the daily reset!");
+        return;
+    }
+    patrolScansUsed++;
+    saveData();
+
+    const encounter = rollPatrolEncounter();
+    activePatrolEncounter = encounter;
+    patrolScanToken++;
+    runPatrolScanSequence(encounter, patrolScanToken);
+}
+
+function makePatrolEnemyTeam(chapter, encounter) {
+    const globalProgress = getGlobalAdventureProgress(chapter, 1);
+    const scale = { trash: 0.82, common: 0.95, uncommon: 1.05, rare: 1.18 }[encounter.id] || 1;
+    const team = [];
+    for (let i = 0; i < 3; i++) {
+        const name = MONANIMAL_NAMES[randInt(0, MONANIMAL_NAMES.length - 1)];
+        let mon = buildAdventureEnemyMon(name, globalProgress, i, false);
+        mon.level = Math.max(1, Math.floor(mon.level * scale));
+        mon.stats = generateStats(mon.name, mon.rarity);
+        mon.statVersion = STAT_SYSTEM_VERSION;
+        if (scale > 1) {
+            mon.stats.atk = Math.floor(mon.stats.atk * (1 + (scale - 1) * 0.5));
+            mon.stats.spd = Math.floor(mon.stats.spd * (1 + (scale - 1) * 0.3));
+        }
+        team.push(makeFighter(mon, false));
+    }
+    return team;
+}
+
+function rollPatrolRewards(encounter, win) {
+    const reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null };
+    if (!win) return reward;
+    const ch = Math.max(1, currentChapter);
+    const g = getGlobalAdventureProgress(ch, 1);
+    const mult = { trash: 0.65, common: 1, uncommon: 1.35, rare: 1.8 }[encounter.id] || 1;
+    reward.gold = Math.floor((35 + g * 7) * mult);
+    reward.essence = Math.floor((5 + g * 2) * mult);
+    reward.trainerXp = Math.floor((20 + g * 8) * mult);
+    if (encounter.id === "trash") {
+        reward.gold = Math.max(30, reward.gold);
+        reward.essence = Math.max(4, reward.essence);
+    }
+    const gearChance = { trash: 0, common: 0.06, uncommon: 0.16, rare: 0.38 }[encounter.id] || 0;
+    if (gearChance > 0 && Math.random() < gearChance) {
+        const tier = rollGearDropRarity(ch, encounter.id === "rare");
+        const slot = GEAR_SLOTS[randInt(0, GEAR_SLOTS.length - 1)];
+        const houseId = HOUSE_ORDER[randInt(0, HOUSE_ORDER.length - 1)];
+        const gear = generateHouseGear(houseId, tier, slot, chapterToGearLevelTier(ch));
+        gearInventory.push(gear);
+        reward.gear = gear;
+    }
+    if (Math.random() < 0.1 * mult) reward.shards = 1;
+    return reward;
+}
+
+function startPatrolBattle(encounter) {
+    activeBattleMode = "patrol";
+    activePatrolEncounter = encounter;
+    isInAdventureBattle = true;
+    start3v3Battle(party.slice(0, 3), {
+        enemyTeam: makePatrolEnemyTeam(currentChapter, encounter),
+    });
+}
+
+function endPatrolBattle(win, player) {
+    setBattleFightingUI(false);
+    isInAdventureBattle = false;
+    clearAdventureBattleSession();
+    activeBattleMode = "patrol";
+
+    const encounter = activePatrolEncounter || rollPatrolEncounter();
+    const reward = rollPatrolRewards(encounter, win);
+    if (win) {
+        money += reward.gold;
+        essence += reward.essence;
+        monShards += reward.shards;
+        addTrainerXp(reward.trainerXp);
+    }
+    restorePartyFullHp();
+    saveData();
+    showPatrolBattleResult(win, reward, encounter);
+}
+
+function showPatrolBattleResult(win, reward, encounter) {
+    battleScreen = "patrol-result";
+    refreshAdventureChapterBackground();
+    const remaining = getPatrolScansRemaining();
+    const content = document.getElementById("battle-content");
+    content.className = "battle-scene-ui cover-art-layer";
+    const encounterLabel = encounter?.label || "Patrol encounter";
+    const drops = win
+        ? `<div class="result-drops" style="margin:18px 0; font-size:15px;">
+               <div style="font-size:12px;color:#86efac;margin-bottom:8px;">${escapeGearHtml(encounterLabel)}</div>
+               <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("gold", 20)} <b>+${reward.gold}</b></div>
+               <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("essence", 20)} <b>+${reward.essence}</b></div>
+               ${reward.shards > 0 ? `<div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("shards", 20)} <b>+${reward.shards}</b></div>` : ""}
+               ${reward.gear ? `<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:6px 0;">&#9876;&#65039; Gear: <span class="equip-gear-icon-wrap" style="border-color:${getGearTierColor(reward.gear)};width:28px;height:28px;">${renderGearIconHtml(reward.gear, "gear-inv-icon")}</span> <b>${formatGearDisplayName(reward.gear)}</b></div>` : ""}
+               <div>&#11088; Trainer XP <b>+${reward.trainerXp}</b></div>
+               <div style="margin-top:8px; color:#666; font-size:13px;">Team restored to full HP.</div>
+           </div>`
+        : `<p class="adv-desc" style="font-size:15px; margin:20px 0;">Patrol failed — team restored to full HP. Try again!</p>`;
+    const scanAgainDisabled = remaining <= 0;
+    content.innerHTML = `
+        <div class="adventure-panel">
+            <h2 style="color:${win ? "#16a34a" : "#ef4444"};">${win ? "PATROL CLEAR" : "PATROL FAILED"}</h2>
+            <p class="patrol-lobby-scans${scanAgainDisabled ? " depleted" : ""}">${remaining} / ${PATROL_DAILY_MAX} scans left</p>
+            ${drops}
+            <button type="button" class="adventure-start-btn patrol-scan-btn" onclick="beginPatrolScan()" ${scanAgainDisabled ? "disabled" : ""}>SCAN AGAIN</button>
+            <button type="button" class="adventure-continue-btn" onclick="openPatrolScreen()">PATROL MENU</button>
+            <button type="button" class="adventure-continue-btn" style="margin-top:8px;background:linear-gradient(180deg,#6b4426,#4a2e18);color:#ffe8c8;border-color:#8b5a2b;" onclick="openAdventureModePicker()">ADVENTURE MODES</button>
+        </div>`;
+    updateUI();
 }
 
 function openAdventureStagePrep() {
@@ -14031,6 +14663,21 @@ function requestLeaveBattle() {
         return;
     }
     if (battleScreen === "chapter") {
+        openAdventureModePicker();
+        return;
+    }
+    if (battleScreen === "patrol" || battleScreen === "patrol-result") {
+        openAdventureModePicker();
+        return;
+    }
+    if (battleScreen === "patrol-scan") {
+        patrolScanToken++;
+        setPatrolScanUI(false);
+        document.querySelector(".game-container")?.classList.remove("patrol-scan-active");
+        openPatrolScreen();
+        return;
+    }
+    if (battleScreen === "adventure-picker") {
         openBattleHub();
         return;
     }
@@ -14096,6 +14743,9 @@ async function waitWhilePaused(battleToken) {
 function closeBattleScene() {
     setBattleFightingUI(false);
     setAdventureMode(false);
+    setPatrolScanUI(false);
+    patrolScanToken++;
+    document.querySelector(".game-container")?.classList.remove("patrol-scan-active");
     setBattleSceneBackground("");
     battleScreen = "main";
     document.getElementById("battle-scene").classList.remove("open");
@@ -14186,6 +14836,7 @@ function enterAdventureMode() {
 function startStageSelection() {
     const boss = isBossStage(currentStage);
     battleScreen = "chapter";
+    activeBattleMode = "campaign";
     ensureBattleSceneOpen();
     setAdventureMode(true);
     refreshAdventureChapterBackground();
@@ -14325,7 +14976,7 @@ function makeEnemyTeam(chapter, stage) {
     return team;
 }
 
-function start3v3Battle(playerParty) {
+function start3v3Battle(playerParty, options = {}) {
     adventureBattleToken++;
     isInAdventureBattle = true;
     battleScreen = "fight";
@@ -14335,7 +14986,7 @@ function start3v3Battle(playerParty) {
     setAdventureMode(true);
     refreshAdventureChapterBackground();
     const playerTeam = playerParty.slice(0, 3).map(m => makeFighter(m, true));
-    const enemyTeam = makeEnemyTeam(currentChapter, currentStage);
+    const enemyTeam = options.enemyTeam || makeEnemyTeam(currentChapter, currentStage);
     renderBattleScene();
     setBattleFightingUI(true);
     runBattle(playerTeam, enemyTeam, adventureBattleToken);
@@ -15188,6 +15839,10 @@ async function runBattle(player, enemy, battleToken) {
 }
 
 function endBattle(win, player) {
+    if (activeBattleMode === "patrol") {
+        endPatrolBattle(win, player);
+        return;
+    }
     setBattleFightingUI(false);
     isInAdventureBattle = false;
     clearAdventureBattleSession();
