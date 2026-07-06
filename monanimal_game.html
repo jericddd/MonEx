@@ -8980,19 +8980,87 @@ function needsSkillMigration(mon) {
         const t = mon.skills[i]?.type;
         if (t !== "passive" && t !== "active" && t !== "heal") return true;
     }
-    const rngNames = mon.skills.slice(1).map(skill => skill.name);
-    if (new Set(rngNames).size !== rngNames.length) return true;
-    const healActives = mon.skills.filter(isHealActiveSkill);
-    if (healActives.length > 1) return true;
+    const baseNames = mon.skills.slice(1, base).map(skill => skill.name);
+    if (new Set(baseNames).size !== baseNames.length) return true;
+    const baseHealActives = mon.skills.slice(2, base).filter(isHealActiveSkill);
+    if (baseHealActives.length > 1) return true;
     return false;
 }
 
-function reconcileAscensionSkillState(mon) {
+function getAscensionBonusSkills(mon) {
+    const base = getSkillCount(mon.rarity);
+    return (mon.skills || []).slice(base);
+}
+
+function isValidAscensionBonusSkill(skill) {
+    if (!skill?.name) return false;
+    const t = skill.type;
+    return t === "passive" || t === "active" || t === "heal";
+}
+
+function preserveAscensionBonusSkills(mon, baseSkills) {
+    const cap = getMonSkillSlotCap(mon);
+    const base = getSkillCount(mon.rarity);
+    const bonus = getAscensionBonusSkills(mon).filter(isValidAscensionBonusSkill);
+    mon.skills = (baseSkills || []).slice(0, base);
+    for (const skill of bonus) {
+        if (mon.skills.length >= cap) break;
+        if (!mon.skills.some(s => s.name === skill.name)) mon.skills.push({ ...skill });
+    }
+}
+
+function findMonLocationIndex(mon) {
+    if (!mon) return null;
+    const pi = party.indexOf(mon);
+    if (pi >= 0) return { location: "party", index: pi };
+    const bi = box.indexOf(mon);
+    if (bi >= 0) return { location: "box", index: bi };
+    return null;
+}
+
+function countUnlockedAscensionSkills(mon) {
+    const base = getSkillCount(mon.rarity);
+    return Math.max(0, (mon.skills?.length || 0) - base);
+}
+
+function repairAscensionSkillState(mon) {
     const base = getSkillCount(mon.rarity);
     const stars = mon.ascensionStars || 0;
+    const cap = getMonSkillSlotCap(mon);
     const len = mon.skills?.length || 0;
-    if (stars <= 0 || len >= base + stars || mon.ascensionSkillPending?.length) return;
-    mon.ascensionSkillPending = rollHeroAscensionSkillOptions(mon);
+    const unlocked = countUnlockedAscensionSkills(mon);
+
+    if (Array.isArray(mon.ascensionSkillPending) && mon.ascensionSkillPending.length === 0) {
+        delete mon.ascensionSkillPending;
+    }
+
+    if (stars <= 0) {
+        delete mon.ascensionSkillPending;
+        delete mon.ascensionSkillFreePick;
+        return;
+    }
+
+    if (unlocked >= stars && mon.ascensionSkillPending?.length) {
+        delete mon.ascensionSkillPending;
+        delete mon.ascensionSkillFreePick;
+        return;
+    }
+
+    if (mon.ascensionSkillPending?.length && len >= cap) {
+        delete mon.ascensionSkillPending;
+        delete mon.ascensionSkillFreePick;
+    }
+}
+
+function reconcileAscensionSkillState(mon) {
+    repairAscensionSkillState(mon);
+    const base = getSkillCount(mon.rarity);
+    const stars = mon.ascensionStars || 0;
+    const unlocked = countUnlockedAscensionSkills(mon);
+    if (stars <= 0 || unlocked >= stars || mon.ascensionSkillPending?.length) return;
+    const options = rollHeroAscensionSkillOptions(mon, { skipEnsure: true });
+    if (!options.length) return;
+    mon.ascensionSkillPending = options;
     mon.ascensionSkillFreePick = true;
 }
 
@@ -9529,6 +9597,7 @@ function closeAscensionSkillPicker() {
 function openAscensionSkillPicker(location, monIndex) {
     const mon = resolveMonForAscensionSkill(location, monIndex);
     if (!mon?.ascensionSkillPending?.length) return;
+    const loc = findMonLocationIndex(mon) || { location, index: monIndex };
     closeAscensionSkillPicker();
     const options = mon.ascensionSkillPending;
     const freePick = !!mon.ascensionSkillFreePick;
@@ -9538,7 +9607,7 @@ function openAscensionSkillPicker(location, monIndex) {
         : `Choose one (${HERO_SKILL_UNLOCK_GOLD} Gold). These 3 options stay fixed until you pick.`;
     const cards = options.map((skill, i) => {
         const typeLabel = skill.type === "passive" ? "Passive" : (skill.element || "Active");
-        return `<button type="button" class="hero-skill-option-btn" onclick="confirmHeroAscensionSkill('${location}', ${monIndex}, ${i})" ${afford ? "" : "disabled style='opacity:0.5'"}>
+        return `<button type="button" class="hero-skill-option-btn" onclick="confirmHeroAscensionSkill('${loc.location}', ${loc.index}, ${i})" ${afford ? "" : "disabled style='opacity:0.5'"}>
             <b>${skill.name}</b>
             ${typeLabel}
             <br><small>${skill.desc || ""}</small>
@@ -9660,11 +9729,12 @@ function ensureMonReady(mon) {
     }
     migrateSkillDefinitions(mon);
     if (needsSkillMigration(mon)) {
-        mon.skills = generateSkills(mon.name, mon.rarity);
+        preserveAscensionBonusSkills(mon, generateSkills(mon.name, mon.rarity));
     } else {
         expandSkillsForRarity(mon);
     }
     migrateSkillDefinitions(mon);
+    repairAscensionSkillState(mon);
     reconcileAscensionSkillState(mon);
     syncUltimateFromSkills(mon);
     refreshMonDerivedStats(mon);
@@ -10485,20 +10555,29 @@ function renderGearEnhancePanel(container) {
     `;
 }
 
-function rollHeroAscensionSkillOptions(mon) {
-    ensureMonReady(mon);
+function rollHeroAscensionSkillOptions(mon, options = {}) {
+    if (!options.skipEnsure) {
+        migrateSkillDefinitions(mon);
+        syncUltimateFromSkills(mon);
+    }
     const usedNames = new Set((mon.skills || []).map(skill => skill.name));
     if (mon.ultimate?.name) usedNames.add(mon.ultimate.name);
-    const pool = [...PASSIVE_SKILL_POOL, ...getActiveSkillPoolForMon(mon.skills)]
-        .filter(skill => !usedNames.has(skill.name));
-    const options = [];
+    const pools = [
+        [...PASSIVE_SKILL_POOL, ...getActiveSkillPoolForMon(mon.skills)].filter(skill => !usedNames.has(skill.name)),
+        [...PASSIVE_SKILL_POOL, ...ACTIVE_SKILL_POOL].filter(skill => !usedNames.has(skill.name)),
+        [...PASSIVE_SKILL_POOL, ...DAMAGE_ACTIVE_POOL].filter(skill => !usedNames.has(skill.name)),
+    ];
+    const picks = [];
     const blocked = new Set(usedNames);
-    while (options.length < 3 && pool.length > 0) {
-        const skill = pickUniqueSkill(pool, blocked);
-        if (!skill) break;
-        options.push({ ...skill });
+    for (const pool of pools) {
+        while (picks.length < 3 && pool.length > 0) {
+            const skill = pickUniqueSkill(pool, blocked);
+            if (!skill) break;
+            picks.push({ ...skill });
+        }
+        if (picks.length >= 3) break;
     }
-    return options;
+    return picks;
 }
 
 function getHeroAscensionDupeRequirement(stars) {
@@ -10662,10 +10741,16 @@ function executeHeroAscension() {
     const success = Math.random() < recipe.rate;
     if (success) {
         main.ascensionStars = (main.ascensionStars || 0) + 1;
+        repairAscensionSkillState(main);
         if (!main.ascensionSkillPending?.length) {
-            main.ascensionSkillPending = rollHeroAscensionSkillOptions(main);
+            const options = rollHeroAscensionSkillOptions(main, { skipEnsure: true });
+            if (options.length) main.ascensionSkillPending = options;
         }
-        alert(`Ascension success! ${main.name} earned ★${main.ascensionStars}.\n+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% stats on base stats & gear.\nTap 🔓 UNLOCK on their card to choose a skill (${HERO_SKILL_UNLOCK_GOLD} Gold).`);
+        if (!main.ascensionSkillPending?.length) {
+            alert(`Ascension success! ${main.name} earned ★${main.ascensionStars}.\n+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% stats on base stats & gear.\nCould not roll skill options — try reopening the hero card or armory.`);
+        } else {
+            alert(`Ascension success! ${main.name} earned ★${main.ascensionStars}.\n+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% stats on base stats & gear.\nTap 🔓 UNLOCK on their card to choose a skill (${HERO_SKILL_UNLOCK_GOLD} Gold).`);
+        }
     } else {
         alert("Ascension failed.\nDuplicates were consumed.");
     }
@@ -10702,11 +10787,27 @@ function confirmHeroAscensionSkill(location, monIndex, optionIndex) {
     refreshMonDerivedStats(mon);
     delete mon.ascensionSkillPending;
     delete mon.ascensionSkillFreePick;
+    repairAscensionSkillState(mon);
     closeAscensionSkillPicker();
     saveData();
+    if (typeof flushSaveToCloud === "function") flushSaveToCloud().catch(() => {});
     updateUI();
     renderArmoryPane();
     alert(`${mon.name} learned ${skill.name}!`);
+}
+
+function openHeroAscensionSkillUnlock() {
+    const main = heroAscensionMainMon;
+    if (!main?.ascensionSkillPending?.length) {
+        alert("No pending skill unlock on the selected main hero.");
+        return;
+    }
+    const loc = findMonLocationIndex(main);
+    if (!loc) {
+        alert("Selected hero is no longer in Party or Box.");
+        return;
+    }
+    openAscensionSkillPicker(loc.location, loc.index);
 }
 
 function renderHeroAscensionMainPickItem(entry) {
@@ -10744,6 +10845,7 @@ function renderHeroAscensionPanel(container) {
     const recipe = analyzeHeroAscension(main, heroAscensionDupeMons);
     const recipeCls = recipe && (recipe.type === "ready" || recipe.type === "pending_skill") ? "" : " invalid";
     const canAscend = recipe?.type === "ready" && money >= (recipe.gold || 0);
+    const pendingUnlock = recipe?.type === "pending_skill";
     const showMainPicker = heroAscensionMainPickerOpen || !main;
     const required = main ? getHeroAscensionDupeRequirement(main.ascensionStars || 0) : null;
 
@@ -10797,7 +10899,9 @@ function renderHeroAscensionPanel(container) {
             </div>
             <div class="gear-synth-actions">
                 <div class="gear-synth-cost">${currencyIcon("gold", 18)} <span>${recipe?.gold || 0} Gold</span></div>
-                <button type="button" class="gear-synth-btn" onclick="executeHeroAscension()" ${canAscend ? "" : "disabled"} style="border-color:#fbbf24;background:linear-gradient(180deg,#fde68a 0%,#f59e0b 100%);color:#451a03;box-shadow:3px 3px 0 #92400e;">ASCEND</button>
+                ${pendingUnlock
+                    ? `<button type="button" class="gear-synth-btn" onclick="openHeroAscensionSkillUnlock()" style="border-color:#a855f7;background:linear-gradient(180deg,#e9d5ff 0%,#c084fc 100%);color:#3b0764;box-shadow:3px 3px 0 #6b21a8;">🔓 UNLOCK SKILL</button>`
+                    : `<button type="button" class="gear-synth-btn" onclick="executeHeroAscension()" ${canAscend ? "" : "disabled"} style="border-color:#fbbf24;background:linear-gradient(180deg,#fde68a 0%,#f59e0b 100%);color:#451a03;box-shadow:3px 3px 0 #92400e;">ASCEND</button>`}
                 <button type="button" class="gear-synth-open-btn" onclick="heroAscensionMainMon=null;heroAscensionDupeMons=[];heroAscensionMainPickerOpen=true;renderArmoryPane();">CLEAR</button>
             </div>
             <div class="hero-ascension-lists hub-scrollbar-panel">
@@ -11421,6 +11525,18 @@ function getSaveTimestamp(data) {
     const ts = Date.parse(data.updatedAt || "");
     return Number.isFinite(ts) ? ts : 0;
 }
+
+window.handleCloudSaveConflict = function handleCloudSaveConflict(cloudSave) {
+    if (!cloudSave || typeof cloudSave !== "object") return;
+    const localData = readLocalSaveData();
+    const localTs = getSaveTimestamp(localData);
+    const cloudTs = getSaveTimestamp(cloudSave);
+    if (cloudTs >= localTs) {
+        applyLoadedSave(cloudSave);
+        writeLocalSave(cloudSave);
+        updateUI();
+    }
+};
 
 function readLocalSaveData() {
     if (!currentUser) return null;
