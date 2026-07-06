@@ -14,9 +14,10 @@ id = "0f9974ccc16143aa825372bd3bed7f1b"
 BOT_USERNAME = "monexmonad"
 STARTING_MONBALLS = "10"
 ENABLE_X_POLL = "0"
-ENABLE_DEV_AUTH = "1"
-# TEST PHASE ONLY — set ENABLE_ADMIN_RESET=0 and delete ADMIN_RESET_SECRET before go-live
-ENABLE_ADMIN_RESET = "1"
+# Production: keep dev login, simulate, and admin reset OFF. Enable only on staging/local.
+ENABLE_DEV_AUTH = "0"
+ENABLE_SIMULATE = "0"
+ENABLE_ADMIN_RESET = "0"
 # After deploy, set secrets: X_CLIENT_ID, X_CLIENT_SECRET
 # Live site (custom domain). OAuth redirects return here after X login.
 FRONTEND_ORIGIN = "https://monexmonad.xyz"

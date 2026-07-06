@@ -4,6 +4,9 @@ name: Deploy Cloudflare API
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest

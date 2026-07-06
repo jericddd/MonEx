@@ -174,19 +174,31 @@ function getActivityMons(entry) {
     return [];
 }
 
+function escapeHtml(value) {
+    if (typeof window !== "undefined" && typeof window.escapeHtml === "function") {
+        return window.escapeHtml(value);
+    }
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
 function formatActivityEntryHtml(entry, opts = {}) {
     const showUser = opts.showUser !== false;
-    const time = new Date(entry.at).toLocaleString();
+    const time = escapeHtml(new Date(entry.at).toLocaleString());
     const mons = getActivityMons(entry);
     const caught = mons.length
-        ? mons.slice(0, 3).map((h) => `<span class="activity-rare">${h.rarity}</span> ${h.name}`).join(", ")
+        ? mons.slice(0, 3).map((h) => `<span class="activity-rare">${escapeHtml(h.rarity)}</span> ${escapeHtml(h.name)}`).join(", ")
         : "no catches";
     const more = entry.caughtCount > 3 ? ` +${entry.caughtCount - 3} more` : "";
-    const userPart = showUser ? `<span class="activity-user">@${entry.xUsername}</span> ` : "";
+    const userPart = showUser ? `<span class="activity-user">@${escapeHtml(entry.xUsername)}</span> ` : "";
     return `<div class="activity-item activity-item-clickable" role="button" tabindex="0" data-activity-idx="__IDX__">
-        ${userPart}spent <b>${entry.spend}</b> Monballs → <b>${entry.caughtCount}/${entry.throws}</b> caught
+        ${userPart}spent <b>${escapeHtml(entry.spend)}</b> Monballs → <b>${escapeHtml(entry.caughtCount)}/${escapeHtml(entry.throws)}</b> caught
         <div>${caught}${more}</div>
-        <div class="activity-meta">${time} · ${entry.monballsLeft} Monballs left on X · tap for full log</div>
+        <div class="activity-meta">${time} · ${escapeHtml(entry.monballsLeft)} Monballs left on X · tap for full log</div>
     </div>`;
 }
 
@@ -213,14 +225,14 @@ function ensureActivityDetailModal() {
 
 function buildActivityDetailHtml(entry, opts = {}) {
     const showUser = opts.showUser !== false;
-    const time = new Date(entry.at).toLocaleString();
+    const time = escapeHtml(new Date(entry.at).toLocaleString());
     const mons = getActivityMons(entry);
     const hasFullList = !!(entry.mons && entry.mons.length);
-    const userLine = showUser ? `<span class="activity-user">@${entry.xUsername}</span> ` : "";
+    const userLine = showUser ? `<span class="activity-user">@${escapeHtml(entry.xUsername)}</span> ` : "";
     const monRows = mons.length
         ? mons.map((m, i) => `<div class="activity-detail-mon">
-            <div class="activity-detail-mon-name">${i + 1}. <span class="activity-rare">${m.rarity}</span> ${m.name}</div>
-            ${m.skills ? `<div class="activity-detail-mon-skills">Skills: ${m.skills}</div>` : ""}
+            <div class="activity-detail-mon-name">${i + 1}. <span class="activity-rare">${escapeHtml(m.rarity)}</span> ${escapeHtml(m.name)}</div>
+            ${m.skills ? `<div class="activity-detail-mon-skills">Skills: ${escapeHtml(m.skills)}</div>` : ""}
         </div>`).join("")
         : `<p class="activity-detail-note">No catches recorded for this session.</p>`;
     const legacyNote = !hasFullList && entry.caughtCount > (entry.highlights?.length || 0)
@@ -231,8 +243,8 @@ function buildActivityDetailHtml(entry, opts = {}) {
         : "";
     return `
         <h3 class="activity-detail-title" id="activity-detail-title">CATCH SESSION</h3>
-        <p class="activity-detail-summary">${userLine}spent <b>${entry.spend}</b> Monballs → <b>${entry.caughtCount}/${entry.throws}</b> caught</p>
-        <p class="activity-detail-meta">${time} · ${entry.monballsLeft} Monballs left on X</p>
+        <p class="activity-detail-summary">${userLine}spent <b>${escapeHtml(entry.spend)}</b> Monballs → <b>${escapeHtml(entry.caughtCount)}/${escapeHtml(entry.throws)}</b> caught</p>
+        <p class="activity-detail-meta">${time} · ${escapeHtml(entry.monballsLeft)} Monballs left on X</p>
         ${legacyNote}
         <h4 class="activity-detail-list-title">CAUGHT MONANIMALS (${entry.caughtCount})</h4>
         ${monRows}
@@ -304,17 +316,27 @@ async function fetchGlobalActivity(limit, page) {
 
 async function fetchPersonalActivity(username, limit, page) {
     const base = getMonexApiBase();
-    const u = encodeURIComponent(username.replace("@", ""));
-    const url = `${base}/api/activity/mine?username=${u}&limit=${limit || 25}&page=${page || 1}`;
-    const res = await fetch(url);
+    const headers = getAuthHeaders();
+    const params = new URLSearchParams({
+        limit: String(limit || 25),
+        page: String(page || 1),
+    });
+    if (!headers.Authorization && username) {
+        params.set("username", username.replace("@", ""));
+    }
+    const url = `${base}/api/activity/mine?${params}`;
+    const res = await fetch(url, { headers });
     if (!res.ok) throw new Error("personal activity fetch failed");
     return res.json();
 }
 
 async function fetchPendingMons(username) {
     const base = getMonexApiBase();
-    const u = encodeURIComponent(username.replace("@", ""));
-    const res = await fetch(`${base}/api/pending?username=${u}`);
+    const headers = getAuthHeaders();
+    const url = headers.Authorization
+        ? `${base}/api/pending`
+        : `${base}/api/pending?username=${encodeURIComponent((username || "").replace("@", ""))}`;
+    const res = await fetch(url, { headers });
     if (!res.ok) throw new Error("pending fetch failed");
     return res.json();
 }
@@ -344,20 +366,20 @@ async function syncWildMons(username, partyCount, boxCount) {
 }
 
 function formatActivityTableRow(entry, rowNum, idx) {
-    const time = new Date(entry.at).toLocaleString();
+    const time = escapeHtml(new Date(entry.at).toLocaleString());
     const mons = getActivityMons(entry);
     const caught = mons.length
-        ? mons.slice(0, 2).map((h) => `<span class="activity-rare">${h.rarity}</span> ${h.name}`).join(", ")
+        ? mons.slice(0, 2).map((h) => `<span class="activity-rare">${escapeHtml(h.rarity)}</span> ${escapeHtml(h.name)}`).join(", ")
         : "—";
     const more = entry.caughtCount > 2 ? ` +${entry.caughtCount - 2}` : "";
     return `<tr class="activity-row activity-row-clickable" role="button" tabindex="0" data-activity-idx="${idx}">
         <td class="col-num">${rowNum}</td>
         <td class="col-time">${time}</td>
-        <td class="col-user"><span class="activity-user">@${entry.xUsername}</span></td>
-        <td class="col-spend"><b>${entry.spend}</b></td>
-        <td class="col-throws">${entry.caughtCount} / ${entry.throws}</td>
+        <td class="col-user"><span class="activity-user">@${escapeHtml(entry.xUsername)}</span></td>
+        <td class="col-spend"><b>${escapeHtml(entry.spend)}</b></td>
+        <td class="col-throws">${escapeHtml(entry.caughtCount)} / ${escapeHtml(entry.throws)}</td>
         <td class="col-mons">${caught}${more}</td>
-        <td class="col-left">${entry.monballsLeft}</td>
+        <td class="col-left">${escapeHtml(entry.monballsLeft)}</td>
     </tr>`;
 }
 

@@ -30,6 +30,19 @@ function readCachedUser() {
 }
 
 function captureSessionFromUrl() {
+  const hash = location.hash.startsWith("#") ? location.hash.slice(1) : "";
+  if (hash) {
+    const hashParams = new URLSearchParams(hash);
+    const hashToken = hashParams.get("session");
+    if (hashToken) {
+      localStorage.setItem(SESSION_KEY, hashToken);
+      hashParams.delete("session");
+      const remaining = hashParams.toString();
+      history.replaceState({}, "", location.pathname + location.search + (remaining ? `#${remaining}` : ""));
+      return true;
+    }
+  }
+
   const params = new URLSearchParams(location.search);
   const token = params.get("session");
   if (!token) return false;

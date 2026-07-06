@@ -29,21 +29,23 @@ import {
   getBearerToken,
 } from "./lib/auth.js";
 import { loadCloudSave, writeCloudSave, buildSavePayload } from "./lib/save.js";
+import {
+  buildCorsHeaders,
+  enforceRateLimit,
+  sanitizeReturnTo,
+  simulateAllowed,
+  timingSafeEqual,
+} from "./lib/security.js";
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Admin-Secret",
-};
-
-function json(data, status = 200) {
+function json(data, status = 200, request, env) {
+  const cors = request && env ? buildCorsHeaders(request, env) : {};
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "Content-Type": "application/json", ...CORS },
+    headers: { "Content-Type": "application/json", ...cors },
   });
 }
 
-async function handleSimulate(body, env) {
+async function handleSimulate(body, env, request) {
   const text = body?.text || "";
   const username = (body?.username || "test_trainer").replace("@", "");
   const authorId = body?.authorId || `sim_${username.toLowerCase()}`;
@@ -67,12 +69,17 @@ async function handleSimulate(body, env) {
   if (result.activity) await appendActivity(env.MONEX_KV, result.activity);
   await saveState(env.MONEX_KV, state);
 
-  return json({
-    ok: true,
-    parsed: result.parsed,
-    activity: result.activity,
-    skipReason: result.skipReason || null,
-  });
+  return json(
+    {
+      ok: true,
+      parsed: result.parsed,
+      activity: result.activity,
+      skipReason: result.skipReason || null,
+    },
+    200,
+    request,
+    env
+  );
 }
 
 async function pollXMentions(env) {
@@ -104,8 +111,9 @@ async function pollXMentions(env) {
 }
 
 async function handleRequest(request, env) {
+  const cors = buildCorsHeaders(request, env);
   if (request.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: CORS });
+    return new Response(null, { status: 204, headers: cors });
   }
 
   const url = new URL(request.url);
@@ -113,28 +121,26 @@ async function handleRequest(request, env) {
 
   try {
     if (path === "/api/health") {
-      const hasXKeys = !!(
-        env.X_API_KEY &&
-        env.X_API_SECRET &&
-        env.X_ACCESS_TOKEN &&
-        env.X_ACCESS_TOKEN_SECRET
+      return json(
+        {
+          ok: true,
+          service: "monex-cloudflare",
+          xOAuth: oauthConfigured(env),
+          devAuth: devAuthAllowed(env),
+          bot: env.BOT_USERNAME || "monexmonad",
+        },
+        200,
+        request,
+        env
       );
-      return json({
-        ok: true,
-        service: "monex-cloudflare",
-        xPoll: env.ENABLE_X_POLL === "1",
-        xKeys: hasXKeys,
-        xOAuth: oauthConfigured(env),
-        devAuth: devAuthAllowed(env),
-        bot: env.BOT_USERNAME || "monexmonad",
-      });
     }
 
     if (path === "/api/auth/x" && request.method === "GET") {
       if (!oauthConfigured(env)) {
-        return json({ ok: false, error: "X OAuth not configured on server" }, 503);
+        return json({ ok: false, error: "X OAuth not configured on server" }, 503, request, env);
       }
-      const returnTo = url.searchParams.get("returnTo") || env.FRONTEND_ORIGIN || "/home.html";
+      await enforceRateLimit(request, env, "auth-x", { limit: 30, windowSec: 60 });
+      const returnTo = sanitizeReturnTo(url.searchParams.get("returnTo") || "/home.html");
       const authorizeUrl = await buildXAuthorizeUrl(env, env.MONEX_KV, returnTo);
       return Response.redirect(authorizeUrl, 302);
     }
@@ -165,160 +171,200 @@ async function handleRequest(request, env) {
         profileImageUrl: xUser.profile_image_url,
       });
 
-      const returnTo = pending.returnTo || "/home.html";
-      const dest = `${frontend}${returnTo}${returnTo.includes("?") ? "&" : "?"}session=${token}`;
+      const returnTo = sanitizeReturnTo(pending.returnTo || "/home.html");
+      const dest = `${frontend}${returnTo}#session=${encodeURIComponent(token)}`;
       return Response.redirect(dest, 302);
     }
 
     if (path === "/api/auth/me" && request.method === "GET") {
       const auth = await requireSession(request, env.MONEX_KV);
-      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status);
-      return json({
-        ok: true,
-        user: {
-          xUserId: auth.session.xUserId,
-          username: auth.session.username,
-          name: auth.session.name,
-          profileImageUrl: auth.session.profileImageUrl,
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      return json(
+        {
+          ok: true,
+          user: {
+            xUserId: auth.session.xUserId,
+            username: auth.session.username,
+            name: auth.session.name,
+            profileImageUrl: auth.session.profileImageUrl,
+          },
         },
-      });
+        200,
+        request,
+        env
+      );
     }
 
     if (path === "/api/auth/logout" && request.method === "POST") {
       const token = getBearerToken(request);
       await deleteSession(env.MONEX_KV, token);
-      return json({ ok: true });
+      return json({ ok: true }, 200, request, env);
     }
 
     if (path === "/api/auth/dev" && request.method === "POST") {
       if (!devAuthAllowed(env)) {
-        return json({ ok: false, error: "dev auth disabled" }, 403);
+        return json({ ok: false, error: "dev auth disabled" }, 403, request, env);
       }
+      await enforceRateLimit(request, env, "auth-dev", { limit: 20, windowSec: 60 });
       const body = await request.json();
       const username = (body?.username || "").trim();
-      if (!username) return json({ ok: false, error: "username required" }, 400);
+      if (!username) return json({ ok: false, error: "username required" }, 400, request, env);
       const { token, session } = await createDevSession(env.MONEX_KV, username);
-      return json({
-        ok: true,
-        token,
-        user: {
-          xUserId: session.xUserId,
-          username: session.username,
-          name: session.name,
+      return json(
+        {
+          ok: true,
+          token,
+          user: {
+            xUserId: session.xUserId,
+            username: session.username,
+            name: session.name,
+          },
         },
-      });
+        200,
+        request,
+        env
+      );
     }
 
     if (path === "/api/save" && request.method === "GET") {
       const auth = await requireSession(request, env.MONEX_KV);
-      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
       const { found, save } = await loadCloudSave(env.MONEX_KV, auth.session.xUserId);
-      return json({ ok: true, found, save, user: { username: auth.session.username, xUserId: auth.session.xUserId } });
+      return json(
+        { ok: true, found, save, user: { username: auth.session.username, xUserId: auth.session.xUserId } },
+        200,
+        request,
+        env
+      );
     }
 
     if (path === "/api/save" && request.method === "PUT") {
       const auth = await requireSession(request, env.MONEX_KV);
-      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      await enforceRateLimit(request, env, "save-put", { limit: 120, windowSec: 60 });
       const body = await request.json();
       const payload = buildSavePayload(body?.save || body, auth.session);
       try {
         await writeCloudSave(env.MONEX_KV, auth.session.xUserId, payload);
       } catch (err) {
         if (err?.code === "stale_save") {
-          return json({ ok: false, error: "stale_save", save: err.existingSave }, 409);
+          return json({ ok: false, error: "stale_save", save: err.existingSave }, 409, request, env);
         }
         throw err;
       }
-      return json({ ok: true, savedAt: payload.updatedAt, save: payload });
+      return json({ ok: true, savedAt: payload.updatedAt, save: payload }, 200, request, env);
     }
 
     if (path === "/api/activity" && request.method === "GET") {
       const limit = Math.min(50, parseInt(url.searchParams.get("limit") || "50", 10));
       const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
       const result = await listActivities(env.MONEX_KV, { limit, page, successOnly: true });
-      return json({ ok: true, ...result });
+      return json({ ok: true, ...result }, 200, request, env);
     }
 
     if (path === "/api/activity/mine" && request.method === "GET") {
-      const username = (url.searchParams.get("username") || "").trim();
-      if (!username) return json({ ok: false, error: "username required" }, 400);
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      const username = auth.session.username;
       const limit = Math.min(50, parseInt(url.searchParams.get("limit") || "30", 10));
       const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
       const result = await listActivities(env.MONEX_KV, { limit, page, username, successOnly: true });
-      return json({ ok: true, username: username.replace("@", ""), ...result });
+      return json({ ok: true, username, ...result }, 200, request, env);
     }
 
     if (path === "/api/pending" && request.method === "GET") {
-      const username = (url.searchParams.get("username") || "").trim();
-      if (!username) return json({ ok: false, error: "username required" }, 400);
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
       const state = await loadState(env.MONEX_KV);
-      const result = getPendingForUsername(state, username);
-      return json({
-        ok: true,
-        username: username.replace("@", ""),
-        found: result.found,
-        monballs: result.monballs,
-        pendingMons: result.pendingMons,
-        count: result.pendingMons.length,
-      });
+      const result = getPendingForUsername(state, auth.session.username);
+      return json(
+        {
+          ok: true,
+          username: auth.session.username,
+          found: result.found,
+          monballs: result.monballs,
+          pendingMons: result.pendingMons,
+          count: result.pendingMons.length,
+        },
+        200,
+        request,
+        env
+      );
     }
 
     if (path === "/api/sync" && request.method === "POST") {
-      const body = await request.json();
-      let username = (body?.username || "").trim();
       const auth = await requireSession(request, env.MONEX_KV);
-      if (auth.ok) username = auth.session.username;
-      if (!username) return json({ ok: false, error: "username required" }, 400);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      await enforceRateLimit(request, env, "sync", { limit: 60, windowSec: 60 });
+      const body = await request.json();
+      const username = auth.session.username;
       const partyCount = Math.max(0, parseInt(body?.partyCount ?? 0, 10));
       const boxCount = Math.max(0, parseInt(body?.boxCount ?? 0, 10));
       const state = await loadState(env.MONEX_KV);
-      const { party, box, remaining } = syncPendingToSlots(
-        state,
-        username,
-        partyCount,
-        boxCount
-      );
+      const { party, box, remaining } = syncPendingToSlots(state, username, partyCount, boxCount);
       await saveState(env.MONEX_KV, state);
-      return json({
-        ok: true,
-        username: username.replace("@", ""),
-        party,
-        box,
-        added: party.length + box.length,
-        remaining,
-      });
+      return json(
+        {
+          ok: true,
+          username,
+          party,
+          box,
+          added: party.length + box.length,
+          remaining,
+        },
+        200,
+        request,
+        env
+      );
     }
 
     if (path === "/api/simulate-mention" && request.method === "POST") {
+      if (!simulateAllowed(env)) {
+        return json({ ok: false, error: "simulate disabled" }, 404, request, env);
+      }
+      await enforceRateLimit(request, env, "simulate", { limit: 30, windowSec: 60 });
       const body = await request.json();
-      return handleSimulate(body, env);
+      return handleSimulate(body, env, request);
     }
 
     if (path === "/api/admin/reset" && request.method === "POST") {
       if (env.ENABLE_ADMIN_RESET !== "1") {
-        return json({ ok: false, error: "admin reset disabled" }, 404);
+        return json({ ok: false, error: "admin reset disabled" }, 404, request, env);
       }
+      await enforceRateLimit(request, env, "admin-reset", { limit: 10, windowSec: 300 });
       const adminSecret = env.ADMIN_RESET_SECRET;
       if (!adminSecret) {
-        return json({ ok: false, error: "ADMIN_RESET_SECRET not configured" }, 503);
+        return json({ ok: false, error: "ADMIN_RESET_SECRET not configured" }, 503, request, env);
       }
       const body = await request.json().catch(() => ({}));
-      const provided =
-        request.headers.get("X-Admin-Secret") || body?.secret || "";
-      if (provided !== adminSecret) {
-        return json({ ok: false, error: "unauthorized" }, 401);
+      const provided = request.headers.get("X-Admin-Secret") || body?.secret || "";
+      if (!timingSafeEqual(provided, adminSecret)) {
+        return json({ ok: false, error: "unauthorized" }, 401, request, env);
       }
       const result = await resetAllData(env.MONEX_KV);
-      return json({
-        ok: true,
-        message: "All user progress and X wild log cleared",
-        ...result,
-      });
+      return json(
+        {
+          ok: true,
+          message: "All user progress and X wild log cleared",
+          ...result,
+        },
+        200,
+        request,
+        env
+      );
     }
 
-    return json({ ok: false, error: "not found" }, 404);
+    return json({ ok: false, error: "not found" }, 404, request, env);
   } catch (err) {
-    return json({ ok: false, error: err.message || "server error" }, 500);
+    if (err?.code === "rate_limited") {
+      return json(
+        { ok: false, error: "rate_limited", retryAfterSec: err.retryAfterSec || 60 },
+        429,
+        request,
+        env
+      );
+    }
+    return json({ ok: false, error: err.message || "server error" }, 500, request, env);
   }
 }
 
