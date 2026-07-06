@@ -25,7 +25,7 @@ export function oauthConfigured(env) {
 }
 
 export function devAuthAllowed(env) {
-  return env.ENABLE_DEV_AUTH === "1" || !oauthConfigured(env);
+  return env.ENABLE_DEV_AUTH === "1";
 }
 
 function sessionKey(token) {

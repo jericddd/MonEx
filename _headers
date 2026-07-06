@@ -1,0 +1,13 @@
+/*
+  Security headers for Cloudflare Pages / GitHub Pages.
+  https://developers.cloudflare.com/pages/configuration/headers/
+*/
+/*
+  https://monexmonad.xyz/*
+*/
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://monex-api.monexmonad.workers.dev https://*.workers.dev http://localhost:3001 http://127.0.0.1:3001; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
