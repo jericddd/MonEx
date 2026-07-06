@@ -2418,6 +2418,7 @@ button.green:hover {
     white-space: nowrap;
 }
 .hero-ascension-main-slot-btn {
+    position: relative;
     border: none;
     cursor: pointer;
     font: inherit;
@@ -2493,6 +2494,26 @@ button.green:hover {
 }
 .hero-ascension-pick-item.used {
     opacity: 0.35;
+    pointer-events: none;
+}
+.hero-ascension-main-slot-btn {
+    position: relative;
+}
+.hero-asc-main-clear {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    z-index: 2;
+    width: 18px;
+    height: 18px;
+    line-height: 16px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(127, 29, 29, 0.85);
+    border: 1px solid #fecaca;
+    border-radius: 3px;
     pointer-events: none;
 }
 .hero-ascension-pick-item.is-main {
@@ -8171,6 +8192,7 @@ let gearSynthSlots = [null, null, null];
 let armoryActiveTab = "synthesize";
 let gearEnhanceTargetId = null;
 let heroAscensionMainMon = null;
+let heroAscensionMainRef = null;
 let heroAscensionDupeMons = [];
 let heroAscensionMainPickerOpen = true;
 let armoryForgeBusy = false;
@@ -11238,24 +11260,67 @@ function listHeroAscensionDuplicates(mainMon) {
     return entries;
 }
 
+function syncHeroAscensionMainMon() {
+    if (!heroAscensionMainRef) {
+        if (!heroAscensionMainMon) return null;
+        const loc = findMonLocationIndex(heroAscensionMainMon);
+        if (!loc) {
+            heroAscensionMainMon = null;
+            return null;
+        }
+        heroAscensionMainRef = { location: loc.location, index: loc.index };
+    }
+    const list = getMonList(heroAscensionMainRef.location);
+    const mon = list[heroAscensionMainRef.index];
+    if (!mon) {
+        heroAscensionMainMon = null;
+        heroAscensionMainRef = null;
+        return null;
+    }
+    heroAscensionMainMon = mon;
+    return mon;
+}
+
+function isHeroAscensionMainAt(location, index) {
+    syncHeroAscensionMainMon();
+    return !!heroAscensionMainRef
+        && heroAscensionMainRef.location === location
+        && heroAscensionMainRef.index === index;
+}
+
+function heroAscensionClearMain() {
+    heroAscensionMainMon = null;
+    heroAscensionMainRef = null;
+    heroAscensionDupeMons = [];
+    heroAscensionMainPickerOpen = true;
+}
+
 function toggleHeroAscensionMainPicker() {
     heroAscensionMainPickerOpen = !heroAscensionMainPickerOpen;
     renderArmoryPane();
 }
 
+function heroAscensionMainSlotClick() {
+    if (heroAscensionMainMon) {
+        heroAscensionClearMain();
+    } else {
+        heroAscensionMainPickerOpen = true;
+    }
+    renderArmoryPane();
+}
+
 function heroAscensionSelectMain(location, index) {
-    const list = location === "party" ? party : box;
+    const list = getMonList(location);
     const mon = list[index];
     if (!mon || !isLegendaryOrAbove(mon.rarity)) return;
-    if (heroAscensionMainMon === mon) {
-        heroAscensionMainMon = null;
-        heroAscensionDupeMons = [];
-        heroAscensionMainPickerOpen = true;
+    if (isHeroAscensionMainAt(location, index)) {
+        heroAscensionClearMain();
         renderArmoryPane();
         return;
     }
     if (!canMonHeroAscendMain(mon)) return;
     heroAscensionMainMon = mon;
+    heroAscensionMainRef = { location, index };
     heroAscensionDupeMons = [];
     heroAscensionMainPickerOpen = false;
     renderArmoryPane();
@@ -11396,7 +11461,7 @@ function openHeroAscensionSkillUnlock() {
 
 function renderHeroAscensionMainPickItem(entry) {
     const { mon, location, index } = entry;
-    const selected = heroAscensionMainMon === mon;
+    const selected = isHeroAscensionMainAt(location, index);
     const canAscend = canMonHeroAscendMain(mon);
     const locTag = location === "party" ? "P" : "B";
     let status = "";
@@ -11425,7 +11490,7 @@ function renderHeroAscensionPanel(container) {
     const el = container || document.getElementById("armory-pane-content");
     if (!el) return;
 
-    const main = heroAscensionMainMon;
+    const main = syncHeroAscensionMainMon();
     const recipe = analyzeHeroAscension(main, heroAscensionDupeMons);
     const recipeCls = recipe && (recipe.type === "ready" || recipe.type === "pending_skill") ? "" : " invalid";
     const canAscend = recipe?.type === "ready" && money >= (recipe.gold || 0) && !armoryForgeBusy;
@@ -11478,7 +11543,8 @@ function renderHeroAscensionPanel(container) {
             <p class="gear-synth-note">Hero Ascension: <b>Legendary+</b> only. Dupes: <b>+1</b> = 2 · <b>+2</b> = 4 · <b>+3–5</b> = 5 · <b>+6+</b> = 6 · <b>75%</b> success. Each + grants <b>+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% base & gear stats</b>. Skills unlock through <b>+${HERO_ASCENSION_SKILL_CAP}</b> only. Tap 🔓 to unlock skills.</p>
             <div class="gear-synth-recipe-bar${recipeCls}">${describeHeroAscensionRecipe(recipe)}</div>
             <div class="hero-ascension-workbench">
-                <button type="button" class="hero-ascension-main-slot hero-ascension-main-slot-btn${main ? " filled" : ""}${showMainPicker ? " is-open" : ""}" onclick="toggleHeroAscensionMainPicker()" title="${main ? "Click to change main — select the highlighted hero again to remove" : "Choose main hero"}">
+                <button type="button" class="hero-ascension-main-slot hero-ascension-main-slot-btn${main ? " filled" : ""}${showMainPicker ? " is-open" : ""}" onclick="heroAscensionMainSlotClick()" title="${main ? "Click to remove main hero" : "Choose main hero"}">
+                    ${main ? `<span class="hero-asc-main-clear" aria-hidden="true">×</span>` : ""}
                     ${mainSlotInner}
                 </button>
                 ${required ? `<span class="gear-synth-op">+</span>${dupeSlots}` : ""}
@@ -11490,7 +11556,7 @@ function renderHeroAscensionPanel(container) {
                 ${pendingUnlock
                     ? `<button type="button" class="gear-synth-btn" onclick="openHeroAscensionSkillUnlock()" style="border-color:#a855f7;background:linear-gradient(180deg,#e9d5ff 0%,#c084fc 100%);color:#3b0764;box-shadow:3px 3px 0 #6b21a8;">🔓 UNLOCK SKILL</button>`
                     : `<button type="button" class="gear-synth-btn" onclick="executeHeroAscension()" ${canAscend ? "" : "disabled"} style="border-color:#fbbf24;background:linear-gradient(180deg,#fde68a 0%,#f59e0b 100%);color:#451a03;box-shadow:3px 3px 0 #92400e;">ASCEND</button>`}
-                <button type="button" class="gear-synth-open-btn" onclick="heroAscensionMainMon=null;heroAscensionDupeMons=[];heroAscensionMainPickerOpen=true;renderArmoryPane();" ${armoryForgeBusy ? "disabled" : ""}>CLEAR</button>
+                <button type="button" class="gear-synth-open-btn" onclick="heroAscensionClearMain(); renderArmoryPane();" ${armoryForgeBusy ? "disabled" : ""}>CLEAR</button>
             </div>
             <div class="hero-ascension-lists hub-scrollbar-panel">
                 ${mainListHtml}
