@@ -101,7 +101,10 @@
     }
 
     .showcase-panel {
-        margin-top: auto;
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
         background: white;
         border: 4px solid #6B21A8;
         box-shadow: 4px 4px 0px #6B21A8;
@@ -119,9 +122,13 @@
 
     #showcase {
         position: relative;
-        height: 160px;
+        flex: 1 1 auto;
+        min-height: 160px;
         overflow: hidden;
         background: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     #showcase-img {
@@ -187,9 +194,26 @@
 
     .central-banner img {
         max-width: 100%;
+        max-height: 100%;
+        width: auto;
         height: auto;
+        object-fit: contain;
         border: 4px solid #6B21A8;
+    }
+
+    .central-banner-visual {
+        flex: 1 1 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 0;
         margin: 15px 0;
+    }
+
+    .central-banner-tagline {
+        font-size: 18px;
+        margin: 20px 0;
+        flex-shrink: 0;
     }
 
     /* Right Sidebar */
@@ -202,8 +226,12 @@
         gap: 15px;
     }
 
-    .right-sidebar .side-box:last-child {
-        margin-top: auto;
+    .right-sidebar .side-box-grow {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 0;
     }
 
     .side-box {
@@ -236,6 +264,16 @@
             width: 100%;
             max-width: 100%;
             min-width: 0;
+        }
+        .showcase-panel,
+        .right-sidebar .side-box-grow,
+        .central-banner-visual {
+            flex: 0 0 auto;
+        }
+        #showcase {
+            flex: 0 0 auto;
+            min-height: 160px;
+            height: 160px;
         }
         .showcase-panel,
         .right-sidebar .side-box:last-child {
@@ -457,8 +495,10 @@
     <!-- Central Banner -->
     <div class="central-banner">
         <h2>WELCOME TO MONEX</h2>
-        <p style="font-size: 18px; margin: 20px 0;">Catch. Train. Battle.</p>
-        <img src="for%20result%20banner/homepagebackground.jpg" alt="MonEx heroes">
+        <p class="central-banner-tagline">Catch. Train. Battle.</p>
+        <div class="central-banner-visual">
+            <img src="for%20result%20banner/homepagebackground.jpg" alt="MonEx heroes">
+        </div>
     </div>
 
     <!-- Right Sidebar -->
@@ -468,7 +508,7 @@
             <p>How to start playing MonEx</p>
             <p style="font-size:11px; margin-top:10px;"><a href="docs/cloudflare-deploy.html" style="color:#6B21A8; font-weight:bold;">Deploy on Cloudflare (free) →</a></p>
         </div>
-        <div class="side-box">
+        <div class="side-box side-box-grow">
             <h2 style="margin-top:0;">SERVER STATUS</h2>
             <div id="server-status" style="font-weight: bold; font-size: 16px; display: flex; align-items: center; gap: 10px;">
                 <span id="status-dot" style="display: inline-block; width: 12px; height: 12px; background: #22c55e; border-radius: 50%; animation: blink 1.5s infinite;"></span>
