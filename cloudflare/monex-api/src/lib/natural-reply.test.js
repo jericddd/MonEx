@@ -33,6 +33,7 @@ test("natural catch reply reads like human text", () => {
     )
   );
   assert.equal(text.includes("http"), false);
+  assert.ok(/monexmonad|Profile → X log|your box|in game/i.test(text));
   assert.ok(/@ replies.*\d+\/4/i.test(text));
   assert.ok(text.length <= 280);
 });

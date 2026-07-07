@@ -19,6 +19,30 @@ function pick(arr, seed) {
   return arr[seed % arr.length];
 }
 
+const GAME_CHECK_LINES = [
+  "they're in your box — open monexmonad to check them out.",
+  "full haul's in game, Profile → X log.",
+  "mons are synced — hop on monexmonad when you can.",
+  "pull up the game to see them in your box.",
+  "worth opening monexmonad for these — Profile → X log.",
+  "claim them in your box on monexmonad.",
+  "rest of the roster's waiting in game.",
+  "box is updated — monexmonad has the full lineup.",
+];
+
+const GAME_CHECK_AFTER_MISS_LINES = [
+  "catch still logs on monexmonad if you want to double-check.",
+  "Profile → X log in game has the run if you sync.",
+  "hop on monexmonad when ready — rng might flip next time.",
+];
+
+function appendGameCheck(message, caughtN, seed) {
+  if (caughtN > 0) {
+    return `${message} ${pick(GAME_CHECK_LINES, seed)}`;
+  }
+  return `${message} ${pick(GAME_CHECK_AFTER_MISS_LINES, seed)}`;
+}
+
 function buildCatchContext({ username, monballSpend, results, monballsLeft, repliesLeftAfter, dailyLimit, seed }) {
   const caught = results.filter((r) => !r.escaped);
   const escaped = results.filter((r) => r.escaped);
@@ -72,6 +96,7 @@ export const CATCH_REPLY_TEMPLATE_SAMPLES = [
   "@player not bad for {spend} balls — {raritySummary}. {highlights} look proper. {escapedNote}.",
   "@player {raritySummary} from a {spend}-ball rip. {highlights} stood out. {escapedNote}. {left} Monballs on you.",
   "@player ok this one hits — {raritySummary} ({caughtN}/{total}). {highlights}. {escapedNote}. sync when you're back.",
+  "@player (+ game check line) they're in your box — open monexmonad to check them out.",
 ];
 
 const MIXED_CATCH_TEMPLATES = [
@@ -153,7 +178,8 @@ export function buildNaturalCatchReply({
   if (ctx.allEscaped) pool = ALL_ESCAPED_TEMPLATES;
   else if (ctx.allCaught) pool = ALL_CAUGHT_TEMPLATES;
   const body = pick(pool, seed)(ctx);
-  return appendReplyQuotaFooter(body, repliesLeftAfter, dailyLimit, seed + 1)
+  const withGameCheck = appendGameCheck(body, ctx.caughtN, seed + 7);
+  return appendReplyQuotaFooter(withGameCheck, repliesLeftAfter, dailyLimit, seed + 1)
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 280);
