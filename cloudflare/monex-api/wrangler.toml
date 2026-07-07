@@ -13,7 +13,7 @@ id = "0f9974ccc16143aa825372bd3bed7f1b"
 [vars]
 BOT_USERNAME = "monexmonad"
 STARTING_MONBALLS = "10"
-ENABLE_X_POLL = "0"
+ENABLE_X_POLL = "1"
 # Production: keep dev login, simulate, and admin reset OFF. Enable only on staging/local.
 ENABLE_DEV_AUTH = "0"
 ENABLE_SIMULATE = "0"
