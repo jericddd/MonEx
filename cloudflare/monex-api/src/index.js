@@ -12,6 +12,9 @@ import {
   syncPendingToSlots,
   getPollSinceId,
   setPollSinceId,
+  clearPollSinceId,
+  getPollStatus,
+  setPollStatus,
   resetAllData,
 } from "./kv-store.js";
 import { createXClient, resolveBotUser, fetchMentions } from "./lib/x-client.js";
@@ -82,32 +85,78 @@ async function handleSimulate(body, env, request) {
   );
 }
 
-async function pollXMentions(env) {
-  if (env.ENABLE_X_POLL !== "1") return;
+async function pollXMentions(env, { resetSinceId = false } = {}) {
+  const status = { at: new Date().toISOString() };
+  if (env.ENABLE_X_POLL !== "1") {
+    status.ok = false;
+    status.error = "poll_disabled";
+    await setPollStatus(env.MONEX_KV, status);
+    return status;
+  }
+
   const required = ["X_API_KEY", "X_API_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_TOKEN_SECRET"];
-  if (required.some((k) => !env[k])) return;
-
-  const client = createXClient(env).readWrite;
-  const botUser = await resolveBotUser(client);
-  let sinceId = await getPollSinceId(env.MONEX_KV);
-  const starting = parseInt(env.STARTING_MONBALLS || "10", 10);
-  const bot = botUser.username || env.BOT_USERNAME || "monexmonad";
-
-  const { tweets, meta } = await fetchMentions(client, botUser.id, sinceId);
-  if (meta?.newest_id) {
-    sinceId = meta.newest_id;
-    await setPollSinceId(env.MONEX_KV, sinceId);
+  const missing = required.filter((k) => !env[k]);
+  if (missing.length) {
+    status.ok = false;
+    status.error = `missing_keys:${missing.join(",")}`;
+    await setPollStatus(env.MONEX_KV, status);
+    return status;
   }
 
-  for (const tweet of tweets) {
-    const state = await loadState(env.MONEX_KV);
-    if (wasProcessed(state, tweet.id)) continue;
+  try {
+    if (resetSinceId) await clearPollSinceId(env.MONEX_KV);
 
-    const result = processMentionTweet(tweet, bot, state, starting);
-    markProcessed(state, tweet.id);
-    if (result.activity) await appendActivity(env.MONEX_KV, result.activity);
-    await saveState(env.MONEX_KV, state);
+    const client = createXClient(env).readWrite;
+    const botUser = await resolveBotUser(client);
+    const sinceId = await getPollSinceId(env.MONEX_KV);
+    const starting = parseInt(env.STARTING_MONBALLS || "10", 10);
+    const bot = botUser.username || env.BOT_USERNAME || "monexmonad";
+
+    const { tweets, meta } = await fetchMentions(client, botUser.id, sinceId);
+    status.ok = true;
+    status.botUsername = botUser.username;
+    status.sinceId = sinceId;
+    status.fetched = tweets.length;
+    status.processed = 0;
+    status.activities = 0;
+    status.skipped = [];
+
+    for (const tweet of tweets) {
+      const state = await loadState(env.MONEX_KV);
+      if (wasProcessed(state, tweet.id)) {
+        status.skipped.push({ id: tweet.id, reason: "already_processed" });
+        continue;
+      }
+
+      const result = processMentionTweet(tweet, bot, state, starting);
+      markProcessed(state, tweet.id);
+      if (result.activity) {
+        await appendActivity(env.MONEX_KV, result.activity);
+        status.activities += 1;
+      } else if (result.skipReason) {
+        status.skipped.push({ id: tweet.id, user: tweet.username, reason: result.skipReason });
+      }
+      await saveState(env.MONEX_KV, state);
+      status.processed += 1;
+    }
+
+    if (meta?.newest_id && tweets.length > 0) {
+      await setPollSinceId(env.MONEX_KV, meta.newest_id);
+      status.newSinceId = meta.newest_id;
+    }
+
+    await setPollStatus(env.MONEX_KV, status);
+    return status;
+  } catch (err) {
+    status.ok = false;
+    status.error = err.message || String(err);
+    await setPollStatus(env.MONEX_KV, status);
+    throw err;
   }
+}
+
+function xKeysConfigured(env) {
+  return ["X_API_KEY", "X_API_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_TOKEN_SECRET"].every((k) => !!env[k]);
 }
 
 async function handleRequest(request, env) {
@@ -125,6 +174,8 @@ async function handleRequest(request, env) {
         {
           ok: true,
           service: "monex-cloudflare",
+          xPoll: env.ENABLE_X_POLL === "1",
+          xKeys: xKeysConfigured(env),
           xOAuth: oauthConfigured(env),
           devAuth: devAuthAllowed(env),
           bot: env.BOT_USERNAME || "monexmonad",
@@ -133,6 +184,43 @@ async function handleRequest(request, env) {
         request,
         env
       );
+    }
+
+    if (path === "/api/poll-status" && request.method === "GET") {
+      const sinceId = await getPollSinceId(env.MONEX_KV);
+      const last = await getPollStatus(env.MONEX_KV);
+      return json(
+        {
+          ok: true,
+          xPoll: env.ENABLE_X_POLL === "1",
+          xKeys: xKeysConfigured(env),
+          sinceId,
+          last,
+        },
+        200,
+        request,
+        env
+      );
+    }
+
+    if (path === "/api/admin/run-poll" && request.method === "POST") {
+      const adminSecret = env.ADMIN_RESET_SECRET;
+      if (!adminSecret) {
+        return json({ ok: false, error: "ADMIN_RESET_SECRET not configured" }, 503, request, env);
+      }
+      const body = await request.json().catch(() => ({}));
+      const provided = request.headers.get("X-Admin-Secret") || body?.secret || "";
+      if (!timingSafeEqual(provided, adminSecret)) {
+        return json({ ok: false, error: "unauthorized" }, 401, request, env);
+      }
+      const resetSinceId = body?.reset === true || url.searchParams.get("reset") === "1";
+      try {
+        const result = await pollXMentions(env, { resetSinceId });
+        return json({ ok: true, result }, 200, request, env);
+      } catch (err) {
+        const last = await getPollStatus(env.MONEX_KV);
+        return json({ ok: false, error: err.message || "poll failed", last }, 500, request, env);
+      }
     }
 
     if (path === "/api/auth/x" && request.method === "GET") {

@@ -1,6 +1,7 @@
 const STATE_KEY = "monex:state";
 const ACTIVITY_KEY = "monex:activity";
 const POLL_KEY = "monex:poll:sinceId";
+const POLL_STATUS_KEY = "monex:poll:lastStatus";
 const MAX_ACTIVITY = 500;
 
 const DEFAULT_STATE = { processedTweetIds: [], users: {} };
@@ -133,6 +134,24 @@ export async function getPollSinceId(kv) {
 
 export async function setPollSinceId(kv, id) {
   if (id) await kv.put(POLL_KEY, id);
+}
+
+export async function clearPollSinceId(kv) {
+  await kv.delete(POLL_KEY);
+}
+
+export async function getPollStatus(kv) {
+  const raw = await kv.get(POLL_STATUS_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export async function setPollStatus(kv, status) {
+  await kv.put(POLL_STATUS_KEY, JSON.stringify(status), { expirationTtl: 60 * 60 * 24 * 7 });
 }
 
 /** Wipe X log, all users/pending catches, cloud saves, and login sessions */
