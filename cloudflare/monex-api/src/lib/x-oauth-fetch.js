@@ -78,8 +78,11 @@ export async function xApiGet(env, path, queryParams = {}) {
   }
 
   const oauth = await oauth1Sign("GET", baseUrl, params, env);
-  const qs = new URLSearchParams(params);
-  const url = `${baseUrl}?${qs}`;
+  const queryString = Object.keys(params)
+    .sort()
+    .map((k) => `${pctEncode(k)}=${pctEncode(params[k])}`)
+    .join("&");
+  const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
 
   const res = await fetch(url, {
     headers: { Authorization: buildOAuthHeader(oauth) },

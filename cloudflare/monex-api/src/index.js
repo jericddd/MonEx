@@ -187,6 +187,19 @@ function xKeysConfigured(env) {
   return ["X_API_KEY", "X_API_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_TOKEN_SECRET"].every((k) => !!env[k]);
 }
 
+function xKeyDiagnostics(env) {
+  const apiKey = env.X_API_KEY || "";
+  const clientId = env.X_CLIENT_ID || "";
+  return {
+    apiKeySet: !!apiKey,
+    apiSecretSet: !!env.X_API_SECRET,
+    accessTokenSet: !!env.X_ACCESS_TOKEN,
+    accessTokenSecretSet: !!env.X_ACCESS_TOKEN_SECRET,
+    apiKeyLooksLikeOAuth2ClientId:
+      !!clientId && !!apiKey && timingSafeEqual(apiKey, clientId),
+  };
+}
+
 async function handleRequest(request, env) {
   const cors = buildCorsHeaders(request, env);
   if (request.method === "OPTIONS") {
@@ -208,6 +221,7 @@ async function handleRequest(request, env) {
           devAuth: devAuthAllowed(env),
           bot: env.BOT_USERNAME || "monexmonad",
           codeVersion: API_CODE_VERSION,
+          keyCheck: xKeyDiagnostics(env),
         },
         200,
         request,
@@ -247,6 +261,7 @@ async function handleRequest(request, env) {
           codeVersion: API_CODE_VERSION,
           xPoll: env.ENABLE_X_POLL === "1",
           xKeys: xKeysConfigured(env),
+          keyCheck: xKeyDiagnostics(env),
           sinceId,
           last,
         },
