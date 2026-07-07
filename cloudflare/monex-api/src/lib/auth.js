@@ -58,7 +58,7 @@ export async function buildXAuthorizeUrl(env, kv, returnTo) {
   const codeVerifier = base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)));
   const codeChallenge = await sha256Base64Url(codeVerifier);
   const state = await createOAuthState(kv, { codeVerifier, returnTo });
-  const redirectUri = env.X_REDIRECT_URI || `${new URL(env.WORKER_ORIGIN || "https://monex-api.monexmonad.workers.dev").origin}/api/auth/callback`;
+  const redirectUri = env.X_REDIRECT_URI || `${new URL(env.WORKER_ORIGIN || "https://monex-api.0xjericd.workers.dev").origin}/api/auth/callback`;
 
   const params = new URLSearchParams({
     response_type: "code",
@@ -74,7 +74,7 @@ export async function buildXAuthorizeUrl(env, kv, returnTo) {
 }
 
 export async function exchangeXCode(env, code, codeVerifier) {
-  const redirectUri = env.X_REDIRECT_URI || `${new URL(env.WORKER_ORIGIN || "https://monex-api.monexmonad.workers.dev").origin}/api/auth/callback`;
+  const redirectUri = env.X_REDIRECT_URI || `${new URL(env.WORKER_ORIGIN || "https://monex-api.0xjericd.workers.dev").origin}/api/auth/callback`;
   const body = new URLSearchParams({
     grant_type: "authorization_code",
     code,

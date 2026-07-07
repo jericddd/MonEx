@@ -1,7 +1,7 @@
 /** Shared X activity feed client for home + game profile */
 
 /** Live activity API — Cloudflare Workers (free). Set js/monex-config.js after deploy. */
-const MONEX_API_PRODUCTION = "https://monex-api.monexmonad.workers.dev";
+const MONEX_API_PRODUCTION = "https://monex-api.0xjericd.workers.dev";
 
 function getMonexApiBase() {
     if (window.MONEX_API) return window.MONEX_API.replace(/\/$/, "");

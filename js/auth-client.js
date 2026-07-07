@@ -6,7 +6,7 @@ const USER_KEY = "monex_user";
 function getApiBase() {
   if (typeof getMonexApiBase === "function") return getMonexApiBase();
   if (window.MONEX_API) return window.MONEX_API.replace(/\/$/, "");
-  return "https://monex-api.monexmonad.workers.dev";
+  return "https://monex-api.0xjericd.workers.dev";
 }
 
 function authHeaders() {
