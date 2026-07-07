@@ -26,9 +26,12 @@ test("natural catch reply reads like human text", () => {
   });
 
   assert.ok(text.startsWith("@jeric"));
-  assert.ok(/caught|bagged|hooked|secured|stayed|in,/i.test(text));
-  assert.ok(text.includes("Chog"));
-  assert.ok(text.includes("Mouch"));
+  assert.ok(/Legendary|Rare|Uncommon|Common/.test(text));
+  assert.ok(
+    /Standouts|Promising|Watch these|Highlights|Top picks|Looking strong|Stars of the run|Best catches|Keep an eye on|look spicy|Worth syncing/i.test(
+      text
+    )
+  );
   assert.ok(/Visit the site|on the site/i.test(text));
   assert.ok(/@ replies left today: \d+\/5/.test(text));
   assert.equal(text.includes("http"), false);

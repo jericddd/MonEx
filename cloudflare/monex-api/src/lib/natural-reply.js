@@ -1,3 +1,9 @@
+import {
+  buildCatchSummaryFields,
+  formatRaritySummary,
+  pickHighlightMons,
+} from "./catch-summary.js";
+
 function hashSeed(str) {
   let h = 2166136261;
   for (let i = 0; i < str.length; i++) {
@@ -11,22 +17,14 @@ function pick(arr, seed) {
   return arr[seed % arr.length];
 }
 
-function formatNameList(names) {
-  const unique = [...new Set(names.filter(Boolean))];
-  if (!unique.length) return "";
-  if (unique.length === 1) return unique[0];
-  if (unique.length === 2) return `${unique[0]} and ${unique[1]}`;
-  return `${unique.slice(0, -1).join(", ")}, and ${unique.at(-1)}`;
-}
-
-function buildCatchContext({ username, monballSpend, results, monballsLeft, repliesLeftAfter, dailyLimit }) {
+function buildCatchContext({ username, monballSpend, results, monballsLeft, repliesLeftAfter, dailyLimit, seed }) {
   const caught = results.filter((r) => !r.escaped);
   const escaped = results.filter((r) => r.escaped);
+  const summary = buildCatchSummaryFields(caught, escaped, seed);
+
   return {
     u: username,
     spend: monballSpend,
-    caughtList: formatNameList(caught.map((r) => r.mon.name)),
-    escapedList: formatNameList(escaped.map((r) => r.name)),
     caughtN: caught.length,
     escapedN: escaped.length,
     total: results.length,
@@ -35,6 +33,7 @@ function buildCatchContext({ username, monballSpend, results, monballsLeft, repl
     allCaught: escaped.length === 0,
     repliesLeftAfter: repliesLeftAfter ?? null,
     dailyLimit: dailyLimit ?? 5,
+    ...summary,
   };
 }
 
@@ -46,69 +45,64 @@ function appendReplyQuotaFooter(message, repliesLeftAfter, dailyLimit) {
   return `${message} @ replies left today: ${repliesLeftAfter}/${dailyLimit}.`;
 }
 
-/**
- * 12 human-style catch reply templates (no AI). One is picked per tweet via seed.
- * Placeholders: {caughtList}, {escapedList}, {caughtN}, {escapedN}, {total}, {left}, {spend}
- */
 export const CATCH_REPLY_TEMPLATE_SAMPLES = [
-  "@player wild session — caught {caughtList}. {escapedList} got away ({caughtN}/{total}). {left} Monballs left. Visit the site to play!",
-  "@player okay {spend} Monballs in. You bagged {caughtList}. Missed: {escapedList}. {left} Monballs remaining — see you on the site!",
-  "@player not bad — {caughtN}/{total} hooked ({caughtList}). Slipped away: {escapedList}. {left} Monballs in your pouch. Hop on the site!",
-  "@player ha, messy run. Got {caughtList}, lost {escapedList}. Score {caughtN}-{escapedN}. {left} Monballs left — come play on the site!",
-  "@player {spend} Monballs later… caught {caughtList}. {escapedList} weren't cooperating. {left} Monballs left. Site's waiting!",
-  "@player yo! {caughtList} in, {escapedList} out. {caughtN}/{total} caught. {left} Monballs to spare — visit the site!",
-  "@player field was spicy. Secured {caughtList}. Escaped: {escapedList}. {left} Monballs on hand. Play on the site!",
-  "@player solid work — {caughtList} caught, shame about {escapedList}. {left} Monballs left. Head to the site to sync!",
-  "@player ranger log: {caughtN} caught ({caughtList}), {escapedN} escaped ({escapedList}). {left} Monballs. Visit the site!",
-  "@player that {spend}-ball run is done. Caught: {caughtList}. Got away: {escapedList}. {left} Monballs left — claim on the site!",
-  "@player nice throws. {caughtList} stayed, {escapedList} fled. {caughtN} of {total}. {left} Monballs left — visit the site to play!",
-  "@player catch report: {caughtList} ✓ · {escapedList} ✗ · {caughtN}/{total} · {left} Monballs left. See you on the site!",
+  "@player {spend} Monballs — caught {raritySummary} ({caughtN}/{total}). Standouts: {highlights}. {escapedNote}. {left} Monballs left. Visit the site!",
+  "@player nice haul! {raritySummary}. Promising pulls: {highlights}. {escapedNote}. {left} Monballs left — hop on the site!",
+  "@player solid run — {raritySummary} ({caughtN}/{total}). Watch these: {highlights}. {escapedNote}. {left} Monballs on hand. Visit the site to play!",
+  "@player wild session ({spend} Monballs): {raritySummary}. Top picks: {highlights}. {escapedNote}. {left} Monballs left. See you on the site!",
+  "@player ranger report — {raritySummary}, {caughtN}/{total} hooked. Keep an eye on {highlights}. {escapedNote}. {left} Monballs left. Visit the site!",
+  "@player okay {spend} Monballs in → {raritySummary}. Looking strong: {highlights}. {escapedNote}. {left} Monballs remaining. Play on the site!",
+  "@player not bad! {raritySummary} ({caughtN}/{total}). Stars of the run: {highlights}. {escapedNote}. {left} Monballs in your pouch. Visit the site!",
+  "@player messy but fun — {raritySummary}. Best catches: {highlights}. {escapedNote}. {left} Monballs left. Come play on the site!",
+  "@player {spend}-ball results: {raritySummary}. Highlights: {highlights}. {escapedNote}. {left} Monballs left. Site's waiting!",
+  "@player yo! {raritySummary} ({caughtN}/{total}). {highlights} look spicy. {escapedNote}. {left} Monballs to spare — visit the site!",
+  "@player field was spicy — {raritySummary}. Worth syncing: {highlights}. {escapedNote}. {left} Monballs on hand. Play on the site!",
+  "@player catch log: {raritySummary} · {caughtN}/{total} · picks: {highlights} · {escapedNote} · {left} Monballs left. Visit the site!",
 ];
 
-/** Mixed results — at least one catch and at least one escape */
 const MIXED_CATCH_TEMPLATES = [
   (c) =>
-    `@${c.u} wild session — caught ${c.caughtList}. ${c.escapedList} got away (${c.caughtN}/${c.total}). ${c.left} Monballs left. Visit the site to play!`,
+    `@${c.u} ${c.spend} Monballs — caught ${c.raritySummary} (${c.caughtN}/${c.total}). Standouts: ${c.highlights}. ${c.escapedNote}. ${c.left} Monballs left. Visit the site!`,
   (c) =>
-    `@${c.u} okay ${c.spend} Monballs in. You bagged ${c.caughtList}. Missed: ${c.escapedList}. ${c.left} Monballs remaining — see you on the site!`,
+    `@${c.u} nice haul! ${c.raritySummary}. Promising pulls: ${c.highlights}. ${c.escapedNote}. ${c.left} Monballs left — hop on the site!`,
   (c) =>
-    `@${c.u} not bad — ${c.caughtN}/${c.total} hooked (${c.caughtList}). Slipped away: ${c.escapedList}. ${c.left} Monballs in your pouch. Hop on the site!`,
+    `@${c.u} solid run — ${c.raritySummary} (${c.caughtN}/${c.total}). Watch these: ${c.highlights}. ${c.escapedNote}. ${c.left} Monballs on hand. Visit the site to play!`,
   (c) =>
-    `@${c.u} ha, messy run. Got ${c.caughtList}, lost ${c.escapedList}. Score ${c.caughtN}-${c.escapedN}. ${c.left} Monballs left — come play on the site!`,
+    `@${c.u} wild session (${c.spend} Monballs): ${c.raritySummary}. Top picks: ${c.highlights}. ${c.escapedNote}. ${c.left} Monballs left. See you on the site!`,
   (c) =>
-    `@${c.u} ${c.spend} Monballs later… caught ${c.caughtList}. ${c.escapedList} weren't cooperating. ${c.left} Monballs left. Site's waiting!`,
+    `@${c.u} ranger report — ${c.raritySummary}, ${c.caughtN}/${c.total} hooked. Keep an eye on ${c.highlights}. ${c.escapedNote}. ${c.left} Monballs left. Visit the site!`,
   (c) =>
-    `@${c.u} yo! ${c.caughtList} in, ${c.escapedList} out. ${c.caughtN}/${c.total} caught. ${c.left} Monballs to spare — visit the site!`,
+    `@${c.u} okay ${c.spend} Monballs in → ${c.raritySummary}. Looking strong: ${c.highlights}. ${c.escapedNote}. ${c.left} Monballs remaining. Play on the site!`,
   (c) =>
-    `@${c.u} field was spicy. Secured ${c.caughtList}. Escaped: ${c.escapedList}. ${c.left} Monballs on hand. Play on the site!`,
+    `@${c.u} not bad! ${c.raritySummary} (${c.caughtN}/${c.total}). Stars of the run: ${c.highlights}. ${c.escapedNote}. ${c.left} Monballs in your pouch. Visit the site!`,
   (c) =>
-    `@${c.u} solid work — ${c.caughtList} caught, shame about ${c.escapedList}. ${c.left} Monballs left. Head to the site to sync!`,
+    `@${c.u} messy but fun — ${c.raritySummary}. Best catches: ${c.highlights}. ${c.escapedNote}. ${c.left} Monballs left. Come play on the site!`,
   (c) =>
-    `@${c.u} ranger log: ${c.caughtN} caught (${c.caughtList}), ${c.escapedN} escaped (${c.escapedList}). ${c.left} Monballs. Visit the site!`,
+    `@${c.u} ${c.spend}-ball results: ${c.raritySummary}. Highlights: ${c.highlights}. ${c.escapedNote}. ${c.left} Monballs left. Site's waiting!`,
   (c) =>
-    `@${c.u} that ${c.spend}-ball run is done. Caught: ${c.caughtList}. Got away: ${c.escapedList}. ${c.left} Monballs left — claim on the site!`,
+    `@${c.u} yo! ${c.raritySummary} (${c.caughtN}/${c.total}). ${c.highlights} look spicy. ${c.escapedNote}. ${c.left} Monballs to spare — visit the site!`,
   (c) =>
-    `@${c.u} nice throws. ${c.caughtList} stayed, ${c.escapedList} fled. ${c.caughtN} of ${c.total}. ${c.left} Monballs left — visit the site to play!`,
+    `@${c.u} field was spicy — ${c.raritySummary}. Worth syncing: ${c.highlights}. ${c.escapedNote}. ${c.left} Monballs on hand. Play on the site!`,
   (c) =>
-    `@${c.u} catch report: ${c.caughtList} ✓ · ${c.escapedList} ✗ · ${c.caughtN}/${c.total} · ${c.left} Monballs left. See you on the site!`,
+    `@${c.u} catch log: ${c.raritySummary} · ${c.caughtN}/${c.total} · picks: ${c.highlights} · ${c.escapedNote} · ${c.left} Monballs left. Visit the site!`,
 ];
 
 const ALL_CAUGHT_TEMPLATES = [
   (c) =>
-    `@${c.u} clean sweep with ${c.spend} Monballs — ${c.caughtList}, every single one (${c.total}/${c.total}). ${c.left} Monballs left. Visit the site to play!`,
+    `@${c.u} clean sweep (${c.spend} Monballs)! ${c.raritySummary}. All ${c.caughtN} hooked — standouts: ${c.highlights}. ${c.left} Monballs left. Visit the site!`,
   (c) =>
-    `@${c.u} perfect run! Bagged ${c.caughtList}. Not one escape. ${c.left} Monballs remaining — hop on the site!`,
+    `@${c.u} perfect run — ${c.raritySummary}, every throw (${c.total}/${c.total}). Best: ${c.highlights}. ${c.left} Monballs remaining. Hop on the site!`,
   (c) =>
-    `@${c.u} flawless ${c.spend}-ball session. All ${c.caughtList} caught. ${c.left} Monballs in the bag. See you on the site!`,
+    `@${c.u} flawless session! ${c.raritySummary}. Nothing escaped. Top picks: ${c.highlights}. ${c.left} Monballs in the bag. See you on the site!`,
 ];
 
 const ALL_ESCAPED_TEMPLATES = [
   (c) =>
-    `@${c.u} rough one — ${c.escapedList} all got away (0/${c.total}). ${c.left} Monballs left though. Shake it off and visit the site!`,
+    `@${c.u} rough one — all ${c.escapedN} got away (0/${c.total}). ${c.left} Monballs left though. Shake it off and visit the site!`,
   (c) =>
     `@${c.u} oof, ${c.spend} Monballs and nothing stuck. ${c.escapedList} slipped every throw. ${c.left} Monballs left — try again on the site!`,
   (c) =>
-    `@${c.u} the wild won this round. ${c.escapedList} escaped clean. ${c.left} Monballs still in your pouch. Visit the site when ready!`,
+    `@${c.u} the wild won this round. ${c.escapedNote}. ${c.left} Monballs still in your pouch. Visit the site when ready!`,
 ];
 
 const INVALID_DENOM_LINES = [
@@ -139,6 +133,7 @@ export function buildNaturalCatchReply({
     monballsLeft,
     repliesLeftAfter,
     dailyLimit,
+    seed,
   });
   let pool = MIXED_CATCH_TEMPLATES;
   if (ctx.allEscaped) pool = ALL_ESCAPED_TEMPLATES;
@@ -170,3 +165,5 @@ export function buildNaturalInsufficientReply(username, have, need, seed = 0) {
 export function getReplySeed(tweet) {
   return hashSeed(`${tweet.id || ""}:${tweet.authorId || ""}:${tweet.text || ""}`);
 }
+
+export { formatRaritySummary, pickHighlightMons };
