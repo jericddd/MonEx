@@ -25,7 +25,7 @@ test("natural catch reply reads like human text", () => {
     dailyLimit: 4,
   });
 
-  assert.ok(text.startsWith("@jeric"));
+  assert.ok(!text.startsWith("@jeric"));
   assert.ok(/Legendary|Rare|Uncommon|Common/.test(text));
   assert.ok(
     /carried|eyes on|standouts|keepers|lowkey|fwiw|field report|respectable|peep|look proper|stood out|this one hits|might be it|cooked|kind-ish|pulled|not bad/i.test(

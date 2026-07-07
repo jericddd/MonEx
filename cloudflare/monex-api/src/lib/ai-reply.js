@@ -48,7 +48,7 @@ Facts:
 - Escaped (${facts.escapedCount}): ${facts.escapedNames.join(", ") || "none"}
 - Monballs left: ${facts.monballsLeft}
 
-Start with @${facts.username}. Mention caught AND escaped mons by name when relevant.`;
+Do not start with @username (reply is threaded). Mention caught AND escaped mons by name when relevant.`;
   }
 
   if (kind === "invalid_denom") {
@@ -59,7 +59,7 @@ Facts:
 - Problem: invalid Monball amount
 - Valid amounts: 10, 20, 30, 40, 50
 
-Start with @${facts.username}.`;
+Do not start with @username (reply is threaded).`;
   }
 
   return `${rules}
@@ -69,7 +69,7 @@ Facts:
 - Has ${facts.have} Monballs, needs ${facts.need}
 - Minimum to play: 10 Monballs
 
-Start with @${facts.username}.`;
+Do not start with @username (reply is threaded).`;
 }
 
 export async function tryAiMentionReply(result, tweet, env) {
@@ -118,8 +118,7 @@ export async function tryAiMentionReply(result, tweet, env) {
 
     const text = extractAiText(response);
     if (!text) return null;
-    const withMention = text.startsWith("@") ? text : `@${facts.username} ${text}`;
-    return withMention.replace(/\s+/g, " ").trim().slice(0, 280);
+    return text.replace(/\s+/g, " ").trim().slice(0, 280);
   } catch (err) {
     console.warn("[ai-reply]", err.message || err);
     if (kind === "catch") {

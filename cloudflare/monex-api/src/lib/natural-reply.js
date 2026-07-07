@@ -43,13 +43,12 @@ function appendGameCheck(message, caughtN, seed) {
   return `${message} ${pick(GAME_CHECK_AFTER_MISS_LINES, seed)}`;
 }
 
-function buildCatchContext({ username, monballSpend, results, monballsLeft, repliesLeftAfter, dailyLimit, seed }) {
+function buildCatchContext({ monballSpend, results, monballsLeft, repliesLeftAfter, dailyLimit, seed }) {
   const caught = results.filter((r) => !r.escaped);
   const escaped = results.filter((r) => r.escaped);
   const summary = buildCatchSummaryFields(caught, escaped, seed);
 
   return {
-    u: username,
     spend: monballSpend,
     caughtN: caught.length,
     escapedN: escaped.length,
@@ -83,77 +82,78 @@ function appendReplyQuotaFooter(message, repliesLeftAfter, dailyLimit, seed = 0)
   return `${message} ${pick(footers, seed)}`;
 }
 
+// No @username in reply text — postReply() threads via in_reply_to_tweet_id (they still get notified).
 export const CATCH_REPLY_TEMPLATE_SAMPLES = [
-  "@player {spend} balls in → {raritySummary} ({caughtN}/{total}). {highlights} carried. {escapedNote}. {left} Monballs left.",
-  "@player that {spend}-ball session cooked — {raritySummary}. eyes on {highlights}. {escapedNote}.",
-  "@player rng was kind-ish: {raritySummary} off {spend}. standouts → {highlights}. {escapedNote}.",
-  "@player pulled {raritySummary} ({caughtN}/{total}). fwiw {highlights} are the keepers. {escapedNote}.",
-  "@player {spend} Monballs → {raritySummary}. lowkey watch {highlights}. {escapedNote}. {left} remaining.",
-  "@player field report: {raritySummary}, {caughtN}/{total}. {highlights} > the rest imo. {escapedNote}.",
-  "@player threw {spend}, walked away with {raritySummary}. {highlights} might be it. {escapedNote}.",
-  "@player respectable haul — {raritySummary}. {highlights} are the headline. {escapedNote}. {left} in the bag.",
-  "@player {caughtN}/{total} stuck: {raritySummary}. peep {highlights} when you sync. {escapedNote}.",
-  "@player not bad for {spend} balls — {raritySummary}. {highlights} look proper. {escapedNote}.",
-  "@player {raritySummary} from a {spend}-ball rip. {highlights} stood out. {escapedNote}. {left} Monballs on you.",
-  "@player ok this one hits — {raritySummary} ({caughtN}/{total}). {highlights}. {escapedNote}. sync when you're back.",
-  "@player (+ game check line) they're in your box — open monexmonad to check them out.",
+  "{spend} balls in → {raritySummary} ({caughtN}/{total}). {highlights} carried. {escapedNote}. {left} Monballs left.",
+  "that {spend}-ball session cooked — {raritySummary}. eyes on {highlights}. {escapedNote}.",
+  "rng was kind-ish: {raritySummary} off {spend}. standouts → {highlights}. {escapedNote}.",
+  "pulled {raritySummary} ({caughtN}/{total}). fwiw {highlights} are the keepers. {escapedNote}.",
+  "{spend} Monballs → {raritySummary}. lowkey watch {highlights}. {escapedNote}. {left} remaining.",
+  "field report: {raritySummary}, {caughtN}/{total}. {highlights} > the rest imo. {escapedNote}.",
+  "threw {spend}, walked away with {raritySummary}. {highlights} might be it. {escapedNote}.",
+  "respectable haul — {raritySummary}. {highlights} are the headline. {escapedNote}. {left} in the bag.",
+  "{caughtN}/{total} stuck: {raritySummary}. peep {highlights} when you sync. {escapedNote}.",
+  "not bad for {spend} balls — {raritySummary}. {highlights} look proper. {escapedNote}.",
+  "{raritySummary} from a {spend}-ball rip. {highlights} stood out. {escapedNote}. {left} Monballs on you.",
+  "ok this one hits — {raritySummary} ({caughtN}/{total}). {highlights}. {escapedNote}. sync when you're back.",
+  "(+ game check line) they're in your box — open monexmonad to check them out.",
 ];
 
 const MIXED_CATCH_TEMPLATES = [
   (c) =>
-    `@${c.u} ${c.spend} balls in → ${c.raritySummary} (${c.caughtN}/${c.total}). ${c.highlights} carried. ${c.escapedNote}. ${c.left} Monballs left.`,
+    `${c.spend} balls in → ${c.raritySummary} (${c.caughtN}/${c.total}). ${c.highlights} carried. ${c.escapedNote}. ${c.left} Monballs left.`,
   (c) =>
-    `@${c.u} that ${c.spend}-ball session cooked — ${c.raritySummary}. eyes on ${c.highlights}. ${c.escapedNote}.`,
+    `that ${c.spend}-ball session cooked — ${c.raritySummary}. eyes on ${c.highlights}. ${c.escapedNote}.`,
   (c) =>
-    `@${c.u} rng was kind-ish: ${c.raritySummary} off ${c.spend}. standouts → ${c.highlights}. ${c.escapedNote}. ${c.left} on you.`,
+    `rng was kind-ish: ${c.raritySummary} off ${c.spend}. standouts → ${c.highlights}. ${c.escapedNote}. ${c.left} on you.`,
   (c) =>
-    `@${c.u} pulled ${c.raritySummary} (${c.caughtN}/${c.total}). fwiw ${c.highlights} are the keepers. ${c.escapedNote}.`,
+    `pulled ${c.raritySummary} (${c.caughtN}/${c.total}). fwiw ${c.highlights} are the keepers. ${c.escapedNote}.`,
   (c) =>
-    `@${c.u} ${c.spend} Monballs → ${c.raritySummary}. lowkey watch ${c.highlights}. ${c.escapedNote}. ${c.left} remaining.`,
+    `${c.spend} Monballs → ${c.raritySummary}. lowkey watch ${c.highlights}. ${c.escapedNote}. ${c.left} remaining.`,
   (c) =>
-    `@${c.u} field report: ${c.raritySummary}, ${c.caughtN}/${c.total}. ${c.highlights} > the rest imo. ${c.escapedNote}.`,
+    `field report: ${c.raritySummary}, ${c.caughtN}/${c.total}. ${c.highlights} > the rest imo. ${c.escapedNote}.`,
   (c) =>
-    `@${c.u} threw ${c.spend}, walked away with ${c.raritySummary}. ${c.highlights} might be it. ${c.escapedNote}.`,
+    `threw ${c.spend}, walked away with ${c.raritySummary}. ${c.highlights} might be it. ${c.escapedNote}.`,
   (c) =>
-    `@${c.u} respectable haul — ${c.raritySummary}. ${c.highlights} are the headline. ${c.escapedNote}. ${c.left} in the bag.`,
+    `respectable haul — ${c.raritySummary}. ${c.highlights} are the headline. ${c.escapedNote}. ${c.left} in the bag.`,
   (c) =>
-    `@${c.u} ${c.caughtN}/${c.total} stuck: ${c.raritySummary}. peep ${c.highlights} when you sync. ${c.escapedNote}.`,
+    `${c.caughtN}/${c.total} stuck: ${c.raritySummary}. peep ${c.highlights} when you sync. ${c.escapedNote}.`,
   (c) =>
-    `@${c.u} not bad for ${c.spend} balls — ${c.raritySummary}. ${c.highlights} look proper. ${c.escapedNote}.`,
+    `not bad for ${c.spend} balls — ${c.raritySummary}. ${c.highlights} look proper. ${c.escapedNote}.`,
   (c) =>
-    `@${c.u} ${c.raritySummary} from a ${c.spend}-ball rip. ${c.highlights} stood out. ${c.escapedNote}. ${c.left} Monballs.`,
+    `${c.raritySummary} from a ${c.spend}-ball rip. ${c.highlights} stood out. ${c.escapedNote}. ${c.left} Monballs.`,
   (c) =>
-    `@${c.u} ok this one hits — ${c.raritySummary} (${c.caughtN}/${c.total}). ${c.highlights}. ${c.escapedNote}. sync when you're back.`,
+    `ok this one hits — ${c.raritySummary} (${c.caughtN}/${c.total}). ${c.highlights}. ${c.escapedNote}. sync when you're back.`,
 ];
 
 const ALL_CAUGHT_TEMPLATES = [
   (c) =>
-    `@${c.u} clean ${c.spend}-ball sweep — ${c.raritySummary}, ${c.caughtN}/${c.total} hooked. ${c.highlights} ate. ${c.left} Monballs left.`,
+    `clean ${c.spend}-ball sweep — ${c.raritySummary}, ${c.caughtN}/${c.total} hooked. ${c.highlights} ate. ${c.left} Monballs left.`,
   (c) =>
-    `@${c.u} perfect rip. ${c.raritySummary}, nothing escaped. ${c.highlights} are the ones. ${c.left} remaining.`,
+    `perfect rip. ${c.raritySummary}, nothing escaped. ${c.highlights} are the ones. ${c.left} remaining.`,
   (c) =>
-    `@${c.u} flawless session tbh — ${c.raritySummary}. all ${c.caughtN} landed. ${c.highlights} > everything else.`,
+    `flawless session tbh — ${c.raritySummary}. all ${c.caughtN} landed. ${c.highlights} > everything else.`,
 ];
 
 const ALL_ESCAPED_TEMPLATES = [
   (c) =>
-    `@${c.u} brutal — ${c.escapedN}/${c.total} slipped (${c.spend} balls gone). ${c.left} Monballs left. rng hates us sometimes.`,
+    `brutal — ${c.escapedN}/${c.total} slipped (${c.spend} balls gone). ${c.left} Monballs left. rng hates us sometimes.`,
   (c) =>
-    `@${c.u} oof, ${c.spend} Monballs and nothing stuck. ${c.escapedList} said no every time. ${c.left} left in the bag.`,
+    `oof, ${c.spend} Monballs and nothing stuck. ${c.escapedList} said no every time. ${c.left} left in the bag.`,
   (c) =>
-    `@${c.u} wild took the W this round. ${c.escapedNote}. still got ${c.left} Monballs — run it back when ready.`,
+    `wild took the W this round. ${c.escapedNote}. still got ${c.left} Monballs — run it back when ready.`,
 ];
 
 const INVALID_DENOM_LINES = [
-  (u) => `@${u} that amount doesn't fly — catches are 10, 20, 30, 40, or 50 Monballs`,
-  (u) => `@${u} need a valid stack: 10 / 20 / 30 / 40 / 50 Monballs only`,
-  (u) => `@${u} nah — we do catches in tens up to 50 Monballs`,
+  () => `that amount doesn't fly — catches are 10, 20, 30, 40, or 50 Monballs`,
+  () => `need a valid stack: 10 / 20 / 30 / 40 / 50 Monballs only`,
+  () => `nah — we do catches in tens up to 50 Monballs`,
 ];
 
 const INSUFFICIENT_LINES = [
-  (u, have, need) => `@${u} you're light on Monballs (${have}/${need}). need at least 10 to run a catch.`,
-  (u, have, need) => `@${u} not enough Monballs rn — ${have} on you, ${need} needed.`,
-  (u, have, need) => `@${u} can't rip that yet (${have} Monballs, need ${need}).`,
+  (_u, have, need) => `you're light on Monballs (${have}/${need}). need at least 10 to run a catch.`,
+  (_u, have, need) => `not enough Monballs rn — ${have} on you, ${need} needed.`,
+  (_u, have, need) => `can't rip that yet (${have} Monballs, need ${need}).`,
 ];
 
 export function buildNaturalCatchReply({
@@ -166,7 +166,6 @@ export function buildNaturalCatchReply({
   dailyLimit = DEFAULT_DAILY_REPLY_LIMIT,
 }) {
   const ctx = buildCatchContext({
-    username,
     monballSpend,
     results,
     monballsLeft,
@@ -185,24 +184,24 @@ export function buildNaturalCatchReply({
     .slice(0, 280);
 }
 
-export function buildDailyLimitNoticeReply(username, dailyLimit = DEFAULT_DAILY_REPLY_LIMIT, seed = 0) {
+export function buildDailyLimitNoticeReply(_username, dailyLimit = DEFAULT_DAILY_REPLY_LIMIT, seed = 0) {
   const lines = [
-    (u, limit) =>
-      `@${u} you're out of @ replies for today (${limit}/${limit}). catch still went through though — Profile → X log in game.`,
-    (u, limit) =>
-      `@${u} daily @ reply cap hit (${limit}/${limit}). rng still ran, no stress. check Profile → X log when you sync.`,
-    (u, limit) =>
-      `@${u} no @ replies left today (${limit}/${limit}). your haul is saved — Profile → X log has the breakdown.`,
+    (limit) =>
+      `you're out of @ replies for today (${limit}/${limit}). catch still went through though — Profile → X log in game.`,
+    (limit) =>
+      `daily @ reply cap hit (${limit}/${limit}). rng still ran, no stress. check Profile → X log when you sync.`,
+    (limit) =>
+      `no @ replies left today (${limit}/${limit}). your haul is saved — Profile → X log has the breakdown.`,
   ];
-  return pick(lines, seed)(username, dailyLimit).slice(0, 280);
+  return pick(lines, seed)(dailyLimit).slice(0, 280);
 }
 
-export function buildNaturalInvalidDenomReply(username, seed = 0) {
-  return pick(INVALID_DENOM_LINES, seed)(username).slice(0, 280);
+export function buildNaturalInvalidDenomReply(_username, seed = 0) {
+  return pick(INVALID_DENOM_LINES, seed)().slice(0, 280);
 }
 
-export function buildNaturalInsufficientReply(username, have, need, seed = 0) {
-  return pick(INSUFFICIENT_LINES, seed)(username, have, need).slice(0, 280);
+export function buildNaturalInsufficientReply(_username, have, need, seed = 0) {
+  return pick(INSUFFICIENT_LINES, seed)(_username, have, need).slice(0, 280);
 }
 
 export function getReplySeed(tweet) {
