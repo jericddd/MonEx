@@ -51,7 +51,8 @@ export function processMentionTweet(tweet, botUsername, state, startingMonballs)
     user.monballs -= parsed.spend;
     const { throws, results } = runCatchSession(parsed.spend);
     const { caught, escaped, highlights, mons } = summarizeResults(results);
-    addPendingMons(user, caught.map((r) => r.mon));
+    const caughtMons = caught.map((r) => r.mon).slice(0, throws);
+    addPendingMons(user, caughtMons);
 
     const activity = {
       id: makeActivityId(),
@@ -60,10 +61,10 @@ export function processMentionTweet(tweet, botUsername, state, startingMonballs)
       xUsername: tweet.username,
       spend: parsed.spend,
       throws,
-      caughtCount: caught.length,
+      caughtCount: Math.min(caughtMons.length, throws),
       escapedCount: escaped.length,
       highlights,
-      mons,
+      mons: mons.slice(0, throws),
       monballsLeft: user.monballs,
       status: "success",
       at: new Date().toISOString(),

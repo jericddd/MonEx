@@ -114,6 +114,35 @@ body {
     grid-template-columns: repeat(3, 1fr);
     gap: 20px;
 }
+.party-slot-empty {
+    background: rgba(255, 255, 255, 0.42);
+    border: 3px dashed #d4a04a;
+    border-radius: 10px;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+.party-slot-empty:hover {
+    background: rgba(255, 236, 210, 0.9);
+    border-color: #e07b20;
+}
+.party-slot-empty-plus {
+    font-size: 42px;
+    line-height: 1;
+    color: #c46a28;
+    font-weight: 300;
+}
+.party-slot-empty-label {
+    font-size: 11px;
+    color: #8b4513;
+    letter-spacing: 0.04em;
+}
 .box-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -831,6 +860,14 @@ button.green:hover {
     gap: 12px;
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+.hub-main .party-slot-empty {
+    border-color: #d4a04a;
+    min-height: 160px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.hub-main .party-slot-empty:hover {
+    background: rgba(255, 236, 210, 0.92);
+}
 .hub-main .box-content-grid {
     grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
     gap: 10px;
@@ -1305,6 +1342,40 @@ button.green:hover {
     font-size: 10px;
     color: #ffe8c8;
 }
+.shop-slot-icon-img {
+    width: 52%;
+    height: 52%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+.gear-level-req {
+    display: block;
+    font-size: 9px;
+    color: #86efac;
+    margin-top: 2px;
+}
+.gear-level-req.unmet {
+    color: #f87171;
+}
+.gear-tooltip-level-req {
+    font-size: 10px;
+    color: #86efac;
+    margin-top: 2px;
+}
+.gear-tooltip-level-req.unmet {
+    color: #f87171;
+}
+.inv-slot-level-req {
+    position: absolute;
+    top: 3px;
+    left: 4px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    color: #fde68a;
+    text-shadow: 1px 1px 0 #000;
+    pointer-events: none;
+}
 .shop-slot-qty {
     position: absolute;
     bottom: 5px;
@@ -1558,6 +1629,129 @@ button.green:hover {
 #modal-box .house-badge.has-hover-tip:hover .hover-tip-panel,
 #modal-inventory .gear-inv-slot.has-hover-tip:hover .hover-tip-panel {
     z-index: 1001;
+}
+
+/* Gear tooltip — Pockie Ninja inspired */
+.gear-tooltip-panel {
+    max-width: 300px;
+    min-width: 220px;
+    padding: 10px 12px;
+}
+.gear-tooltip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+.gear-tooltip-name {
+    font-family: "Press Start 2P", monospace;
+    font-size: 8px;
+    line-height: 1.55;
+    flex: 1;
+    word-break: break-word;
+}
+.gear-tooltip-icon {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0f0f1a;
+    border: 2px solid #6b21a8;
+    box-shadow: 0 0 6px rgba(107, 33, 168, 0.45);
+}
+.gear-tooltip-icon .gear-tooltip-icon-img,
+.gear-tooltip-icon .gear-slot-icon {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+.gear-tooltip-meta {
+    font-family: "Lato", sans-serif;
+    font-size: 10px;
+    color: #a5b4fc;
+    margin-top: 5px;
+    line-height: 1.4;
+}
+.gear-tooltip-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #c4a35a 20%, #fde68a 50%, #c4a35a 80%, transparent);
+    margin: 8px 0;
+    opacity: 0.85;
+}
+.gear-tooltip-stat.primary .gear-tooltip-stat-label {
+    font-weight: 700;
+}
+.gear-tooltip-enhance {
+    margin: 6px 0 2px;
+}
+.gear-tooltip-enhance-label {
+    display: block;
+    font-family: "Press Start 2P", monospace;
+    font-size: 7px;
+    color: #fde68a;
+    margin-bottom: 4px;
+    letter-spacing: 0.02em;
+}
+.gear-tooltip-enhance-line {
+    font-family: "Lato", sans-serif;
+    font-size: 10px;
+    color: #fcd34d;
+    margin: 2px 0;
+}
+.gear-tooltip-rng {
+    margin-top: 2px;
+}
+.gear-tooltip-stat {
+    font-family: "Lato", sans-serif;
+    font-size: 11px;
+    color: #c7d2fe;
+    margin: 4px 0;
+    line-height: 1.35;
+}
+.gear-tooltip-stat-label {
+    color: #e0e7ff;
+}
+.gear-tooltip-stat-val {
+    color: #60a5fa;
+    font-weight: 700;
+}
+.gear-tooltip-stat-max {
+    color: #94a3b8;
+    font-size: 10px;
+}
+.gear-tooltip-stat.perfect .gear-tooltip-stat-val,
+.gear-tooltip-stat.perfect .gear-tooltip-stat-max,
+.gear-tooltip-stat.perfect .gear-tooltip-stat-label {
+    color: #facc15 !important;
+}
+.gear-tooltip-wearer {
+    margin-top: 6px;
+    font-family: "Lato", sans-serif;
+    font-size: 10px;
+    color: #a5b4fc;
+    line-height: 1.4;
+}
+.gear-tooltip-house-restrict {
+    margin-top: 5px;
+    font-family: "Lato", sans-serif;
+    font-size: 10px;
+    color: #fbbf24;
+    line-height: 1.4;
+    font-weight: 700;
+}
+.gear-house-restrict {
+    display: block;
+    font-family: "Lato", sans-serif;
+    font-size: 10px;
+    color: #b45309;
+    margin-top: 3px;
+    line-height: 1.35;
+    font-weight: 700;
+}
+.hover-tip-float.gear-tooltip-panel {
+    max-width: 310px;
 }
 
 /* X activity feed (profile + shared) */
@@ -1839,6 +2033,7 @@ button.green:hover {
 }
 .equip-action-unequip { color: #fca5a5; }
 .equip-action-equip { color: #86efac; }
+.equip-action-locked { color: #f87171; opacity: 0.75; }
 
 /* ===== Pockie-style gear synthesis ===== */
 .gear-synth-header-actions {
@@ -1955,6 +2150,97 @@ button.green:hover {
     padding: 6px;
     box-sizing: border-box;
 }
+
+/* Armory forge animation — hammer + progress above action buttons */
+.armory-forge-status {
+    min-height: 0;
+    margin: 4px 0 10px;
+    text-align: center;
+    font-family: "Lato", sans-serif;
+    font-size: 12px;
+    line-height: 1.45;
+}
+.armory-forge-status.is-busy {
+    min-height: 78px;
+    padding: 6px 8px 4px;
+    background: rgba(15, 12, 28, 0.35);
+    border: 2px solid rgba(107, 33, 168, 0.45);
+    border-radius: 6px;
+}
+.armory-forge-hammer {
+    font-size: 38px;
+    line-height: 1;
+    display: inline-block;
+    transform-origin: 70% 85%;
+    animation: armory-hammer-swing 0.42s ease-in-out infinite;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+}
+.armory-forge-progress {
+    height: 12px;
+    background: #1a1528;
+    border: 2px solid #6b21a8;
+    border-radius: 4px;
+    overflow: hidden;
+    max-width: 300px;
+    margin: 8px auto 6px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+.armory-forge-progress-fill {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #b45309 0%, #f59e0b 45%, #fde68a 100%);
+    animation: armory-forge-fill 2s linear forwards;
+}
+.armory-forge-busy-text {
+    margin: 0;
+    font-family: "Press Start 2P", monospace;
+    font-size: 8px;
+    color: #fde68a;
+    letter-spacing: 0.04em;
+}
+.armory-forge-status.is-success,
+.armory-forge-status.is-fail {
+    padding: 10px 12px;
+    border-radius: 6px;
+    animation: armory-forge-result-in 0.35s ease-out;
+}
+.armory-forge-status.is-success {
+    background: rgba(22, 101, 52, 0.2);
+    border: 2px solid #4ade80;
+}
+.armory-forge-status.is-success p {
+    margin: 0;
+    color: #86efac;
+    font-weight: 700;
+}
+.armory-forge-status.is-fail {
+    background: rgba(127, 29, 29, 0.22);
+    border: 2px solid #f87171;
+}
+.armory-forge-status.is-fail p {
+    margin: 0;
+    color: #fca5a5;
+    font-weight: 700;
+}
+@keyframes armory-hammer-swing {
+    0%, 100% { transform: rotate(-32deg) scale(1); }
+    50% { transform: rotate(18deg) scale(1.06); }
+}
+@keyframes armory-forge-fill {
+    from { width: 0%; }
+    to { width: 100%; }
+}
+@keyframes armory-forge-result-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.gear-synth-btn:disabled,
+.gear-synth-open-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 .gear-synth-actions {
     display: flex;
     align-items: center;
@@ -2184,6 +2470,7 @@ button.green:hover {
     white-space: nowrap;
 }
 .hero-ascension-main-slot-btn {
+    position: relative;
     border: none;
     cursor: pointer;
     font: inherit;
@@ -2261,9 +2548,32 @@ button.green:hover {
     opacity: 0.35;
     pointer-events: none;
 }
+.hero-asc-main-clear {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    z-index: 2;
+    width: 18px;
+    height: 18px;
+    line-height: 16px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(127, 29, 29, 0.85);
+    border: 1px solid #fecaca;
+    border-radius: 3px;
+    pointer-events: none;
+}
 .hero-ascension-pick-item.is-main {
-    border-color: #f59e0b;
-    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.35), 2px 2px 0 #92400e;
+    border-color: #fbbf24;
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.35), 2px 2px 0 #b45309;
+    cursor: pointer;
+}
+.hero-ascension-pick-item.is-main.is-disabled {
+    opacity: 1;
+    pointer-events: auto;
+    filter: none;
 }
 .hero-skill-unlock-panel {
     border: 2px solid rgba(251, 191, 36, 0.55);
@@ -2311,6 +2621,18 @@ button.green:hover {
     align-items: center;
     gap: 3px;
     margin: 4px 0 2px;
+}
+.mon-ascension-stars .asc-plus-badge {
+    display: inline-block;
+    font-family: "Press Start 2P", monospace;
+    font-size: 10px;
+    line-height: 1;
+    color: #fbbf24;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.55), 0 1px 0 #78350f;
+    padding: 2px 4px;
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    border-radius: 3px;
+    background: rgba(69, 26, 3, 0.35);
 }
 .mon-ascension-stars .asc-star {
     font-size: 13px;
@@ -5085,6 +5407,289 @@ body.afk-layout .currency-pill .currency-tip {
     margin-left: 6px;
     vertical-align: middle;
 }
+/* ── Patrol mode: Monad office scan + adventure hub ── */
+.adventure-panel.adventure-panel--hub-overlay {
+    background: linear-gradient(180deg, rgba(52, 34, 22, 0.9) 0%, rgba(38, 24, 16, 0.94) 100%);
+    box-shadow:
+        inset 0 0 0 2px #5c2e0e,
+        inset 0 0 0 4px #f4a442,
+        0 8px 32px rgba(0, 0, 0, 0.65);
+}
+.game-container.adventure-hub-mode .game-container-bg {
+    object-fit: fill;
+    object-position: center center;
+}
+.adventure-mode-picker {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 20px 0 8px;
+}
+.adventure-mode-card {
+    width: min(220px, 42vw);
+    padding: 18px 14px 16px;
+    border: 3px solid #d4a04a;
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.28) 100%);
+    box-shadow: 2px 2px 0 #3d2010;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.12s ease, border-color 0.12s ease, filter 0.12s ease;
+    font-family: 'Lato', sans-serif;
+    color: #ffe8c8;
+}
+.adventure-mode-card:hover {
+    transform: translateY(-2px);
+    border-color: #fbbf24;
+    filter: brightness(1.06);
+}
+.adventure-mode-card h3 {
+    margin: 0 0 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: #fde68a;
+    line-height: 1.5;
+}
+.adventure-mode-card p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: rgba(255, 232, 200, 0.85);
+}
+.adventure-mode-card .mode-card-stat {
+    display: block;
+    margin-top: 10px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: #86efac;
+}
+.patrol-lobby-scans {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: #fde68a;
+    margin: 0 0 6px;
+}
+.patrol-lobby-scans.depleted { color: #f87171; }
+.patrol-scan-zone {
+    margin: 18px auto 22px;
+    width: min(420px, 88%);
+    aspect-ratio: 16 / 10;
+    border: 3px solid #67e8f9;
+    border-radius: 12px;
+    background:
+        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(34, 211, 238, 0.22) 0%, transparent 70%),
+        linear-gradient(180deg, rgba(15, 23, 42, 0.75) 0%, rgba(8, 14, 28, 0.85) 100%);
+    box-shadow:
+        inset 0 0 40px rgba(34, 211, 238, 0.1),
+        0 0 24px rgba(103, 232, 249, 0.18);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+.patrol-scan-zone::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 14px, rgba(103, 232, 249, 0.07) 14px, rgba(103, 232, 249, 0.07) 15px),
+        repeating-linear-gradient(90deg, transparent, transparent 14px, rgba(167, 139, 250, 0.05) 14px, rgba(167, 139, 250, 0.05) 15px);
+    pointer-events: none;
+}
+.patrol-scan-zone-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: rgba(186, 230, 253, 0.9);
+    text-shadow: 0 0 12px rgba(34, 211, 238, 0.55);
+    pointer-events: none;
+}
+.patrol-scan-btn {
+    padding: 14px 40px;
+    font-size: 9px;
+}
+.patrol-scan-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none !important;
+}
+.battle-scene-ui--patrol-scan {
+    display: flex !important;
+    align-items: stretch;
+    justify-content: center;
+    padding: 0 !important;
+}
+.patrol-scan-stage {
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.patrol-office-field {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 12, 28, 0.52);
+    backdrop-filter: blur(1px);
+}
+.game-container.patrol-scan-active .game-container-bg {
+    filter: brightness(0.62) saturate(1.1) hue-rotate(-8deg);
+}
+.patrol-scan-hud {
+    position: relative;
+    z-index: 2;
+    width: min(640px, 94%);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    box-sizing: border-box;
+}
+.patrol-scan-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: #bae6fd;
+    text-shadow: 1px 1px 0 #000;
+}
+.patrol-scan-viewport {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 11;
+    border: 2px solid rgba(103, 232, 249, 0.55);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
+}
+.patrol-scan-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(103, 232, 249, 0.14) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(167, 139, 250, 0.1) 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.6;
+}
+.patrol-scan-reticle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: min(200px, 52%);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+}
+.patrol-scan-sweep {
+    position: absolute;
+    inset: -8%;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(103, 232, 249, 0.55) 42deg, transparent 84deg);
+    animation: patrol-sweep 2.2s linear infinite;
+}
+.patrol-scan-ring {
+    position: absolute;
+    inset: 12%;
+    border: 2px solid rgba(186, 230, 253, 0.65);
+    border-radius: 50%;
+    box-shadow: 0 0 16px rgba(34, 211, 238, 0.3);
+}
+.patrol-scan-ring--2 {
+    inset: 28%;
+    border-color: rgba(167, 139, 250, 0.4);
+    animation: patrol-pulse-ring 1.4s ease-out infinite;
+}
+.patrol-scan-dot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    margin: -4px 0 0 -4px;
+    background: #22d3ee;
+    border-radius: 50%;
+    box-shadow: 0 0 12px #22d3ee;
+}
+.patrol-scan-blips {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+.patrol-scan-blip {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #67e8f9;
+    box-shadow: 0 0 8px #22d3ee;
+    opacity: 0;
+    animation: patrol-blip 1.8s ease-in-out infinite;
+}
+.patrol-scan-footer {
+    text-align: center;
+}
+.patrol-scan-status {
+    margin: 0 0 10px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    line-height: 1.6;
+    color: #fde68a;
+    min-height: 2.8em;
+}
+.patrol-scan-progress-track {
+    height: 10px;
+    border: 2px solid rgba(103, 232, 249, 0.45);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+.patrol-scan-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #0e7490, #22d3ee, #a5f3fc);
+    transition: width 0.35s ease-out;
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+}
+.patrol-scan-hint {
+    margin: 10px 0 0;
+    font-size: 12px;
+    color: rgba(186, 230, 253, 0.85);
+    min-height: 1.2em;
+}
+.patrol-scan-stage.patrol-encounter-rare .patrol-scan-status { color: #fde68a; text-shadow: 0 0 10px rgba(251, 191, 36, 0.6); }
+.patrol-scan-stage.patrol-encounter-uncommon .patrol-scan-status { color: #67e8f9; }
+.patrol-scan-stage.patrol-encounter-trash .patrol-scan-status { color: #9ca3af; }
+.patrol-scan-stage.is-lock-on .patrol-scan-viewport {
+    border-color: #fbbf24;
+    box-shadow: inset 0 0 40px rgba(251, 191, 36, 0.15), 0 0 20px rgba(251, 191, 36, 0.25);
+}
+.patrol-scan-stage.is-engage .patrol-scan-viewport {
+    animation: patrol-engage-flash 0.45s ease-out forwards;
+}
+@keyframes patrol-sweep {
+    to { transform: rotate(360deg); }
+}
+@keyframes patrol-pulse-ring {
+    0% { transform: scale(0.92); opacity: 0.9; }
+    100% { transform: scale(1.15); opacity: 0; }
+}
+@keyframes patrol-blip {
+    0%, 100% { opacity: 0; transform: scale(0.5); }
+    40%, 60% { opacity: 1; transform: scale(1); }
+}
+@keyframes patrol-engage-flash {
+    0% { filter: brightness(1); }
+    40% { filter: brightness(2.2); }
+    100% { filter: brightness(1); }
+}
 #battle-content { flex: 1; width: 100%; min-height: 0; }
 #battle-content .battle-stage {
     position: absolute;
@@ -7117,9 +7722,9 @@ function getSkillIconPath(skill) {
 let currentUser = null;
 let party = [];
 let box = [];
-let boxSortMode = "rarity";
+let boxSortMode = "ascension";
 let boxHouseFilter = null;
-let monballs = 15;
+let monballs = 10;
 let money = 5000;
 let essence = 0;
 let monShards = 0;
@@ -7135,6 +7740,12 @@ let adventureForfeitNotice = false;
 let battlePaused = false;
 let pendingBattleLeaveTab = "main";
 let battleScreen = "main";
+let activeBattleMode = "campaign";
+let activePatrolEncounter = null;
+let patrolScansUsed = 0;
+let patrolScansDay = null;
+let patrolScanToken = 0;
+const PATROL_DAILY_MAX = 50;
 const BANNER_DIR = "for%20result%20banner";
 const BATTLE_BG_MENU = BANNER_DIR + "/battlebackground.jpg";
 const BATTLE_BG_MAP = BANNER_DIR + "/map1.gif";
@@ -7143,6 +7754,7 @@ const BATTLE_HUB_BG_VER = 3;
 const BATTLE_HUB_BG = `${BANNER_DIR}/battlescene_background.png?v=${BATTLE_HUB_BG_VER}`;
 const BATTLE_HUB_ART = { w: 1672, h: 941 };
 const CHAPTER_BG_MAX = 2;
+const ADVENTURE_MODE_HUB_BG = `${BANNER_DIR}/adventure_chapter1.jpg`;
 const ADVENTURE_CHAPTER_PLACEHOLDER = BANNER_DIR + "/adventure_chapter_placeholder.png";
 const CHAPTER_BG_FALLBACK = ADVENTURE_CHAPTER_PLACEHOLDER;
 const BATTLE_HUB_BTN_DIR = BANNER_DIR + "/battle_hub";
@@ -7283,10 +7895,77 @@ function applyBattleStageChapterBackground(chapter) {
     stage.style.backgroundRepeat = "no-repeat";
 }
 
+function getAdventureModeHubBackgroundPath() {
+    return ADVENTURE_MODE_HUB_BG;
+}
+
+function refreshAdventureModeHubBackground() {
+    setBattleSceneBackground(getAdventureModeHubBackgroundPath());
+}
+
+function setAdventureHubMode(active) {
+    document.querySelector(".game-container")?.classList.toggle("adventure-hub-mode", !!active);
+}
+
 function refreshAdventureChapterBackground() {
     setBattleSceneBackground(getChapterBackgroundPath(currentChapter));
     applyBattleStageChapterBackground(currentChapter);
 }
+
+const _imagePreloadCache = new Map();
+
+function preloadImage(url) {
+    if (!url) return Promise.resolve(false);
+    if (_imagePreloadCache.has(url)) return _imagePreloadCache.get(url);
+    const promise = new Promise((resolve) => {
+        const img = new Image();
+        img.decoding = "async";
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
+        img.src = url;
+    });
+    _imagePreloadCache.set(url, promise);
+    return promise;
+}
+
+function preloadImages(urls) {
+    const unique = [...new Set((urls || []).filter(Boolean))];
+    if (!unique.length) return Promise.resolve([]);
+    return Promise.all(unique.map(preloadImage));
+}
+
+function warmCoreSceneAssets() {
+    return preloadImages([
+        MAIN_SCENE_BG,
+        BATTLE_HUB_BG,
+        getAdventureModeHubBackgroundPath(),
+        getChapterBackgroundPath(currentChapter),
+    ]);
+}
+
+function warmBattleHubSceneAssets() {
+    const hubBtnUrls = (typeof BATTLE_HUB_MAIN_BUTTONS !== "undefined")
+        ? BATTLE_HUB_MAIN_BUTTONS.map((btn) => btn.src)
+        : [];
+    return preloadImages([
+        BATTLE_HUB_BG,
+        getAdventureModeHubBackgroundPath(),
+        getChapterBackgroundPath(currentChapter),
+        ...hubBtnUrls,
+    ]);
+}
+
+function warmAdventureHubSceneAssets() {
+    return preloadImages([
+        getAdventureModeHubBackgroundPath(),
+        getChapterBackgroundPath(currentChapter),
+    ]);
+}
+
+function warmPatrolBattleAssets() {
+    return preloadImage(getChapterBackgroundPath(currentChapter));
+}
+
 let currentChapter = 1;
 let currentStage = 1;
 const STAGES_PER_CHAPTER = 40;
@@ -7364,16 +8043,54 @@ let xHandle = "";
 let profileActivitySignature = "";
 let profileActivityHandle = "";
 
-const PARTY_MAX = 3;
+const PARTY_MAX = 5;
+
+function partyHasSpecies(name, excludeIndex = -1) {
+    if (!name) return false;
+    return party.some((mon, index) => index !== excludeIndex && mon?.name === name);
+}
+
+function dedupePartySpecies() {
+    const seen = new Set();
+    let changed = false;
+    for (let i = party.length - 1; i >= 0; i--) {
+        const name = party[i]?.name;
+        if (!name || seen.has(name)) {
+            box.push(party.splice(i, 1)[0]);
+            changed = true;
+            continue;
+        }
+        seen.add(name);
+    }
+    if (changed) sortBox();
+    return changed;
+}
+
+function enforcePartyCap() {
+    let changed = false;
+    while (party.length > PARTY_MAX) {
+        box.push(party.pop());
+        changed = true;
+    }
+    if (changed) dedupePartySpecies();
+    return changed;
+}
+
+function getWildPendingIds() {
+    const ids = new Set();
+    for (const mon of [...party, ...box]) {
+        if (mon?.wildPendingId) ids.add(mon.wildPendingId);
+    }
+    return ids;
+}
 const BOX_MAX = Infinity;
 
 const SHOP_CATEGORIES = [
     { id: "weapon", label: "WEAPON" },
     { id: "armor", label: "ARMOR" },
-    { id: "potions", label: "POTIONS" },
-    { id: "food", label: "FOOD" },
+    { id: "mats", label: "MATS" },
 ];
-let shopActiveCategory = "potions";
+let shopActiveCategory = "mats";
 
 const INVENTORY_NAV = [
     { id: "all", label: "ALL" },
@@ -7387,9 +8104,13 @@ let inventoryActiveCategory = "all";
 let profileActiveTab = "account";
 
 const SHOP_ITEMS = [
-    { id: "monball5",   category: "food",    name: "Monball Pack",    desc: "5 Monballs for catching.",     cost: { gold: 2000 },              grant: { monballs: 5 } },
-    { id: "essence25",  category: "potions", name: "KB's Onion Pack", desc: "25 KB's Onion for leveling.", cost: { gold: 900 },               grant: { essence: 25 } },
-    { id: "shards3",    category: "food",    name: "Shard Pack",      desc: "3 Mon Shards.",                cost: { gold: 1800, essence: 15 }, grant: { monShards: 3 } },
+    { id: "shop_weapon_t1", category: "weapon",  name: "Training Blade",   iconKey: null, gearGrant: { tier: 1, slot: "weapon", gearLevelTier: 1 }, desc: "Common rarity, Lv 1 equip tier. Random house.", cost: { gold: 3500 } },
+    { id: "shop_weapon_t2", category: "weapon",  name: "Field Blade",      iconKey: null, gearGrant: { randomRarity: true, slot: "weapon", gearLevelTier: 2 }, desc: "Any rarity, Lv 21 equip tier. Random house.", cost: { gold: 8500, essence: 20 } },
+    { id: "shop_armor_t1",  category: "armor",   name: "Training Vest",    iconKey: null, gearGrant: { tier: 1, slot: "armor", gearLevelTier: 1 },  desc: "Common rarity, Lv 1 equip tier. Random house.",  cost: { gold: 3200 } },
+    { id: "shop_armor_t2",  category: "armor",   name: "Field Vest",       iconKey: null, gearGrant: { randomRarity: true, slot: "armor", gearLevelTier: 2 },  desc: "Any rarity, Lv 21 equip tier. Random house.", cost: { gold: 7800, essence: 18 } },
+    { id: "monball5",       category: "mats",    name: "Monball Pack",     iconKey: "monball",  desc: "5 Monballs for catching.",     cost: { gold: 2000 },              grant: { monballs: 5 } },
+    { id: "essence25",      category: "mats",    name: "KB's Onion Pack",  iconKey: "essence",  desc: "25 KB's Onion for leveling.", cost: { gold: 900 },               grant: { essence: 25 } },
+    { id: "shards3",        category: "mats",    name: "Shard Pack",       iconKey: "shards",   desc: "3 Mon Shards.",                cost: { gold: 1800, essence: 15 }, grant: { monShards: 3 } },
 ];
 
 const QUEST_MILESTONES = [20, 40, 60, 80, 100];
@@ -7838,7 +8559,36 @@ const GEAR_SYNTH_REROLL_LOW_RATE = 0.75;
 const GEAR_SYNTH_UPGRADE_GOLD = [0, 1000, 2500, 6000, 15000];
 const GEAR_SYNTH_REROLL_GOLD = [0, 500, 1200, 3000, 8000, 20000];
 const GEAR_SYNTH_SLOT_LABELS = ["Main Item", "Catalyst", "Catalyst"];
-const GEAR_SYSTEM_VERSION = 2;
+const GEAR_SYSTEM_VERSION = 5;
+const GEAR_LEVEL_REQ_STEP = 20;
+/** Rarity (tier) sets roll ranges; gearLevelTier scales base stats + equip req. Independent axes. */
+const GEAR_LEVEL_STAT_MULT = [1.0, 1.15, 1.32, 1.52, 1.75];
+const GEAR_STAT_LABELS = { atk: "ATK", hp: "HP", spd: "SPD", crit: "Crit", dodge: "Dodge", block: "Block", hit: "Hit", pierce: "Pierce" };
+const GEAR_STAT_PRIMARY_LABELS = { atk: "ATK", hp: "HP", dodge: "Dodge", spd: "Speed" };
+const GEAR_SLOT_PRIMARY = { weapon: "atk", armor: "hp", helmet: "dodge", boots: "spd" };
+const GEAR_SLOT_RNG_POOL = {
+    weapon: ["crit", "pierce", "hit"],
+    armor: ["block", "hp", "crit"],
+    helmet: ["hp", "block", "hit"],
+    boots: ["hit", "dodge", "pierce"],
+};
+const GEAR_PRIMARY_RANGES = {
+    atk: [[8, 12], [14, 20], [22, 32], [32, 45], [42, 58]],
+    hp: [[80, 120], [150, 220], [280, 380], [420, 550], [580, 750]],
+    dodge: [[3, 6], [5, 9], [8, 13], [12, 18], [16, 24]],
+    spd: [[4, 8], [7, 12], [11, 17], [15, 23], [20, 30]],
+};
+const GEAR_RNG_RANGES = {
+    crit: [[2, 4], [4, 7], [6, 10], [9, 14], [12, 18]],
+    pierce: [[2, 5], [4, 8], [6, 12], [10, 16], [14, 22]],
+    hit: [[2, 4], [3, 6], [5, 9], [7, 12], [10, 16]],
+    block: [[2, 4], [3, 5], [4, 8], [5, 10], [6, 12]],
+    dodge: [[2, 4], [3, 5], [5, 8], [6, 10], [6, 12]],
+    hp_bonus: [[20, 40], [40, 70], [80, 120], [120, 180], [150, 220]],
+};
+const GEAR_RNG_LINE_COUNT = 2;
+const GEAR_MYTHIC_RNG_LINE_COUNT = 3;
+const GEAR_TIER_ROLL_EXPONENT = [0, 1, 1.12, 1.25, 1.42, 1.65];
 const GEAR_ENHANCE_MAX = 21;
 const GEAR_ENHANCE_MILESTONE_LEVELS = [11, 21];
 const GEAR_ENHANCE_MILESTONE_11_MULT = 1.25;
@@ -7858,10 +8608,10 @@ const GEAR_ENHANCE_FAIL_DROP = [
 ];
 const GEAR_ENHANCE_GOLD = [0, 150, 400, 900, 2200, 5500, 12000, 18000, 26000, 36000, 50000, 70000, 95000, 125000, 160000, 200000, 250000, 310000, 380000, 460000, 550000];
 const GEAR_ENHANCE_STAT_PER_LEVEL = {
-    weapon: { atk: 3, crit: 2 },
-    armor: { hp: 28, block: 2 },
-    helmet: { hp: 18, dodge: 2 },
-    boots: { spd: 2, hit: 2 },
+    weapon: { atk: 3 },
+    armor: { hp: 28 },
+    helmet: { dodge: 2 },
+    boots: { spd: 2 },
 };
 const HERO_ASCENSION_STAT_BONUS_PCT = 0.05;
 const RARITY_ORDER = ["Common", "Uncommon", "Rare", "Legendary", "Mythic"];
@@ -7873,12 +8623,19 @@ let gearSynthSlots = [null, null, null];
 let armoryActiveTab = "synthesize";
 let gearEnhanceTargetId = null;
 let heroAscensionMainMon = null;
+let heroAscensionMainRef = null;
 let heroAscensionDupeMons = [];
 let heroAscensionMainPickerOpen = true;
-const HERO_ASCENSION_MAX_STARS = 2;
-const HERO_ASCENSION_DUPES_REQUIRED = [2, 4];
+let armoryForgeBusy = false;
+let armoryForgeResult = null;
+let armoryForgeResultTimer = null;
+const ARMORY_FORGE_DURATION_MS = 2000;
+const HERO_ASCENSION_SKILL_CAP = 6;
+const HERO_ASCENSION_DUPES_BY_LEVEL = [2, 4, 5, 5, 5, 6];
+const HERO_ASCENSION_DUPES_MAX = 6;
 const HERO_ASCENSION_SUCCESS_RATE = 0.75;
-const HERO_ASCENSION_GOLD_COST = [2000, 5000];
+const HERO_ASCENSION_GOLD_BASE = 2000;
+const HERO_ASCENSION_GOLD_STEP = 1500;
 const HERO_SKILL_UNLOCK_GOLD = 500;
 
 // ==================== HELPER FUNCTIONS ====================
@@ -8080,19 +8837,6 @@ const SCENE_ATTACK_END_MS = {
     "128x128/molandak1-swing.gif": 720
 };
 
-// Shorter idle breathe loops (restart before full GIF loop) for snappier idle motion.
-const SCENE_IDLE_BREATHE_LOOP_MS = {
-    "128x128/johnw-idle.gif": 960,
-    "128x128/anago-idle.gif": 640,
-    "128x128/mouch-idle.gif": 640,
-    "128x128/main-moyaki.gif": 640,
-    "128x128/chog.gif": 960,
-    "128x128/molandak.gif": 640,
-    "128x128/anago.gif": 640,
-    "128x128/moncock-idle.gif": 960,
-    "128x128/slamonad-idle.gif": 800
-};
-
 const sceneIdleFighterBusy = new Set();
 const SCENE_IDLE_SPRITE_SPEED = 1;
 
@@ -8118,15 +8862,6 @@ function getSceneIdleAttackPlayMs(spritePath, monName) {
     const durationMs = getSceneIdleSpriteDurationMs(spritePath, monName);
     const hitAtMs = getSceneIdleSpriteHitAtMs(spritePath, monName);
     return Math.min(durationMs, Math.max(hitAtMs + 32, durationMs - 16));
-}
-
-function getSceneIdleBreatheLoopMs(spritePath, monName) {
-    const key = normalizeSpritePath(spritePath);
-    if (SCENE_IDLE_BREATHE_LOOP_MS[key]) {
-        return scaleSceneIdleSpriteMs(SCENE_IDLE_BREATHE_LOOP_MS[key]);
-    }
-    const full = getSceneIdleSpriteDurationMs(spritePath, monName);
-    return Math.max(400, Math.round(full * 0.67));
 }
 
 const ATTACK_DASH_MS = 220;
@@ -8519,36 +9254,6 @@ async function sceneIdleFighterCombatLoop(atkTeam, atkIdx, token, startDelay) {
     }
 }
 
-async function sceneIdleBreatheLoop(team, idx, mon, token) {
-    const busyKey = `${team}-${idx}`;
-    const idleSprite = getSceneIdleDisplaySprite(mon);
-    if (!idleSprite.endsWith(".gif")) return;
-
-    const breatheMs = getSceneIdleBreatheLoopMs(idleSprite, mon?.name);
-    await delay(breatheMs * (0.15 + Math.random() * 0.35));
-
-    while (token === sceneIdleBattleToken) {
-        const mainScene = document.getElementById("main-scene");
-        if (!mainScene || mainScene.style.display === "none") {
-            await delay(250);
-            continue;
-        }
-
-        const img = document.getElementById(`scene-idle-sprite-${team}-${idx}`);
-        if (!img) break;
-
-        if (!sceneIdleFighterBusy.has(busyKey)) {
-            const current = normalizeSpritePath(img.dataset.spriteBase || img.src);
-            const home = normalizeSpritePath(idleSprite);
-            if (current === home) {
-                await setSceneIdleSprite(img, idleSprite, true);
-            }
-        }
-
-        await waitSceneGifMs(breatheMs, token);
-    }
-}
-
 async function startSceneIdleBattleLoop() {
     const token = ++sceneIdleBattleToken;
     sceneIdleBattleRunning = true;
@@ -8566,11 +9271,9 @@ async function startSceneIdleBattleLoop() {
     const loops = [];
     heroes.forEach((mon, i) => {
         loops.push(sceneIdleFighterCombatLoop("hero", i, token, i * 120 + Math.random() * 280));
-        if (mon) loops.push(sceneIdleBreatheLoop("hero", i, mon, token));
     });
     enemies.forEach((mon, i) => {
         loops.push(sceneIdleFighterCombatLoop("enemy", i, token, i * 120 + Math.random() * 280));
-        if (mon) loops.push(sceneIdleBreatheLoop("enemy", i, mon, token));
     });
 
     await Promise.all(loops);
@@ -8771,8 +9474,58 @@ function getMonPower(mon) {
     return eff.atk + mon.max_hp + eff.spd + eff.crit + eff.dodge + eff.block + eff.hit + eff.pierce;
 }
 
+function getGearPower(gear) {
+    if (!gear) return 0;
+    migrateGearBonuses(gear);
+    const b = gear.bonuses || {};
+    return (b.atk || 0) + (b.hp || 0) + (b.spd || 0) + (b.crit || 0)
+        + (b.dodge || 0) + (b.block || 0) + (b.hit || 0) + (b.pierce || 0);
+}
+
+function compareGearRarityPower(a, b) {
+    const tierDiff = (b.tier || 1) - (a.tier || 1);
+    if (tierDiff) return tierDiff;
+    const powerDiff = getGearPower(b) - getGearPower(a);
+    if (powerDiff) return powerDiff;
+    return formatGearDisplayName(a).localeCompare(formatGearDisplayName(b));
+}
+
+function sortGearByRarityPower(list) {
+    return [...list].sort(compareGearRarityPower);
+}
+
+function compareHeroAscensionEntry(a, b) {
+    const partyDiff = (b.location === "party" ? 1 : 0) - (a.location === "party" ? 1 : 0);
+    if (partyDiff) return partyDiff;
+    const ascDiff = (b.mon.ascensionStars || 0) - (a.mon.ascensionStars || 0);
+    if (ascDiff) return ascDiff;
+    const powerDiff = getMonPower(b.mon) - getMonPower(a.mon);
+    if (powerDiff) return powerDiff;
+    return a.mon.name.localeCompare(b.mon.name);
+}
+
+function sortHeroAscensionEntries(entries) {
+    return [...entries].sort(compareHeroAscensionEntry);
+}
+
+function renderHeroAscensionLocTag(location) {
+    return location === "party" ? `<span class="hero-asc-loc-tag">P</span>` : "";
+}
+
 function sortBox() {
     const tieName = (a, b) => a.name.localeCompare(b.name);
+    if (boxSortMode === "ascension") {
+        box.sort((a, b) => {
+            const ascDiff = (b.ascensionStars || 0) - (a.ascensionStars || 0);
+            if (ascDiff) return ascDiff;
+            const powerDiff = getMonPower(b) - getMonPower(a);
+            if (powerDiff) return powerDiff;
+            const rarityDiff = getRarityRank(b.rarity) - getRarityRank(a.rarity);
+            if (rarityDiff) return rarityDiff;
+            return tieName(a, b);
+        });
+        return;
+    }
     if (boxSortMode === "level") {
         box.sort((a, b) => {
             const levelDiff = Math.floor(b.level) - Math.floor(a.level);
@@ -8830,7 +9583,7 @@ function toggleBoxSortMenu(event) {
 }
 
 function setBoxSort(mode) {
-    if (!["power", "level", "rarity"].includes(mode)) return;
+    if (!["power", "level", "rarity", "ascension"].includes(mode)) return;
     boxSortMode = mode;
     sortBox();
     renderBox();
@@ -8839,11 +9592,11 @@ function setBoxSort(mode) {
 function renderBoxNav() {
     const nav = document.getElementById("box-nav");
     if (!nav) return;
-    const sortLabels = { power: "POWER", level: "LEVEL", rarity: "RARITY" };
+    const sortLabels = { ascension: "ASCEND+", power: "POWER", level: "LEVEL", rarity: "RARITY" };
     nav.innerHTML = `
         <div class="hub-nav-title">BOX<span>${box.length}</span></div>
         <div class="hub-nav-label">SORT</div>
-        ${["power", "level", "rarity"].map(mode => `
+        ${["ascension", "power", "level", "rarity"].map(mode => `
             <button type="button" class="hub-nav-btn${boxSortMode === mode ? " active" : ""}" onclick="setBoxSort('${mode}')">${sortLabels[mode]}</button>
         `).join("")}
         <div class="hub-nav-divider"></div>
@@ -8906,18 +9659,29 @@ function getSkillCount(rarity) {
     return 6;
 }
 
+function getAscensionSkillLevel(mon) {
+    return Math.min(mon?.ascensionStars || 0, HERO_ASCENSION_SKILL_CAP);
+}
+
 function getMonSkillSlotCap(mon) {
-    return Math.min(BATTLE_METER_SKILL_SLOTS, getSkillCount(mon.rarity) + (mon.ascensionStars || 0));
+    return Math.min(BATTLE_METER_SKILL_SLOTS, getSkillCount(mon.rarity) + getAscensionSkillLevel(mon));
+}
+
+function canAscensionGrantSkill(mon) {
+    const stars = mon?.ascensionStars || 0;
+    if (stars <= 0 || stars > HERO_ASCENSION_SKILL_CAP) return false;
+    return countUnlockedAscensionSkills(mon) < stars;
 }
 
 function renderAscensionStars(mon) {
-    const stars = Math.min(HERO_ASCENSION_MAX_STARS, mon.ascensionStars || 0);
-    const pending = mon.ascensionSkillPending?.length ? ' <span class="asc-star-pending" title="Skill unlock ready">✦</span>' : "";
-    const cells = [];
-    for (let i = 1; i <= HERO_ASCENSION_MAX_STARS; i++) {
-        cells.push(`<span class="asc-star${i <= stars ? " filled" : ""}" aria-hidden="true">★</span>`);
+    const level = mon.ascensionStars || 0;
+    const pending = mon.ascensionSkillPending?.length
+        ? ' <span class="asc-star-pending" title="Skill unlock ready">🔓</span>'
+        : "";
+    if (level <= 0) {
+        return pending ? `<div class="mon-ascension-stars">${pending}</div>` : "";
     }
-    return `<div class="mon-ascension-stars" aria-label="Ascension ${stars} of ${HERO_ASCENSION_MAX_STARS}">${cells.join("")}${pending}</div>`;
+    return `<div class="mon-ascension-stars" aria-label="Ascension +${level}"><span class="asc-plus-badge">+${level}</span>${pending}</div>`;
 }
 
 function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
@@ -8981,19 +9745,87 @@ function needsSkillMigration(mon) {
         const t = mon.skills[i]?.type;
         if (t !== "passive" && t !== "active" && t !== "heal") return true;
     }
-    const rngNames = mon.skills.slice(1).map(skill => skill.name);
-    if (new Set(rngNames).size !== rngNames.length) return true;
-    const healActives = mon.skills.filter(isHealActiveSkill);
-    if (healActives.length > 1) return true;
+    const baseNames = mon.skills.slice(1, base).map(skill => skill.name);
+    if (new Set(baseNames).size !== baseNames.length) return true;
+    const baseHealActives = mon.skills.slice(2, base).filter(isHealActiveSkill);
+    if (baseHealActives.length > 1) return true;
     return false;
 }
 
-function reconcileAscensionSkillState(mon) {
+function getAscensionBonusSkills(mon) {
+    const base = getSkillCount(mon.rarity);
+    return (mon.skills || []).slice(base);
+}
+
+function isValidAscensionBonusSkill(skill) {
+    if (!skill?.name) return false;
+    const t = skill.type;
+    return t === "passive" || t === "active" || t === "heal";
+}
+
+function preserveAscensionBonusSkills(mon, baseSkills) {
+    const cap = getMonSkillSlotCap(mon);
+    const base = getSkillCount(mon.rarity);
+    const bonus = getAscensionBonusSkills(mon).filter(isValidAscensionBonusSkill);
+    mon.skills = (baseSkills || []).slice(0, base);
+    for (const skill of bonus) {
+        if (mon.skills.length >= cap) break;
+        if (!mon.skills.some(s => s.name === skill.name)) mon.skills.push({ ...skill });
+    }
+}
+
+function findMonLocationIndex(mon) {
+    if (!mon) return null;
+    const pi = party.indexOf(mon);
+    if (pi >= 0) return { location: "party", index: pi };
+    const bi = box.indexOf(mon);
+    if (bi >= 0) return { location: "box", index: bi };
+    return null;
+}
+
+function countUnlockedAscensionSkills(mon) {
+    const base = getSkillCount(mon.rarity);
+    return Math.max(0, (mon.skills?.length || 0) - base);
+}
+
+function repairAscensionSkillState(mon) {
     const base = getSkillCount(mon.rarity);
     const stars = mon.ascensionStars || 0;
+    const cap = getMonSkillSlotCap(mon);
     const len = mon.skills?.length || 0;
-    if (stars <= 0 || len >= base + stars || mon.ascensionSkillPending?.length) return;
-    mon.ascensionSkillPending = rollHeroAscensionSkillOptions(mon);
+    const unlocked = countUnlockedAscensionSkills(mon);
+
+    if (Array.isArray(mon.ascensionSkillPending) && mon.ascensionSkillPending.length === 0) {
+        delete mon.ascensionSkillPending;
+    }
+
+    if (stars <= 0) {
+        delete mon.ascensionSkillPending;
+        delete mon.ascensionSkillFreePick;
+        return;
+    }
+
+    if (unlocked >= getAscensionSkillLevel(mon) && mon.ascensionSkillPending?.length) {
+        delete mon.ascensionSkillPending;
+        delete mon.ascensionSkillFreePick;
+        return;
+    }
+
+    if (mon.ascensionSkillPending?.length && len >= cap) {
+        delete mon.ascensionSkillPending;
+        delete mon.ascensionSkillFreePick;
+    }
+}
+
+function reconcileAscensionSkillState(mon) {
+    repairAscensionSkillState(mon);
+    const base = getSkillCount(mon.rarity);
+    const stars = mon.ascensionStars || 0;
+    const unlocked = countUnlockedAscensionSkills(mon);
+    if (stars <= 0 || unlocked >= getAscensionSkillLevel(mon) || mon.ascensionSkillPending?.length) return;
+    const options = rollHeroAscensionSkillOptions(mon, { skipEnsure: true });
+    if (!options.length) return;
+    mon.ascensionSkillPending = options;
     mon.ascensionSkillFreePick = true;
 }
 
@@ -9432,17 +10264,80 @@ function renderEmptyGearSlotHtml(slot) {
     return `<span class="gear-slot-empty" aria-hidden="true"><span class="gear-slot-empty-icon">${GEAR_SLOT_ICONS[slot]}</span></span>`;
 }
 
+function getGearRequiredLevelForTier(gearLevelTier) {
+    return (Math.max(1, gearLevelTier || 1) - 1) * GEAR_LEVEL_REQ_STEP + 1;
+}
+
+function resolveGearLevelTier(gearLevelTier) {
+    return Math.max(1, gearLevelTier ?? 1);
+}
+
+function getGearLevelTier(gear) {
+    if (!gear) return 1;
+    return resolveGearLevelTier(gear.gearLevelTier);
+}
+
+function getGearRequiredLevel(gear) {
+    return getGearRequiredLevelForTier(getGearLevelTier(gear));
+}
+
+function ensureGearLevelFields(gear) {
+    if (!gear) return;
+    if (gear.gearLevelTier == null) gear.gearLevelTier = 1;
+    gear.requiredLevel = getGearRequiredLevelForTier(gear.gearLevelTier);
+}
+
+function getGearLevelStatMult(gearLevelTier) {
+    const t = resolveGearLevelTier(gearLevelTier);
+    if (t <= GEAR_LEVEL_STAT_MULT.length) return GEAR_LEVEL_STAT_MULT[t - 1];
+    const extra = t - GEAR_LEVEL_STAT_MULT.length;
+    return GEAR_LEVEL_STAT_MULT[GEAR_LEVEL_STAT_MULT.length - 1] + extra * 0.15;
+}
+
+function applyGearLevelStatScale(value, gearLevelTier) {
+    const scaled = Math.round((value || 0) * getGearLevelStatMult(gearLevelTier));
+    return Math.max(1, scaled);
+}
+
+function getGearLevelRequirementText(gear, mon) {
+    const req = getGearRequiredLevel(gear);
+    if (!req) return "";
+    const monLvl = Math.floor(mon?.level || 0);
+    const met = !mon || monLvl >= req;
+    return met ? `Requires Lv ${req}` : `Requires Lv ${req} (you: Lv ${monLvl})`;
+}
+
 function canMonEquipGear(mon, gear) {
     if (!gear) return false;
+    ensureGearLevelFields(gear);
+    if (Math.floor(mon?.level || 0) < getGearRequiredLevel(gear)) return false;
     if (!gear.house) return true;
     const monHouse = getSpeciesHouseId(mon?.name);
     return monHouse != null && monHouse === gear.house;
 }
 
-function generateHouseGear(houseId, tier, slot) {
+function getGearHouseRestrictionText(gear) {
+    if (!gear?.house) return "";
+    const meta = getHouseMeta(gear.house);
+    if (!meta) return "";
+    return `${meta.label} Monanimals only`;
+}
+
+function getGearHoverTitle(gear) {
+    const parts = [formatGearDisplayName(gear), formatGearRngSummary(gear)];
+    const req = getGearRequiredLevel(gear);
+    const rarity = gear.tierName || GEAR_TIERS[gear.tier]?.name;
+    if (rarity) parts.push(rarity);
+    if (req) parts.push(`Lv ${req} tier · Equip Lv ${req}+`);
+    const restrict = getGearHouseRestrictionText(gear);
+    if (restrict) parts.push(restrict);
+    return parts.join("\n");
+}
+
+function generateHouseGear(houseId, tier, slot, gearLevelTier = 1) {
     const line = HOUSE_GEAR_LINES[houseId];
-    if (!line) return generateGear(tier, slot);
-    const gear = generateGear(tier, slot);
+    if (!line) return generateGear(tier, slot, null, gearLevelTier);
+    const gear = generateGear(tier, slot, houseId, gearLevelTier);
     gear.house = houseId;
     gear.lineName = line.label;
     gear.iconVersion = GEAR_ICON_SYSTEM_VERSION;
@@ -9456,7 +10351,8 @@ function seedHouseGearInventory() {
         for (let tier = 1; tier <= 5; tier++) {
             GEAR_SLOTS.forEach((slot) => {
                 for (let i = 0; i < GEAR_INVENTORY_DUPES_PER_VARIANT; i++) {
-                    gearInventory.push(generateHouseGear(houseId, tier, slot));
+                    const lvlTier = randInt(1, 5);
+                    gearInventory.push(generateHouseGear(houseId, tier, slot, lvlTier));
                 }
             });
         }
@@ -9476,9 +10372,10 @@ function renderGearRow(location, index, mon) {
         const filled = g ? " filled" : " empty";
         const tierBorder = g ? ` style="border-color:${getGearTierColor(g)}"` : "";
         const tipName = g ? formatGearDisplayName(g) : "Equip " + GEAR_SLOT_LABELS[slot];
-        const tipDesc = g ? formatGearBonusesForMon(g, mon) : "Empty slot — tap to equip house gear.";
+        const tipDesc = g ? null : "Empty slot — tap to equip house gear.";
         const inner = g ? renderGearIconHtml(g) : renderEmptyGearSlotHtml(slot);
-        return `<button class="gear-slot has-hover-tip${filled}"${tierBorder} onclick="openEquipModal('${location}',${index},'${slot}')">${inner}${renderHoverTip(tipName, tipDesc)}</button>`;
+        const tipHtml = g ? renderGearTooltipHtml(g, mon) : renderHoverTip(tipName, tipDesc);
+        return `<button class="gear-slot has-hover-tip${filled}"${tierBorder} onclick="openEquipModal('${location}',${index},'${slot}')">${inner}${tipHtml}</button>`;
     }).join("")}</div>`;
 }
 
@@ -9530,6 +10427,7 @@ function closeAscensionSkillPicker() {
 function openAscensionSkillPicker(location, monIndex) {
     const mon = resolveMonForAscensionSkill(location, monIndex);
     if (!mon?.ascensionSkillPending?.length) return;
+    const loc = findMonLocationIndex(mon) || { location, index: monIndex };
     closeAscensionSkillPicker();
     const options = mon.ascensionSkillPending;
     const freePick = !!mon.ascensionSkillFreePick;
@@ -9539,7 +10437,7 @@ function openAscensionSkillPicker(location, monIndex) {
         : `Choose one (${HERO_SKILL_UNLOCK_GOLD} Gold). These 3 options stay fixed until you pick.`;
     const cards = options.map((skill, i) => {
         const typeLabel = skill.type === "passive" ? "Passive" : (skill.element || "Active");
-        return `<button type="button" class="hero-skill-option-btn" onclick="confirmHeroAscensionSkill('${location}', ${monIndex}, ${i})" ${afford ? "" : "disabled style='opacity:0.5'"}>
+        return `<button type="button" class="hero-skill-option-btn" onclick="confirmHeroAscensionSkill('${loc.location}', ${loc.index}, ${i})" ${afford ? "" : "disabled style='opacity:0.5'"}>
             <b>${skill.name}</b>
             ${typeLabel}
             <br><small>${skill.desc || ""}</small>
@@ -9552,7 +10450,7 @@ function openAscensionSkillPicker(location, monIndex) {
         <div class="hub-popup-frame hub-frame hub-popup-wide" onclick="event.stopPropagation()">
             <button type="button" class="hub-popup-close-left" aria-label="Close" onclick="closeAscensionSkillPicker()">&times;</button>
             <div class="hub-popup-inner">
-                <h3 class="hub-popup-title">★ UNLOCK SKILL — ${mon.name}</h3>
+                <h3 class="hub-popup-title">+ UNLOCK SKILL — ${mon.name}</h3>
                 <p class="hub-popup-sub">${costNote}</p>
                 <div class="hero-skill-option-grid">${cards}</div>
             </div>
@@ -9661,11 +10559,12 @@ function ensureMonReady(mon) {
     }
     migrateSkillDefinitions(mon);
     if (needsSkillMigration(mon)) {
-        mon.skills = generateSkills(mon.name, mon.rarity);
+        preserveAscensionBonusSkills(mon, generateSkills(mon.name, mon.rarity));
     } else {
         expandSkillsForRarity(mon);
     }
     migrateSkillDefinitions(mon);
+    repairAscensionSkillState(mon);
     reconcileAscensionSkillState(mon);
     syncUltimateFromSkills(mon);
     refreshMonDerivedStats(mon);
@@ -9840,7 +10739,7 @@ function getBaseAtk(level, rarity) {
     return atk;
 }
 function getAscensionStatMult(mon) {
-    const stars = Math.min(HERO_ASCENSION_MAX_STARS, mon?.ascensionStars || 0);
+    const stars = mon?.ascensionStars || 0;
     return 1 + stars * HERO_ASCENSION_STAT_BONUS_PCT;
 }
 
@@ -9867,21 +10766,218 @@ function computeLegacyEnhanceAdds(slot, level) {
     return adds;
 }
 
+function computeLegacySecondaryEnhanceAdds(gear) {
+    const legacyPer = {
+        weapon: { crit: 2 },
+        armor: { block: 2 },
+        helmet: { hp: 18 },
+        boots: { hit: 2 },
+    };
+    const per = legacyPer[gear.slot];
+    if (!per) return {};
+    const level = gear.enhanceLevel || 0;
+    const adds = {};
+    for (let i = 1; i <= level; i++) {
+        Object.keys(per).forEach((k) => { adds[k] = (adds[k] || 0) + per[k]; });
+    }
+    let mult = 1 + ((gear.tier || 1) - 1) * 0.08;
+    if (level >= 11) mult *= GEAR_ENHANCE_MILESTONE_11_MULT;
+    if (level >= 21) mult *= GEAR_ENHANCE_MILESTONE_21_MULT;
+    Object.keys(adds).forEach((k) => { adds[k] = Math.round((adds[k] || 0) * mult); });
+    return adds;
+}
+
 function migrateGearBonuses(gear) {
     if (!gear) return;
     normalizeGear(gear);
-    if (gear.gearVersion === GEAR_SYSTEM_VERSION) return;
     const level = gear.enhanceLevel || 0;
-    if (!gear.baseBonuses) {
-        const legacyAdds = computeLegacyEnhanceAdds(gear.slot, level);
-        gear.baseBonuses = {};
-        const keys = new Set([...Object.keys(gear.bonuses || {}), ...Object.keys(legacyAdds)]);
-        keys.forEach((k) => {
-            gear.baseBonuses[k] = Math.max(0, (gear.bonuses?.[k] || 0) - (legacyAdds[k] || 0));
-        });
+    if ((gear.gearVersion || 0) < 2) {
+        if (!gear.baseBonuses) {
+            const legacyAdds = computeLegacyEnhanceAdds(gear.slot, level);
+            gear.baseBonuses = {};
+            const keys = new Set([...Object.keys(gear.bonuses || {}), ...Object.keys(legacyAdds)]);
+            keys.forEach((k) => {
+                gear.baseBonuses[k] = Math.max(0, (gear.bonuses?.[k] || 0) - (legacyAdds[k] || 0));
+            });
+        }
+        gear.gearVersion = 2;
     }
+    if ((gear.gearVersion || 0) < GEAR_SYSTEM_VERSION) {
+        migrateGearToRngSystem(gear);
+        if ((gear.gearVersion || 0) < 4) migrateGearLevelFields(gear);
+        if ((gear.gearVersion || 0) < 5) {
+            if (gear.gearLevelTier == null) gear.gearLevelTier = 1;
+            gear.requiredLevel = getGearRequiredLevelForTier(gear.gearLevelTier);
+        }
+        gear.gearVersion = GEAR_SYSTEM_VERSION;
+    }
+    ensureGearLevelFields(gear);
+    ensureGearRngLineCount(gear);
     rebuildGearBonuses(gear);
-    gear.gearVersion = GEAR_SYSTEM_VERSION;
+}
+
+function migrateGearLevelFields(gear) {
+    if (!gear) return;
+    ensureGearLevelFields(gear);
+}
+
+function getGearTierRange(table, tier) {
+    const idx = Math.max(1, Math.min(5, tier || 1)) - 1;
+    const pair = table[idx] || table[0];
+    return { min: pair[0], max: pair[1] };
+}
+
+function getGearRngRange(stat, slot, tier) {
+    if (stat === "hp" && (slot === "armor" || slot === "helmet")) {
+        return getGearTierRange(GEAR_RNG_RANGES.hp_bonus, tier);
+    }
+    return getGearTierRange(GEAR_RNG_RANGES[stat] || GEAR_RNG_RANGES.hit, tier);
+}
+
+function rollGearStatInRange(min, max, tier) {
+    if (min >= max) return min;
+    const exponent = GEAR_TIER_ROLL_EXPONENT[tier] || 1;
+    const u = Math.random();
+    const normalized = 1 - Math.pow(1 - u, exponent);
+    const span = max - min;
+    return min + Math.min(span, Math.floor(normalized * (span + 1)));
+}
+
+function getGearRngLineCount(tier) {
+    return (tier || 1) >= 5 ? GEAR_MYTHIC_RNG_LINE_COUNT : GEAR_RNG_LINE_COUNT;
+}
+
+function pickGearRngStats(slot, tier) {
+    const pool = GEAR_SLOT_RNG_POOL[slot] || GEAR_SLOT_RNG_POOL.weapon;
+    const count = getGearRngLineCount(tier);
+    const picks = [];
+    for (let i = 0; i < count; i++) {
+        picks.push(pool[randInt(0, pool.length - 1)]);
+    }
+    return picks;
+}
+
+function rollGearPrimary(slot, tier, gearLevelTier) {
+    const lvlTier = resolveGearLevelTier(gearLevelTier);
+    const stat = GEAR_SLOT_PRIMARY[slot];
+    const range = getGearTierRange(GEAR_PRIMARY_RANGES[stat], tier);
+    let value = rollGearStatInRange(range.min, range.max, tier);
+    value = applyGearLevelStatScale(value, lvlTier);
+    const scaledMin = applyGearLevelStatScale(range.min, lvlTier);
+    const scaledMax = applyGearLevelStatScale(range.max, lvlTier);
+    return { stat, value, min: scaledMin, max: scaledMax };
+}
+
+function rollGearRngLine(stat, slot, tier, gearLevelTier) {
+    const lvlTier = resolveGearLevelTier(gearLevelTier);
+    const range = getGearRngRange(stat, slot, tier);
+    let value = rollGearStatInRange(range.min, range.max, tier);
+    value = applyGearLevelStatScale(value, lvlTier);
+    const scaledMin = applyGearLevelStatScale(range.min, lvlTier);
+    const scaledMax = applyGearLevelStatScale(range.max, lvlTier);
+    return { stat, value, min: scaledMin, max: scaledMax };
+}
+
+function syncGearBaseBonusesFromRolls(gear) {
+    const base = {};
+    if (gear.primaryRoll?.stat) base[gear.primaryRoll.stat] = gear.primaryRoll.value;
+    (gear.rngLines || []).forEach((line) => {
+        if (!line?.stat) return;
+        base[line.stat] = (base[line.stat] || 0) + (line.value || 0);
+    });
+    gear.baseBonuses = base;
+}
+
+function buildSyntheticRngLine(stat, value, slot, tier, gearLevelTier) {
+    const lvlTier = resolveGearLevelTier(gearLevelTier);
+    const range = getGearRngRange(stat, slot, tier);
+    const val = Math.max(0, value || 0);
+    const scaledMin = applyGearLevelStatScale(range.min, lvlTier);
+    const scaledMax = applyGearLevelStatScale(range.max, lvlTier);
+    return {
+        stat,
+        value: val,
+        min: Math.min(scaledMin, val),
+        max: Math.max(scaledMax, val),
+    };
+}
+
+function migrateGearToRngSystem(gear) {
+    if (!gear?.slot) return;
+    if (gear.primaryRoll && Array.isArray(gear.rngLines)) {
+        syncGearBaseBonusesFromRolls(gear);
+        return;
+    }
+    const slot = gear.slot;
+    const tier = gear.tier || 1;
+    const lvlTier = getGearLevelTier(gear);
+    const primaryKey = GEAR_SLOT_PRIMARY[slot];
+    const base = gear.baseBonuses && Object.keys(gear.baseBonuses).length
+        ? { ...gear.baseBonuses }
+        : (() => {
+            const raw = { ...(gear.bonuses || {}) };
+            const enhanceAdds = computeLegacyEnhanceAdds(gear.slot, gear.enhanceLevel || 0);
+            Object.keys(enhanceAdds).forEach((k) => {
+                raw[k] = Math.max(0, (raw[k] || 0) - (enhanceAdds[k] || 0));
+            });
+            return raw;
+        })();
+
+    const primaryValue = Math.max(0, base[primaryKey] || 0);
+    delete base[primaryKey];
+    const primaryRange = getGearTierRange(GEAR_PRIMARY_RANGES[primaryKey], tier);
+    const scaledMin = applyGearLevelStatScale(primaryRange.min, lvlTier);
+    const scaledMax = applyGearLevelStatScale(primaryRange.max, lvlTier);
+    gear.primaryRoll = {
+        stat: primaryKey,
+        value: primaryValue,
+        min: Math.min(scaledMin, primaryValue),
+        max: Math.max(scaledMax, primaryValue),
+    };
+
+    const rngLines = [];
+    Object.keys(base).forEach((stat) => {
+        const val = base[stat];
+        if (val > 0) rngLines.push(buildSyntheticRngLine(stat, val, slot, tier, lvlTier));
+    });
+    const pool = GEAR_SLOT_RNG_POOL[slot] || [];
+    const rngLineCount = getGearRngLineCount(tier);
+    while (rngLines.length < rngLineCount) {
+        const stat = pool[randInt(0, pool.length - 1)];
+        const range = getGearRngRange(stat, slot, tier);
+        const minVal = applyGearLevelStatScale(range.min, lvlTier);
+        rngLines.push({ stat, value: minVal, min: minVal, max: applyGearLevelStatScale(range.max, lvlTier) });
+    }
+    gear.rngLines = rngLines.slice(0, rngLineCount);
+
+    const legacySecondary = computeLegacySecondaryEnhanceAdds(gear);
+    Object.entries(legacySecondary).forEach(([stat, bonus]) => {
+        if (!bonus) return;
+        let line = gear.rngLines.find((l) => l.stat === stat);
+        if (!line) {
+            line = buildSyntheticRngLine(stat, 0, slot, tier, lvlTier);
+            if (gear.rngLines.length >= rngLineCount) gear.rngLines[rngLineCount - 1] = line;
+            else gear.rngLines.push(line);
+            line = gear.rngLines.find((l) => l.stat === stat) || gear.rngLines[gear.rngLines.length - 1];
+        }
+        line.value += bonus;
+        line.max = Math.max(line.max, line.value);
+    });
+
+    syncGearBaseBonusesFromRolls(gear);
+}
+
+function ensureGearRngLineCount(gear) {
+    if (!gear?.slot) return;
+    const need = getGearRngLineCount(gear.tier);
+    if (!Array.isArray(gear.rngLines)) gear.rngLines = [];
+    if (gear.rngLines.length >= need) return;
+    const pool = GEAR_SLOT_RNG_POOL[gear.slot] || [];
+    while (gear.rngLines.length < need) {
+        const stat = pool[randInt(0, pool.length - 1)];
+        gear.rngLines.push(rollGearRngLine(stat, gear.slot, gear.tier || 1, getGearLevelTier(gear)));
+    }
+    syncGearBaseBonusesFromRolls(gear);
 }
 
 function rebuildGearBonuses(gear) {
@@ -9954,7 +11050,7 @@ function scaleLevelBonus(baseValue, level) {
 
 function scaleUltBuffDef(buffDef, level, ascensionStars = 0) {
     if (!buffDef) return buffDef;
-    const ascMult = 1 + Math.min(HERO_ASCENSION_MAX_STARS, ascensionStars || 0) * HERO_ASCENSION_STAT_BONUS_PCT;
+    const ascMult = 1 + (ascensionStars || 0) * HERO_ASCENSION_STAT_BONUS_PCT;
     const out = { ...buffDef, statMods: { ...(buffDef.statMods || {}) } };
     Object.keys(out.statMods).forEach((key) => {
         const val = out.statMods[key];
@@ -9996,7 +11092,7 @@ function refreshMonDerivedStats(mon) {
 function formatGearBonuses(b, options = {}) {
     const lvl = options.monLevel ? Math.floor(options.monLevel) : 0;
     const ascMult = options.ascensionStars != null
-        ? 1 + Math.min(HERO_ASCENSION_MAX_STARS, options.ascensionStars) * HERO_ASCENSION_STAT_BONUS_PCT
+        ? 1 + (options.ascensionStars) * HERO_ASCENSION_STAT_BONUS_PCT
         : 1;
     const fmt = (k, label) => {
         if (!b[k]) return null;
@@ -10017,6 +11113,103 @@ function formatGearBonusesForMon(gear, mon) {
         monLevel: mon?.level,
         ascensionStars: mon?.ascensionStars,
     });
+}
+
+function escapeGearHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function getGearRngStatLabel(stat, slot) {
+    if (stat === "hp" && (slot === "armor" || slot === "helmet")) return "HP";
+    return GEAR_STAT_LABELS[stat] || stat;
+}
+
+function isGearRollPerfect(line) {
+    return !!line && line.value === line.max;
+}
+
+function formatGearRngLineCompact(line, slot) {
+    if (!line) return "";
+    const label = getGearRngStatLabel(line.stat, slot);
+    const perfect = isGearRollPerfect(line) ? " ★" : "";
+    return `${label} +${line.value} | Max ${line.max}${perfect}`;
+}
+
+function formatGearRngSummary(gear) {
+    migrateGearBonuses(gear);
+    if (!gear?.rngLines?.length) return formatGearBonuses(gear?.bonuses || {});
+    return gear.rngLines.map((line) => formatGearRngLineCompact(line, gear.slot)).join(" · ");
+}
+
+function renderGearRngLineHtml(line, slot) {
+    if (!line) return "";
+    const label = getGearRngStatLabel(line.stat, slot);
+    const perfectCls = isGearRollPerfect(line) ? " perfect" : "";
+    return `<div class="gear-tooltip-stat${perfectCls}"><span class="gear-tooltip-stat-label">${escapeGearHtml(label)}</span> <span class="gear-tooltip-stat-val">+${line.value}</span> <span class="gear-tooltip-stat-max">| Max ${line.max}</span></div>`;
+}
+
+function renderGearTooltipHtml(gear, mon) {
+    if (!gear) return renderHoverTip("", "");
+    migrateGearBonuses(gear);
+    const tierColor = getGearTierColor(gear);
+    const tierName = gear.tierName || GEAR_TIERS[gear.tier]?.name || "Common";
+    const slotLabel = GEAR_SLOT_LABELS[gear.slot] || gear.slot;
+    const housePrefix = gear.lineName ? `${gear.lineName} · ` : "";
+    const enhanceLvl = gear.enhanceLevel || 0;
+    const iconHtml = renderGearIconHtml(gear, "gear-tooltip-icon-img");
+
+    let primaryHtml = "";
+    if (gear.primaryRoll) {
+        const pr = gear.primaryRoll;
+        const primaryLabel = GEAR_STAT_PRIMARY_LABELS[pr.stat] || GEAR_STAT_LABELS[pr.stat];
+        const perfectCls = isGearRollPerfect(pr) ? " perfect" : "";
+        primaryHtml = `<div class="gear-tooltip-stat primary${perfectCls}"><span class="gear-tooltip-stat-label">${escapeGearHtml(primaryLabel)}</span> <span class="gear-tooltip-stat-val">+${pr.value}</span> <span class="gear-tooltip-stat-max">| Max ${pr.max}</span></div>`;
+    }
+
+    let enhanceHtml = "";
+    if (enhanceLvl > 0) {
+        const adds = computeEnhanceAdds(gear);
+        const enhanceLines = Object.keys(adds)
+            .filter((k) => adds[k] > 0)
+            .map((k) => `<div class="gear-tooltip-enhance-line">${escapeGearHtml(GEAR_STAT_LABELS[k] || k)} +${adds[k]}</div>`)
+            .join("");
+        if (enhanceLines) {
+            enhanceHtml = `<div class="gear-tooltip-enhance"><span class="gear-tooltip-enhance-label">★ Inscription +${enhanceLvl}</span>${enhanceLines}</div>`;
+        }
+    }
+
+    const rngHtml = (gear.rngLines || []).map((line) => renderGearRngLineHtml(line, gear.slot)).join("");
+    const houseRestrict = getGearHouseRestrictionText(gear);
+    const houseRestrictHtml = houseRestrict
+        ? `<div class="gear-tooltip-house-restrict">${escapeGearHtml(houseRestrict)}</div>`
+        : "";
+    const reqLevel = getGearRequiredLevel(gear);
+    const levelMet = !mon || Math.floor(mon.level) >= reqLevel;
+    const levelReqHtml = reqLevel
+        ? `<div class="gear-tooltip-level-req${levelMet ? "" : " unmet"}">Lv ${reqLevel} tier · Equip Lv ${reqLevel}+</div>`
+        : "";
+    const wearerHtml = mon
+        ? `<div class="gear-tooltip-wearer">On ${escapeGearHtml(mon.name)}: ${escapeGearHtml(formatGearBonusesForMon(gear, mon))}</div>`
+        : "";
+
+    return `<span class="hover-tip-panel gear-tooltip-panel">
+        <div class="gear-tooltip-header">
+            <span class="gear-tooltip-name" style="color:${tierColor}">${escapeGearHtml(formatGearDisplayName(gear))}</span>
+            <span class="gear-tooltip-icon">${iconHtml}</span>
+        </div>
+        <div class="gear-tooltip-meta">${escapeGearHtml(housePrefix)}Bound · ${escapeGearHtml(slotLabel)} · ${escapeGearHtml(tierName)}</div>
+        ${levelReqHtml}
+        ${houseRestrictHtml}
+        <div class="gear-tooltip-divider"></div>
+        ${primaryHtml}
+        ${enhanceHtml}
+        ${rngHtml ? `<div class="gear-tooltip-divider"></div><div class="gear-tooltip-rng">${rngHtml}</div>` : ""}
+        ${wearerHtml}
+    </span>`;
 }
 function normalizeGear(gear) {
     if (!gear) return gear;
@@ -10057,25 +11250,28 @@ function stripGearEnhanceLevels(gear, targetLevel) {
     gear.enhanceLevel = Math.max(0, targetLevel);
     rebuildGearBonuses(gear);
 }
-function generateGear(tier, slot, houseId = null) {
+function generateGear(tier, slot, houseId = null, gearLevelTier = 1) {
+    const lvlTier = resolveGearLevelTier(gearLevelTier);
     const t = GEAR_TIERS[tier];
-    const scale = 4 + tier * 5;
-    const bonuses = {};
-    if (slot === "weapon") { bonuses.atk = scale + randInt(0, tier * 3); bonuses.crit = 4 + tier * 4; }
-    else if (slot === "armor") { bonuses.hp = scale * 10 + tier * 15; bonuses.block = 4 + tier * 3; }
-    else if (slot === "helmet") { bonuses.hp = scale * 6 + tier * 10; bonuses.dodge = 4 + tier * 3; }
-    else if (slot === "boots") { bonuses.spd = scale + tier * 4; bonuses.hit = 4 + tier * 3; }
+    const primaryRoll = rollGearPrimary(slot, tier, lvlTier);
+    const rngLines = pickGearRngStats(slot, tier).map((stat) => rollGearRngLine(stat, slot, tier, lvlTier));
     const gear = {
         id: nextGearId(),
         slot,
         tier,
         tierName: t.name,
+        gearLevelTier: lvlTier,
+        requiredLevel: getGearRequiredLevelForTier(lvlTier),
         name: GEAR_SLOT_LABELS[slot],
-        baseBonuses: { ...bonuses },
-        bonuses: { ...bonuses },
+        primaryRoll,
+        rngLines,
+        baseBonuses: {},
+        bonuses: {},
         enhanceLevel: 0,
         gearVersion: GEAR_SYSTEM_VERSION,
     };
+    syncGearBaseBonusesFromRolls(gear);
+    gear.bonuses = { ...gear.baseBonuses };
     if (houseId && HOUSE_GEAR_LINES[houseId]) {
         gear.house = houseId;
         gear.lineName = HOUSE_GEAR_LINES[houseId].label;
@@ -10084,13 +11280,33 @@ function generateGear(tier, slot, houseId = null) {
     }
     return gear;
 }
+function rollGearDropRarity(_chapter, isBoss) {
+    const r = Math.random();
+    if (isBoss) {
+        if (r < 0.08) return 1;
+        if (r < 0.20) return 2;
+        if (r < 0.40) return 3;
+        if (r < 0.70) return 4;
+        return 5;
+    }
+    if (r < 0.30) return 1;
+    if (r < 0.55) return 2;
+    if (r < 0.75) return 3;
+    if (r < 0.90) return 4;
+    return 5;
+}
+
+function chapterToGearLevelTier(chapter) {
+    return Math.max(1, chapter || 1);
+}
+
 function rollGearDrop(chapter, isBoss) {
     if (chapter < 2) return null;
-    let tier = chapter;
-    if (isBoss && Math.random() < 0.35 && tier < 5) tier += 1;
+    const gearLevelTier = chapterToGearLevelTier(chapter);
+    const tier = rollGearDropRarity(chapter, isBoss);
     const slot = GEAR_SLOTS[randInt(0, GEAR_SLOTS.length - 1)];
     const houseId = HOUSE_ORDER[randInt(0, HOUSE_ORDER.length - 1)];
-    return generateHouseGear(houseId, tier, slot);
+    return generateHouseGear(houseId, tier, slot, gearLevelTier);
 }
 function getMonList(location) {
     return location === "box" ? box : party;
@@ -10111,6 +11327,10 @@ function equipGearOnMon(location, monIndex, gearId) {
     if (gi < 0) return;
     const gear = gearInventory[gi];
     if (!canMonEquipGear(mon, gear)) {
+        if (Math.floor(mon.level) < getGearRequiredLevel(gear)) {
+            alert(`${mon.name} must be level ${getGearRequiredLevel(gear)} or higher to equip this gear. (Current: Lv ${Math.floor(mon.level)})`);
+            return;
+        }
         const meta = getHouseMeta(gear.house);
         alert(`${meta ? meta.label + " gear" : "This gear"} can only be worn by that house's Monanimals.`);
         return;
@@ -10134,13 +11354,19 @@ function unequipGear(location, monIndex, slot) {
     if (location === "box") renderBox();
 }
 function renderEquipOptionHtml(gear, mon, action, actionClass, options = {}) {
-    const bonuses = mon ? formatGearBonusesForMon(gear, mon) : formatGearBonuses(gear.bonuses);
+    const bonuses = mon ? formatGearBonusesForMon(gear, mon) : formatGearRngSummary(gear);
+    const houseRestrict = getGearHouseRestrictionText(gear);
+    const houseRestrictHtml = houseRestrict ? `<small class="gear-house-restrict">${escapeGearHtml(houseRestrict)}</small>` : "";
+    const reqLevel = getGearRequiredLevel(gear);
+    const levelMet = !mon || Math.floor(mon.level) >= reqLevel;
+    const levelReqHtml = reqLevel ? `<small class="gear-level-req${levelMet ? "" : " unmet"}">Requires Lv ${reqLevel}</small>` : "";
     const dataGid = options.dataGid ? ` data-gid="${options.dataGid}"` : "";
+    const disabled = options.disabled || (mon && !levelMet) ? " disabled" : "";
     const onclick = options.onclick ? ` onclick="${options.onclick}"` : "";
-    return `<button type="button" class="equip-option"${dataGid}${onclick}>
+    return `<button type="button" class="equip-option${disabled}"${dataGid}${onclick}${disabled}>
         <span class="equip-option-main">
             <span class="equip-gear-icon-wrap" style="border-color:${getGearTierColor(gear)}">${renderGearIconHtml(gear, "gear-inv-icon")}</span>
-            <span class="equip-option-text"><b>${formatGearDisplayName(gear)}</b><small>${bonuses}</small></span>
+            <span class="equip-option-text"><b>${formatGearDisplayName(gear)}</b><small>${bonuses}</small>${levelReqHtml}${houseRestrictHtml}</span>
         </span>
         <span class="equip-action ${actionClass}">${action}</span>
     </button>`;
@@ -10168,7 +11394,13 @@ function openEquipModal(location, monIndex, slot) {
         })
         : `<p class="equip-modal-empty">Nothing equipped</p>`;
     const inventoryHtml = options.length
-        ? options.map(g => renderEquipOptionHtml(g, null, "EQUIP", "equip-action-equip", { dataGid: g.id })).join("")
+        ? options.map(g => {
+            const levelOk = Math.floor(mon.level) >= getGearRequiredLevel(g);
+            return renderEquipOptionHtml(g, mon, levelOk ? "EQUIP" : "LV REQ", levelOk ? "equip-action-equip" : "equip-action-locked", {
+                dataGid: g.id,
+                disabled: !levelOk,
+            });
+        }).join("")
         : `<p class="equip-modal-empty">No ${GEAR_SLOT_LABELS[slot]} for this house in inventory.<br>Win adventure battles to find gear!</p>`;
 
     const overlay = document.createElement("div");
@@ -10191,7 +11423,7 @@ function openEquipModal(location, monIndex, slot) {
             </div>
         </div>`;
     overlay.querySelector(".equip-modal-close").onclick = () => overlay.remove();
-    overlay.querySelectorAll(".equip-option[data-gid]").forEach(el => {
+    overlay.querySelectorAll(".equip-option[data-gid]:not([disabled])").forEach(el => {
         el.onclick = () => {
             equipGearOnMon(location, monIndex, el.dataset.gid);
             overlay.remove();
@@ -10302,56 +11534,106 @@ function gearSynthClearSlot(index) {
     renderArmoryPane();
 }
 
-function executeGearSynth() {
-    if (!isEquipmentUnlocked()) {
-        alert("Gear synthesis unlocks at Chapter 2 (Stage 9+).");
-        return;
-    }
-    const recipe = analyzeGearSynthRecipe(gearSynthSlots);
-    if (!recipe || recipe.type === "invalid") {
-        alert("Invalid synthesis recipe. Check the recipe hint above your slots.");
-        return;
-    }
-    const ids = getGearSynthUsedIds();
-    if (ids.length !== 3 || ids.some(id => gearInventory.findIndex(g => g.id === id) < 0)) {
-        alert("Selected gear is no longer in your inventory.");
+function clearArmoryForgeResultSoon() {
+    if (armoryForgeResultTimer) clearTimeout(armoryForgeResultTimer);
+    armoryForgeResultTimer = setTimeout(() => {
+        armoryForgeResult = null;
+        armoryForgeResultTimer = null;
         renderArmoryPane();
-        return;
-    }
-    if (money < recipe.gold) {
-        alert("Need " + recipe.gold + " Gold to synthesize.\nYou have: " + money);
-        return;
-    }
-    const preview = describeGearSynthRecipe(recipe).replace(/<[^>]+>/g, "");
-    if (!confirm("Synthesize now?\n\n" + preview + "\n\nCost: " + recipe.gold + " Gold\nOn failure, all 3 items are lost.")) return;
+    }, 5000);
+}
 
-    money -= recipe.gold;
-    gearInventory = gearInventory.filter(g => !ids.includes(g.id));
-    clearGearSynthSlots();
+function showArmoryForgeMessage(ok, text) {
+    armoryForgeResult = { ok: !!ok, text: String(text || "") };
+    renderArmoryPane();
+    clearArmoryForgeResultSoon();
+}
 
-    const success = Math.random() < recipe.rate;
-    let result = null;
-    const mainHouse = gearSynthSlots[0]?.house || HOUSE_ORDER[randInt(0, HOUSE_ORDER.length - 1)];
-    if (success) {
-        if (recipe.type === "upgrade") {
-            const slot = GEAR_SLOTS[randInt(0, GEAR_SLOTS.length - 1)];
-            result = generateHouseGear(mainHouse, recipe.resultTier, slot);
-        } else {
-            result = generateHouseGear(mainHouse, recipe.resultTier, recipe.slot);
-        }
-        gearInventory.push(result);
+function renderArmoryForgeStatusHtml() {
+    if (armoryForgeBusy) {
+        return `<div class="armory-forge-status is-busy" aria-live="polite">
+            <div class="armory-forge-hammer" aria-hidden="true">🔨</div>
+            <div class="armory-forge-progress"><div class="armory-forge-progress-fill"></div></div>
+            <p class="armory-forge-busy-text">FORGING…</p>
+        </div>`;
     }
+    if (armoryForgeResult?.text) {
+        const cls = armoryForgeResult.ok ? "is-success" : "is-fail";
+        return `<div class="armory-forge-status ${cls}" aria-live="polite"><p>${escapeGearHtml(armoryForgeResult.text)}</p></div>`;
+    }
+    return `<div class="armory-forge-status" aria-live="polite"></div>`;
+}
 
+async function runArmoryForgeAction(workFn) {
+    if (armoryForgeBusy) return;
+    armoryForgeBusy = true;
+    armoryForgeResult = null;
+    if (armoryForgeResultTimer) {
+        clearTimeout(armoryForgeResultTimer);
+        armoryForgeResultTimer = null;
+    }
+    renderArmoryPane();
+    await new Promise((resolve) => setTimeout(resolve, ARMORY_FORGE_DURATION_MS));
+    try {
+        armoryForgeResult = workFn() || { ok: false, text: "Action failed." };
+    } catch (err) {
+        armoryForgeResult = { ok: false, text: String(err?.message || "Action failed.") };
+    }
+    armoryForgeBusy = false;
     saveData();
     updateUI();
     renderArmoryPane();
     renderInventory();
+    clearArmoryForgeResultSoon();
+}
 
-    if (success) {
-        alert("Synthesis success!\nObtained: " + result.name + "\n" + formatGearBonuses(result.bonuses));
-    } else {
-        alert("Synthesis failed.\nAll materials were consumed.");
+function executeGearSynth() {
+    if (armoryForgeBusy) return;
+    if (!isEquipmentUnlocked()) {
+        showArmoryForgeMessage(false, "Gear synthesis unlocks at Chapter 2 (Stage 9+).");
+        return;
     }
+    const recipe = analyzeGearSynthRecipe(gearSynthSlots);
+    if (!recipe || recipe.type === "invalid") {
+        showArmoryForgeMessage(false, "Invalid synthesis recipe. Check the recipe hint above your slots.");
+        return;
+    }
+    const ids = getGearSynthUsedIds();
+    if (ids.length !== 3 || ids.some(id => gearInventory.findIndex(g => g.id === id) < 0)) {
+        showArmoryForgeMessage(false, "Selected gear is no longer in your inventory.");
+        renderArmoryPane();
+        return;
+    }
+    if (money < recipe.gold) {
+        showArmoryForgeMessage(false, `Need ${recipe.gold} Gold to synthesize. You have: ${money}.`);
+        return;
+    }
+
+    const slotsSnapshot = gearSynthSlots.map((g) => g);
+    const recipeSnapshot = { ...recipe };
+    const goldCost = recipe.gold;
+
+    runArmoryForgeAction(() => {
+        money -= goldCost;
+        gearInventory = gearInventory.filter(g => !ids.includes(g.id));
+        const mainHouse = slotsSnapshot[0]?.house || HOUSE_ORDER[randInt(0, HOUSE_ORDER.length - 1)];
+        const mainLvlTier = getGearLevelTier(slotsSnapshot[0]);
+        clearGearSynthSlots();
+
+        const success = Math.random() < recipeSnapshot.rate;
+        let result = null;
+        if (success) {
+            if (recipeSnapshot.type === "upgrade") {
+                const slot = GEAR_SLOTS[randInt(0, GEAR_SLOTS.length - 1)];
+                result = generateHouseGear(mainHouse, recipeSnapshot.resultTier, slot, mainLvlTier);
+            } else {
+                result = generateHouseGear(mainHouse, recipeSnapshot.resultTier, recipeSnapshot.slot, mainLvlTier);
+            }
+            gearInventory.push(result);
+            return { ok: true, text: `Synthesis success! Obtained: ${result.name} — ${formatGearRngSummary(result)}` };
+        }
+        return { ok: false, text: "Synthesis failed. All materials were consumed." };
+    });
 }
 
 function renderGearSynthSlotHtml(gear, index) {
@@ -10379,14 +11661,14 @@ function renderGearSynthPanel(container) {
     if (!el) return;
     const recipe = analyzeGearSynthRecipe(gearSynthSlots);
     const recipeCls = recipe && recipe.type !== "invalid" ? "" : " invalid";
-    const canSynth = recipe && recipe.type !== "invalid" && money >= (recipe.gold || 0);
+    const canSynth = recipe && recipe.type !== "invalid" && money >= (recipe.gold || 0) && !armoryForgeBusy;
     const usedIds = getGearSynthUsedIds();
 
     const pickItems = gearInventory.length
-        ? gearInventory.map(g => {
+        ? sortGearByRarityPower(gearInventory).map(g => {
             const tierColor = getGearTierColor(g);
             const used = usedIds.includes(g.id);
-            return `<button type="button" class="gear-synth-pick-item${used ? " used" : ""}" style="border-color:${tierColor};box-shadow:2px 2px 0 ${tierColor}" onclick="gearSynthAssignNext('${g.id}')" title="${formatGearDisplayName(g)}\n${formatGearBonuses(g.bonuses)}">
+            return `<button type="button" class="gear-synth-pick-item${used ? " used" : ""}" style="border-color:${tierColor};box-shadow:2px 2px 0 ${tierColor}" onclick="gearSynthAssignNext('${g.id}')" title="${getGearHoverTitle(g)}">
                 ${renderGearIconHtml(g, "gear-slot-icon")}
                 ${g.enhanceLevel ? `<span class="gear-enhance-badge">+${g.enhanceLevel}</span>` : ""}
             </button>`;
@@ -10395,7 +11677,7 @@ function renderGearSynthPanel(container) {
 
     el.innerHTML = `
         <div class="gear-synth-panel">
-            <p class="gear-synth-note">Pockie-style synthesis: <b>Main Item + Catalyst + Catalyst</b>. Upgrade with 3× same tier, or reroll stats with main + lower-tier catalysts.</p>
+            <p class="gear-synth-note">Pockie-style synthesis: <b>Main Item + Catalyst + Catalyst</b>. Upgrade with 3× same tier, or reroll RNG bonus stats with main + lower-tier catalysts.</p>
             <div class="gear-synth-recipe-bar${recipeCls}">${describeGearSynthRecipe(recipe)}</div>
             <div class="gear-synth-workbench">
                 ${renderGearSynthSlotHtml(gearSynthSlots[0], 0)}
@@ -10406,10 +11688,11 @@ function renderGearSynthPanel(container) {
                 <span class="gear-synth-op">=</span>
                 <div class="gear-synth-result">${describeGearSynthResult(recipe)}</div>
             </div>
+            ${renderArmoryForgeStatusHtml()}
             <div class="gear-synth-actions">
                 <div class="gear-synth-cost">${currencyIcon("gold", 18)} <span>${recipe?.gold || 0} Gold</span></div>
                 <button type="button" class="gear-synth-btn" onclick="executeGearSynth()" ${canSynth ? "" : "disabled"}>SYNTHESIZE</button>
-                <button type="button" class="gear-synth-open-btn" onclick="clearGearSynthSlots(); renderArmoryPane();">CLEAR</button>
+                <button type="button" class="gear-synth-open-btn" onclick="clearGearSynthSlots(); renderArmoryPane();" ${armoryForgeBusy ? "disabled" : ""}>CLEAR</button>
             </div>
             <div>
                 <p class="gear-synth-note" style="margin-bottom:8px;"><b>Inventory gear</b> — click to fill the next empty slot (Main → Catalyst → Catalyst).</p>
@@ -10430,7 +11713,7 @@ function renderGearEnhancePanel(container) {
     const goldCost = gear ? getGearEnhanceGoldCost(gear) : 0;
     const successRate = gear ? getGearEnhanceSuccessRate(gear) : 0;
     const failDrop = gear ? getGearEnhanceFailDropLevel(gear) : null;
-    const canEnhance = gear && !atMax && money >= goldCost;
+    const canEnhance = gear && !atMax && money >= goldCost && !armoryForgeBusy;
     const rateCls = successRate > 0 && successRate < 70 ? " low" : "";
 
     const slotInner = gear
@@ -10442,7 +11725,7 @@ function renderGearEnhancePanel(container) {
     const infoHtml = !gear
         ? `<h4>Select gear to enhance</h4><p>Pick an item from your inventory. Pockie-style enhancement: +1–+10 safe growth, <b>milestone bonuses at +11 and +21</b> (max +${GEAR_ENHANCE_MAX}). Stats scale with wearer level (+${Math.round(STAT_LEVEL_GROWTH_PCT * 1000) / 10}%/level).</p>`
         : `<h4>${formatGearDisplayName(gear)}</h4>
-           <p><b>Current stats:</b> ${formatGearBonuses(gear.bonuses)}</p>
+           <p><b>Current stats:</b> ${formatGearRngSummary(gear)}</p>
            <p><b>Enhance level:</b> +${level} / +${GEAR_ENHANCE_MAX}</p>
            ${atMax
                 ? `<p style="color:#ca8a04;font-weight:700;">Max enhancement reached.</p>`
@@ -10451,12 +11734,12 @@ function renderGearEnhancePanel(container) {
                    <p style="font-size:11px;color:#64748b;">Success adds slot bonuses (Pockie armory enhance).</p>`}`;
 
     const pickItems = gearInventory.length
-        ? gearInventory.map(g => {
+        ? sortGearByRarityPower(gearInventory).map(g => {
             normalizeGear(g);
             const tierColor = getGearTierColor(g);
             const selected = gearEnhanceTargetId === g.id;
             const selectedStyle = selected ? "opacity:1;border-color:#f59e0b;box-shadow:2px 2px 0 #b45309;" : `border-color:${tierColor};box-shadow:2px 2px 0 ${tierColor};`;
-            return `<button type="button" class="gear-synth-pick-item${selected ? " used" : ""}" onclick="gearEnhanceSelect('${g.id}')" title="${formatGearDisplayName(g)}\n${formatGearBonuses(g.bonuses)}" style="${selectedStyle}">
+            return `<button type="button" class="gear-synth-pick-item${selected ? " used" : ""}" onclick="gearEnhanceSelect('${g.id}')" title="${getGearHoverTitle(g)}" style="${selectedStyle}">
                 ${renderGearIconHtml(g, "gear-slot-icon")}
                 ${g.enhanceLevel ? `<span class="gear-enhance-badge">+${g.enhanceLevel}</span>` : ""}
             </button>`;
@@ -10473,10 +11756,11 @@ function renderGearEnhancePanel(container) {
                 </div>
                 <div class="gear-enhance-info">${infoHtml}</div>
             </div>
+            ${renderArmoryForgeStatusHtml()}
             <div class="gear-synth-actions">
                 <div class="gear-synth-cost">${currencyIcon("gold", 18)} <span>${goldCost} Gold</span></div>
                 <button type="button" class="gear-synth-btn" onclick="executeGearEnhance()" ${canEnhance ? "" : "disabled"} style="border-color:#f59e0b;background:linear-gradient(180deg,#fde68a 0%,#f59e0b 100%);color:#451a03;box-shadow:3px 3px 0 #92400e;">ENHANCE</button>
-                <button type="button" class="gear-synth-open-btn" onclick="gearEnhanceClear(); renderArmoryPane();">CLEAR</button>
+                <button type="button" class="gear-synth-open-btn" onclick="gearEnhanceClear(); renderArmoryPane();" ${armoryForgeBusy ? "disabled" : ""}>CLEAR</button>
             </div>
             <div>
                 <p class="gear-synth-note" style="margin-bottom:8px;"><b>Inventory gear</b> — click to place in the enhance slot.</p>
@@ -10486,24 +11770,39 @@ function renderGearEnhancePanel(container) {
     `;
 }
 
-function rollHeroAscensionSkillOptions(mon) {
-    ensureMonReady(mon);
+function rollHeroAscensionSkillOptions(mon, options = {}) {
+    if (!options.skipEnsure) {
+        migrateSkillDefinitions(mon);
+        syncUltimateFromSkills(mon);
+    }
     const usedNames = new Set((mon.skills || []).map(skill => skill.name));
     if (mon.ultimate?.name) usedNames.add(mon.ultimate.name);
-    const pool = [...PASSIVE_SKILL_POOL, ...getActiveSkillPoolForMon(mon.skills)]
-        .filter(skill => !usedNames.has(skill.name));
-    const options = [];
+    const pools = [
+        [...PASSIVE_SKILL_POOL, ...getActiveSkillPoolForMon(mon.skills)].filter(skill => !usedNames.has(skill.name)),
+        [...PASSIVE_SKILL_POOL, ...ACTIVE_SKILL_POOL].filter(skill => !usedNames.has(skill.name)),
+        [...PASSIVE_SKILL_POOL, ...DAMAGE_ACTIVE_POOL].filter(skill => !usedNames.has(skill.name)),
+    ];
+    const picks = [];
     const blocked = new Set(usedNames);
-    while (options.length < 3 && pool.length > 0) {
-        const skill = pickUniqueSkill(pool, blocked);
-        if (!skill) break;
-        options.push({ ...skill });
+    for (const pool of pools) {
+        while (picks.length < 3 && pool.length > 0) {
+            const skill = pickUniqueSkill(pool, blocked);
+            if (!skill) break;
+            picks.push({ ...skill });
+        }
+        if (picks.length >= 3) break;
     }
-    return options;
+    return picks;
 }
 
-function getHeroAscensionDupeRequirement(stars) {
-    return HERO_ASCENSION_DUPES_REQUIRED[stars] ?? null;
+function getHeroAscensionDupeRequirement(level) {
+    const idx = level || 0;
+    if (idx >= HERO_ASCENSION_DUPES_BY_LEVEL.length) return HERO_ASCENSION_DUPES_MAX;
+    return HERO_ASCENSION_DUPES_BY_LEVEL[idx];
+}
+
+function getHeroAscensionGoldCost(level) {
+    return HERO_ASCENSION_GOLD_BASE + (level || 0) * HERO_ASCENSION_GOLD_STEP;
 }
 
 function analyzeHeroAscension(mainMon, dupeMons) {
@@ -10514,19 +11813,15 @@ function analyzeHeroAscension(mainMon, dupeMons) {
         return { type: "invalid", reason: "Only <b>Legendary</b> and above can use Hero Ascension." };
     }
     const stars = main.ascensionStars || 0;
-    if (stars >= HERO_ASCENSION_MAX_STARS) {
-        return { type: "invalid", reason: `${main.name} already has ${HERO_ASCENSION_MAX_STARS} ascension stars.` };
-    }
     if (main.ascensionSkillPending?.length) {
         return { type: "pending_skill", main };
     }
     const required = getHeroAscensionDupeRequirement(stars);
-    if (required == null) return { type: "invalid", reason: "Cannot ascend further." };
     const dupes = dupeMons || [];
     if (dupes.length !== required) {
         return {
             type: "invalid",
-            reason: `Star ${stars + 1} needs <b>1 main + ${required} duplicates</b> of the same species (${dupes.length}/${required} selected).`,
+            reason: `+${stars + 1} needs <b>1 main + ${required} duplicates</b> of the same species (${dupes.length}/${required} selected).`,
         };
     }
     for (const dupe of dupes) {
@@ -10543,7 +11838,7 @@ function analyzeHeroAscension(mainMon, dupeMons) {
         nextStar: stars + 1,
         required,
         rate: HERO_ASCENSION_SUCCESS_RATE,
-        gold: HERO_ASCENSION_GOLD_COST[stars] || 0,
+        gold: getHeroAscensionGoldCost(stars),
     };
 }
 
@@ -10554,13 +11849,12 @@ function describeHeroAscensionRecipe(recipe) {
     }
     if (recipe.type === "invalid") return recipe.reason;
     const pct = Math.round(recipe.rate * 100);
-    return `<b>Star ${recipe.nextStar}</b> — ${recipe.main.name} + ${recipe.required}× duplicate(s) · <b>${pct}%</b> success · fail consumes duplicates`;
+    return `<b>+${recipe.nextStar}</b> — ${recipe.main.name} + ${recipe.required}× duplicate(s) · <b>${pct}%</b> success · fail consumes duplicates`;
 }
 
 function canMonHeroAscendMain(mon) {
     ensureMonReady(mon);
     if (!isLegendaryOrAbove(mon.rarity)) return false;
-    if ((mon.ascensionStars || 0) >= HERO_ASCENSION_MAX_STARS) return false;
     if (mon.ascensionSkillPending?.length) return false;
     return true;
 }
@@ -10573,7 +11867,7 @@ function listHeroAscensionMainCandidates() {
     box.forEach((mon, index) => {
         if (isLegendaryOrAbove(mon.rarity)) entries.push({ mon, location: "box", index });
     });
-    return entries;
+    return sortHeroAscensionEntries(entries);
 }
 
 function listHeroAscensionDuplicates(mainMon) {
@@ -10585,7 +11879,42 @@ function listHeroAscensionDuplicates(mainMon) {
     box.forEach((mon, index) => {
         if (mon !== mainMon && mon.name === mainMon.name) entries.push({ mon, location: "box", index });
     });
-    return entries;
+    return sortHeroAscensionEntries(entries);
+}
+
+function syncHeroAscensionMainMon() {
+    if (!heroAscensionMainRef) {
+        if (!heroAscensionMainMon) return null;
+        const loc = findMonLocationIndex(heroAscensionMainMon);
+        if (!loc) {
+            heroAscensionMainMon = null;
+            return null;
+        }
+        heroAscensionMainRef = { location: loc.location, index: loc.index };
+    }
+    const list = getMonList(heroAscensionMainRef.location);
+    const mon = list[heroAscensionMainRef.index];
+    if (!mon) {
+        heroAscensionMainMon = null;
+        heroAscensionMainRef = null;
+        return null;
+    }
+    heroAscensionMainMon = mon;
+    return mon;
+}
+
+function isHeroAscensionMainAt(location, index) {
+    syncHeroAscensionMainMon();
+    return !!heroAscensionMainRef
+        && heroAscensionMainRef.location === location
+        && heroAscensionMainRef.index === index;
+}
+
+function heroAscensionClearMain() {
+    heroAscensionMainMon = null;
+    heroAscensionMainRef = null;
+    heroAscensionDupeMons = [];
+    heroAscensionMainPickerOpen = true;
 }
 
 function toggleHeroAscensionMainPicker() {
@@ -10593,12 +11922,27 @@ function toggleHeroAscensionMainPicker() {
     renderArmoryPane();
 }
 
+function heroAscensionMainSlotClick() {
+    if (heroAscensionMainMon) {
+        heroAscensionClearMain();
+    } else {
+        heroAscensionMainPickerOpen = true;
+    }
+    renderArmoryPane();
+}
+
 function heroAscensionSelectMain(location, index) {
-    const list = location === "party" ? party : box;
+    const list = getMonList(location);
     const mon = list[index];
     if (!mon || !isLegendaryOrAbove(mon.rarity)) return;
+    if (isHeroAscensionMainAt(location, index)) {
+        heroAscensionClearMain();
+        renderArmoryPane();
+        return;
+    }
     if (!canMonHeroAscendMain(mon)) return;
     heroAscensionMainMon = mon;
+    heroAscensionMainRef = { location, index };
     heroAscensionDupeMons = [];
     heroAscensionMainPickerOpen = false;
     renderArmoryPane();
@@ -10635,46 +11979,57 @@ function removeHeroAscensionDupes(dupeMons) {
 }
 
 function executeHeroAscension() {
+    if (armoryForgeBusy) return;
     if (!heroAscensionMainMon) {
-        alert("Click MAIN and choose a Legendary+ hero first.");
+        showArmoryForgeMessage(false, "Click MAIN and choose a Legendary+ hero first.");
         return;
     }
     const recipe = analyzeHeroAscension(heroAscensionMainMon, heroAscensionDupeMons);
     if (recipe.type === "pending_skill") {
-        alert("Unlock the pending star skill on the hero's card (🔓 slot) before ascending again.");
+        showArmoryForgeMessage(false, "Unlock the pending skill on the hero's card (🔓 slot) before ascending again.");
         return;
     }
     if (recipe.type !== "ready") {
-        alert(recipe.reason?.replace(/<[^>]+>/g, "") || "Invalid ascension setup.");
+        showArmoryForgeMessage(false, recipe.reason?.replace(/<[^>]+>/g, "") || "Invalid ascension setup.");
         return;
     }
     if (money < recipe.gold) {
-        alert(`Need ${recipe.gold} Gold to ascend.\nYou have: ${money}`);
+        showArmoryForgeMessage(false, `Need ${recipe.gold} Gold to ascend. You have: ${money}.`);
         return;
     }
-    const preview = describeHeroAscensionRecipe(recipe).replace(/<[^>]+>/g, "");
-    if (!confirm(`Attempt Hero Ascension?\n\n${preview}\n\nCost: ${recipe.gold} Gold\nDuplicates are consumed whether you succeed or fail.`)) return;
 
-    money -= recipe.gold;
     const dupesToRemove = [...heroAscensionDupeMons];
-    removeHeroAscensionDupes(dupesToRemove);
+    const goldCost = recipe.gold;
+    const successRate = recipe.rate;
 
-    const main = heroAscensionMainMon;
-    const success = Math.random() < recipe.rate;
-    if (success) {
-        main.ascensionStars = (main.ascensionStars || 0) + 1;
-        if (!main.ascensionSkillPending?.length) {
-            main.ascensionSkillPending = rollHeroAscensionSkillOptions(main);
+    runArmoryForgeAction(() => {
+        money -= goldCost;
+        removeHeroAscensionDupes(dupesToRemove);
+
+        const main = heroAscensionMainMon;
+        if (!main) return { ok: false, text: "Main hero is no longer available." };
+
+        const success = Math.random() < successRate;
+        if (success) {
+            main.ascensionStars = (main.ascensionStars || 0) + 1;
+            repairAscensionSkillState(main);
+            if (canAscensionGrantSkill(main) && !main.ascensionSkillPending?.length) {
+                const options = rollHeroAscensionSkillOptions(main, { skipEnsure: true });
+                if (options.length) main.ascensionSkillPending = options;
+            }
+            const statPct = Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100);
+            let text = `Ascension success! ${main.name} is now +${main.ascensionStars}. +${statPct}% stats on base & gear.`;
+            if (main.ascensionSkillPending?.length || canAscensionGrantSkill(main)) {
+                text += ` Tap 🔓 UNLOCK on their card to choose a skill (${HERO_SKILL_UNLOCK_GOLD} Gold).`;
+            } else if (main.ascensionStars > HERO_ASCENSION_SKILL_CAP) {
+                text += ` Skill unlock cap (+${HERO_ASCENSION_SKILL_CAP}) reached — further + levels grant stats only.`;
+            }
+            sortBox();
+            return { ok: true, text };
         }
-        alert(`Ascension success! ${main.name} earned ★${main.ascensionStars}.\n+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% stats on base stats & gear.\nTap 🔓 UNLOCK on their card to choose a skill (${HERO_SKILL_UNLOCK_GOLD} Gold).`);
-    } else {
-        alert("Ascension failed.\nDuplicates were consumed.");
-    }
-
-    sortBox();
-    saveData();
-    updateUI();
-    renderArmoryPane();
+        sortBox();
+        return { ok: false, text: "Ascension failed. Duplicates were consumed." };
+    });
 }
 
 function confirmHeroAscensionSkill(location, monIndex, optionIndex) {
@@ -10703,35 +12058,49 @@ function confirmHeroAscensionSkill(location, monIndex, optionIndex) {
     refreshMonDerivedStats(mon);
     delete mon.ascensionSkillPending;
     delete mon.ascensionSkillFreePick;
+    repairAscensionSkillState(mon);
     closeAscensionSkillPicker();
     saveData();
+    if (typeof flushSaveToCloud === "function") flushSaveToCloud().catch(() => {});
     updateUI();
     renderArmoryPane();
     alert(`${mon.name} learned ${skill.name}!`);
 }
 
+function openHeroAscensionSkillUnlock() {
+    const main = heroAscensionMainMon;
+    if (!main?.ascensionSkillPending?.length) {
+        alert("No pending skill unlock on the selected main hero.");
+        return;
+    }
+    const loc = findMonLocationIndex(main);
+    if (!loc) {
+        alert("Selected hero is no longer in Party or Box.");
+        return;
+    }
+    openAscensionSkillPicker(loc.location, loc.index);
+}
+
 function renderHeroAscensionMainPickItem(entry) {
     const { mon, location, index } = entry;
-    const selected = heroAscensionMainMon === mon;
+    const selected = isHeroAscensionMainAt(location, index);
     const canAscend = canMonHeroAscendMain(mon);
-    const locTag = location === "party" ? "P" : "B";
     let status = "";
-    if ((mon.ascensionStars || 0) >= HERO_ASCENSION_MAX_STARS) status = "Max ★";
-    else if (mon.ascensionSkillPending?.length) status = "Unlock skill";
-    return `<button type="button" class="hero-ascension-pick-item${selected ? " is-main" : ""}${canAscend ? "" : " is-disabled"}" onclick="heroAscensionSelectMain('${location}', ${index})" title="${mon.name} · ${mon.rarity}${status ? " · " + status : ""}">
-        <span class="hero-asc-loc-tag">${locTag}</span>
+    if (mon.ascensionSkillPending?.length) status = "Unlock skill";
+    const disabledCls = selected || canAscend ? "" : " is-disabled";
+    return `<button type="button" class="hero-ascension-pick-item${selected ? " is-main" : ""}${disabledCls}" onclick="heroAscensionSelectMain('${location}', ${index})" title="${mon.name} · ${mon.rarity}${status ? " · " + status : ""}${selected ? " · Click to remove" : ""}">
+        ${renderHeroAscensionLocTag(location)}
         <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
         <span class="hero-asc-pick-name">${mon.name}</span>
-        <span class="hero-ascension-dupes-badge">★${mon.ascensionStars || 0}</span>
+        <span class="hero-ascension-dupes-badge">+${mon.ascensionStars || 0}</span>
     </button>`;
 }
 
 function renderHeroAscensionDupePickItem(entry) {
     const { mon, location, index } = entry;
     const selected = heroAscensionDupeMons.includes(mon);
-    const locTag = location === "party" ? "P" : "B";
     return `<button type="button" class="hero-ascension-pick-item${selected ? " selected" : ""}" onclick="heroAscensionToggleDupe('${location}', ${index})" title="${mon.name} Lv.${Math.floor(mon.level)} · ${location}">
-        <span class="hero-asc-loc-tag">${locTag}</span>
+        ${renderHeroAscensionLocTag(location)}
         <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
         <span class="hero-asc-pick-name">Lv.${Math.floor(mon.level)}</span>
     </button>`;
@@ -10741,16 +12110,17 @@ function renderHeroAscensionPanel(container) {
     const el = container || document.getElementById("armory-pane-content");
     if (!el) return;
 
-    const main = heroAscensionMainMon;
+    const main = syncHeroAscensionMainMon();
     const recipe = analyzeHeroAscension(main, heroAscensionDupeMons);
     const recipeCls = recipe && (recipe.type === "ready" || recipe.type === "pending_skill") ? "" : " invalid";
-    const canAscend = recipe?.type === "ready" && money >= (recipe.gold || 0);
+    const canAscend = recipe?.type === "ready" && money >= (recipe.gold || 0) && !armoryForgeBusy;
+    const pendingUnlock = recipe?.type === "pending_skill";
     const showMainPicker = heroAscensionMainPickerOpen || !main;
     const required = main ? getHeroAscensionDupeRequirement(main.ascensionStars || 0) : null;
 
     const mainSlotInner = main
         ? `<img src="${getMonAvatarPath(main)}" alt="${main.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(main)}'">
-           <span class="hero-ascension-dupes-badge">★${main.ascensionStars || 0}</span>`
+           <span class="hero-ascension-dupes-badge">+${main.ascensionStars || 0}</span>`
         : `<span style="font-size:22px;">+</span><span class="hero-ascension-dupes-badge">MAIN</span>`;
 
     const dupeSlots = required
@@ -10785,21 +12155,28 @@ function renderHeroAscensionPanel(container) {
            </div>`
         : "";
 
+    const nextPlus = main ? (main.ascensionStars || 0) + 1 : "?";
+    const resultSub = main && nextPlus <= HERO_ASCENSION_SKILL_CAP ? "skill" : "stats";
+
     el.innerHTML = `
         <div class="hero-ascension-panel">
-            <p class="gear-synth-note">Hero Ascension: <b>Legendary+</b> only. <b>★1</b> = main + 2 dupes · <b>★2</b> = main + 4 dupes · <b>75%</b> success. Each ★ grants <b>+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% base & gear stats</b> (stacks with level growth). Tap 🔓 to unlock skills.</p>
+            <p class="gear-synth-note">Hero Ascension: <b>Legendary+</b> only. Dupes: <b>+1</b> = 2 · <b>+2</b> = 4 · <b>+3–5</b> = 5 · <b>+6+</b> = 6 · <b>75%</b> success. Each + grants <b>+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% base & gear stats</b>. Skills unlock through <b>+${HERO_ASCENSION_SKILL_CAP}</b> only. Tap 🔓 to unlock skills.</p>
             <div class="gear-synth-recipe-bar${recipeCls}">${describeHeroAscensionRecipe(recipe)}</div>
             <div class="hero-ascension-workbench">
-                <button type="button" class="hero-ascension-main-slot hero-ascension-main-slot-btn${main ? " filled" : ""}${showMainPicker ? " is-open" : ""}" onclick="toggleHeroAscensionMainPicker()" title="${main ? "Change main hero" : "Choose main hero"}">
+                <button type="button" class="hero-ascension-main-slot hero-ascension-main-slot-btn${main ? " filled" : ""}${showMainPicker ? " is-open" : ""}" onclick="heroAscensionMainSlotClick()" title="${main ? "Click to remove main hero" : "Choose main hero"}">
+                    ${main ? `<span class="hero-asc-main-clear" aria-hidden="true">×</span>` : ""}
                     ${mainSlotInner}
                 </button>
                 ${required ? `<span class="gear-synth-op">+</span>${dupeSlots}` : ""}
-                ${required ? `<span class="gear-synth-op">⇒</span><div class="gear-synth-result">★${main ? (main.ascensionStars || 0) + 1 : "?"}<br>skill</div>` : ""}
+                ${required ? `<span class="gear-synth-op">⇒</span><div class="gear-synth-result">+${nextPlus}<br>${resultSub}</div>` : ""}
             </div>
+            ${renderArmoryForgeStatusHtml()}
             <div class="gear-synth-actions">
                 <div class="gear-synth-cost">${currencyIcon("gold", 18)} <span>${recipe?.gold || 0} Gold</span></div>
-                <button type="button" class="gear-synth-btn" onclick="executeHeroAscension()" ${canAscend ? "" : "disabled"} style="border-color:#fbbf24;background:linear-gradient(180deg,#fde68a 0%,#f59e0b 100%);color:#451a03;box-shadow:3px 3px 0 #92400e;">ASCEND</button>
-                <button type="button" class="gear-synth-open-btn" onclick="heroAscensionMainMon=null;heroAscensionDupeMons=[];heroAscensionMainPickerOpen=true;renderArmoryPane();">CLEAR</button>
+                ${pendingUnlock
+                    ? `<button type="button" class="gear-synth-btn" onclick="openHeroAscensionSkillUnlock()" style="border-color:#a855f7;background:linear-gradient(180deg,#e9d5ff 0%,#c084fc 100%);color:#3b0764;box-shadow:3px 3px 0 #6b21a8;">🔓 UNLOCK SKILL</button>`
+                    : `<button type="button" class="gear-synth-btn" onclick="executeHeroAscension()" ${canAscend ? "" : "disabled"} style="border-color:#fbbf24;background:linear-gradient(180deg,#fde68a 0%,#f59e0b 100%);color:#451a03;box-shadow:3px 3px 0 #92400e;">ASCEND</button>`}
+                <button type="button" class="gear-synth-open-btn" onclick="heroAscensionClearMain(); renderArmoryPane();" ${armoryForgeBusy ? "disabled" : ""}>CLEAR</button>
             </div>
             <div class="hero-ascension-lists hub-scrollbar-panel">
                 ${mainListHtml}
@@ -10864,54 +12241,51 @@ function refreshEquippedGearStats() {
 }
 
 function executeGearEnhance() {
+    if (armoryForgeBusy) return;
     if (!isEquipmentUnlocked()) {
-        alert("Gear enhancement unlocks at Chapter 2 (Stage 9+).");
+        showArmoryForgeMessage(false, "Gear enhancement unlocks at Chapter 2 (Stage 9+).");
         return;
     }
     const idx = gearInventory.findIndex(g => g.id === gearEnhanceTargetId);
     if (idx < 0) {
-        alert("Selected gear is no longer in your inventory.");
+        showArmoryForgeMessage(false, "Selected gear is no longer in your inventory.");
         gearEnhanceClear();
         return;
     }
     const gear = gearInventory[idx];
     normalizeGear(gear);
     if (gear.enhanceLevel >= GEAR_ENHANCE_MAX) {
-        alert("This gear is already at max enhancement (+" + GEAR_ENHANCE_MAX + ").");
+        showArmoryForgeMessage(false, `This gear is already at max enhancement (+${GEAR_ENHANCE_MAX}).`);
         renderArmoryPane();
         return;
     }
     const goldCost = getGearEnhanceGoldCost(gear);
     if (money < goldCost) {
-        alert("Need " + goldCost + " Gold to enhance.\nYou have: " + money);
+        showArmoryForgeMessage(false, `Need ${goldCost} Gold to enhance. You have: ${money}.`);
         return;
     }
     const successRate = getGearEnhanceSuccessRate(gear);
     const failDrop = getGearEnhanceFailDropLevel(gear);
-    const failNote = failDrop != null ? "\nOn failure: drops to +" + failDrop + "." : "\nOn failure: no level drop.";
-    if (!confirm("Enhance " + formatGearDisplayName(gear) + "?\n\nCost: " + goldCost + " Gold\nSuccess rate: " + successRate + "%" + failNote)) return;
+    const gearId = gear.id;
 
-    money -= goldCost;
-    const success = Math.random() < (successRate / 100);
-    if (success) {
-        applyGearEnhanceLevelUp(gear);
-    } else if (failDrop != null && gear.enhanceLevel > failDrop) {
-        stripGearEnhanceLevels(gear, failDrop);
-    }
-
-    refreshEquippedGearStats();
-    saveData();
-    updateUI();
-    renderArmoryPane();
-    renderInventory();
-
-    if (success) {
-        alert("Enhancement success!\n" + formatGearDisplayName(gear) + "\n" + formatGearBonuses(gear.bonuses));
-    } else if (failDrop != null && gear.enhanceLevel <= failDrop) {
-        alert("Enhancement failed.\nEnhance level dropped to +" + gear.enhanceLevel + ".");
-    } else {
-        alert("Enhancement failed.\nNo change to enhance level.");
-    }
+    runArmoryForgeAction(() => {
+        const g = gearInventory.find((item) => item.id === gearId);
+        if (!g) return { ok: false, text: "Selected gear is no longer in your inventory." };
+        money -= goldCost;
+        const success = Math.random() < (successRate / 100);
+        if (success) {
+            applyGearEnhanceLevelUp(g);
+            refreshEquippedGearStats();
+            return { ok: true, text: `Enhancement success! ${formatGearDisplayName(g)} — ${formatGearRngSummary(g)}` };
+        }
+        if (failDrop != null && g.enhanceLevel > failDrop) {
+            stripGearEnhanceLevels(g, failDrop);
+            refreshEquippedGearStats();
+            return { ok: false, text: `Enhancement failed. Enhance level dropped to +${g.enhanceLevel}.` };
+        }
+        refreshEquippedGearStats();
+        return { ok: false, text: "Enhancement failed. No change to enhance level." };
+    });
 }
 
 function openGearSynthModal() {
@@ -11311,14 +12685,37 @@ function calculateDamage(attacker, defender, skill) {
 
 // ==================== STATE MANAGEMENT ====================
 function checkDailyReset() {
-    const now = new Date();
-    const utc8 = new Date(now.getTime() + (8 * 60 * 60 * 1000));
-    const today = utc8.toISOString().split('T')[0];
+    const today = getDailyResetDateKey();
     if (lastResetDate !== today) {
-        monballs = 15;
+        monballs = 10;
         lastResetDate = today;
         saveData();
     }
+    ensurePatrolDailyReset(today);
+}
+
+function getDailyResetDateKey() {
+    const now = new Date();
+    const utc8 = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+    return utc8.toISOString().split("T")[0];
+}
+
+function ensurePatrolDailyReset(todayKey) {
+    const today = todayKey || getDailyResetDateKey();
+    if (patrolScansDay !== today) {
+        patrolScansUsed = 0;
+        patrolScansDay = today;
+    }
+}
+
+function getPatrolScansRemaining() {
+    ensurePatrolDailyReset();
+    return Math.max(0, PATROL_DAILY_MAX - patrolScansUsed);
+}
+
+function getPatrolGearLevelLabel() {
+    const req = getGearRequiredLevelForTier(chapterToGearLevelTier(currentChapter));
+    return `Lv ${req} tier gear (Ch.${currentChapter})`;
 }
 
 function adventureBattleSessionKey() {
@@ -11362,7 +12759,11 @@ function forfeitAdventureBattle(options = {}) {
     applyAdventureForfeit();
 
     if (showResult && inBattle) {
-        showBattleResult(false, { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null });
+        if (activeBattleMode === "patrol") {
+            endPatrolBattle(false, null);
+        } else {
+            showBattleResult(false, { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null });
+        }
     }
     return true;
 }
@@ -11400,6 +12801,7 @@ function buildSavePayload() {
         gearInventorySeedVersion,
         adventureBattleActive: isInAdventureBattle,
         resourceChestLastCollectAt,
+        patrolScansUsed, patrolScansDay,
         saveVersion: 2,
         updatedAt: new Date().toISOString(),
     };
@@ -11465,6 +12867,9 @@ function applyLoadedSave(data) {
     lastResetDate = data.lastResetDate || null;
     xHandle = data.xHandle || xHandle || "";
     loadResourceChestTimestamp(data, false);
+    patrolScansUsed = data.patrolScansUsed ?? 0;
+    patrolScansDay = data.patrolScansDay || null;
+    ensurePatrolDailyReset();
 
     [...party, ...box].forEach((mon) => {
         try {
@@ -11475,6 +12880,7 @@ function applyLoadedSave(data) {
         } catch (e) { console.error("Skipped invalid mon on load:", e); }
     });
     purgeRemovedMonanimalsFromSave();
+    if (dedupePartySpecies()) saveData();
     migrateAllGear();
     ensureHouseGearInventorySeed();
     sortBox();
@@ -11521,12 +12927,16 @@ async function loadData() {
 
     if (data) {
         applyLoadedSave(data);
+        if (enforcePartyCap()) {
+            shouldPersistLocal = true;
+            shouldSyncCloud = true;
+        }
         if (shouldPersistLocal) writeLocalSave(data);
         if (shouldSyncCloud) saveData();
     } else {
         party = [];
         box = [];
-        monballs = 15;
+        monballs = 10;
         money = 5000;
         essence = 0;
         monShards = 0;
@@ -11620,25 +13030,27 @@ function renderPartyGrid() {
     clearAllHubFloatTips();
     grid.innerHTML = "";
 
-    if (party.length === 0) {
-        grid.innerHTML = `
-            <div class="hub-empty-msg" style="grid-column: 1 / -1;">
-                <p style="font-size: 18px; margin-bottom: 15px;">Your party is empty</p>
-                <p style="font-size: 15px;">Catch Monanimals on X via @monexmonad!</p>
-            </div>
-        `;
-        return;
-    }
+    for (let slot = 0; slot < PARTY_MAX; slot++) {
+        const mon = party[slot];
+        if (mon) {
+            ensureMonReady(mon);
+            const card = document.createElement("div");
+            card.className = `mon-card ${getRarityClass(mon.rarity)}`;
+            card.style.cursor = "pointer";
+            card.innerHTML = renderMonCardInner(mon, slot, "party");
+            grid.appendChild(card);
+            bindHubMonCardTips(card);
+            continue;
+        }
 
-    party.forEach((mon, index) => {
-        ensureMonReady(mon);
-        const card = document.createElement("div");
-        card.className = `mon-card ${getRarityClass(mon.rarity)}`;
-        card.style.cursor = "pointer";
-        card.innerHTML = renderMonCardInner(mon, index, "party");
-        grid.appendChild(card);
-        bindHubMonCardTips(card);
-    });
+        const empty = document.createElement("button");
+        empty.type = "button";
+        empty.className = "party-slot-empty";
+        empty.setAttribute("aria-label", "Add Monanimal to party");
+        empty.innerHTML = `<span class="party-slot-empty-plus">+</span><span class="party-slot-empty-label">ADD TO PARTY</span>`;
+        empty.onclick = () => openPartyAddPicker();
+        grid.appendChild(empty);
+    }
 }
 
 function renderMainScene() {
@@ -11743,9 +13155,34 @@ function getMaxAffordableQty(cost) {
 
 function grantShopItem(item, qty) {
     const mult = qty || 1;
-    if (item.grant.monballs) monballs += item.grant.monballs * mult;
-    if (item.grant.essence) essence += item.grant.essence * mult;
-    if (item.grant.monShards) monShards += item.grant.monShards * mult;
+    if (item.grant?.monballs) monballs += item.grant.monballs * mult;
+    if (item.grant?.essence) essence += item.grant.essence * mult;
+    if (item.grant?.monShards) monShards += item.grant.monShards * mult;
+    if (item.gearGrant) {
+        for (let i = 0; i < mult; i++) {
+            const houseId = item.gearGrant.house || HOUSE_ORDER[randInt(0, HOUSE_ORDER.length - 1)];
+            const rarityTier = item.gearGrant.randomRarity
+                ? randInt(1, 5)
+                : (item.gearGrant.tier || randInt(1, 5));
+            const lvlTier = resolveGearLevelTier(item.gearGrant.gearLevelTier);
+            gearInventory.push(generateHouseGear(houseId, rarityTier, item.gearGrant.slot, lvlTier));
+        }
+    }
+}
+
+function renderShopItemIconHtml(item) {
+    if (item.iconKey && GAME_ICONS[item.iconKey]) {
+        return `<img class="shop-slot-icon-img" src="${GAME_ICONS[item.iconKey].src}" alt="">`;
+    }
+    if (item.gearGrant) {
+        const preview = {
+            house: item.gearGrant.house || "chog",
+            slot: item.gearGrant.slot,
+            tier: item.gearGrant.tier,
+        };
+        return renderGearIconHtml(preview, "shop-slot-icon-img");
+    }
+    return `<div class="shop-slot-icon" title="${item.name}">?</div>`;
 }
 
 function executeShopPurchase(item, qty) {
@@ -11913,7 +13350,7 @@ function renderShop() {
         const costShort = item.cost.gold ? item.cost.gold + "G" : formatCost(item.cost);
         const tip = renderHoverTip(item.name, item.desc + " — " + formatCost(item.cost));
         const inner = `
-            <div class="shop-slot-icon" title="${item.name}">?</div>
+            ${renderShopItemIconHtml(item)}
             <span class="shop-slot-cost">${costShort}</span>
             ${tip}
         `;
@@ -11943,9 +13380,12 @@ function importWildMon(raw) {
         level: raw.level || 1,
         skills: raw.skills ? JSON.parse(JSON.stringify(raw.skills)) : [],
     };
+    if (raw.pendingId) mon.wildPendingId = raw.pendingId;
     ensureMonReady(mon);
     return mon;
 }
+
+let wildSyncInFlight = null;
 
 function saveXHandle() {
     const input = document.getElementById("x-handle-input");
@@ -11964,40 +13404,63 @@ function saveXHandle() {
 
 async function syncXWildMons(silent) {
     if (!xHandle || typeof MonExActivity === "undefined") return 0;
-    const statusEl = document.getElementById("profile-pending-text");
-    try {
-        const data = await MonExActivity.syncWild(xHandle, party.length, box.length);
-        let added = 0;
-        for (const raw of data.party || []) {
-            party.push(importWildMon(raw));
-            added++;
-        }
-        for (const raw of data.box || []) {
-            box.push(importWildMon(raw));
-            added++;
-        }
-        if (added > 0) {
-            saveData();
-            updateUI();
-            renderParty();
-            renderBox();
-            if (!silent) alert("Synced " + added + " mon(s) from X to Party/Box!");
-        }
-        if (statusEl) {
-            if (data.remaining > 0) {
-                statusEl.textContent = added
-                    ? "Synced " + added + " mon(s). " + data.remaining + " still waiting (Party/Box full)."
-                    : data.remaining + " mon(s) waiting — free a Party or Box slot.";
-            } else if (added > 0) {
-                statusEl.textContent = "All X catches synced to Party/Box.";
-            } else {
-                statusEl.textContent = "Linked as @" + xHandle + " — new X catches appear automatically.";
+    if (wildSyncInFlight) return wildSyncInFlight;
+
+    wildSyncInFlight = (async () => {
+        const statusEl = document.getElementById("profile-pending-text");
+        try {
+            const boxMax = Number.isFinite(STAGING_BETA_BOX_MAX) ? STAGING_BETA_BOX_MAX : 500;
+            const data = await MonExActivity.syncWild(xHandle, party.length, box.length, PARTY_MAX, boxMax);
+            const seen = getWildPendingIds();
+            let added = 0;
+            for (const raw of data.party || []) {
+                if (raw.pendingId && seen.has(raw.pendingId)) continue;
+                const mon = importWildMon(raw);
+                if (mon.wildPendingId) seen.add(mon.wildPendingId);
+                if (party.length >= PARTY_MAX || partyHasSpecies(mon.name)) {
+                    box.push(mon);
+                } else {
+                    party.push(mon);
+                }
+                added++;
             }
+            for (const raw of data.box || []) {
+                if (raw.pendingId && seen.has(raw.pendingId)) continue;
+                const mon = importWildMon(raw);
+                if (mon.wildPendingId) seen.add(mon.wildPendingId);
+                box.push(mon);
+                added++;
+            }
+            if (enforcePartyCap()) added = Math.max(added, 1);
+            if (added > 0) {
+                saveData();
+                updateUI();
+                renderParty();
+                renderBox();
+                if (!silent) alert("Synced " + added + " mon(s) from X to Party/Box!");
+            }
+            if (statusEl) {
+                if (data.remaining > 0) {
+                    statusEl.textContent = added
+                        ? "Synced " + added + " mon(s). " + data.remaining + " still waiting (Party/Box full)."
+                        : data.remaining + " mon(s) waiting — free a Party or Box slot.";
+                } else if (added > 0) {
+                    statusEl.textContent = "All X catches synced to Party/Box.";
+                } else {
+                    statusEl.textContent = "Linked as @" + xHandle + " — new X catches appear automatically.";
+                }
+            }
+            return added;
+        } catch (e) {
+            if (statusEl) statusEl.textContent = "Could not reach Cloudflare API. Check js/monex-config.js URL.";
+            return 0;
         }
-        return added;
-    } catch (e) {
-        if (statusEl) statusEl.textContent = "Could not reach Cloudflare API. Check js/monex-config.js URL.";
-        return 0;
+    })();
+
+    try {
+        return await wildSyncInFlight;
+    } finally {
+        wildSyncInFlight = null;
     }
 }
 
@@ -12082,6 +13545,7 @@ function toBox(index) {
 
 let _partySwitchIndex = null;
 let _partySwitchBoxIndex = null;
+let _partySwitchAddMode = false;
 
 function renderPartySwitchSkillList(mon) {
     ensureMonReady(mon);
@@ -12208,6 +13672,7 @@ function closePartySwitchPicker() {
     document.getElementById("modal-party-switch")?.classList.remove("open");
     _partySwitchIndex = null;
     _partySwitchBoxIndex = null;
+    _partySwitchAddMode = false;
 }
 
 function bindPartySwitchTip(cell) {
@@ -12237,10 +13702,10 @@ function renderPartySwitchAvatarCell(mon, onClick) {
 
 function renderPartySwitchGrid() {
     const grid = document.getElementById("party-switch-grid");
-    if (!grid || (_partySwitchIndex === null && _partySwitchBoxIndex === null)) return;
+    if (!grid || (_partySwitchIndex === null && _partySwitchBoxIndex === null && !_partySwitchAddMode)) return;
     grid.innerHTML = "";
 
-    if (_partySwitchIndex !== null) {
+    if (_partySwitchAddMode || _partySwitchIndex !== null) {
         if (!box || box.length === 0) {
             grid.innerHTML = `
                 <div class="party-switch-empty">
@@ -12250,11 +13715,26 @@ function renderPartySwitchGrid() {
             return;
         }
 
-        const entries = box.map((mon, i) => ({ mon, i }));
+        const excludeIndex = _partySwitchAddMode ? -1 : _partySwitchIndex;
+        const entries = box
+            .map((mon, i) => ({ mon, i }))
+            .filter(({ mon }) => !partyHasSpecies(mon.name, excludeIndex));
         entries.sort((a, b) => getRarityRank(b.mon.rarity) - getRarityRank(a.mon.rarity));
 
+        if (!entries.length) {
+            grid.innerHTML = `
+                <div class="party-switch-empty">
+                    <p style="font-size:16px; margin-bottom:10px;">No eligible Monanimals</p>
+                    <p style="font-size:13px;">Party allows one of each species. Swap out a duplicate or pick a different mon.</p>
+                </div>`;
+            return;
+        }
+
         entries.forEach(({ mon, i }) => {
-            grid.appendChild(renderPartySwitchAvatarCell(mon, () => swapPartyWithBox(_partySwitchIndex, i)));
+            const onPick = _partySwitchAddMode
+                ? () => addToPartyFromBox(i)
+                : () => swapPartyWithBox(_partySwitchIndex, i);
+            grid.appendChild(renderPartySwitchAvatarCell(mon, onPick));
         });
         return;
     }
@@ -12273,20 +13753,37 @@ function renderPartySwitchGrid() {
     });
 }
 
+function openPartyAddPicker() {
+    if (party.length >= PARTY_MAX) return;
+    _partySwitchIndex = null;
+    _partySwitchBoxIndex = null;
+    _partySwitchAddMode = true;
+    const title = document.getElementById("party-switch-title-display");
+    const subtitle = document.getElementById("party-switch-subtitle");
+    if (title) title.textContent = "ADD TO PARTY";
+    if (subtitle) subtitle.textContent = _partySwitchAddMode
+        ? "Pick a Monanimal from your Box to fill this party slot (one per species)"
+        : "Pick a Monanimal from your Box to swap into this party slot (one per species)";
+    renderPartySwitchGrid();
+    document.getElementById("modal-party-switch")?.classList.add("open");
+}
+
 function openPartySwitchPicker(partyIndex) {
     if (!party[partyIndex]) return;
+    _partySwitchAddMode = false;
     _partySwitchIndex = partyIndex;
     _partySwitchBoxIndex = null;
     const title = document.getElementById("party-switch-title-display");
     const subtitle = document.getElementById("party-switch-subtitle");
     if (title) title.textContent = `SWITCH — ${party[partyIndex].name}`;
-    if (subtitle) subtitle.textContent = "Pick a Monanimal from your Box to swap into this party slot";
+    if (subtitle) subtitle.textContent = "Pick a Monanimal from your Box to swap into this party slot (one per species)";
     renderPartySwitchGrid();
     document.getElementById("modal-party-switch")?.classList.add("open");
 }
 
 function openBoxSwitchPicker(boxIndex) {
     if (!box[boxIndex]) return;
+    _partySwitchAddMode = false;
     _partySwitchBoxIndex = boxIndex;
     _partySwitchIndex = null;
     const title = document.getElementById("party-switch-title-display");
@@ -12297,10 +13794,31 @@ function openBoxSwitchPicker(boxIndex) {
     document.getElementById("modal-party-switch")?.classList.add("open");
 }
 
+function addToPartyFromBox(boxIndex) {
+    if (party.length >= PARTY_MAX || !box[boxIndex]) return;
+    const mon = box[boxIndex];
+    if (partyHasSpecies(mon.name)) {
+        alert(`You already have ${mon.name} in your party.\nOnly one of each species allowed.`);
+        return;
+    }
+    party.push(box.splice(boxIndex, 1)[0]);
+    saveData();
+    updateUI();
+    closePartySwitchPicker();
+    if (battleScreen === "chapter" && document.getElementById("team-arrange")) {
+        renderTeamArrangement();
+    }
+}
+
 function swapPartyWithBox(partyIndex, boxIndex) {
     if (!party[partyIndex] || !box[boxIndex]) return;
+    const incoming = box[boxIndex];
+    if (partyHasSpecies(incoming.name, partyIndex)) {
+        alert(`You already have ${incoming.name} in your party.\nOnly one of each species allowed.`);
+        return;
+    }
     const temp = party[partyIndex];
-    party[partyIndex] = box[boxIndex];
+    party[partyIndex] = incoming;
     box[boxIndex] = temp;
     saveData();
     updateUI();
@@ -12586,9 +14104,11 @@ function attemptCatch() {
         const newMon = createMonanimal(name, rarity, 1);
         newMon.ultimate = { ...newMon.skills[0] };
 
-        if (party.length >= PARTY_MAX) {
+        if (party.length >= PARTY_MAX || partyHasSpecies(name)) {
             box.push(newMon);
-            result.innerHTML = `<span style="color:green">Caught ${rarity} ${name}! Sent to Box.</span>`;
+            result.innerHTML = partyHasSpecies(name)
+                ? `<span style="color:green">Caught ${rarity} ${name}! Sent to Box (already in party).</span>`
+                : `<span style="color:green">Caught ${rarity} ${name}! Sent to Box.</span>`;
         } else {
             party.push(newMon);
             result.innerHTML = `<span style="color:green">GOTCHA! Caught ${rarity} ${name}!</span>`;
@@ -12727,6 +14247,7 @@ function showMainScene() {
     updateResourceChestWidget();
     startResourceChestTimer();
     ensureCoverStagesSync();
+    void warmCoreSceneAssets();
 }
 
 function closeAllModals() {
@@ -12885,17 +14406,20 @@ function openBattleHub() {
     setMainSceneVisible(false);
     document.getElementById("battle-scene").classList.add("open");
     setAdventureMode(false);
+    setAdventureHubMode(false);
     setBattleFightingUI(false);
     setBattleSceneBackground(BATTLE_HUB_BG);
     setActiveRailTab("rail-battle");
     renderBattleHubMenu();
     ensureCoverStagesSync();
+    void warmBattleHubSceneAssets();
 }
 
 function renderBattleHubMenu() {
     battleScreen = "menu";
     setBattleSceneBackground(BATTLE_HUB_BG);
     renderBattleHubButtons(BATTLE_HUB_MAIN_BUTTONS);
+    void warmBattleHubSceneAssets();
 }
 
 function showBattleTowerHub() {
@@ -12905,20 +14429,355 @@ function showBattleTowerHub() {
 }
 
 function launchAdventureFromHub() {
-    openAdventureStagePrep();
+    openAdventureModePicker();
 }
 
-function prepareAdventureBattleScene() {
+function prepareAdventureBattleScene(bgUrl) {
     loadAdventureProgress();
     closeAllModals();
     stopSceneIdleBattle();
     ensureBattleSceneOpen();
-    enterAdventureFullMode(getChapterBackgroundPath(currentChapter));
+    enterAdventureFullMode(bgUrl || getChapterBackgroundPath(currentChapter));
     setActiveRailTab("rail-battle");
 }
 
+function prepareAdventureHubScene() {
+    setAdventureHubMode(true);
+    prepareAdventureBattleScene(getAdventureModeHubBackgroundPath());
+}
+
+function openAdventureModePicker() {
+    void warmAdventureHubSceneAssets();
+    prepareAdventureHubScene();
+    battleScreen = "adventure-picker";
+    activeBattleMode = "campaign";
+    setPatrolScanUI(false);
+    const remaining = getPatrolScansRemaining();
+    const reqLabel = getPatrolGearLevelLabel();
+    const content = document.getElementById("battle-content");
+    content.className = "battle-scene-ui cover-art-layer";
+    content.innerHTML = `
+        <div class="adventure-panel adventure-panel--hub-overlay">
+            <h2>ADVENTURE</h2>
+            <p class="adv-desc">Monad office HQ — choose your route.</p>
+            <div class="adventure-mode-picker">
+                <button type="button" class="adventure-mode-card" onclick="openAdventureStagePrep()">
+                    <h3>CAMPAIGN</h3>
+                    <p>Chapter battles — push the story and unlock content.</p>
+                    <span class="mode-card-stat">Ch.${currentChapter} · Stage ${currentStage}</span>
+                </button>
+                <button type="button" class="adventure-mode-card" onclick="openPatrolScreen()">
+                    <h3>PATROL</h3>
+                    <p>Scan the Monad office for intruders and loot.</p>
+                    <span class="mode-card-stat">${remaining}/${PATROL_DAILY_MAX} scans today</span>
+                </button>
+            </div>
+            <p class="adv-desc" style="margin-top:16px;font-size:12px;">Patrol drops: ${escapeGearHtml(reqLabel)} — any rarity.</p>
+            <button type="button" class="adventure-continue-btn" style="margin-top:12px;background:linear-gradient(180deg,#6b4426,#4a2e18);color:#ffe8c8;border-color:#8b5a2b;" onclick="openBattleHub()">BACK TO BATTLE HUB</button>
+        </div>`;
+    syncCoverStages();
+}
+
+function openPatrolScreen() {
+    prepareAdventureHubScene();
+    battleScreen = "patrol";
+    activeBattleMode = "patrol";
+    setPatrolScanUI(false);
+    renderPatrolLobby();
+}
+
+function renderPatrolLobby() {
+    const remaining = getPatrolScansRemaining();
+    const depleted = remaining <= 0;
+    const content = document.getElementById("battle-content");
+    content.className = "battle-scene-ui cover-art-layer";
+    content.innerHTML = `
+        <div class="adventure-panel adventure-panel--hub-overlay">
+            <h2>PATROL</h2>
+            <p class="patrol-lobby-scans${depleted ? " depleted" : ""}">${remaining} / ${PATROL_DAILY_MAX} scans left today</p>
+            <p class="adv-desc">Scan the Monad office for hostile Monanimals. ${escapeGearHtml(getPatrolGearLevelLabel())}.</p>
+            <div class="patrol-scan-zone" onclick="beginPatrolScan()" role="button" tabindex="0" aria-label="Scan Monad office">
+                <span class="patrol-scan-zone-label">${depleted ? "NO SCANS LEFT" : "TAP TO SCAN OFFICE"}</span>
+            </div>
+            <button type="button" class="adventure-start-btn patrol-scan-btn" onclick="beginPatrolScan()" ${depleted ? "disabled" : ""}>SCAN MONAD OFFICE</button>
+            <button type="button" class="adventure-continue-btn" style="margin-top:10px;background:linear-gradient(180deg,#6b4426,#4a2e18);color:#ffe8c8;border-color:#8b5a2b;" onclick="openAdventureModePicker()">BACK</button>
+        </div>`;
+    syncCoverStages();
+}
+
+const PATROL_ENCOUNTER_TABLE = [
+    { id: "trash", weight: 12, label: "Empty cubicle…", hint: "Quick sweep — office supplies recovered" },
+    { id: "common", weight: 53, label: "Office intruder!", hint: "Standard patrol battle" },
+    { id: "uncommon", weight: 24, label: "Strong bio-sign!", hint: "Better rewards possible" },
+    { id: "rare", weight: 11, label: "RARE OFFICE ALERT!", hint: "High gear drop chance" },
+];
+
+function rollPatrolEncounter() {
+    const total = PATROL_ENCOUNTER_TABLE.reduce((s, e) => s + e.weight, 0);
+    let r = Math.random() * total;
+    for (const entry of PATROL_ENCOUNTER_TABLE) {
+        r -= entry.weight;
+        if (r <= 0) return { ...entry };
+    }
+    return { ...PATROL_ENCOUNTER_TABLE[1] };
+}
+
+function setPatrolScanUI(active) {
+    const backBtn = document.getElementById("battle-back-btn");
+    if (backBtn) backBtn.style.display = active ? "none" : "block";
+    document.querySelector(".game-container")?.classList.toggle("patrol-scan-active", !!active);
+}
+
+function setPatrolScanStatus(text) {
+    const el = document.getElementById("patrol-scan-status");
+    if (el) el.textContent = text;
+}
+
+function setPatrolScanHint(text) {
+    const el = document.getElementById("patrol-scan-hint");
+    if (el) el.textContent = text || "";
+}
+
+function setPatrolScanProgress(pct) {
+    const el = document.getElementById("patrol-scan-progress");
+    if (el) el.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+}
+
+function spawnPatrolScanBlips() {
+    const layer = document.getElementById("patrol-scan-blips");
+    if (!layer) return;
+    layer.innerHTML = "";
+    const count = 6 + randInt(0, 5);
+    for (let i = 0; i < count; i++) {
+        const blip = document.createElement("span");
+        blip.className = "patrol-scan-blip";
+        blip.style.left = `${12 + Math.random() * 76}%`;
+        blip.style.top = `${18 + Math.random() * 58}%`;
+        blip.style.animationDelay = `${Math.random() * 1.4}s`;
+        layer.appendChild(blip);
+    }
+}
+
+function renderPatrolScanStage(encounter) {
+    const content = document.getElementById("battle-content");
+    content.className = "battle-scene-ui battle-scene-ui--patrol-scan cover-art-layer";
+    content.innerHTML = `
+        <div class="patrol-scan-stage patrol-encounter-${encounter.id}" id="patrol-scan-stage">
+            <div class="patrol-office-field"></div>
+            <div class="patrol-scan-hud">
+                <div class="patrol-scan-top">
+                    <span class="patrol-scan-title">◈ OFFICE SCAN</span>
+                    <span class="patrol-scan-chapter">Monad HQ · Ch.${currentChapter}</span>
+                </div>
+                <div class="patrol-scan-viewport" id="patrol-scan-viewport">
+                    <div class="patrol-scan-grid"></div>
+                    <div class="patrol-scan-reticle" aria-hidden="true">
+                        <div class="patrol-scan-sweep"></div>
+                        <div class="patrol-scan-ring patrol-scan-ring--1"></div>
+                        <div class="patrol-scan-ring patrol-scan-ring--2"></div>
+                        <div class="patrol-scan-dot"></div>
+                    </div>
+                    <div class="patrol-scan-blips" id="patrol-scan-blips"></div>
+                </div>
+                <div class="patrol-scan-footer">
+                    <p class="patrol-scan-status" id="patrol-scan-status">Booting office scanner…</p>
+                    <div class="patrol-scan-progress-track">
+                        <div class="patrol-scan-progress-fill" id="patrol-scan-progress"></div>
+                    </div>
+                    <p class="patrol-scan-hint" id="patrol-scan-hint"></p>
+                </div>
+            </div>
+        </div>`;
+    spawnPatrolScanBlips();
+    syncCoverStages();
+}
+
+async function animatePatrolScanProgress(from, to, ms) {
+    const start = performance.now();
+    return new Promise((resolve) => {
+        function frame(now) {
+            const t = Math.min(1, (now - start) / ms);
+            setPatrolScanProgress(from + (to - from) * t);
+            if (t < 1) requestAnimationFrame(frame);
+            else resolve();
+        }
+        requestAnimationFrame(frame);
+    });
+}
+
+async function runPatrolScanSequence(encounter, scanToken) {
+    battleScreen = "patrol-scan";
+    setPatrolScanUI(true);
+    refreshAdventureModeHubBackground();
+    renderPatrolScanStage(encounter);
+    setPatrolScanProgress(0);
+    setPatrolScanHint("");
+
+    await delay(350);
+    if (scanToken !== patrolScanToken) return;
+    setPatrolScanStatus("Sweeping Monad office floor…");
+    await animatePatrolScanProgress(0, 28, 900);
+    if (scanToken !== patrolScanToken) return;
+
+    setPatrolScanStatus("Cross-referencing desk sectors…");
+    spawnPatrolScanBlips();
+    await animatePatrolScanProgress(28, 58, 1000);
+    if (scanToken !== patrolScanToken) return;
+
+    setPatrolScanStatus("Bio-sign in the break room!");
+    document.getElementById("patrol-scan-stage")?.classList.add("is-lock-on");
+    await animatePatrolScanProgress(58, 82, 800);
+    if (scanToken !== patrolScanToken) return;
+
+    setPatrolScanStatus(encounter.label);
+    setPatrolScanHint(encounter.hint);
+    await delay(500);
+    if (scanToken !== patrolScanToken) return;
+
+    setPatrolScanStatus("DEPLOYING TEAM!");
+    document.getElementById("patrol-scan-stage")?.classList.add("is-engage");
+    await animatePatrolScanProgress(82, 100, 450);
+    if (scanToken !== patrolScanToken) return;
+
+    await delay(380);
+    if (scanToken !== patrolScanToken) return;
+
+    setPatrolScanUI(false);
+    document.querySelector(".game-container")?.classList.remove("patrol-scan-active");
+    startPatrolBattle(encounter);
+}
+
+function beginPatrolScan() {
+    if (party.length < 3) {
+        alert("You need at least 3 Monanimals in your party!");
+        return;
+    }
+    ensurePatrolDailyReset();
+    if (getPatrolScansRemaining() <= 0) {
+        alert("No patrol scans left today. Come back after the daily reset!");
+        return;
+    }
+    patrolScansUsed++;
+    saveData();
+
+    void warmPatrolBattleAssets();
+    const encounter = rollPatrolEncounter();
+    activePatrolEncounter = encounter;
+    patrolScanToken++;
+    runPatrolScanSequence(encounter, patrolScanToken);
+}
+
+function makePatrolEnemyTeam(chapter, encounter) {
+    const globalProgress = getGlobalAdventureProgress(chapter, 1);
+    const scale = { trash: 0.82, common: 0.95, uncommon: 1.05, rare: 1.18 }[encounter.id] || 1;
+    const team = [];
+    for (let i = 0; i < 3; i++) {
+        const name = MONANIMAL_NAMES[randInt(0, MONANIMAL_NAMES.length - 1)];
+        let mon = buildAdventureEnemyMon(name, globalProgress, i, false);
+        mon.level = Math.max(1, Math.floor(mon.level * scale));
+        mon.stats = generateStats(mon.name, mon.rarity);
+        mon.statVersion = STAT_SYSTEM_VERSION;
+        if (scale > 1) {
+            mon.stats.atk = Math.floor(mon.stats.atk * (1 + (scale - 1) * 0.5));
+            mon.stats.spd = Math.floor(mon.stats.spd * (1 + (scale - 1) * 0.3));
+        }
+        team.push(makeFighter(mon, false));
+    }
+    return team;
+}
+
+function rollPatrolRewards(encounter, win) {
+    const reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null };
+    if (!win) return reward;
+    const ch = Math.max(1, currentChapter);
+    const g = getGlobalAdventureProgress(ch, 1);
+    const mult = { trash: 0.65, common: 1, uncommon: 1.35, rare: 1.8 }[encounter.id] || 1;
+    reward.gold = Math.floor((35 + g * 7) * mult);
+    reward.essence = Math.floor((5 + g * 2) * mult);
+    reward.trainerXp = Math.floor((20 + g * 8) * mult);
+    if (encounter.id === "trash") {
+        reward.gold = Math.max(30, reward.gold);
+        reward.essence = Math.max(4, reward.essence);
+    }
+    const gearChance = { trash: 0, common: 0.06, uncommon: 0.16, rare: 0.38 }[encounter.id] || 0;
+    if (gearChance > 0 && Math.random() < gearChance) {
+        const tier = rollGearDropRarity(ch, encounter.id === "rare");
+        const slot = GEAR_SLOTS[randInt(0, GEAR_SLOTS.length - 1)];
+        const houseId = HOUSE_ORDER[randInt(0, HOUSE_ORDER.length - 1)];
+        const gear = generateHouseGear(houseId, tier, slot, chapterToGearLevelTier(ch));
+        gearInventory.push(gear);
+        reward.gear = gear;
+    }
+    if (Math.random() < 0.1 * mult) reward.shards = 1;
+    return reward;
+}
+
+function startPatrolBattle(encounter) {
+    activeBattleMode = "patrol";
+    activePatrolEncounter = encounter;
+    setAdventureHubMode(false);
+    refreshAdventureChapterBackground();
+    isInAdventureBattle = true;
+    start3v3Battle(party.slice(0, 3), {
+        enemyTeam: makePatrolEnemyTeam(currentChapter, encounter),
+    });
+}
+
+function endPatrolBattle(win, player) {
+    setBattleFightingUI(false);
+    isInAdventureBattle = false;
+    clearAdventureBattleSession();
+    activeBattleMode = "patrol";
+
+    const encounter = activePatrolEncounter || rollPatrolEncounter();
+    const reward = rollPatrolRewards(encounter, win);
+    if (win) {
+        money += reward.gold;
+        essence += reward.essence;
+        monShards += reward.shards;
+        addTrainerXp(reward.trainerXp);
+    }
+    restorePartyFullHp();
+    saveData();
+    showPatrolBattleResult(win, reward, encounter);
+}
+
+function showPatrolBattleResult(win, reward, encounter) {
+    battleScreen = "patrol-result";
+    setAdventureHubMode(true);
+    refreshAdventureModeHubBackground();
+    const remaining = getPatrolScansRemaining();
+    const content = document.getElementById("battle-content");
+    content.className = "battle-scene-ui cover-art-layer";
+    const encounterLabel = encounter?.label || "Patrol encounter";
+    const drops = win
+        ? `<div class="result-drops" style="margin:18px 0; font-size:15px;">
+               <div style="font-size:12px;color:#86efac;margin-bottom:8px;">${escapeGearHtml(encounterLabel)}</div>
+               <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("gold", 20)} <b>+${reward.gold}</b></div>
+               <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("essence", 20)} <b>+${reward.essence}</b></div>
+               ${reward.shards > 0 ? `<div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("shards", 20)} <b>+${reward.shards}</b></div>` : ""}
+               ${reward.gear ? `<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:6px 0;">&#9876;&#65039; Gear: <span class="equip-gear-icon-wrap" style="border-color:${getGearTierColor(reward.gear)};width:28px;height:28px;">${renderGearIconHtml(reward.gear, "gear-inv-icon")}</span> <b>${formatGearDisplayName(reward.gear)}</b></div>` : ""}
+               <div>&#11088; Trainer XP <b>+${reward.trainerXp}</b></div>
+               <div style="margin-top:8px; color:#666; font-size:13px;">Team restored to full HP.</div>
+           </div>`
+        : `<p class="adv-desc" style="font-size:15px; margin:20px 0;">Patrol failed — team restored to full HP. Try again!</p>`;
+    const scanAgainDisabled = remaining <= 0;
+    content.innerHTML = `
+        <div class="adventure-panel adventure-panel--hub-overlay">
+            <h2 style="color:${win ? "#16a34a" : "#ef4444"};">${win ? "PATROL CLEAR" : "PATROL FAILED"}</h2>
+            <p class="patrol-lobby-scans${scanAgainDisabled ? " depleted" : ""}">${remaining} / ${PATROL_DAILY_MAX} scans left</p>
+            ${drops}
+            <button type="button" class="adventure-start-btn patrol-scan-btn" onclick="beginPatrolScan()" ${scanAgainDisabled ? "disabled" : ""}>SCAN AGAIN</button>
+            <button type="button" class="adventure-continue-btn" onclick="openPatrolScreen()">PATROL MENU</button>
+            <button type="button" class="adventure-continue-btn" style="margin-top:8px;background:linear-gradient(180deg,#6b4426,#4a2e18);color:#ffe8c8;border-color:#8b5a2b;" onclick="openAdventureModePicker()">ADVENTURE MODES</button>
+        </div>`;
+    updateUI();
+}
+
 function openAdventureStagePrep() {
-    prepareAdventureBattleScene();
+    void warmAdventureHubSceneAssets();
+    setAdventureHubMode(false);
+    prepareAdventureBattleScene(getChapterBackgroundPath(currentChapter));
     startStageSelection();
 }
 
@@ -12943,6 +14802,21 @@ function requestLeaveBattle() {
         return;
     }
     if (battleScreen === "chapter") {
+        openAdventureModePicker();
+        return;
+    }
+    if (battleScreen === "patrol" || battleScreen === "patrol-result") {
+        openAdventureModePicker();
+        return;
+    }
+    if (battleScreen === "patrol-scan") {
+        patrolScanToken++;
+        setPatrolScanUI(false);
+        document.querySelector(".game-container")?.classList.remove("patrol-scan-active");
+        openPatrolScreen();
+        return;
+    }
+    if (battleScreen === "adventure-picker") {
         openBattleHub();
         return;
     }
@@ -13008,6 +14882,10 @@ async function waitWhilePaused(battleToken) {
 function closeBattleScene() {
     setBattleFightingUI(false);
     setAdventureMode(false);
+    setAdventureHubMode(false);
+    setPatrolScanUI(false);
+    patrolScanToken++;
+    document.querySelector(".game-container")?.classList.remove("patrol-scan-active");
     setBattleSceneBackground("");
     battleScreen = "main";
     document.getElementById("battle-scene").classList.remove("open");
@@ -13092,12 +14970,13 @@ function ensureBattleSceneOpen() {
 }
 
 function enterAdventureMode() {
-    openAdventureStagePrep();
+    openAdventureModePicker();
 }
 
 function startStageSelection() {
     const boss = isBossStage(currentStage);
     battleScreen = "chapter";
+    activeBattleMode = "campaign";
     ensureBattleSceneOpen();
     setAdventureMode(true);
     refreshAdventureChapterBackground();
@@ -13187,6 +15066,7 @@ function startAdventureBattle() {
         return;
     }
 
+    activeBattleMode = "campaign";
     isInAdventureBattle = true;
     start3v3Battle(party.slice(0, 3));
 }
@@ -13237,7 +15117,7 @@ function makeEnemyTeam(chapter, stage) {
     return team;
 }
 
-function start3v3Battle(playerParty) {
+function start3v3Battle(playerParty, options = {}) {
     adventureBattleToken++;
     isInAdventureBattle = true;
     battleScreen = "fight";
@@ -13247,7 +15127,7 @@ function start3v3Battle(playerParty) {
     setAdventureMode(true);
     refreshAdventureChapterBackground();
     const playerTeam = playerParty.slice(0, 3).map(m => makeFighter(m, true));
-    const enemyTeam = makeEnemyTeam(currentChapter, currentStage);
+    const enemyTeam = options.enemyTeam || makeEnemyTeam(currentChapter, currentStage);
     renderBattleScene();
     setBattleFightingUI(true);
     runBattle(playerTeam, enemyTeam, adventureBattleToken);
@@ -14100,6 +15980,10 @@ async function runBattle(player, enemy, battleToken) {
 }
 
 function endBattle(win, player) {
+    if (activeBattleMode === "patrol") {
+        endPatrolBattle(win, player);
+        return;
+    }
     setBattleFightingUI(false);
     isInAdventureBattle = false;
     clearAdventureBattleSession();
@@ -14197,10 +16081,13 @@ function renderInventoryMaterialSlotHtml(m) {
 
 function renderInventoryGearSlotHtml(g) {
     normalizeGear(g);
+    ensureGearLevelFields(g);
+    const reqLvl = getGearRequiredLevel(g);
     return `
         ${renderGearIconHtml(g, "gear-inv-icon")}
+        <span class="inv-slot-level-req">Lv${reqLvl}</span>
         ${g.enhanceLevel ? `<span class="inv-slot-enhance">+${g.enhanceLevel}</span>` : ""}
-        ${renderHoverTip(formatGearDisplayName(g), formatGearBonuses(g.bonuses) + "\nEquip via mon card gear slots.")}`;
+        ${renderGearTooltipHtml(g, null)}`;
 }
 
 function renderInventoryEmptySlotHtml() {
@@ -14217,12 +16104,11 @@ function buildInventorySlotList() {
 
     if (inventoryActiveCategory === "all") {
         materials.forEach(m => items.push({ type: "material", data: m }));
-        gearInventory.forEach(g => items.push({ type: "gear", data: g }));
+        sortGearByRarityPower(gearInventory).forEach(g => items.push({ type: "gear", data: g }));
     } else if (inventoryActiveCategory === "materials") {
         materials.forEach(m => items.push({ type: "material", data: m }));
     } else if (GEAR_SLOTS.includes(inventoryActiveCategory)) {
-        gearInventory
-            .filter(g => g.slot === inventoryActiveCategory)
+        sortGearByRarityPower(gearInventory.filter(g => g.slot === inventoryActiveCategory))
             .forEach(g => items.push({ type: "gear", data: g }));
     }
 

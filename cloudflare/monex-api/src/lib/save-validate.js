@@ -45,7 +45,7 @@ export const LIMITS = {
   monShards: 99_999,
   monballs: 9_999,
   trainerXp: 99_999_999,
-  partyMax: 3,
+  partyMax: 5,
   boxMax: 500,
   gearInventoryMax: 400,
   gearPerMonMax: 4,
@@ -56,12 +56,14 @@ export const LIMITS = {
   stagesPerChapter: 40,
   gearEnhanceMax: 21,
   maxGearTier: 5,
-  ascensionStarsMax: 2,
+  maxGearLevelTier: 99,
+  ascensionStarsMax: 99,
   ascensionSkillPendingMax: 3,
   resourceChestMaxMs: 24 * 60 * 60 * 1000,
   clockSkewMs: 5 * 60 * 1000,
   stringMaxLen: 120,
   gearIdMaxLen: 80,
+  monLevelMax: 80,
 };
 
 const LEVEL_CAP_BY_RARITY = {
@@ -124,6 +126,22 @@ function sanitizeGearBonuses(raw) {
   return bonuses;
 }
 
+function sanitizeGearRollLine(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const stat = GEAR_BONUS_KEYS.has(raw.stat) ? raw.stat : null;
+  if (!stat) return null;
+  return {
+    stat,
+    value: clampInt(raw.value, 0, LIMITS.gearBonusMax),
+    min: clampInt(raw.min, 0, LIMITS.gearBonusMax),
+    max: clampInt(raw.max, 0, LIMITS.gearBonusMax),
+  };
+}
+
+function gearRequiredLevelForTier(gearLevelTier) {
+  return (Math.max(1, gearLevelTier) - 1) * 20 + 1;
+}
+
 export function sanitizeGear(raw) {
   if (!raw || typeof raw !== "object") return null;
   const slot = GEAR_SLOTS.includes(raw.slot) ? raw.slot : null;
@@ -156,6 +174,21 @@ export function sanitizeGear(raw) {
   if (house) gear.house = house;
   if (lineName) gear.lineName = lineName;
   if (raw.iconVersion != null) gear.iconVersion = clampInt(raw.iconVersion, 1, 99);
+  const primaryRoll = sanitizeGearRollLine(raw.primaryRoll);
+  if (primaryRoll) gear.primaryRoll = primaryRoll;
+  if (Array.isArray(raw.rngLines)) {
+    const maxLines = tier >= 5 ? 3 : 2;
+    gear.rngLines = raw.rngLines.map(sanitizeGearRollLine).filter(Boolean).slice(0, maxLines);
+  }
+  const gearLevelTier = raw.gearLevelTier != null
+    ? clampInt(raw.gearLevelTier, 1, LIMITS.maxGearLevelTier)
+    : 1;
+  gear.gearLevelTier = gearLevelTier;
+  gear.requiredLevel = clampInt(
+    gearRequiredLevelForTier(gearLevelTier),
+    1,
+    LIMITS.monLevelMax,
+  );
   return gear;
 }
 
@@ -346,7 +379,7 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
   return {
     party: sanitizeMonList(input.party, LIMITS.partyMax),
     box: sanitizeMonList(input.box, LIMITS.boxMax),
-    monballs: clampInt(input.monballs ?? 15, 0, LIMITS.monballs),
+    monballs: clampInt(input.monballs ?? 10, 0, LIMITS.monballs),
     money: clampInt(input.money ?? 5000, 0, LIMITS.money),
     essence: clampInt(input.essence ?? 0, 0, LIMITS.essence),
     monShards: clampInt(input.monShards ?? 0, 0, LIMITS.monShards),
@@ -358,6 +391,8 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
     gearInventory: sanitizeGearInventory(input.gearInventory),
     gearInventorySeedVersion: clampInt(input.gearInventorySeedVersion ?? 0, 0, 99),
     lastResetDate: typeof input.lastResetDate === "string" ? trimString(input.lastResetDate, 32) || null : null,
+    patrolScansUsed: clampInt(input.patrolScansUsed ?? 0, 0, 50),
+    patrolScansDay: typeof input.patrolScansDay === "string" ? trimString(input.patrolScansDay, 32) || null : null,
     resourceChestLastCollectAt: sanitizeResourceChestTimestamp(input.resourceChestLastCollectAt, now),
     adventureBattleActive: false,
     saveVersion: Number.isFinite(input.saveVersion) ? clampInt(input.saveVersion, 1, 999) : 1,
