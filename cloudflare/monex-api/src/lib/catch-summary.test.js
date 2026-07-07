@@ -51,11 +51,11 @@ test("large catch reply stays compact under 280 chars", () => {
     monballsLeft: 0,
     seed: 3,
     repliesLeftAfter: 4,
-    dailyLimit: 5,
+    dailyLimit: 4,
   });
 
   assert.ok(text.includes("Legendary"));
-  assert.ok(/Standouts|Promising|Watch these|Highlights|Top picks/i.test(text));
+  assert.ok(/Standouts|Promising|carried|eyes on|standouts|keepers|lowkey|fwiw|field report/i.test(text));
   assert.ok(text.length <= 280);
   assert.equal(text.includes("Mon0, Mon1"), false);
 });

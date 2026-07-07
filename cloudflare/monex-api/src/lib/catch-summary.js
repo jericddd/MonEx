@@ -1,13 +1,5 @@
 const RARITY_ORDER = ["Mythic", "Legendary", "Rare", "Uncommon", "Common"];
 
-const RARITY_RANK = {
-  Mythic: 5,
-  Legendary: 4,
-  Rare: 3,
-  Uncommon: 2,
-  Common: 1,
-};
-
 function formatCountList(parts) {
   if (!parts.length) return "";
   if (parts.length === 1) return parts[0];

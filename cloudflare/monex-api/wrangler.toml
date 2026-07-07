@@ -17,7 +17,7 @@ ENABLE_X_POLL = "1"
 # Set to 1 so @monexmonad replies to valid catch tweets (requires X app Read+Write).
 ENABLE_X_REPLY = "0"
 # Max @monexmonad reply tweets per X user per UTC day (catch still logs after limit).
-DAILY_REPLY_LIMIT = "5"
+DAILY_REPLY_LIMIT = "4"
 # Set to 1 for Cloudflare Workers AI replies (falls back to natural templates if unavailable).
 ENABLE_AI_REPLY = "0"
 # Optional model override, e.g. @cf/meta/llama-3.1-8b-instruct
