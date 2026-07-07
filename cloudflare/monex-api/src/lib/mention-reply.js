@@ -3,7 +3,6 @@ import { invalidDenomReply, insufficientReply } from "./parse-mention.js";
 
 export function buildMentionReplyText(result, tweet, env) {
   const username = tweet.username || "player";
-  const gameUrl = env.FRONTEND_ORIGIN || "https://monexmonad.xyz";
 
   if (result.activity) {
     return formatCatchReply({
@@ -11,7 +10,6 @@ export function buildMentionReplyText(result, tweet, env) {
       monballSpend: result.activity.spend,
       results: result.catchResults || [],
       monballsLeft: result.activity.monballsLeft,
-      gameUrl,
     });
   }
 

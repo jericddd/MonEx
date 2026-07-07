@@ -66,6 +66,29 @@ export function getUser(state, xUserId, username, startingMonballs) {
   return state.users[xUserId];
 }
 
+export function recordReplySent(user) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (user.replyDay !== today) {
+    user.replyDay = today;
+    user.replyCount = 0;
+  }
+  user.replyCount = (user.replyCount || 0) + 1;
+  user.updatedAt = new Date().toISOString();
+}
+
+export function canSendReply(user, limit = 5) {
+  if (!user || limit <= 0) return false;
+  const today = new Date().toISOString().slice(0, 10);
+  if (user.replyDay !== today) return true;
+  return (user.replyCount || 0) < limit;
+}
+
+export function getReplyCountToday(user) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (!user || user.replyDay !== today) return 0;
+  return user.replyCount || 0;
+}
+
 export function addPendingMons(user, mons) {
   const batchAt = new Date().toISOString();
   user.pendingMons.push(

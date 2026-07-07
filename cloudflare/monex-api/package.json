@@ -6,7 +6,7 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "reset-kv": "node scripts/reset-production-kv.mjs",
-    "test": "node --test src/lib/save-validate.test.js src/lib/security.test.js src/lib/parse-mention.test.js"
+    "test": "node --test src/lib/save-validate.test.js src/lib/security.test.js src/lib/parse-mention.test.js src/lib/catch-reply.test.js"
   },
   "dependencies": {},
   "devDependencies": {

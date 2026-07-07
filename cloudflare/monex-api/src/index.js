@@ -20,6 +20,8 @@ import {
   DEFAULT_PARTY_MAX,
   DEFAULT_BOX_MAX,
   getResetEpoch,
+  canSendReply,
+  recordReplySent,
 } from "./kv-store.js";
 import { resolveBotUser, fetchMentions, fetchCatchMentionSearch, mergeMentionTweets, assertXKeys, postReply } from "./lib/x-client.js";
 import {
@@ -174,15 +176,24 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       }
 
       if (env.ENABLE_X_REPLY === "1") {
+        const dailyLimit = Math.max(0, parseInt(env.DAILY_REPLY_LIMIT || "5", 10));
+        const replyUser = state.users[tweet.authorId];
         const replyText = buildMentionReplyText(result, tweet, env);
-        if (replyText) {
+        if (replyText && replyUser && canSendReply(replyUser, dailyLimit)) {
           try {
             await postReply(env, replyText, tweet.id);
+            recordReplySent(replyUser);
             status.replies += 1;
           } catch (err) {
             status.replyErrors = status.replyErrors || [];
             status.replyErrors.push({ id: tweet.id, error: err.message || String(err) });
           }
+        } else if (replyText && replyUser && !canSendReply(replyUser, dailyLimit)) {
+          status.skipped.push({
+            id: tweet.id,
+            user: tweet.username,
+            reason: "daily_reply_limit",
+          });
         }
       }
 

@@ -16,6 +16,8 @@ STARTING_MONBALLS = "10"
 ENABLE_X_POLL = "1"
 # Set to 1 so @monexmonad replies to valid catch tweets (requires X app Read+Write).
 ENABLE_X_REPLY = "0"
+# Max @monexmonad reply tweets per X user per UTC day (catch still logs after limit).
+DAILY_REPLY_LIMIT = "5"
 # Production: keep dev login, simulate, and admin reset OFF. Enable only on staging/local.
 ENABLE_DEV_AUTH = "0"
 ENABLE_SIMULATE = "0"

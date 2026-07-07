@@ -177,27 +177,55 @@ export function runCatchSession(monballSpend) {
   return { throws, results };
 }
 
-export function formatCatchReply({ username, monballSpend, results, monballsLeft, gameUrl }) {
+export function formatCatchReply({ username, monballSpend, results, monballsLeft }) {
   const caught = results.filter((r) => !r.escaped);
   const escaped = results.filter((r) => r.escaped);
-  const lines = [`@${username} — MonEx Wild Catch (${monballSpend} Monballs)`];
 
-  if (caught.length === 0) {
-    lines.push("All targets escaped this round!");
-    if (escaped.length === 1) {
-      lines.push(`A wild ${escaped[0].name} slipped away.`);
+  const throwLines = results.map((r, i) => {
+    const n = i + 1;
+    if (r.escaped) return `${n}. ✗ ${r.name} escaped`;
+    return `${n}. ✓ ${r.mon.name}`;
+  });
+
+  const build = (header, lines, footer) =>
+    [header, ...lines, ...footer].filter(Boolean).join("\n").slice(0, 280);
+
+  const footer = [
+    `${caught.length} caught · ${escaped.length} escaped`,
+    `Monballs left: ${monballsLeft}`,
+    "Visit site to play the game",
+  ];
+
+  let text = build(
+    `@${username} — MonEx Wild Catch (${monballSpend} Monballs)`,
+    throwLines,
+    footer
+  );
+
+  if (text.length >= 280 && results.length > 1) {
+    const packed = [];
+    for (let i = 0; i < results.length; i += 2) {
+      const left = formatThrowCompact(results[i], i + 1);
+      const right = results[i + 1] ? ` ${formatThrowCompact(results[i + 1], i + 2)}` : "";
+      packed.push(left + right);
     }
-  } else {
-    lines.push(`Caught ${caught.length}/${results.length}:`);
-    caught.slice(0, 3).forEach((r) => {
-      const m = r.mon;
-      lines.push(`• ${m.rarity.toUpperCase()} ${m.name}`);
-      lines.push(`  Skills: ${formatSkillsShort(m.skills)}`);
-    });
-    if (caught.length > 3) lines.push(`…and ${caught.length - 3} more (saved for claim).`);
+    text = build(`@${username} — Wild Catch x${monballSpend}`, packed, footer);
   }
 
-  lines.push(`Monballs left: ${monballsLeft}`);
-  lines.push(`Claim in game (X login soon): ${gameUrl}`);
-  return lines.join("\n");
+  if (text.length >= 280) {
+    const caughtNames = caught.map((r) => r.mon.name).join(", ") || "—";
+    const escapedNames = escaped.map((r) => r.name).join(", ") || "—";
+    text = build(
+      `@${username} — Wild Catch x${monballSpend}`,
+      [`Caught: ${caughtNames}`, `Escaped: ${escapedNames}`],
+      footer
+    );
+  }
+
+  return text;
+}
+
+function formatThrowCompact(r, n) {
+  if (r.escaped) return `${n}✗${r.name}`;
+  return `${n}✓${r.mon.name}`;
 }
