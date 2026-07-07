@@ -35,6 +35,5 @@ FRONTEND_ORIGIN = "https://monexmonad.xyz"
 [ai]
 binding = "AI"
 
-# Optional: live X mentions every 2 minutes (set ENABLE_X_POLL=1 + API secrets)
-[triggers]
-crons = ["*/2 * * * *"]
+# Poll mentions every 30 min while testing (change to */2 * * * * for production).
+crons = ["*/30 * * * *"]
