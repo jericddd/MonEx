@@ -1,7 +1,7 @@
 name = "monex-api"
 main = "src/index.js"
-compatibility_date = "2024-09-23"
-compatibility_flags = ["nodejs_compat"]
+compatibility_date = "2025-08-15"
+compatibility_flags = ["nodejs_compat", "enable_nodejs_http_modules"]
 
 # Optional but helps CI: paste Account ID from Cloudflare → Workers & Pages sidebar
 # account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
