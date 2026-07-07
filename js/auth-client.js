@@ -110,11 +110,21 @@ function getUsername() {
 }
 
 async function ensureUser() {
-  if (captureSessionFromUrl()) return fetchMe();
+  if (captureSessionFromUrl()) {
+    try {
+      return await fetchMe();
+    } catch {
+      await logout();
+      return null;
+    }
+  }
   if (!isLoggedIn()) return null;
-  const cached = readCachedUser();
-  if (cached?.username) return cached;
-  return fetchMe();
+  try {
+    return await fetchMe();
+  } catch {
+    await logout();
+    return null;
+  }
 }
 
 async function loadCloudSave() {

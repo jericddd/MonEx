@@ -305,6 +305,24 @@
             gap: 10px;
         }
     }
+    .nav-buttons {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        min-height: 44px;
+    }
+    .login-x-btn {
+        padding: 12px 28px;
+        background: linear-gradient(145deg, #1DA1F2, #0A7CC2);
+        color: white;
+        border: none;
+        font-weight: bold;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(29, 161, 242, 0.4);
+    }
     @keyframes blink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.3; }
@@ -317,7 +335,9 @@
 <div class="header" style="background: transparent; border-bottom: none;">
     <div class="header-inner">
     <img src="logo.png" alt="MonEx Logo" style="height: 45px; margin-top: 5px;">
-    <div id="nav-buttons" class="nav-buttons"></div>
+    <div id="nav-buttons" class="nav-buttons">
+        <button type="button" class="login-x-btn" onclick="startLogin()">LOGIN WITH X</button>
+    </div>
 </div>
 </div>
 
@@ -452,6 +472,7 @@ startAutoPlay();
 // Dynamic Header Logic
 async function updateHeader() {
     const nav = document.getElementById("nav-buttons");
+    if (!nav) return;
     let loggedIn = false;
     let displayName = "";
 
@@ -467,17 +488,7 @@ async function updateHeader() {
 
     if (!loggedIn) {
         nav.innerHTML = `
-            <button onclick="startLogin()" style="
-                padding: 12px 28px;
-                background: linear-gradient(145deg, #1DA1F2, #0A7CC2);
-                color: white;
-                border: none;
-                font-weight: bold;
-                font-size: 14px;
-                cursor: pointer;
-                border-radius: 4px;
-                box-shadow: 0 4px 12px rgba(29, 161, 242, 0.4);
-            ">
+            <button type="button" class="login-x-btn" onclick="startLogin()">
                 LOGIN WITH X
             </button>
         `;
@@ -574,7 +585,11 @@ async function refreshHomeActivity(page) {
     const status = document.getElementById("wild-log-status");
     if (!el) return;
     try {
+        if (typeof MonExActivity === "undefined" || typeof fetchGlobalActivity !== "function") {
+            throw new Error("activity client not loaded");
+        }
         const data = await fetchGlobalActivity(MonExActivity.PAGE_SIZE, wildLogPage);
+        if (!data?.ok) throw new Error("activity API returned an error");
         MonExActivity.renderTable(el, data, "No X catches yet. Try: @monexmonad catch 10 monanimals");
         MonExActivity.renderPagination(pager, data, (p) => refreshHomeActivity(p));
         if (status) {
@@ -583,7 +598,9 @@ async function refreshHomeActivity(page) {
                 : "Waiting for first catch…";
         }
     } catch (e) {
-        el.innerHTML = `<p class="wild-log-empty">Activity API offline. Deploy Cloudflare Worker (see cloudflare/monex-api/README.md).</p>`;
+        console.warn("X Wild Log load failed:", e);
+        const api = typeof getMonexApiBase === "function" ? getMonexApiBase() : "";
+        el.innerHTML = `<p class="wild-log-empty">Could not load X Wild Log. Hard-refresh the page (Ctrl+Shift+R). API: ${api || "not set"}</p>`;
         if (pager) pager.innerHTML = "";
         if (status) status.textContent = "Offline";
     }
