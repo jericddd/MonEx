@@ -3,6 +3,28 @@ const ACTIVITY_KEY = "monex:activity";
 const POLL_KEY = "monex:poll:sinceId";
 const MAX_ACTIVITY = 500;
 
+export const DEFAULT_PARTY_MAX = 5;
+export const DEFAULT_BOX_MAX = 500;
+
+const syncLocks = globalThis.__monexSyncLocks || (globalThis.__monexSyncLocks = new Map());
+
+/** Serialize pending-mon sync per username within this worker isolate. */
+export async function withUserSyncLock(username, fn) {
+  const key = (username || "").toLowerCase().replace("@", "");
+  while (syncLocks.get(key)) await syncLocks.get(key);
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  syncLocks.set(key, gate);
+  try {
+    return await fn();
+  } finally {
+    syncLocks.delete(key);
+    release();
+  }
+}
+
 const DEFAULT_STATE = { processedTweetIds: [], users: {} };
 const DEFAULT_ACTIVITY = { entries: [] };
 
@@ -42,8 +64,13 @@ export function getUser(state, xUserId, username, startingMonballs) {
 }
 
 export function addPendingMons(user, mons) {
+  const batchAt = new Date().toISOString();
   user.pendingMons.push(
-    ...mons.map((m) => ({ ...m, caughtAt: new Date().toISOString() }))
+    ...mons.map((m) => ({
+      ...m,
+      pendingId: `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      caughtAt: batchAt,
+    }))
   );
   user.updatedAt = new Date().toISOString();
 }
@@ -67,13 +94,22 @@ export function getPendingForUsername(state, username) {
   };
 }
 
-export function syncPendingToSlots(state, username, partyCount, boxCount, partyMax = 3, boxMax = 100) {
+export function syncPendingToSlots(
+  state,
+  username,
+  partyCount,
+  boxCount,
+  partyMax = DEFAULT_PARTY_MAX,
+  boxMax = DEFAULT_BOX_MAX
+) {
   const user = findUserByUsername(state, username);
   if (!user || !user.pendingMons?.length) {
     return { party: [], box: [], remaining: 0 };
   }
-  const partySlots = Math.max(0, partyMax - partyCount);
-  const boxSlots = Math.max(0, boxMax - boxCount);
+  const safePartyMax = Math.max(1, Math.min(20, partyMax | 0));
+  const safeBoxMax = Math.max(1, Math.min(10_000, boxMax | 0));
+  const partySlots = Math.max(0, safePartyMax - Math.max(0, partyCount | 0));
+  const boxSlots = Math.max(0, safeBoxMax - Math.max(0, boxCount | 0));
   const pending = [...user.pendingMons];
   const party = pending.splice(0, partySlots);
   const box = pending.splice(0, boxSlots);

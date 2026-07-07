@@ -13,6 +13,9 @@ import {
   getPollSinceId,
   setPollSinceId,
   resetAllData,
+  withUserSyncLock,
+  DEFAULT_PARTY_MAX,
+  DEFAULT_BOX_MAX,
 } from "./kv-store.js";
 import { createXClient, resolveBotUser, fetchMentions } from "./lib/x-client.js";
 import {
@@ -96,8 +99,11 @@ async function pollXMentions(env) {
     const state = await loadState(env.MONEX_KV);
     if (wasProcessed(state, tweet.id)) continue;
 
-    const result = processMentionTweet(tweet, bot, state, starting);
+    // Reserve tweet id before catch logic so concurrent polls cannot double-process.
     markProcessed(state, tweet.id);
+    await saveState(env.MONEX_KV, state);
+
+    const result = processMentionTweet(tweet, bot, state, starting);
     if (result.activity) await appendActivity(env.MONEX_KV, result.activity);
     await saveState(env.MONEX_KV, state);
   }
@@ -271,21 +277,30 @@ async function handleRequest(request, env) {
       if (!username) return json({ ok: false, error: "username required" }, 400);
       const partyCount = Math.max(0, parseInt(body?.partyCount ?? 0, 10));
       const boxCount = Math.max(0, parseInt(body?.boxCount ?? 0, 10));
-      const state = await loadState(env.MONEX_KV);
-      const { party, box, remaining } = syncPendingToSlots(
-        state,
-        username,
-        partyCount,
-        boxCount
-      );
-      await saveState(env.MONEX_KV, state);
+      const partyMax = Math.max(1, parseInt(body?.partyMax ?? DEFAULT_PARTY_MAX, 10));
+      const boxMax = Math.max(1, parseInt(body?.boxMax ?? DEFAULT_BOX_MAX, 10));
+
+      const result = await withUserSyncLock(username, async () => {
+        const state = await loadState(env.MONEX_KV);
+        const slots = syncPendingToSlots(
+          state,
+          username,
+          partyCount,
+          boxCount,
+          partyMax,
+          boxMax
+        );
+        await saveState(env.MONEX_KV, state);
+        return slots;
+      });
+
       return json({
         ok: true,
         username: username.replace("@", ""),
-        party,
-        box,
-        added: party.length + box.length,
-        remaining,
+        party: result.party,
+        box: result.box,
+        added: result.party.length + result.box.length,
+        remaining: result.remaining,
       });
     }
 

@@ -169,9 +169,13 @@ function injectActivityUiStyles() {
 }
 
 function getActivityMons(entry) {
-    if (entry.mons && entry.mons.length) return entry.mons;
-    if (entry.highlights && entry.highlights.length) return entry.highlights;
-    return [];
+    const list = entry.mons?.length
+        ? entry.mons
+        : entry.highlights?.length
+            ? entry.highlights
+            : [];
+    const cap = Number.isFinite(entry.caughtCount) ? entry.caughtCount : list.length;
+    return list.slice(0, Math.max(0, cap));
 }
 
 function formatActivityEntryHtml(entry, opts = {}) {
@@ -215,6 +219,7 @@ function buildActivityDetailHtml(entry, opts = {}) {
     const showUser = opts.showUser !== false;
     const time = new Date(entry.at).toLocaleString();
     const mons = getActivityMons(entry);
+    const displayCount = mons.length;
     const hasFullList = !!(entry.mons && entry.mons.length);
     const userLine = showUser ? `<span class="activity-user">@${entry.xUsername}</span> ` : "";
     const monRows = mons.length
@@ -223,8 +228,8 @@ function buildActivityDetailHtml(entry, opts = {}) {
             ${m.skills ? `<div class="activity-detail-mon-skills">Skills: ${m.skills}</div>` : ""}
         </div>`).join("")
         : `<p class="activity-detail-note">No catches recorded for this session.</p>`;
-    const legacyNote = !hasFullList && entry.caughtCount > (entry.highlights?.length || 0)
-        ? `<p class="activity-detail-note">Older log — showing preview only (${entry.highlights?.length || 0} of ${entry.caughtCount} shown).</p>`
+    const legacyNote = !hasFullList && entry.caughtCount > displayCount
+        ? `<p class="activity-detail-note">Older log — showing preview only (${displayCount} of ${entry.caughtCount} shown).</p>`
         : "";
     const escapedLine = entry.escapedCount > 0
         ? `<div class="activity-detail-escaped">${entry.escapedCount} Monanimal${entry.escapedCount === 1 ? "" : "s"} escaped.</div>`
@@ -234,7 +239,7 @@ function buildActivityDetailHtml(entry, opts = {}) {
         <p class="activity-detail-summary">${userLine}spent <b>${entry.spend}</b> Monballs → <b>${entry.caughtCount}/${entry.throws}</b> caught</p>
         <p class="activity-detail-meta">${time} · ${entry.monballsLeft} Monballs left on X</p>
         ${legacyNote}
-        <h4 class="activity-detail-list-title">CAUGHT MONANIMALS (${entry.caughtCount})</h4>
+        <h4 class="activity-detail-list-title">CAUGHT MONANIMALS (${displayCount})</h4>
         ${monRows}
         ${escapedLine}`;
 }
@@ -327,11 +332,13 @@ function getAuthHeaders() {
   return headers;
 }
 
-async function syncWildMons(username, partyCount, boxCount) {
+async function syncWildMons(username, partyCount, boxCount, partyMax = 5, boxMax = 500) {
     const base = getMonexApiBase();
     const body = {
         partyCount: partyCount || 0,
         boxCount: boxCount || 0,
+        partyMax: partyMax || 5,
+        boxMax: boxMax || 500,
     };
     if (username) body.username = username.replace("@", "");
     const res = await fetch(`${base}/api/sync`, {

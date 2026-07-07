@@ -18,19 +18,20 @@ test("clamps inflated currency", () => {
 });
 
 test("caps party length and strips invalid mons", () => {
-  const validMon = { name: "Chog", rarity: "Rare", level: 10, max_hp: 200, current_hp: 200 };
+  const mk = (name) => ({ name, rarity: "Rare", level: 10, max_hp: 200, current_hp: 200 });
   const save = validateAndSanitizeSave({
     party: [
-      validMon,
-      { name: "Mopo", rarity: "Common", level: 1, max_hp: 50, current_hp: 50 },
+      mk("Chog"),
+      mk("Anago"),
+      mk("Mouch"),
+      mk("Molandak"),
+      mk("Salmonad"),
+      mk("Lyraffe"),
       { name: "Hacker", rarity: "Mythic", level: 99, max_hp: 9999, current_hp: 9999 },
-      { ...validMon },
-      { ...validMon },
-      { ...validMon },
     ],
   });
-  assert.equal(save.party.length, 3);
-  assert.ok(save.party.every((m) => m.name === "Chog"));
+  assert.equal(save.party.length, 5);
+  assert.ok(!save.party.some((m) => m.name === "Hacker"));
 });
 
 test("clamps mon level to rarity cap", () => {
