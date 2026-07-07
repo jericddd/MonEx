@@ -70,7 +70,7 @@ export function processMentionTweet(tweet, botUsername, state, startingMonballs)
       at: new Date().toISOString(),
     };
 
-    return { parsed, activity, state };
+    return { parsed, activity, state, catchResults: results };
   }
 
   return { parsed, activity: null, state };

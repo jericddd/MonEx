@@ -21,7 +21,7 @@ import {
   DEFAULT_BOX_MAX,
   getResetEpoch,
 } from "./kv-store.js";
-import { resolveBotUser, fetchMentions, fetchCatchMentionSearch, mergeMentionTweets, assertXKeys } from "./lib/x-client.js";
+import { resolveBotUser, fetchMentions, fetchCatchMentionSearch, mergeMentionTweets, assertXKeys, postReply } from "./lib/x-client.js";
 import {
   oauthConfigured,
   devAuthAllowed,
@@ -43,6 +43,7 @@ import {
   simulateAllowed,
   timingSafeEqual,
 } from "./lib/security.js";
+import { buildMentionReplyText } from "./lib/mention-reply.js";
 
 const API_CODE_VERSION = "fetch-oauth-v1";
 
@@ -150,6 +151,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
     status.fetched = tweets.length;
     status.processed = 0;
     status.activities = 0;
+    status.replies = 0;
     status.skipped = [];
 
     for (const tweet of tweets) {
@@ -170,6 +172,20 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       } else if (result.skipReason) {
         status.skipped.push({ id: tweet.id, user: tweet.username, reason: result.skipReason });
       }
+
+      if (env.ENABLE_X_REPLY === "1") {
+        const replyText = buildMentionReplyText(result, tweet, env);
+        if (replyText) {
+          try {
+            await postReply(env, replyText, tweet.id);
+            status.replies += 1;
+          } catch (err) {
+            status.replyErrors = status.replyErrors || [];
+            status.replyErrors.push({ id: tweet.id, error: err.message || String(err) });
+          }
+        }
+      }
+
       await saveState(env.MONEX_KV, state);
       status.processed += 1;
     }
@@ -231,6 +247,7 @@ async function handleRequest(request, env) {
           keyCheck: xKeyDiagnostics(env),
           resetEpoch,
           startingMonballs: parseInt(env.STARTING_MONBALLS || "10", 10),
+          xReply: env.ENABLE_X_REPLY === "1",
         },
         200,
         request,

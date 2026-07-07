@@ -95,3 +95,34 @@ export async function xApiGet(env, path, queryParams = {}) {
   }
   return data;
 }
+
+export async function xApiPost(env, path, jsonBody = {}, queryParams = {}) {
+  const baseUrl = `https://api.twitter.com/2${path}`;
+  const params = {};
+  for (const [k, v] of Object.entries(queryParams)) {
+    if (v !== undefined && v !== null && v !== "") params[k] = String(v);
+  }
+
+  const oauth = await oauth1Sign("POST", baseUrl, params, env);
+  const queryString = Object.keys(params)
+    .sort()
+    .map((k) => `${pctEncode(k)}=${pctEncode(params[k])}`)
+    .join("&");
+  const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: buildOAuthHeader(oauth),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(jsonBody),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const detail = data?.errors?.[0]?.detail || data?.title || data?.detail || JSON.stringify(data);
+    throw new Error(`X API ${res.status}: ${detail}`);
+  }
+  return data;
+}

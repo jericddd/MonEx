@@ -1,4 +1,4 @@
-import { xApiGet } from "./x-oauth-fetch.js";
+import { xApiGet, xApiPost } from "./x-oauth-fetch.js";
 
 const MENTION_FIELDS = {
   max_results: "50",
@@ -76,4 +76,15 @@ export function mergeMentionTweets(...groups) {
       return String(a.id).localeCompare(String(b.id));
     }
   });
+}
+
+/** Post a reply tweet as @monexmonad (requires X app Read+Write + OAuth 1.0a keys). */
+export async function postReply(env, text, inReplyToTweetId) {
+  assertXKeys(env);
+  if (!inReplyToTweetId) throw new Error("inReplyToTweetId required");
+  const data = await xApiPost(env, "/tweets", {
+    text: String(text).slice(0, 280),
+    reply: { in_reply_to_tweet_id: String(inReplyToTweetId) },
+  });
+  return data.data;
 }

@@ -25,7 +25,7 @@
             <li>Sign in as <b>@monexmonad</b> (the bot account)</li>
             <li>Create a <b>Project</b> + <b>App</b></li>
             <li>Choose a paid API tier if required (X API is mostly paid in 2026)</li>
-            <li>App permissions: <b>Read</b> is enough for now (no replies yet)</li>
+            <li>App permissions: <b>Read and Write</b> if you want @monexmonad to reply to catches (<code>ENABLE_X_REPLY=1</code>). <b>Read</b> only is enough for silent catch logging.</li>
         </ol>
     </div>
 
@@ -48,19 +48,33 @@
 X_API_SECRET=your_secret
 X_ACCESS_TOKEN=your_token
 X_ACCESS_TOKEN_SECRET=your_token_secret</pre>
-        <p>Set variable <code>ENABLE_X_POLL</code> = <code>1</code> in <code>wrangler.toml</code> and push (cron polls every 2 min).</p>
+        <p>Set variable <code>ENABLE_X_POLL</code> = <code>1</code> (cron polls every 2 min).</p>
+        <p>Optional: <code>ENABLE_X_REPLY</code> = <code>1</code> so @monexmonad <b>replies</b> to catch tweets (requires app <b>Read + Write</b> — see Step 1).</p>
         <p>Game API URL: <code>js/monex-config.js</code> — see <a href="cloudflare-deploy.html">Cloudflare deploy guide</a>.</p>
     </div>
 
     <div class="step">
-        <h2>Step 4 — Test on X</h2>
+        <h2>Step 4 — Enable replies (optional)</h2>
+        <ol>
+            <li>X Developer Portal → your app → <b>User authentication settings</b> → App permissions → <b>Read and write</b></li>
+            <li>Regenerate <b>Access Token &amp; Secret</b> while logged in as <b>@monexmonad</b></li>
+            <li>Update Cloudflare secrets <code>X_ACCESS_TOKEN</code> and <code>X_ACCESS_TOKEN_SECRET</code></li>
+            <li>Set <code>ENABLE_X_REPLY</code> = <code>1</code> in Cloudflare Worker variables (or <code>wrangler.toml</code>)</li>
+            <li>Deploy API (GitHub Actions → <b>Deploy Cloudflare API</b>)</li>
+        </ol>
+        <p>Valid catch example the bot will reply to:</p>
+        <pre>@monexmonad catch 10 monanimals</pre>
+    </div>
+
+    <div class="step">
+        <h2>Step 5 — Test on X</h2>
         <p>From your <b>personal</b> X account, tweet:</p>
         <pre>@monexmonad catch 10 monanimals</pre>
         <p>Wait ~1 minute → check <a href="../home.html">home page X Wild Log</a>.</p>
     </div>
 
     <div class="step">
-        <h2>Step 5 — Sync in game</h2>
+        <h2>Step 6 — Sync in game</h2>
         <ol>
             <li>Open the game → login with your X @handle</li>
             <li>Catches auto-sync to <b>Party</b> then <b>Box</b></li>
