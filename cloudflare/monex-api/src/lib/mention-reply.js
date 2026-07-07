@@ -1,24 +1,34 @@
-import { formatCatchReply } from "./catch-engine.js";
-import { invalidDenomReply, insufficientReply } from "./parse-mention.js";
+import {
+  buildNaturalCatchReply,
+  buildNaturalInvalidDenomReply,
+  buildNaturalInsufficientReply,
+  getReplySeed,
+} from "./natural-reply.js";
+import { tryAiMentionReply } from "./ai-reply.js";
 
-export function buildMentionReplyText(result, tweet, env) {
+export async function buildMentionReplyText(result, tweet, env) {
   const username = tweet.username || "player";
+  const seed = getReplySeed(tweet);
+
+  const aiText = await tryAiMentionReply(result, tweet, env);
+  if (aiText) return aiText;
 
   if (result.activity) {
-    return formatCatchReply({
+    return buildNaturalCatchReply({
       username,
       monballSpend: result.activity.spend,
       results: result.catchResults || [],
       monballsLeft: result.activity.monballsLeft,
+      seed,
     });
   }
 
   if (result.skipReason === "invalid_denom") {
-    return invalidDenomReply(username);
+    return buildNaturalInvalidDenomReply(username, seed);
   }
 
   if (result.skipReason === "insufficient") {
-    return insufficientReply(username, result.monballs ?? 0, result.parsed?.spend ?? 10);
+    return buildNaturalInsufficientReply(username, result.monballs ?? 0, result.parsed?.spend ?? 10, seed);
   }
 
   return null;

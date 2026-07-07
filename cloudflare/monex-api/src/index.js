@@ -178,7 +178,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       if (env.ENABLE_X_REPLY === "1") {
         const dailyLimit = Math.max(0, parseInt(env.DAILY_REPLY_LIMIT || "5", 10));
         const replyUser = state.users[tweet.authorId];
-        const replyText = buildMentionReplyText(result, tweet, env);
+        const replyText = await buildMentionReplyText(result, tweet, env);
         if (replyText && replyUser && canSendReply(replyUser, dailyLimit)) {
           try {
             await postReply(env, replyText, tweet.id);
@@ -259,6 +259,7 @@ async function handleRequest(request, env) {
           resetEpoch,
           startingMonballs: parseInt(env.STARTING_MONBALLS || "10", 10),
           xReply: env.ENABLE_X_REPLY === "1",
+          aiReply: env.ENABLE_AI_REPLY === "1",
         },
         200,
         request,
