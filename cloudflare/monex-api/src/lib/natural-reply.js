@@ -19,7 +19,7 @@ function formatNameList(names) {
   return `${unique.slice(0, -1).join(", ")}, and ${unique.at(-1)}`;
 }
 
-function buildCatchContext({ username, monballSpend, results, monballsLeft }) {
+function buildCatchContext({ username, monballSpend, results, monballsLeft, repliesLeftAfter, dailyLimit }) {
   const caught = results.filter((r) => !r.escaped);
   const escaped = results.filter((r) => r.escaped);
   return {
@@ -33,7 +33,17 @@ function buildCatchContext({ username, monballSpend, results, monballsLeft }) {
     left: monballsLeft,
     allEscaped: caught.length === 0,
     allCaught: escaped.length === 0,
+    repliesLeftAfter: repliesLeftAfter ?? null,
+    dailyLimit: dailyLimit ?? 5,
   };
+}
+
+function appendReplyQuotaFooter(message, repliesLeftAfter, dailyLimit) {
+  if (repliesLeftAfter == null || dailyLimit == null) return message;
+  if (repliesLeftAfter <= 0) {
+    return `${message} No @ replies left today (0/${dailyLimit}). Don't worry — catches still work! Check Profile → X log in-game.`;
+  }
+  return `${message} @ replies left today: ${repliesLeftAfter}/${dailyLimit}.`;
 }
 
 /**
@@ -113,12 +123,40 @@ const INSUFFICIENT_LINES = [
   (u, have, need) => `@${u} can't run that catch yet (${have} Monballs, need ${need}).`,
 ];
 
-export function buildNaturalCatchReply({ username, monballSpend, results, monballsLeft, seed = 0 }) {
-  const ctx = buildCatchContext({ username, monballSpend, results, monballsLeft });
+export function buildNaturalCatchReply({
+  username,
+  monballSpend,
+  results,
+  monballsLeft,
+  seed = 0,
+  repliesLeftAfter,
+  dailyLimit = 5,
+}) {
+  const ctx = buildCatchContext({
+    username,
+    monballSpend,
+    results,
+    monballsLeft,
+    repliesLeftAfter,
+    dailyLimit,
+  });
   let pool = MIXED_CATCH_TEMPLATES;
   if (ctx.allEscaped) pool = ALL_ESCAPED_TEMPLATES;
   else if (ctx.allCaught) pool = ALL_CAUGHT_TEMPLATES;
-  return pick(pool, seed)(ctx).replace(/\s+/g, " ").trim().slice(0, 280);
+  const body = pick(pool, seed)(ctx);
+  return appendReplyQuotaFooter(body, repliesLeftAfter, dailyLimit).replace(/\s+/g, " ").trim().slice(0, 280);
+}
+
+export function buildDailyLimitNoticeReply(username, dailyLimit = 5, seed = 0) {
+  const lines = [
+    (u, limit) =>
+      `@${u} you're out of @ replies for today (${limit}/${limit} used). Don't worry — your catch still worked! Check Profile → X log in-game. Visit the site to sync.`,
+    (u, limit) =>
+      `@${u} daily @ reply cap reached (${limit}/${limit}). Catches still count — no stress! See Profile → X log for results. Hop on the site when ready.`,
+    (u, limit) =>
+      `@${u} no @ replies left today (${limit}/${limit}). Your catch is saved though! Open the game → Profile → X log. Visit the site to claim mons.`,
+  ];
+  return pick(lines, seed)(username, dailyLimit).slice(0, 280);
 }
 
 export function buildNaturalInvalidDenomReply(username, seed = 0) {

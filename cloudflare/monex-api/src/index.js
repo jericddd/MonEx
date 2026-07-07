@@ -22,6 +22,7 @@ import {
   getResetEpoch,
   canSendReply,
   recordReplySent,
+  getReplyCountToday,
 } from "./kv-store.js";
 import { resolveBotUser, fetchMentions, fetchCatchMentionSearch, mergeMentionTweets, assertXKeys, postReply } from "./lib/x-client.js";
 import {
@@ -46,6 +47,7 @@ import {
   timingSafeEqual,
 } from "./lib/security.js";
 import { buildMentionReplyText } from "./lib/mention-reply.js";
+import { buildDailyLimitNoticeReply, getReplySeed } from "./lib/natural-reply.js";
 
 const API_CODE_VERSION = "fetch-oauth-v1";
 
@@ -176,19 +178,49 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       }
 
       if (env.ENABLE_X_REPLY === "1") {
-        const dailyLimit = Math.max(0, parseInt(env.DAILY_REPLY_LIMIT || "5", 10));
+        const dailyLimit = Math.max(1, parseInt(env.DAILY_REPLY_LIMIT || "5", 10));
         const replyUser = state.users[tweet.authorId];
-        const replyText = buildMentionReplyText(result, tweet, env);
-        if (replyText && replyUser && canSendReply(replyUser, dailyLimit)) {
-          try {
-            await postReply(env, replyText, tweet.id);
-            recordReplySent(replyUser);
-            status.replies += 1;
-          } catch (err) {
-            status.replyErrors = status.replyErrors || [];
-            status.replyErrors.push({ id: tweet.id, error: err.message || String(err) });
+        const usedToday = replyUser ? getReplyCountToday(replyUser) : 0;
+        const repliesLeftAfter = dailyLimit - usedToday - 1;
+
+        if (replyUser && canSendReply(replyUser, dailyLimit)) {
+          const replyText = buildMentionReplyText(result, tweet, env, {
+            dailyLimit,
+            repliesLeftAfter,
+          });
+          if (replyText) {
+            try {
+              await postReply(env, replyText, tweet.id);
+              recordReplySent(replyUser);
+              status.replies += 1;
+            } catch (err) {
+              status.replyErrors = status.replyErrors || [];
+              status.replyErrors.push({ id: tweet.id, error: err.message || String(err) });
+            }
           }
-        } else if (replyText && replyUser && !canSendReply(replyUser, dailyLimit)) {
+        } else if (replyUser && result.activity && !canSendReply(replyUser, dailyLimit)) {
+          const today = new Date().toISOString().slice(0, 10);
+          if (replyUser.limitNoticeDay !== today) {
+            const notice = buildDailyLimitNoticeReply(
+              tweet.username,
+              dailyLimit,
+              getReplySeed(tweet)
+            );
+            try {
+              await postReply(env, notice, tweet.id);
+              replyUser.limitNoticeDay = today;
+              status.replies += 1;
+            } catch (err) {
+              status.replyErrors = status.replyErrors || [];
+              status.replyErrors.push({ id: tweet.id, error: err.message || String(err) });
+            }
+          }
+          status.skipped.push({
+            id: tweet.id,
+            user: tweet.username,
+            reason: "daily_reply_limit",
+          });
+        } else if (replyUser && !canSendReply(replyUser, dailyLimit)) {
           status.skipped.push({
             id: tweet.id,
             user: tweet.username,

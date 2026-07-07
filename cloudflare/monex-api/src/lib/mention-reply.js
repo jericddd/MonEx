@@ -5,9 +5,11 @@ import {
   getReplySeed,
 } from "./natural-reply.js";
 
-export function buildMentionReplyText(result, tweet, _env) {
+export function buildMentionReplyText(result, tweet, env, quota = {}) {
   const username = tweet.username || "player";
   const seed = getReplySeed(tweet);
+  const dailyLimit = Math.max(1, parseInt(env?.DAILY_REPLY_LIMIT || quota.dailyLimit || "5", 10));
+  const repliesLeftAfter = quota.repliesLeftAfter;
 
   if (result.activity) {
     return buildNaturalCatchReply({
@@ -16,6 +18,8 @@ export function buildMentionReplyText(result, tweet, _env) {
       results: result.catchResults || [],
       monballsLeft: result.activity.monballsLeft,
       seed,
+      repliesLeftAfter,
+      dailyLimit,
     });
   }
 
