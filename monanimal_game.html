@@ -8042,7 +8042,7 @@ let xHandle = "";
 let profileActivitySignature = "";
 let profileActivityHandle = "";
 
-const PARTY_MAX = 3;
+const PARTY_MAX = 5;
 
 function partyHasSpecies(name, excludeIndex = -1) {
     if (!name) return false;
@@ -8063,6 +8063,24 @@ function dedupePartySpecies() {
     }
     if (changed) sortBox();
     return changed;
+}
+
+function enforcePartyCap() {
+    let changed = false;
+    while (party.length > PARTY_MAX) {
+        box.push(party.pop());
+        changed = true;
+    }
+    if (changed) dedupePartySpecies();
+    return changed;
+}
+
+function getWildPendingIds() {
+    const ids = new Set();
+    for (const mon of [...party, ...box]) {
+        if (mon?.wildPendingId) ids.add(mon.wildPendingId);
+    }
+    return ids;
 }
 const BOX_MAX = Infinity;
 
@@ -12908,6 +12926,10 @@ async function loadData() {
 
     if (data) {
         applyLoadedSave(data);
+        if (enforcePartyCap()) {
+            shouldPersistLocal = true;
+            shouldSyncCloud = true;
+        }
         if (shouldPersistLocal) writeLocalSave(data);
         if (shouldSyncCloud) saveData();
     } else {
@@ -13357,9 +13379,12 @@ function importWildMon(raw) {
         level: raw.level || 1,
         skills: raw.skills ? JSON.parse(JSON.stringify(raw.skills)) : [],
     };
+    if (raw.pendingId) mon.wildPendingId = raw.pendingId;
     ensureMonReady(mon);
     return mon;
 }
+
+let wildSyncInFlight = null;
 
 function saveXHandle() {
     const input = document.getElementById("x-handle-input");
@@ -13378,45 +13403,63 @@ function saveXHandle() {
 
 async function syncXWildMons(silent) {
     if (!xHandle || typeof MonExActivity === "undefined") return 0;
-    const statusEl = document.getElementById("profile-pending-text");
-    try {
-        const data = await MonExActivity.syncWild(xHandle, party.length, box.length);
-        let added = 0;
-        for (const raw of data.party || []) {
-            const mon = importWildMon(raw);
-            if (party.length >= PARTY_MAX || partyHasSpecies(mon.name)) {
-                box.push(mon);
-            } else {
-                party.push(mon);
+    if (wildSyncInFlight) return wildSyncInFlight;
+
+    wildSyncInFlight = (async () => {
+        const statusEl = document.getElementById("profile-pending-text");
+        try {
+            const boxMax = Number.isFinite(STAGING_BETA_BOX_MAX) ? STAGING_BETA_BOX_MAX : 500;
+            const data = await MonExActivity.syncWild(xHandle, party.length, box.length, PARTY_MAX, boxMax);
+            const seen = getWildPendingIds();
+            let added = 0;
+            for (const raw of data.party || []) {
+                if (raw.pendingId && seen.has(raw.pendingId)) continue;
+                const mon = importWildMon(raw);
+                if (mon.wildPendingId) seen.add(mon.wildPendingId);
+                if (party.length >= PARTY_MAX || partyHasSpecies(mon.name)) {
+                    box.push(mon);
+                } else {
+                    party.push(mon);
+                }
                 added++;
             }
-        }
-        for (const raw of data.box || []) {
-            box.push(importWildMon(raw));
-            added++;
-        }
-        if (added > 0) {
-            saveData();
-            updateUI();
-            renderParty();
-            renderBox();
-            if (!silent) alert("Synced " + added + " mon(s) from X to Party/Box!");
-        }
-        if (statusEl) {
-            if (data.remaining > 0) {
-                statusEl.textContent = added
-                    ? "Synced " + added + " mon(s). " + data.remaining + " still waiting (Party/Box full)."
-                    : data.remaining + " mon(s) waiting — free a Party or Box slot.";
-            } else if (added > 0) {
-                statusEl.textContent = "All X catches synced to Party/Box.";
-            } else {
-                statusEl.textContent = "Linked as @" + xHandle + " — new X catches appear automatically.";
+            for (const raw of data.box || []) {
+                if (raw.pendingId && seen.has(raw.pendingId)) continue;
+                const mon = importWildMon(raw);
+                if (mon.wildPendingId) seen.add(mon.wildPendingId);
+                box.push(mon);
+                added++;
             }
+            if (enforcePartyCap()) added = Math.max(added, 1);
+            if (added > 0) {
+                saveData();
+                updateUI();
+                renderParty();
+                renderBox();
+                if (!silent) alert("Synced " + added + " mon(s) from X to Party/Box!");
+            }
+            if (statusEl) {
+                if (data.remaining > 0) {
+                    statusEl.textContent = added
+                        ? "Synced " + added + " mon(s). " + data.remaining + " still waiting (Party/Box full)."
+                        : data.remaining + " mon(s) waiting — free a Party or Box slot.";
+                } else if (added > 0) {
+                    statusEl.textContent = "All X catches synced to Party/Box.";
+                } else {
+                    statusEl.textContent = "Linked as @" + xHandle + " — new X catches appear automatically.";
+                }
+            }
+            return added;
+        } catch (e) {
+            if (statusEl) statusEl.textContent = "Could not reach Cloudflare API. Check js/monex-config.js URL.";
+            return 0;
         }
-        return added;
-    } catch (e) {
-        if (statusEl) statusEl.textContent = "Could not reach Cloudflare API. Check js/monex-config.js URL.";
-        return 0;
+    })();
+
+    try {
+        return await wildSyncInFlight;
+    } finally {
+        wildSyncInFlight = null;
     }
 }
 

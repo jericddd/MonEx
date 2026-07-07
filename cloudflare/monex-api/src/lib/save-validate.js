@@ -45,7 +45,7 @@ export const LIMITS = {
   monShards: 99_999,
   monballs: 9_999,
   trainerXp: 99_999_999,
-  partyMax: 3,
+  partyMax: 5,
   boxMax: 500,
   gearInventoryMax: 400,
   gearPerMonMax: 4,
