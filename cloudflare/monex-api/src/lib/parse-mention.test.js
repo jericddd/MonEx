@@ -16,13 +16,12 @@ test("accepts @mention in a reply", () => {
   assert.equal(r.spend, 20);
 });
 
-test("accepts direct reply to bot without repeating @mention", () => {
-  const r = parseMention("catch 10 monanimals", BOT, { inReplyToBot: true });
-  assert.equal(r.type, "catch");
-  assert.equal(r.spend, 10);
+test("ignores reply without @monexmonad", () => {
+  const r = parseMention("catch 10 monanimals", BOT);
+  assert.equal(r.type, "ignore");
 });
 
-test("ignores unrelated reply without @mention or reply-to-bot", () => {
+test("ignores tweet that does not mention the bot", () => {
   const r = parseMention("catch 10 monanimals", BOT);
   assert.equal(r.type, "ignore");
 });

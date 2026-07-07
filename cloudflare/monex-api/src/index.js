@@ -67,8 +67,7 @@ async function handleSimulate(body, env, request) {
     { id: tweetId, text, authorId, username },
     bot,
     state,
-    starting,
-    null
+    starting
   );
   if (result.activity) await appendActivity(env.MONEX_KV, result.activity);
   await saveState(env.MONEX_KV, state);
@@ -153,7 +152,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
         continue;
       }
 
-      const result = processMentionTweet(tweet, bot, state, starting, botUser.id);
+      const result = processMentionTweet(tweet, bot, state, starting);
       markProcessed(state, tweet.id);
       if (result.activity) {
         await appendActivity(env.MONEX_KV, result.activity);
