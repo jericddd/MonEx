@@ -2,6 +2,8 @@ const STATE_KEY = "monex:state";
 const ACTIVITY_KEY = "monex:activity";
 const POLL_KEY = "monex:poll:sinceId";
 const POLL_STATUS_KEY = "monex:poll:lastStatus";
+const RESET_EPOCH_KEY = "monex:resetEpoch";
+const RATE_LIMIT_PREFIX = "monex:rl:";
 const MAX_ACTIVITY = 500;
 
 export const DEFAULT_PARTY_MAX = 5;
@@ -190,11 +192,39 @@ export async function setPollStatus(kv, status) {
   await kv.put(POLL_STATUS_KEY, JSON.stringify(status), { expirationTtl: 60 * 60 * 24 * 7 });
 }
 
+export async function getResetEpoch(kv) {
+  const raw = await kv.get(RESET_EPOCH_KEY);
+  const n = parseInt(raw || "0", 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+async function bumpResetEpoch(kv) {
+  const next = (await getResetEpoch(kv)) + 1;
+  await kv.put(RESET_EPOCH_KEY, String(next));
+  return next;
+}
+
+async function deleteKvPrefix(kv, prefix) {
+  let deleted = 0;
+  let cursor;
+  do {
+    const listed = await kv.list({ prefix, cursor });
+    if (listed.keys.length) {
+      await Promise.all(listed.keys.map((k) => kv.delete(k.name)));
+      deleted += listed.keys.length;
+    }
+    cursor = listed.list_complete ? undefined : listed.cursor;
+  } while (cursor);
+  return deleted;
+}
+
 /** Wipe X log, all users/pending catches, cloud saves, and login sessions */
 export async function resetAllData(kv) {
+  const resetEpoch = await bumpResetEpoch(kv);
   await kv.put(STATE_KEY, JSON.stringify(structuredClone(DEFAULT_STATE)));
   await kv.put(ACTIVITY_KEY, JSON.stringify(structuredClone(DEFAULT_ACTIVITY)));
   await kv.delete(POLL_KEY);
+  await kv.delete(POLL_STATUS_KEY);
 
   let deletedSaves = 0;
   let deletedSessions = 0;
@@ -205,16 +235,13 @@ export async function resetAllData(kv) {
     ["monex:session:", "sessions"],
     ["monex:oauth:", "oauth"],
   ]) {
-    let cursor;
-    do {
-      const listed = await kv.list({ prefix, cursor });
-      await Promise.all(listed.keys.map((k) => kv.delete(k.name)));
-      if (counter === "saves") deletedSaves += listed.keys.length;
-      if (counter === "sessions") deletedSessions += listed.keys.length;
-      if (counter === "oauth") deletedOAuth += listed.keys.length;
-      cursor = listed.list_complete ? undefined : listed.cursor;
-    } while (cursor);
+    const count = await deleteKvPrefix(kv, prefix);
+    if (counter === "saves") deletedSaves = count;
+    if (counter === "sessions") deletedSessions = count;
+    if (counter === "oauth") deletedOAuth = count;
   }
 
-  return { deletedSaves, deletedSessions, deletedOAuth };
+  const deletedRateLimits = await deleteKvPrefix(kv, RATE_LIMIT_PREFIX);
+
+  return { deletedSaves, deletedSessions, deletedOAuth, deletedRateLimits, resetEpoch };
 }

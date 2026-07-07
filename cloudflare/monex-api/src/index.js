@@ -19,6 +19,7 @@ import {
   withUserSyncLock,
   DEFAULT_PARTY_MAX,
   DEFAULT_BOX_MAX,
+  getResetEpoch,
 } from "./kv-store.js";
 import { resolveBotUser, fetchMentions, fetchCatchMentionSearch, mergeMentionTweets, assertXKeys } from "./lib/x-client.js";
 import {
@@ -216,6 +217,7 @@ async function handleRequest(request, env) {
 
   try {
     if (path === "/api/health") {
+      const resetEpoch = await getResetEpoch(env.MONEX_KV);
       return json(
         {
           ok: true,
@@ -227,6 +229,8 @@ async function handleRequest(request, env) {
           bot: env.BOT_USERNAME || "monexmonad",
           codeVersion: API_CODE_VERSION,
           keyCheck: xKeyDiagnostics(env),
+          resetEpoch,
+          startingMonballs: parseInt(env.STARTING_MONBALLS || "10", 10),
         },
         200,
         request,
@@ -521,7 +525,7 @@ async function handleRequest(request, env) {
       return json(
         {
           ok: true,
-          message: "All user progress and X wild log cleared",
+          message: "All user progress and X wild log cleared. Clients will refresh on next visit.",
           ...result,
         },
         200,

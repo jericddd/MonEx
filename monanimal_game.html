@@ -12882,7 +12882,6 @@ function applyLoadedSave(data) {
     purgeRemovedMonanimalsFromSave();
     if (dedupePartySpecies()) saveData();
     migrateAllGear();
-    ensureHouseGearInventorySeed();
     sortBox();
 }
 
@@ -12950,7 +12949,6 @@ async function loadData() {
         lastResetDate = null;
         resourceChestLastCollectAt = Date.now();
         if (!xHandle && MonExAuth?.getUsername()) xHandle = MonExAuth.getUsername();
-        ensureHouseGearInventorySeed();
         saveData();
     }
     checkDailyReset();
@@ -14150,6 +14148,12 @@ async function runPostLoginBootstrap() {
 }
 
 async function checkLogin() {
+    if (typeof MonExAuth !== "undefined" && MonExAuth.enforceServerResetEpoch) {
+        if (await MonExAuth.enforceServerResetEpoch()) {
+            window.location.href = "home.html?fresh=1";
+            return;
+        }
+    }
     if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
         window.location.href = 'home.html';
         return;

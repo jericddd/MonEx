@@ -1,0 +1,68 @@
+name: Reset production data
+
+# Wipes all cloud saves, X wild log, sessions, and bumps client reset epoch.
+# Requires GitHub secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, ADMIN_RESET_SECRET
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type RESET to wipe all users, saves, gear, and X wild log on main"
+        required: true
+
+jobs:
+  reset-production:
+    if: inputs.confirm == 'RESET'
+    runs-on: ubuntu-latest
+    name: Deploy, reset KV, redeploy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: cloudflare/monex-api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: cloudflare/monex-api
+        run: npm ci
+
+      - name: Check secrets
+        run: |
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID ADMIN_RESET_SECRET; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing GitHub secret $name"
+              exit 1
+            fi
+          done
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ADMIN_RESET_SECRET: ${{ secrets.ADMIN_RESET_SECRET }}
+
+      - name: Deploy with admin reset enabled
+        working-directory: cloudflare/monex-api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy --var ENABLE_ADMIN_RESET:1
+
+      - name: Wipe all production data
+        env:
+          ADMIN_RESET_SECRET: ${{ secrets.ADMIN_RESET_SECRET }}
+        run: |
+          res=$(curl -sS -X POST "https://monex-api.0xjericd.workers.dev/api/admin/reset" \
+            -H "Content-Type: application/json" \
+            -H "X-Admin-Secret: ${ADMIN_RESET_SECRET}" \
+            -d '{}')
+          echo "$res"
+          echo "$res" | grep -q '"ok":true' || exit 1
+
+      - name: Redeploy with admin reset disabled
+        working-directory: cloudflare/monex-api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy

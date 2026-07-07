@@ -2,6 +2,41 @@
 
 const SESSION_KEY = "monex_session_token";
 const USER_KEY = "monex_user";
+const RESET_EPOCH_KEY = "monex_client_reset_epoch";
+
+function wipeMonexLocalData() {
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key || key === RESET_EPOCH_KEY) continue;
+    if (
+      key.startsWith("monex_") ||
+      key === "monex_session_token" ||
+      key === "monex_user"
+    ) {
+      keys.push(key);
+    }
+  }
+  keys.forEach((key) => localStorage.removeItem(key));
+}
+
+async function enforceServerResetEpoch() {
+  const base = getApiBase();
+  if (!base) return false;
+  try {
+    const res = await fetch(`${base}/api/health`);
+    if (!res.ok) return false;
+    const health = await res.json();
+    const serverEpoch = parseInt(health.resetEpoch ?? 0, 10) || 0;
+    const clientEpoch = parseInt(localStorage.getItem(RESET_EPOCH_KEY) || "0", 10) || 0;
+    if (serverEpoch <= clientEpoch) return false;
+    wipeMonexLocalData();
+    localStorage.setItem(RESET_EPOCH_KEY, String(serverEpoch));
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function getApiBase() {
   if (typeof getMonexApiBase === "function") return getMonexApiBase();
@@ -110,6 +145,7 @@ function getUsername() {
 }
 
 async function ensureUser() {
+  if (await enforceServerResetEpoch()) return null;
   const justCaptured = captureSessionFromUrl();
   if (justCaptured || isLoggedIn()) {
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -225,4 +261,6 @@ window.MonExAuth = {
   flushCloudSave,
   buildSavePayload,
   authHeaders,
+  enforceServerResetEpoch,
+  wipeMonexLocalData,
 };
