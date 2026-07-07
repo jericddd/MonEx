@@ -17,7 +17,7 @@ import {
   setPollStatus,
   resetAllData,
 } from "./kv-store.js";
-import { createXClient, resolveBotUser, fetchMentions, fetchCatchMentionSearch, mergeMentionTweets } from "./lib/x-client.js";
+import { resolveBotUser, fetchMentions, fetchCatchMentionSearch, mergeMentionTweets, assertXKeys } from "./lib/x-client.js";
 import {
   oauthConfigured,
   devAuthAllowed,
@@ -106,8 +106,10 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
   try {
     if (resetSinceId) await clearPollSinceId(env.MONEX_KV);
 
-    const client = createXClient(env).readWrite;
-    const botUser = await resolveBotUser(client);
+    assertXKeys(env);
+    if (resetSinceId) await clearPollSinceId(env.MONEX_KV);
+
+    const botUser = await resolveBotUser(env);
     const sinceId = await getPollSinceId(env.MONEX_KV);
     const starting = parseInt(env.STARTING_MONBALLS || "10", 10);
     const bot = botUser.username || env.BOT_USERNAME || "monexmonad";
@@ -118,7 +120,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
     status.sources = { mentionTimeline: 0, search: 0, merged: 0 };
 
     try {
-      const mentionRes = await fetchMentions(client, botUser.id, sinceId);
+      const mentionRes = await fetchMentions(env, botUser.id, sinceId);
       mentionTweets = mentionRes.tweets;
       meta = mentionRes.meta;
       status.sources.mentionTimeline = mentionTweets.length;
@@ -127,7 +129,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
     }
 
     try {
-      const searchRes = await fetchCatchMentionSearch(client, bot, sinceId);
+      const searchRes = await fetchCatchMentionSearch(env, bot, sinceId);
       searchTweets = searchRes.tweets;
       status.sources.search = searchTweets.length;
       if (!meta?.newest_id && searchRes.meta?.newest_id) meta = searchRes.meta;

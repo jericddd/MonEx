@@ -7,9 +7,7 @@
     "deploy": "wrangler deploy",
     "test": "node --test src/lib/save-validate.test.js src/lib/security.test.js src/lib/parse-mention.test.js"
   },
-  "dependencies": {
-    "twitter-api-v2": "^1.19.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "wrangler": "^3.99.0"
   }
