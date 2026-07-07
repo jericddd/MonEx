@@ -19,38 +19,86 @@ function formatNameList(names) {
   return `${unique.slice(0, -1).join(", ")}, and ${unique.at(-1)}`;
 }
 
-const CATCH_OPENERS = [
-  (u, n) => `@${u} okay ${n} Monballs down — here's how it went`,
-  (u, n) => `@${u} wild run with ${n} Monballs!`,
-  (u, n) => `@${u} nice, you sent ${n} — results are in`,
-  (u, n) => `@${u} that was a fun one (${n} throws)`,
-  (u, n) => `@${u} just finished your ${n}-ball catch session`,
+function buildCatchContext({ username, monballSpend, results, monballsLeft }) {
+  const caught = results.filter((r) => !r.escaped);
+  const escaped = results.filter((r) => r.escaped);
+  return {
+    u: username,
+    spend: monballSpend,
+    caughtList: formatNameList(caught.map((r) => r.mon.name)),
+    escapedList: formatNameList(escaped.map((r) => r.name)),
+    caughtN: caught.length,
+    escapedN: escaped.length,
+    total: results.length,
+    left: monballsLeft,
+    allEscaped: caught.length === 0,
+    allCaught: escaped.length === 0,
+  };
+}
+
+/**
+ * 12 human-style catch reply templates (no AI). One is picked per tweet via seed.
+ * Placeholders: {caughtList}, {escapedList}, {caughtN}, {escapedN}, {total}, {left}, {spend}
+ */
+export const CATCH_REPLY_TEMPLATE_SAMPLES = [
+  "@player wild session — caught {caughtList}. {escapedList} got away ({caughtN}/{total}). {left} Monballs left. Visit the site to play!",
+  "@player okay {spend} Monballs in. You bagged {caughtList}. Missed: {escapedList}. {left} Monballs remaining — see you on the site!",
+  "@player not bad — {caughtN}/{total} hooked ({caughtList}). Slipped away: {escapedList}. {left} Monballs in your pouch. Hop on the site!",
+  "@player ha, messy run. Got {caughtList}, lost {escapedList}. Score {caughtN}-{escapedN}. {left} Monballs left — come play on the site!",
+  "@player {spend} Monballs later… caught {caughtList}. {escapedList} weren't cooperating. {left} Monballs left. Site's waiting!",
+  "@player yo! {caughtList} in, {escapedList} out. {caughtN}/{total} caught. {left} Monballs to spare — visit the site!",
+  "@player field was spicy. Secured {caughtList}. Escaped: {escapedList}. {left} Monballs on hand. Play on the site!",
+  "@player solid work — {caughtList} caught, shame about {escapedList}. {left} Monballs left. Head to the site to sync!",
+  "@player ranger log: {caughtN} caught ({caughtList}), {escapedN} escaped ({escapedList}). {left} Monballs. Visit the site!",
+  "@player that {spend}-ball run is done. Caught: {caughtList}. Got away: {escapedList}. {left} Monballs left — claim on the site!",
+  "@player nice throws. {caughtList} stayed, {escapedList} fled. {caughtN} of {total}. {left} Monballs left — visit the site to play!",
+  "@player catch report: {caughtList} ✓ · {escapedList} ✗ · {caughtN}/{total} · {left} Monballs left. See you on the site!",
 ];
 
-const ALL_ESCAPED_LINES = [
-  (names) => `Rough luck — everything got away (${names}).`,
-  (names) => `Oof, they all slipped off: ${names}.`,
-  (names) => `Not this time… ${names} all escaped.`,
+/** Mixed results — at least one catch and at least one escape */
+const MIXED_CATCH_TEMPLATES = [
+  (c) =>
+    `@${c.u} wild session — caught ${c.caughtList}. ${c.escapedList} got away (${c.caughtN}/${c.total}). ${c.left} Monballs left. Visit the site to play!`,
+  (c) =>
+    `@${c.u} okay ${c.spend} Monballs in. You bagged ${c.caughtList}. Missed: ${c.escapedList}. ${c.left} Monballs remaining — see you on the site!`,
+  (c) =>
+    `@${c.u} not bad — ${c.caughtN}/${c.total} hooked (${c.caughtList}). Slipped away: ${c.escapedList}. ${c.left} Monballs in your pouch. Hop on the site!`,
+  (c) =>
+    `@${c.u} ha, messy run. Got ${c.caughtList}, lost ${c.escapedList}. Score ${c.caughtN}-${c.escapedN}. ${c.left} Monballs left — come play on the site!`,
+  (c) =>
+    `@${c.u} ${c.spend} Monballs later… caught ${c.caughtList}. ${c.escapedList} weren't cooperating. ${c.left} Monballs left. Site's waiting!`,
+  (c) =>
+    `@${c.u} yo! ${c.caughtList} in, ${c.escapedList} out. ${c.caughtN}/${c.total} caught. ${c.left} Monballs to spare — visit the site!`,
+  (c) =>
+    `@${c.u} field was spicy. Secured ${c.caughtList}. Escaped: ${c.escapedList}. ${c.left} Monballs on hand. Play on the site!`,
+  (c) =>
+    `@${c.u} solid work — ${c.caughtList} caught, shame about ${c.escapedList}. ${c.left} Monballs left. Head to the site to sync!`,
+  (c) =>
+    `@${c.u} ranger log: ${c.caughtN} caught (${c.caughtList}), ${c.escapedN} escaped (${c.escapedList}). ${c.left} Monballs. Visit the site!`,
+  (c) =>
+    `@${c.u} that ${c.spend}-ball run is done. Caught: ${c.caughtList}. Got away: ${c.escapedList}. ${c.left} Monballs left — claim on the site!`,
+  (c) =>
+    `@${c.u} nice throws. ${c.caughtList} stayed, ${c.escapedList} fled. ${c.caughtN} of ${c.total}. ${c.left} Monballs left — visit the site to play!`,
+  (c) =>
+    `@${c.u} catch report: ${c.caughtList} ✓ · ${c.escapedList} ✗ · ${c.caughtN}/${c.total} · ${c.left} Monballs left. See you on the site!`,
 ];
 
-const MIXED_CATCH_LINES = [
-  (caught, escaped) => `You caught ${caught}. ${escaped} got away.`,
-  (caught, escaped) => `Bagged ${caught}! Sadly ${escaped} escaped.`,
-  (caught, escaped) => `Nice — ${caught} in the box. Missed on ${escaped}.`,
-  (caught, escaped) => `Got ${caught}. ${escaped} weren't having it.`,
+const ALL_CAUGHT_TEMPLATES = [
+  (c) =>
+    `@${c.u} clean sweep with ${c.spend} Monballs — ${c.caughtList}, every single one (${c.total}/${c.total}). ${c.left} Monballs left. Visit the site to play!`,
+  (c) =>
+    `@${c.u} perfect run! Bagged ${c.caughtList}. Not one escape. ${c.left} Monballs remaining — hop on the site!`,
+  (c) =>
+    `@${c.u} flawless ${c.spend}-ball session. All ${c.caughtList} caught. ${c.left} Monballs in the bag. See you on the site!`,
 ];
 
-const CLEAN_CATCH_LINES = [
-  (caught) => `Clean sweep — ${caught}!`,
-  (caught) => `You caught ${caught}. Perfect run.`,
-  (caught) => `All ${caught} — not a single escape.`,
-];
-
-const MONBALL_CLOSERS = [
-  (left) => `${left} Monball${left === 1 ? "" : "s"} left. Visit the site to play!`,
-  (left) => `You've got ${left} Monballs remaining — hop on the site when you're ready.`,
-  (left) => `${left} Monballs in the bag. Come play on the site!`,
-  (left) => `Monballs left: ${left}. See you in-game on the site.`,
+const ALL_ESCAPED_TEMPLATES = [
+  (c) =>
+    `@${c.u} rough one — ${c.escapedList} all got away (0/${c.total}). ${c.left} Monballs left though. Shake it off and visit the site!`,
+  (c) =>
+    `@${c.u} oof, ${c.spend} Monballs and nothing stuck. ${c.escapedList} slipped every throw. ${c.left} Monballs left — try again on the site!`,
+  (c) =>
+    `@${c.u} the wild won this round. ${c.escapedList} escaped clean. ${c.left} Monballs still in your pouch. Visit the site when ready!`,
 ];
 
 const INVALID_DENOM_LINES = [
@@ -66,25 +114,11 @@ const INSUFFICIENT_LINES = [
 ];
 
 export function buildNaturalCatchReply({ username, monballSpend, results, monballsLeft, seed = 0 }) {
-  const caught = results.filter((r) => !r.escaped);
-  const escaped = results.filter((r) => r.escaped);
-  const opener = pick(CATCH_OPENERS, seed)(username, monballSpend);
-
-  let middle;
-  if (!caught.length) {
-    const names = formatNameList(escaped.map((r) => r.name));
-    middle = pick(ALL_ESCAPED_LINES, seed + 1)(names);
-  } else if (!escaped.length) {
-    middle = pick(CLEAN_CATCH_LINES, seed + 1)(formatNameList(caught.map((r) => r.mon.name)));
-  } else {
-    const caughtNames = formatNameList(caught.map((r) => r.mon.name));
-    const escapedNames = formatNameList(escaped.map((r) => r.name));
-    middle = pick(MIXED_CATCH_LINES, seed + 1)(caughtNames, escapedNames);
-  }
-
-  const summary = `${caught.length}/${results.length} caught`;
-  const closer = pick(MONBALL_CLOSERS, seed + 2)(monballsLeft);
-  return `${opener} ${middle} (${summary}). ${closer}`.replace(/\s+/g, " ").trim().slice(0, 280);
+  const ctx = buildCatchContext({ username, monballSpend, results, monballsLeft });
+  let pool = MIXED_CATCH_TEMPLATES;
+  if (ctx.allEscaped) pool = ALL_ESCAPED_TEMPLATES;
+  else if (ctx.allCaught) pool = ALL_CAUGHT_TEMPLATES;
+  return pick(pool, seed)(ctx).replace(/\s+/g, " ").trim().slice(0, 280);
 }
 
 export function buildNaturalInvalidDenomReply(username, seed = 0) {

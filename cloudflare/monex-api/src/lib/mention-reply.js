@@ -4,14 +4,10 @@ import {
   buildNaturalInsufficientReply,
   getReplySeed,
 } from "./natural-reply.js";
-import { tryAiMentionReply } from "./ai-reply.js";
 
-export async function buildMentionReplyText(result, tweet, env) {
+export function buildMentionReplyText(result, tweet, _env) {
   const username = tweet.username || "player";
   const seed = getReplySeed(tweet);
-
-  const aiText = await tryAiMentionReply(result, tweet, env);
-  if (aiText) return aiText;
 
   if (result.activity) {
     return buildNaturalCatchReply({
