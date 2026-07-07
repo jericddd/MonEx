@@ -10,9 +10,17 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const wranglerToml = readFileSync(join(__dirname, "..", "wrangler.toml"), "utf8");
-const namespaceMatch = wranglerToml.match(/id\s*=\s*"([^"]+)"/);
-const NAMESPACE_ID = process.env.MONEX_KV_NAMESPACE_ID || namespaceMatch?.[1];
+
+function readNamespaceId() {
+  if (process.env.MONEX_KV_NAMESPACE_ID) return process.env.MONEX_KV_NAMESPACE_ID;
+  const toml = readFileSync(join(__dirname, "..", "wrangler.toml"), "utf8");
+  const block = toml.match(/\[\[kv_namespaces\]\][\s\S]*?(?=\n\[|\n\[\[|$)/);
+  const idMatch = block?.[0]?.match(/^\s*id\s*=\s*"([^"]+)"/m);
+  if (idMatch?.[1]) return idMatch[1];
+  throw new Error("Could not resolve KV namespace id from wrangler.toml");
+}
+
+const NAMESPACE_ID = readNamespaceId();
 
 const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
 const API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
@@ -69,7 +77,16 @@ async function putValue(key, value) {
 }
 
 async function deleteKey(key) {
-  await cfFetch(`/values/${encodeURIComponent(key)}`, { method: "DELETE" });
+  const res = await fetch(apiUrl(`/values/${encodeURIComponent(key)}`), {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${API_TOKEN}` },
+  });
+  if (res.status === 404) return;
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.success === false) {
+    const msg = data.errors?.map((e) => e.message).join("; ") || res.statusText;
+    throw new Error(`Cloudflare API delete ${key}: ${msg}`);
+  }
 }
 
 async function listKeys(prefix) {
