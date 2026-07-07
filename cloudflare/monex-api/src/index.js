@@ -40,6 +40,8 @@ import {
   timingSafeEqual,
 } from "./lib/security.js";
 
+const API_CODE_VERSION = "fetch-oauth-v1";
+
 function json(data, status = 200, request, env) {
   const cors = request && env ? buildCorsHeaders(request, env) : {};
   return new Response(JSON.stringify(data), {
@@ -205,6 +207,7 @@ async function handleRequest(request, env) {
           xOAuth: oauthConfigured(env),
           devAuth: devAuthAllowed(env),
           bot: env.BOT_USERNAME || "monexmonad",
+          codeVersion: API_CODE_VERSION,
         },
         200,
         request,
@@ -214,10 +217,34 @@ async function handleRequest(request, env) {
 
     if (path === "/api/poll-status" && request.method === "GET") {
       const sinceId = await getPollSinceId(env.MONEX_KV);
-      const last = await getPollStatus(env.MONEX_KV);
+      let last = await getPollStatus(env.MONEX_KV);
+      const refresh = url.searchParams.get("refresh") === "1";
+
+      if (refresh && env.ENABLE_X_POLL === "1" && xKeysConfigured(env)) {
+        try {
+          const botUser = await resolveBotUser(env);
+          last = {
+            at: new Date().toISOString(),
+            ok: true,
+            ping: true,
+            botUsername: botUser.username,
+            botId: botUser.id,
+          };
+          await setPollStatus(env.MONEX_KV, last);
+        } catch (err) {
+          last = {
+            at: new Date().toISOString(),
+            ok: false,
+            error: err.message || String(err),
+          };
+          await setPollStatus(env.MONEX_KV, last);
+        }
+      }
+
       return json(
         {
           ok: true,
+          codeVersion: API_CODE_VERSION,
           xPoll: env.ENABLE_X_POLL === "1",
           xKeys: xKeysConfigured(env),
           sinceId,
