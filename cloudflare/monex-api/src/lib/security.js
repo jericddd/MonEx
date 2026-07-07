@@ -63,7 +63,7 @@ export function buildCorsHeaders(request, env) {
   };
   if (origin && isAllowedOrigin(origin, env)) {
     headers["Access-Control-Allow-Origin"] = origin;
-  } else if (!origin) {
+  } else {
     headers["Access-Control-Allow-Origin"] = "*";
   }
   return headers;

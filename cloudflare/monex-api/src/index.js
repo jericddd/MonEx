@@ -172,7 +172,8 @@ async function handleRequest(request, env) {
       });
 
       const returnTo = sanitizeReturnTo(pending.returnTo || "/home.html");
-      const dest = `${frontend}${returnTo}#session=${encodeURIComponent(token)}`;
+      const joiner = returnTo.includes("?") ? "&" : "?";
+      const dest = `${frontend}${returnTo}${joiner}session=${encodeURIComponent(token)}`;
       return Response.redirect(dest, 302);
     }
 

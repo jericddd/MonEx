@@ -463,11 +463,11 @@ function startAutoPlay() {
 updateShowcase();
 startAutoPlay();
 </script>
-<script src="js/staging-banner.js?v=20260707"></script>
-<script src="js/monex-config.js?v=20260707"></script>
-<script src="js/escape-html.js?v=20260707"></script>
-<script src="js/activity-client.js?v=20260707"></script>
-<script src="js/auth-client.js?v=20260707"></script>
+<script src="js/staging-banner.js?v=20260707b"></script>
+<script src="js/monex-config.js?v=20260707b"></script>
+<script src="js/escape-html.js?v=20260707b"></script>
+<script src="js/activity-client.js?v=20260707b"></script>
+<script src="js/auth-client.js?v=20260707b"></script>
 <script>
 // Dynamic Header Logic
 async function updateHeader() {
@@ -588,7 +588,7 @@ async function refreshHomeActivity(page) {
     const status = document.getElementById("wild-log-status");
     if (!el) return;
     try {
-        const data = await fetchGlobalActivity(MonExActivity.PAGE_SIZE, wildLogPage);
+        const data = await MonExActivity.fetchGlobal(MonExActivity.PAGE_SIZE, wildLogPage);
         if (!data?.ok) throw new Error("activity API returned an error");
         MonExActivity.renderTable(el, data, "No X catches yet. Try: @monexmonad catch 10 monanimals");
         MonExActivity.renderPagination(pager, data, (p) => refreshHomeActivity(p));

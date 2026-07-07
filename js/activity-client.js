@@ -174,7 +174,7 @@ function getActivityMons(entry) {
     return [];
 }
 
-function escapeHtml(value) {
+function escapeActivityHtml(value) {
     if (typeof window !== "undefined" && typeof window.escapeHtml === "function") {
         return window.escapeHtml(value);
     }
@@ -188,17 +188,17 @@ function escapeHtml(value) {
 
 function formatActivityEntryHtml(entry, opts = {}) {
     const showUser = opts.showUser !== false;
-    const time = escapeHtml(new Date(entry.at).toLocaleString());
+    const time = escapeActivityHtml(new Date(entry.at).toLocaleString());
     const mons = getActivityMons(entry);
     const caught = mons.length
-        ? mons.slice(0, 3).map((h) => `<span class="activity-rare">${escapeHtml(h.rarity)}</span> ${escapeHtml(h.name)}`).join(", ")
+        ? mons.slice(0, 3).map((h) => `<span class="activity-rare">${escapeActivityHtml(h.rarity)}</span> ${escapeActivityHtml(h.name)}`).join(", ")
         : "no catches";
     const more = entry.caughtCount > 3 ? ` +${entry.caughtCount - 3} more` : "";
-    const userPart = showUser ? `<span class="activity-user">@${escapeHtml(entry.xUsername)}</span> ` : "";
+    const userPart = showUser ? `<span class="activity-user">@${escapeActivityHtml(entry.xUsername)}</span> ` : "";
     return `<div class="activity-item activity-item-clickable" role="button" tabindex="0" data-activity-idx="__IDX__">
-        ${userPart}spent <b>${escapeHtml(entry.spend)}</b> Monballs → <b>${escapeHtml(entry.caughtCount)}/${escapeHtml(entry.throws)}</b> caught
+        ${userPart}spent <b>${escapeActivityHtml(entry.spend)}</b> Monballs → <b>${escapeActivityHtml(entry.caughtCount)}/${escapeActivityHtml(entry.throws)}</b> caught
         <div>${caught}${more}</div>
-        <div class="activity-meta">${time} · ${escapeHtml(entry.monballsLeft)} Monballs left on X · tap for full log</div>
+        <div class="activity-meta">${time} · ${escapeActivityHtml(entry.monballsLeft)} Monballs left on X · tap for full log</div>
     </div>`;
 }
 
@@ -225,14 +225,14 @@ function ensureActivityDetailModal() {
 
 function buildActivityDetailHtml(entry, opts = {}) {
     const showUser = opts.showUser !== false;
-    const time = escapeHtml(new Date(entry.at).toLocaleString());
+    const time = escapeActivityHtml(new Date(entry.at).toLocaleString());
     const mons = getActivityMons(entry);
     const hasFullList = !!(entry.mons && entry.mons.length);
-    const userLine = showUser ? `<span class="activity-user">@${escapeHtml(entry.xUsername)}</span> ` : "";
+    const userLine = showUser ? `<span class="activity-user">@${escapeActivityHtml(entry.xUsername)}</span> ` : "";
     const monRows = mons.length
         ? mons.map((m, i) => `<div class="activity-detail-mon">
-            <div class="activity-detail-mon-name">${i + 1}. <span class="activity-rare">${escapeHtml(m.rarity)}</span> ${escapeHtml(m.name)}</div>
-            ${m.skills ? `<div class="activity-detail-mon-skills">Skills: ${escapeHtml(m.skills)}</div>` : ""}
+            <div class="activity-detail-mon-name">${i + 1}. <span class="activity-rare">${escapeActivityHtml(m.rarity)}</span> ${escapeActivityHtml(m.name)}</div>
+            ${m.skills ? `<div class="activity-detail-mon-skills">Skills: ${escapeActivityHtml(m.skills)}</div>` : ""}
         </div>`).join("")
         : `<p class="activity-detail-note">No catches recorded for this session.</p>`;
     const legacyNote = !hasFullList && entry.caughtCount > (entry.highlights?.length || 0)
@@ -243,8 +243,8 @@ function buildActivityDetailHtml(entry, opts = {}) {
         : "";
     return `
         <h3 class="activity-detail-title" id="activity-detail-title">CATCH SESSION</h3>
-        <p class="activity-detail-summary">${userLine}spent <b>${escapeHtml(entry.spend)}</b> Monballs → <b>${escapeHtml(entry.caughtCount)}/${escapeHtml(entry.throws)}</b> caught</p>
-        <p class="activity-detail-meta">${time} · ${escapeHtml(entry.monballsLeft)} Monballs left on X</p>
+        <p class="activity-detail-summary">${userLine}spent <b>${escapeActivityHtml(entry.spend)}</b> Monballs → <b>${escapeActivityHtml(entry.caughtCount)}/${escapeActivityHtml(entry.throws)}</b> caught</p>
+        <p class="activity-detail-meta">${time} · ${escapeActivityHtml(entry.monballsLeft)} Monballs left on X</p>
         ${legacyNote}
         <h4 class="activity-detail-list-title">CAUGHT MONANIMALS (${entry.caughtCount})</h4>
         ${monRows}
@@ -366,20 +366,20 @@ async function syncWildMons(username, partyCount, boxCount) {
 }
 
 function formatActivityTableRow(entry, rowNum, idx) {
-    const time = escapeHtml(new Date(entry.at).toLocaleString());
+    const time = escapeActivityHtml(new Date(entry.at).toLocaleString());
     const mons = getActivityMons(entry);
     const caught = mons.length
-        ? mons.slice(0, 2).map((h) => `<span class="activity-rare">${escapeHtml(h.rarity)}</span> ${escapeHtml(h.name)}`).join(", ")
+        ? mons.slice(0, 2).map((h) => `<span class="activity-rare">${escapeActivityHtml(h.rarity)}</span> ${escapeActivityHtml(h.name)}`).join(", ")
         : "—";
     const more = entry.caughtCount > 2 ? ` +${entry.caughtCount - 2}` : "";
     return `<tr class="activity-row activity-row-clickable" role="button" tabindex="0" data-activity-idx="${idx}">
         <td class="col-num">${rowNum}</td>
         <td class="col-time">${time}</td>
-        <td class="col-user"><span class="activity-user">@${escapeHtml(entry.xUsername)}</span></td>
-        <td class="col-spend"><b>${escapeHtml(entry.spend)}</b></td>
-        <td class="col-throws">${escapeHtml(entry.caughtCount)} / ${escapeHtml(entry.throws)}</td>
+        <td class="col-user"><span class="activity-user">@${escapeActivityHtml(entry.xUsername)}</span></td>
+        <td class="col-spend"><b>${escapeActivityHtml(entry.spend)}</b></td>
+        <td class="col-throws">${escapeActivityHtml(entry.caughtCount)} / ${escapeActivityHtml(entry.throws)}</td>
         <td class="col-mons">${caught}${more}</td>
-        <td class="col-left">${escapeHtml(entry.monballsLeft)}</td>
+        <td class="col-left">${escapeActivityHtml(entry.monballsLeft)}</td>
     </tr>`;
 }
 

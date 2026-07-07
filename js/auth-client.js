@@ -110,21 +110,25 @@ function getUsername() {
 }
 
 async function ensureUser() {
-  if (captureSessionFromUrl()) {
-    try {
-      return await fetchMe();
-    } catch {
-      await logout();
-      return null;
+  const justCaptured = captureSessionFromUrl();
+  if (justCaptured || isLoggedIn()) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await fetchMe();
+      } catch (err) {
+        if (attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          continue;
+        }
+        if (justCaptured) {
+          console.warn("MonExAuth: session validation failed after X login", err);
+        }
+        await logout();
+        return null;
+      }
     }
   }
-  if (!isLoggedIn()) return null;
-  try {
-    return await fetchMe();
-  } catch {
-    await logout();
-    return null;
-  }
+  return null;
 }
 
 async function loadCloudSave() {
@@ -200,6 +204,9 @@ async function flushCloudSave(state) {
   }
   return result;
 }
+
+// Save session token as soon as auth-client loads (OAuth return URL).
+captureSessionFromUrl();
 
 window.MonExAuth = {
   SESSION_KEY,
