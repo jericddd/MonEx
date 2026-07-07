@@ -16,12 +16,14 @@ export function normalizeTweetText(text) {
  *   { type: 'catch', spend: 10|20|30|40|50 }
  *   { type: 'invalid_denom', raw: string }
  */
-export function parseMention(text, botUsername) {
+export function parseMention(text, botUsername, opts = {}) {
   const clean = normalizeTweetText(text).toLowerCase();
   const bot = (botUsername || "monexmonad").toLowerCase().replace("@", "");
+  const mentionsBot = clean.includes(`@${bot}`);
+  const replyToBot = opts.inReplyToBot === true;
 
-  // Must mention the bot account
-  if (!clean.includes(`@${bot}`)) {
+  // Accept @mentions in tweets or replies, or a direct reply to the bot's post.
+  if (!mentionsBot && !replyToBot) {
     return { type: "ignore" };
   }
 

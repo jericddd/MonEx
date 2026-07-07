@@ -19,8 +19,9 @@ function summarizeResults(results) {
 /**
  * Process a mention — no X reply. Logs successful catch sessions to activity feed.
  */
-export function processMentionTweet(tweet, botUsername, state, startingMonballs) {
-  const parsed = parseMention(tweet.text, botUsername);
+export function processMentionTweet(tweet, botUsername, state, startingMonballs, botUserId) {
+  const inReplyToBot = !!(botUserId && tweet.inReplyToUserId && tweet.inReplyToUserId === botUserId);
+  const parsed = parseMention(tweet.text, botUsername, { inReplyToBot });
 
   if (parsed.type === "ignore") {
     return { parsed, activity: null, state };

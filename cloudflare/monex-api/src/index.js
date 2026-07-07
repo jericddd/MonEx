@@ -17,7 +17,7 @@ import {
   setPollStatus,
   resetAllData,
 } from "./kv-store.js";
-import { createXClient, resolveBotUser, fetchMentions } from "./lib/x-client.js";
+import { createXClient, resolveBotUser, fetchMentions, fetchCatchMentionSearch, mergeMentionTweets } from "./lib/x-client.js";
 import {
   oauthConfigured,
   devAuthAllowed,
@@ -67,7 +67,8 @@ async function handleSimulate(body, env, request) {
     { id: tweetId, text, authorId, username },
     bot,
     state,
-    starting
+    starting,
+    null
   );
   if (result.activity) await appendActivity(env.MONEX_KV, result.activity);
   await saveState(env.MONEX_KV, state);
@@ -112,7 +113,31 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
     const starting = parseInt(env.STARTING_MONBALLS || "10", 10);
     const bot = botUser.username || env.BOT_USERNAME || "monexmonad";
 
-    const { tweets, meta } = await fetchMentions(client, botUser.id, sinceId);
+    let mentionTweets = [];
+    let searchTweets = [];
+    let meta = null;
+    status.sources = { mentionTimeline: 0, search: 0, merged: 0 };
+
+    try {
+      const mentionRes = await fetchMentions(client, botUser.id, sinceId);
+      mentionTweets = mentionRes.tweets;
+      meta = mentionRes.meta;
+      status.sources.mentionTimeline = mentionTweets.length;
+    } catch (err) {
+      status.mentionError = err.message || String(err);
+    }
+
+    try {
+      const searchRes = await fetchCatchMentionSearch(client, bot, sinceId);
+      searchTweets = searchRes.tweets;
+      status.sources.search = searchTweets.length;
+      if (!meta?.newest_id && searchRes.meta?.newest_id) meta = searchRes.meta;
+    } catch (err) {
+      status.searchError = err.message || String(err);
+    }
+
+    const tweets = mergeMentionTweets(mentionTweets, searchTweets);
+    status.sources.merged = tweets.length;
     status.ok = true;
     status.botUsername = botUser.username;
     status.sinceId = sinceId;
@@ -128,7 +153,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
         continue;
       }
 
-      const result = processMentionTweet(tweet, bot, state, starting);
+      const result = processMentionTweet(tweet, bot, state, starting, botUser.id);
       markProcessed(state, tweet.id);
       if (result.activity) {
         await appendActivity(env.MONEX_KV, result.activity);
