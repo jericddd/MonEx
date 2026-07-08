@@ -8004,16 +8004,15 @@ const SCENE_IDLE_SPRITE_SCALE_DEFAULT = 1.0;
 
 const CHOG_SWING1_PATH = "128x128/chog1-swing.gif";
 const CHOG_SWING2_PATH = "128x128/chog-swing2.gif";
-const CHOG_SWING2_VISUAL_SCALE = 1.1;
 /** chog-swing2 canvas reads smaller than other mons (+5% on swing2 only). */
-const CHOG_SWING_VISUAL_BOOST = 1.05;
+const CHOG_SWING2_DISPLAY_SCALE = 1.1 * 1.05;
 
 function isChogSwing2Path(spritePath) {
     return normalizeSpritePath(spritePath) === CHOG_SWING2_PATH;
 }
 
 function getChogSwingPathScale(spritePath) {
-    if (isChogSwing2Path(spritePath)) return CHOG_SWING2_VISUAL_SCALE * CHOG_SWING_VISUAL_BOOST;
+    if (isChogSwing2Path(spritePath)) return CHOG_SWING2_DISPLAY_SCALE;
     return 1;
 }
 
@@ -8967,11 +8966,11 @@ function setSceneIdleSprite(imgEl, spritePath, forceReplay) {
     const mirrored = imgEl.classList.contains("mirrored");
     const applyMeta = () => {
         imgEl.dataset.spriteBase = base;
-        applySceneIdleSpriteTransform(imgEl, monName, mirrored, spritePath);
     };
 
     if (!isGif) {
         applyMeta();
+        applySceneIdleSpriteTransform(imgEl, monName, mirrored, spritePath);
         imgEl.src = spritePath;
         delete imgEl.dataset.animStart;
         return Promise.resolve();
@@ -8986,6 +8985,7 @@ function setSceneIdleSprite(imgEl, spritePath, forceReplay) {
             imgEl.removeEventListener("load", onReady);
             imgEl.removeEventListener("error", onReady);
             const mark = () => {
+                applySceneIdleSpriteTransform(imgEl, monName, mirrored, base);
                 markSceneIdleGifStart(imgEl);
                 resolve();
             };
@@ -9398,9 +9398,11 @@ async function replayBattleAttackGif(side, src, name) {
         const url = src + "?t=" + Date.now();
         const pre = new Image();
         const finish = () => {
-            applyBattleSpritePresentation(sprite, side, name, src);
             sprite.src = url;
-            requestAnimationFrame(() => requestAnimationFrame(resolve));
+            requestAnimationFrame(() => {
+                applyBattleSpritePresentation(sprite, side, name, src);
+                requestAnimationFrame(resolve);
+            });
         };
         pre.onload = finish;
         pre.onerror = finish;
@@ -9423,7 +9425,7 @@ function setBattleSprite(side, src, name, replayGif) {
 
 function getBattleSpriteTransform(side, name, spritePath) {
     const mirror = shouldMirrorBattleSprite(side, name);
-    const scale = getChogSwingPathScale(spritePath);
+    const scale = name === "Chog" ? getChogSwingPathScale(spritePath) : 1;
     if (scale === 1) return mirror ? "scaleX(-1)" : "";
     return mirror ? `scale(${scale}) scaleX(-1)` : `scale(${scale})`;
 }
