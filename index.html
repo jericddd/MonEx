@@ -102,28 +102,42 @@
     }
 
     .showcase-panel {
-        flex: 0 0 auto;
+        flex: 1 1 auto;
+        min-height: 0;
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
         background: white;
         border: 4px solid #6B21A8;
         box-shadow: 4px 4px 0px #6B21A8;
-        padding: 12px 12px 14px;
+        padding: 12px;
         text-align: center;
         box-sizing: border-box;
     }
 
     .showcase-panel h3 {
-        margin: 0 0 10px 0;
+        margin: 0 0 8px 0;
+        flex-shrink: 0;
         font-family: "Press Start 2P", monospace;
         color: #6B21A8;
         font-size: 12px;
     }
 
+    .showcase-panel-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
     #showcase {
         position: relative;
         flex: 0 0 160px;
+        width: 100%;
         height: 160px;
         overflow: hidden;
         background: #ffffff;
@@ -142,23 +156,18 @@
         transition: opacity 0.6s ease;
     }
 
-    .showcase-panel-spacer {
-        display: none;
-    }
-
     .showcase-name {
-        margin-top: 8px;
-        margin-bottom: 0;
+        margin: 0;
         font-family: "Press Start 2P", monospace;
         font-size: 12px;
     }
 
     .showcase-nav {
-        margin-top: 10px;
-        margin-bottom: 0;
+        margin: 0;
         display: flex;
         justify-content: center;
         gap: 15px;
+        flex-shrink: 0;
     }
 
     .showcase-nav button {
@@ -275,9 +284,10 @@
             max-width: 100%;
             min-width: 0;
         }
-        .showcase-panel,
-        .right-sidebar .side-box-grow,
-        .central-banner-visual {
+        .showcase-panel {
+            flex: 0 0 auto;
+        }
+        .showcase-panel-body {
             flex: 0 0 auto;
         }
         #showcase {
@@ -507,17 +517,16 @@
 
     <div class="showcase-panel">
     <h3>MONANIMAL SHOWCASE</h3>
-    
-    <div id="showcase">
+    <div class="showcase-panel-body">
+        <div id="showcase">
             <img id="showcase-img" src="" alt="">
         </div>
-        
         <div class="showcase-name" id="showcase-name"></div>
-        
         <div class="showcase-nav">
             <button type="button" onclick="prevMon()" aria-label="Previous">←</button>
             <button type="button" onclick="nextMon()" aria-label="Next">→</button>
         </div>
+    </div>
     </div>
 </div>
 
