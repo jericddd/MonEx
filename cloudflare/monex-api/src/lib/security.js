@@ -38,19 +38,23 @@ function parseExtraOrigins(env) {
     .filter(Boolean);
 }
 
+export function isStagingOrigin(origin) {
+  if (!origin) return false;
+  try {
+    const host = new URL(origin).hostname.toLowerCase();
+    if (host.endsWith(".pages.dev")) return true;
+    if (host === "localhost" || host === "127.0.0.1") return true;
+  } catch (_) {}
+  return false;
+}
+
 export function isAllowedOrigin(origin, env) {
   if (!origin) return false;
   const extras = parseExtraOrigins(env);
   const frontend = (env.FRONTEND_ORIGIN || "https://monexmonad.xyz").replace(/\/$/, "");
   if (origin === frontend) return true;
   if (extras.includes(origin)) return true;
-  if (env.ALLOW_STAGING_ORIGINS !== "0") {
-    try {
-      const host = new URL(origin).hostname.toLowerCase();
-      if (host.endsWith(".pages.dev")) return true;
-      if (host === "localhost" || host === "127.0.0.1") return true;
-    } catch (_) {}
-  }
+  if (env.ALLOW_STAGING_ORIGINS !== "0" && isStagingOrigin(origin)) return true;
   return false;
 }
 
