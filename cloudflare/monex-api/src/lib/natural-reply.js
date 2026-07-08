@@ -62,16 +62,23 @@ function buildCatchContext({ monballSpend, results, monballsLeft, repliesLeftAft
   };
 }
 
+function pickDailyCapNotice(dailyLimit, seed = 0) {
+  const lines = [
+    (limit) =>
+      `you're out of @ replies for today (${limit}/${limit}). catch commands still work though — tag @monexmonad catch 10/20/30/40/50. Profile → X log in game.`,
+    (limit) =>
+      `daily @ reply cap hit (${limit}/${limit}). no more @ replies, but you can still catch mons. keep using catch, check Profile → X log when you sync.`,
+    (limit) =>
+      `no @ replies left today (${limit}/${limit}). catches still run — tag catch anytime, your mons go to Profile → X log on monexmonad.`,
+  ];
+  return pick(lines, seed)(dailyLimit);
+}
+
 function appendReplyQuotaFooter(message, repliesLeftAfter, dailyLimit, seed = 0) {
   if (repliesLeftAfter == null || dailyLimit == null) return message;
 
   if (repliesLeftAfter <= 0) {
-    const closers = [
-      `that's your last @ reply today (0/${dailyLimit}). catch commands still work though — keep tagging catch, check Profile → X log in game.`,
-      `no @ replies left today (0/${dailyLimit}). you can still catch mons — tag @monexmonad catch 10/20/30/40/50. Profile → X log has results.`,
-      `out of @ replies for today (0/${dailyLimit}). catches still run — use catch anytime, sync on monexmonad when ready.`,
-    ];
-    return `${message} ${pick(closers, seed)}`;
+    return `${message} ${pickDailyCapNotice(dailyLimit, seed)}`;
   }
 
   const footers = [
@@ -177,7 +184,8 @@ export function buildNaturalCatchReply({
   if (ctx.allEscaped) pool = ALL_ESCAPED_TEMPLATES;
   else if (ctx.allCaught) pool = ALL_CAUGHT_TEMPLATES;
   const body = pick(pool, seed)(ctx);
-  const withGameCheck = appendGameCheck(body, ctx.caughtN, seed + 7);
+  const withGameCheck =
+    repliesLeftAfter <= 0 ? body : appendGameCheck(body, ctx.caughtN, seed + 7);
   return appendReplyQuotaFooter(withGameCheck, repliesLeftAfter, dailyLimit, seed + 1)
     .replace(/\s+/g, " ")
     .trim()
@@ -185,15 +193,7 @@ export function buildNaturalCatchReply({
 }
 
 export function buildDailyLimitNoticeReply(_username, dailyLimit = DEFAULT_DAILY_REPLY_LIMIT, seed = 0) {
-  const lines = [
-    (limit) =>
-      `you're out of @ replies for today (${limit}/${limit}). catch commands still work though — tag @monexmonad catch 10/20/30/40/50. Profile → X log in game.`,
-    (limit) =>
-      `daily @ reply cap hit (${limit}/${limit}). no more @ replies, but you can still catch mons. keep using catch, check Profile → X log when you sync.`,
-    (limit) =>
-      `no @ replies left today (${limit}/${limit}). catches still run — tag catch anytime, your mons go to Profile → X log on monexmonad.`,
-  ];
-  return pick(lines, seed)(dailyLimit).slice(0, 280);
+  return pickDailyCapNotice(dailyLimit, seed).slice(0, 280);
 }
 
 export function buildNaturalInvalidDenomReply(_username, seed = 0) {
