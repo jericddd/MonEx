@@ -26,6 +26,7 @@ jobs:
       - name: Verify bundle
         run: |
           test -f staging-dist/home.html
+          test -f staging-dist/play/index.html
           test -f staging-dist/monanimal_game.html
           test ! -f staging-dist/CNAME
           test -f staging-dist/js/staging-banner.js

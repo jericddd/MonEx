@@ -502,8 +502,7 @@
     
     <div class="sidebar-btn" onclick="window.location.href='docs.html'">DOCS</div>
     
-    <div class="sidebar-btn" onclick="window.location.href='monanimal_game.html'">SHOP</div>
-    </div>
+    <div class="sidebar-btn" onclick="handleGameShop()">SHOP</div>
 
     <div class="showcase-panel">
     <h3>MONANIMAL SHOWCASE</h3>
@@ -666,12 +665,25 @@ async function startLogin() {
         showCustomModal(e.message || "Login failed");
     }
 }
+function openGameEntry() {
+    sessionStorage.setItem("monex_game_entry", String(Date.now()));
+    window.location.href = "/play/";
+}
+
 async function handleGameStart() {
     if (!MonExAuth.isLoggedIn()) {
         showCustomModal("Please login with X first");
         return;
     }
-    window.location.href = 'monanimal_game.html';
+    openGameEntry();
+}
+
+async function handleGameShop() {
+    if (!MonExAuth.isLoggedIn()) {
+        showCustomModal("Please login with X first");
+        return;
+    }
+    openGameEntry();
 }
 
 function showCustomModal(message) {
@@ -701,7 +713,8 @@ function showCustomModal(message) {
 
 function goToProfile() {
     sessionStorage.setItem("monex_open_profile", "1");
-    window.location.href = "monanimal_game.html";
+    sessionStorage.setItem("monex_game_entry", String(Date.now()));
+    window.location.href = "/play/";
 }
 
 async function logout() {

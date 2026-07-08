@@ -78,7 +78,7 @@
             <button class="nav-btn" onclick="window.location.href='/'">HOME</button>
             <button class="nav-btn" onclick="window.location.href='docs.html'">DOCS</button>
             <button class="nav-btn" onclick="goToProfile()">PROFILE</button>
-            <button class="nav-btn" onclick="window.location.href='monanimal_game.html'">LOGOUT</button>
+            <button class="nav-btn" onclick="window.location.href='/play/'">GAME</button>
         </div>
     </div>
 </div>
@@ -110,7 +110,9 @@
 
 <script>
     function goToProfile() {
-        window.location.href = 'monanimal_game.html';
+        sessionStorage.setItem("monex_open_profile", "1");
+        sessionStorage.setItem("monex_game_entry", String(Date.now()));
+        window.location.href = "/play/";
     }
 </script>
 

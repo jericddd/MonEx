@@ -22,6 +22,8 @@ tar \
   -cf - . | (cd "$OUT" && tar -xf -)
 
 test -f "$OUT/CNAME"
+test -f "$OUT/play/index.html"
+test -f "$OUT/monanimal_game.html"
 test -f "$OUT/home.html"
 test -f "$OUT/index.html"
 echo "GitHub Pages bundle ready at: $OUT"
