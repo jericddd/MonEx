@@ -615,6 +615,7 @@ updateShowcase();
 startAutoPlay();
 </script>
 <script src="js/staging-banner.js?v=20260708b"></script>
+<script src="js/staging-dev-login.js?v=20260708c"></script>
 <script src="js/monex-config.js?v=20260708b"></script>
 <script src="js/escape-html.js?v=20260708b"></script>
 <script src="js/activity-client.js?v=20260708b"></script>
@@ -641,10 +642,14 @@ async function updateHeader() {
     }
 
     if (!loggedIn) {
+        const testBtn = (window.MonExStaging?.isStagingSite?.())
+            ? `<button type="button" class="nav-btn" onclick="stagingTestLogin()" style="margin-left:8px;background:linear-gradient(145deg,#f59e0b,#b45309);border-color:#92400e;color:#fff;">@test</button>`
+            : "";
         nav.innerHTML = `
             <button type="button" class="login-x-btn" onclick="startLogin()">
                 LOGIN WITH X
             </button>
+            ${testBtn}
         `;
     } else {
         const safeName = typeof escapeHtml === "function" ? escapeHtml(displayName) : displayName;
@@ -653,6 +658,15 @@ async function updateHeader() {
             <button class="nav-btn" onclick="goToProfile()">PROFILE</button>
             <button class="nav-btn" onclick="logout()">LOGOUT</button>
         `;
+    }
+}
+
+async function stagingTestLogin() {
+    try {
+        await MonExStaging.loginAsTest();
+        updateHeader();
+    } catch (e) {
+        showCustomModal(e.message || "Test login failed");
     }
 }
 

@@ -28,6 +28,7 @@ import { resolveBotUser, fetchMentions, fetchCatchMentionSearch, mergeMentionTwe
 import {
   oauthConfigured,
   devAuthAllowed,
+  stagingDevAuthEnabled,
   buildXAuthorizeUrl,
   consumeOAuthState,
   exchangeXCode,
@@ -287,7 +288,8 @@ async function handleRequest(request, env) {
           xPoll: env.ENABLE_X_POLL === "1",
           xKeys: xKeysConfigured(env),
           xOAuth: oauthConfigured(env),
-          devAuth: devAuthAllowed(env),
+          devAuth: devAuthAllowed(env, request),
+          stagingDevAuth: stagingDevAuthEnabled(env),
           bot: env.BOT_USERNAME || "monexmonad",
           codeVersion: API_CODE_VERSION,
           keyCheck: xKeyDiagnostics(env),
@@ -432,7 +434,7 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/auth/dev" && request.method === "POST") {
-      if (!devAuthAllowed(env)) {
+      if (!devAuthAllowed(env, request)) {
         return json({ ok: false, error: "dev auth disabled" }, 403, request, env);
       }
       await enforceRateLimit(request, env, "auth-dev", { limit: 20, windowSec: 60 });

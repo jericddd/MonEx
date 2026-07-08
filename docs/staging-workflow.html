@@ -72,7 +72,7 @@
     <div class="step">
         <h2>API (Cloudflare Worker)</h2>
         <p>Staging and live share the same API (<code>monex-api</code>). Game-only changes do <b>not</b> need an API redeploy.</p>
-        <p>On staging only, you can enable <b>dev login</b> in the Cloudflare Worker dashboard (<code>ENABLE_DEV_AUTH=1</code>). Keep it <b>off</b> on live — see <a href="security-go-live.html">Security go-live checklist</a>.</p>
+        <p>On staging only, use the orange <b>@test</b> button (dev login as <code>@test</code>). The API allows this only from <code>*.pages.dev</code> origins (<code>ENABLE_STAGING_DEV_AUTH=1</code>). Keep global <code>ENABLE_DEV_AUTH=0</code> on live — see <a href="security-go-live.html">Security go-live checklist</a>.</p>
         <p>Deploy API manually: Actions → <b>Deploy Cloudflare API</b>.</p>
     </div>
 

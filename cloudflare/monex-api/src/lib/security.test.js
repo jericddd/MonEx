@@ -4,8 +4,10 @@ import {
   timingSafeEqual,
   sanitizeReturnTo,
   isAllowedOrigin,
+  isStagingOrigin,
   simulateAllowed,
 } from "./security.js";
+import { devAuthAllowed, stagingDevAuthEnabled } from "./auth.js";
 
 describe("security helpers", () => {
   it("timingSafeEqual compares secrets safely", () => {
@@ -35,5 +37,21 @@ describe("security helpers", () => {
     assert.equal(simulateAllowed({}), false);
     assert.equal(simulateAllowed({ ENABLE_SIMULATE: "0" }), false);
     assert.equal(simulateAllowed({ ENABLE_SIMULATE: "1" }), true);
+  });
+
+  it("isStagingOrigin detects preview hosts only", () => {
+    assert.equal(isStagingOrigin("https://monex-staging.pages.dev"), true);
+    assert.equal(isStagingOrigin("http://localhost:3000"), true);
+    assert.equal(isStagingOrigin("https://monexmonad.xyz"), false);
+  });
+
+  it("devAuthAllowed gates staging dev login by Origin", () => {
+    const env = { ENABLE_STAGING_DEV_AUTH: "1" };
+    const stagingReq = { headers: { get: (k) => (k === "Origin" ? "https://monex-staging.pages.dev" : null) } };
+    const liveReq = { headers: { get: (k) => (k === "Origin" ? "https://monexmonad.xyz" : null) } };
+    assert.equal(devAuthAllowed(env), true);
+    assert.equal(devAuthAllowed(env, stagingReq), true);
+    assert.equal(devAuthAllowed(env, liveReq), false);
+    assert.equal(stagingDevAuthEnabled(env), true);
   });
 });

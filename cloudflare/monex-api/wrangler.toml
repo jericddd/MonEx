@@ -22,8 +22,10 @@ DAILY_REPLY_LIMIT = "4"
 ENABLE_AI_REPLY = "0"
 # Optional model override, e.g. @cf/meta/llama-3.1-8b-instruct
 # AI_REPLY_MODEL = "@cf/meta/llama-3.1-8b-instruct"
-# Production: keep dev login, simulate, and admin reset OFF. Enable only on staging/local.
+# Production: keep global dev login, simulate, and admin reset OFF.
 ENABLE_DEV_AUTH = "0"
+# Staging-only dev login (pages.dev / localhost Origin). Safe to leave on for shared Worker.
+ENABLE_STAGING_DEV_AUTH = "1"
 ENABLE_SIMULATE = "0"
 ENABLE_ADMIN_RESET = "0"
 # Worker public URL — must match OAuth callback host in X Developer Portal.

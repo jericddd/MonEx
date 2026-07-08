@@ -24,8 +24,19 @@ export function oauthConfigured(env) {
   return !!(env.X_CLIENT_ID && env.X_CLIENT_SECRET);
 }
 
-export function devAuthAllowed(env) {
-  return env.ENABLE_DEV_AUTH === "1";
+import { isStagingOrigin } from "./security.js";
+
+export function devAuthAllowed(env, request = null) {
+  if (env.ENABLE_DEV_AUTH === "1") return true;
+  if (env.ENABLE_STAGING_DEV_AUTH === "0") return false;
+  if (env.ENABLE_STAGING_DEV_AUTH !== "1") return false;
+  if (!request) return true;
+  const origin = request.headers.get("Origin");
+  return !!(origin && isStagingOrigin(origin));
+}
+
+export function stagingDevAuthEnabled(env) {
+  return env.ENABLE_STAGING_DEV_AUTH === "1";
 }
 
 function sessionKey(token) {
