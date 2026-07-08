@@ -60,17 +60,25 @@ test("last reply warns catches still work", () => {
     dailyLimit: 4,
   });
   assert.ok(text.includes("last @ reply today") || text.includes("no @ replies left today"));
+  assert.ok(/catch commands still work|can still catch|catches still run/i.test(text));
   assert.ok(text.includes("Profile → X log"));
 });
 
 test("daily limit notice reassures player", () => {
   const text = buildDailyLimitNoticeReply("jeric", 4, 0);
-  assert.ok(
-    text.includes("catch still went through") ||
-      text.includes("rng still ran") ||
-      text.includes("haul is saved")
-  );
+  assert.ok(/catch commands still work|can still catch|catches still run/i.test(text));
+  assert.ok(/catch 10|tag catch|using catch/i.test(text));
   assert.ok(text.includes("Profile → X log"));
+});
+
+test("daily limit notice variants mention catch command", () => {
+  const a = buildDailyLimitNoticeReply("jeric", 4, 0);
+  const b = buildDailyLimitNoticeReply("jeric", 4, 1);
+  const c = buildDailyLimitNoticeReply("jeric", 4, 2);
+  for (const text of [a, b, c]) {
+    assert.ok(/catch/i.test(text));
+    assert.ok(text.length <= 280);
+  }
 });
 
 test("reply seed is stable per tweet", () => {
