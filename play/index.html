@@ -7781,6 +7781,7 @@ const BATTLE_HUB_BG = `${BANNER_DIR}/battlescene_background.png?v=${BATTLE_HUB_B
 const BATTLE_HUB_ART = { w: 1672, h: 941 };
 const CHAPTER_BG_MAX = 2;
 const ADVENTURE_MODE_HUB_BG = `${BANNER_DIR}/adventure_chapter1.jpg`;
+const PATROL_OFFICE_BG = ADVENTURE_MODE_HUB_BG;
 const ADVENTURE_CHAPTER_PLACEHOLDER = BANNER_DIR + "/adventure_chapter_placeholder.png";
 const CHAPTER_BG_FALLBACK = ADVENTURE_CHAPTER_PLACEHOLDER;
 const BATTLE_HUB_BTN_DIR = BANNER_DIR + "/battle_hub";
@@ -7929,6 +7930,17 @@ function refreshAdventureModeHubBackground() {
     setBattleSceneBackground(getAdventureModeHubBackgroundPath());
 }
 
+function refreshPatrolOfficeBackground() {
+    setBattleSceneBackground(PATROL_OFFICE_BG);
+    applyBattleStageChapterBackground(null);
+}
+
+function getBattleStageLabel() {
+    if (activeBattleMode === "patrol") return "PATROL BATTLE";
+    const boss = isBossStage(currentStage);
+    return `${boss ? "BOSS — " : ""}CH.${currentChapter} STAGE ${currentStage}`;
+}
+
 function setAdventureHubMode(active) {
     document.querySelector(".game-container")?.classList.toggle("adventure-hub-mode", !!active);
 }
@@ -7989,7 +8001,7 @@ function warmAdventureHubSceneAssets() {
 }
 
 function warmPatrolBattleAssets() {
-    return preloadImage(getChapterBackgroundPath(currentChapter));
+    return preloadImage(PATROL_OFFICE_BG);
 }
 
 let currentChapter = 1;
@@ -14884,7 +14896,7 @@ function renderPatrolScanStage(encounter) {
             <div class="patrol-scan-hud">
                 <div class="patrol-scan-top">
                     <span class="patrol-scan-title">◈ OFFICE SCAN</span>
-                    <span class="patrol-scan-chapter">Monad HQ · Ch.${currentChapter}</span>
+                    <span class="patrol-scan-chapter">Monad HQ · Patrol</span>
                 </div>
                 <div class="patrol-scan-viewport" id="patrol-scan-viewport">
                     <div class="patrol-scan-grid"></div>
@@ -14925,7 +14937,7 @@ async function animatePatrolScanProgress(from, to, ms) {
 async function runPatrolScanSequence(encounter, scanToken) {
     battleScreen = "patrol-scan";
     setPatrolScanUI(true);
-    refreshAdventureModeHubBackground();
+    refreshPatrolOfficeBackground();
     renderPatrolScanStage(encounter);
     setPatrolScanProgress(0);
     setPatrolScanHint("");
@@ -15033,7 +15045,6 @@ function startPatrolBattle(encounter) {
     activeBattleMode = "patrol";
     activePatrolEncounter = encounter;
     setAdventureHubMode(false);
-    refreshAdventureChapterBackground();
     isInAdventureBattle = true;
     start3v3Battle(party.slice(0, 3), {
         enemyTeam: makePatrolEnemyTeam(currentChapter, encounter),
@@ -15451,7 +15462,8 @@ function start3v3Battle(playerParty, options = {}) {
     saveData();
     ensureBattleSceneOpen();
     setAdventureMode(true);
-    refreshAdventureChapterBackground();
+    if (activeBattleMode === "patrol") refreshPatrolOfficeBackground();
+    else refreshAdventureChapterBackground();
     const playerTeam = playerParty.slice(0, 3).map(m => makeFighter(m, true));
     const enemyTeam = options.enemyTeam || makeEnemyTeam(currentChapter, currentStage);
     renderBattleScene();
@@ -15461,7 +15473,7 @@ function start3v3Battle(playerParty, options = {}) {
 
 function renderBattleScene() {
     stopAllBurnGifLoops();
-    const boss = isBossStage(currentStage);
+    const boss = activeBattleMode !== "patrol" && isBossStage(currentStage);
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui battle-scene-ui--fight cover-art-layer";
     content.innerHTML = `
@@ -15496,7 +15508,7 @@ function renderBattleScene() {
             </div>
             ${renderBattleMeterPanelHtml("player")}
             ${renderBattleMeterPanelHtml("enemy")}
-            <div class="stage-label${boss ? ' boss-label' : ''}">${boss ? 'BOSS — ' : ''}CH.${currentChapter} STAGE ${currentStage}</div>
+            <div class="stage-label${boss ? ' boss-label' : ''}">${getBattleStageLabel()}</div>
             <div class="fighter-wrap enemy" id="wrap-enemy">
                 <div class="fighter-skill-callout" id="skill-callout-enemy" aria-hidden="true"></div>
                 <div class="battle-body-shadow" id="battle-shadow-enemy" aria-hidden="true"></div>
