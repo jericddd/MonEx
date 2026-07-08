@@ -24,7 +24,7 @@ import {
   recordReplySent,
   getReplyCountToday,
 } from "./kv-store.js";
-import { resolveBotUser, fetchMentions, fetchCatchMentionSearch, mergeMentionTweets, assertXKeys, postReply } from "./lib/x-client.js";
+import { resolveBotUser, fetchMentions, fetchCatchMentionSearch, fetchCatchThreadSearch, mergeMentionTweets, assertXKeys, postReply } from "./lib/x-client.js";
 import {
   oauthConfigured,
   devAuthAllowed,
@@ -70,17 +70,19 @@ async function handleSimulate(body, env, request) {
   const bot = env.BOT_USERNAME || "monexmonad";
 
   const state = await loadState(env.MONEX_KV);
-  const parsed = parseMention(text, bot);
+  const replyToBot = body?.replyToBot === true;
+  const parsed = parseMention(text, bot, { replyToBot });
   if (parsed.type === "catch") {
     const user = getUser(state, authorId, username, starting);
     if (user.monballs < parsed.spend) user.monballs = starting;
   }
 
   const result = processMentionTweet(
-    { id: tweetId, text, authorId, username },
+    { id: tweetId, text, authorId, username, inReplyToUserId: replyToBot ? "bot" : null },
     bot,
     state,
-    starting
+    starting,
+    replyToBot ? "bot" : null
   );
   if (result.activity) await appendActivity(env.MONEX_KV, result.activity);
   await saveState(env.MONEX_KV, state);
@@ -128,8 +130,9 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
 
     let mentionTweets = [];
     let searchTweets = [];
+    let threadTweets = [];
     let meta = null;
-    status.sources = { mentionTimeline: 0, search: 0, merged: 0 };
+    status.sources = { mentionTimeline: 0, search: 0, threadSearch: 0, merged: 0 };
 
     try {
       const mentionRes = await fetchMentions(env, botUser.id, sinceId);
@@ -149,7 +152,16 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       status.searchError = err.message || String(err);
     }
 
-    const tweets = mergeMentionTweets(mentionTweets, searchTweets);
+    try {
+      const threadRes = await fetchCatchThreadSearch(env, bot, sinceId);
+      threadTweets = threadRes.tweets;
+      status.sources.threadSearch = threadTweets.length;
+      if (!meta?.newest_id && threadRes.meta?.newest_id) meta = threadRes.meta;
+    } catch (err) {
+      status.threadSearchError = err.message || String(err);
+    }
+
+    const tweets = mergeMentionTweets(mentionTweets, searchTweets, threadTweets);
     status.sources.merged = tweets.length;
     status.ok = true;
     status.botUsername = botUser.username;
@@ -171,7 +183,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       markProcessed(state, tweet.id);
       await saveState(env.MONEX_KV, state);
 
-      const result = processMentionTweet(tweet, bot, state, starting);
+      const result = processMentionTweet(tweet, bot, state, starting, botUser.id);
       if (result.activity) {
         await appendActivity(env.MONEX_KV, result.activity);
         status.activities += 1;

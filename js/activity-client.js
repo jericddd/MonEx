@@ -13,6 +13,24 @@ function getMonexApiBase() {
     return MONEX_API_PRODUCTION;
 }
 
+/** Hidden from home X Wild Log (global feed only). */
+const HIDDEN_WILD_LOG_USERS = new Set(["yesdraken_"]);
+
+function isHiddenWildLogUser(username) {
+    return HIDDEN_WILD_LOG_USERS.has(String(username || "").toLowerCase().replace(/^@/, ""));
+}
+
+function filterHiddenWildLogEntries(data) {
+    if (!data || !Array.isArray(data.entries)) return data;
+    const entries = data.entries.filter((e) => !isHiddenWildLogUser(e.xUsername));
+    const removed = data.entries.length - entries.length;
+    return {
+        ...data,
+        entries,
+        total: Math.max(0, (data.total || 0) - removed),
+    };
+}
+
 function injectActivityUiStyles() {
     if (document.getElementById("monex-activity-ui-styles")) return;
     const style = document.createElement("style");
@@ -837,7 +855,7 @@ async function fetchGlobalActivity(limit, page) {
     const url = `${base}/api/activity?limit=${limit || 50}&page=${page || 1}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error("activity fetch failed");
-    return res.json();
+    return filterHiddenWildLogEntries(await res.json());
 }
 
 async function fetchPersonalActivity(username, limit, page) {
