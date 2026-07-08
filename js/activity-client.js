@@ -389,19 +389,25 @@ function injectActivityUiStyles() {
     box-shadow: 0 0 8px rgba(245, 158, 11, 0.65), 2px 2px 0 #92400e;
 }
 .activity-skills-grid .activity-skill-square .skill-icon-img {
-    width: 70%;
-    height: 70%;
+    width: 16px;
+    height: 16px;
+    max-width: 88%;
+    max-height: 88%;
     object-fit: contain;
     image-rendering: pixelated;
-    position: relative;
-    z-index: 1;
+    display: block;
+    pointer-events: none;
 }
 .activity-skills-grid .activity-skill-square .skill-icon-fallback {
     font-family: "Press Start 2P", monospace;
     font-size: 7px;
     line-height: 1;
-    position: relative;
-    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
 }
 .activity-skills-grid .activity-skill-square .skill-tip {
     display: none;
@@ -638,7 +644,8 @@ function renderActivitySkillIcon(skill) {
     const path = getActivitySkillIconPath(skill);
     const fb = skill.type === "passive" ? "P" : skill.name.substring(0, 2).toUpperCase();
     if (!path) return `<span class="skill-icon-fallback">${escapeActivityHtml(fb)}</span>`;
-    return `<span class="skill-icon-fallback">${escapeActivityHtml(fb)}</span><img class="skill-icon-img" src="${escapeActivityHtml(path)}" alt="" onerror="this.remove()">`;
+    const fbEsc = escapeActivityHtml(fb);
+    return `<img class="skill-icon-img" src="${escapeActivityHtml(path)}" alt="" onerror="this.outerHTML='<span class=\\'skill-icon-fallback\\'>${fbEsc}</span>'">`;
 }
 
 function renderActivitySkillTip(skill) {
@@ -1020,5 +1027,8 @@ window.MonExActivity = {
     syncWild: syncWildMons,
     openDetail: openActivityDetail,
     closeDetail: closeActivityDetailModal,
+    ensureUiStyles: injectActivityUiStyles,
     PAGE_SIZE: 50,
 };
+
+injectActivityUiStyles();
