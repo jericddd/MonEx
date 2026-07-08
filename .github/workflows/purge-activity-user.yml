@@ -1,0 +1,51 @@
+name: Purge X log user
+
+# Removes one @handle from the global X Wild Log (home page feed) in production KV.
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: "X username to remove from wild log (without @)"
+        required: true
+        default: "yesdraken_"
+      confirm:
+        description: "Type PURGE to confirm"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  purge:
+    if: inputs.confirm == 'PURGE'
+    runs-on: ubuntu-latest
+    name: Purge activity log entries
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check Cloudflare secrets
+        run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN}" ]; then
+            echo "::error::Missing GitHub secret CLOUDFLARE_API_TOKEN"
+            exit 1
+          fi
+          if [ -z "${CLOUDFLARE_ACCOUNT_ID}" ]; then
+            echo "::error::Missing GitHub secret CLOUDFLARE_ACCOUNT_ID"
+            exit 1
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Purge user from X Wild Log
+        working-directory: cloudflare/monex-api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/purge-activity-user.mjs "${{ inputs.username }}"
