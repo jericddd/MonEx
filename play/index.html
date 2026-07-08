@@ -7454,6 +7454,11 @@ function bindHoverFloatTips(root) {
 const MONANIMAL_NAMES = ["Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal", "Monavara", "Moncock", "Mondigrade", "Montiger", "Mosferatu", "Monhorse", "Shramp", "Spidermon", "Moyaki"];
 const REMOVED_MONANIMAL_NAMES = new Set(["Mopo"]);
 const MONANIMAL_RENAME_MAP = { Moxy: "Monhorse" };
+
+function getSpeciesSpriteKey(name) {
+    const display = MONANIMAL_RENAME_MAP[name] || name;
+    return String(display || "").toLowerCase();
+}
 // Fixed house per species — every monanimal belongs to exactly one house.
 const SPECIES_HOUSE = {
     Chog: "chog",
@@ -8997,15 +9002,16 @@ const HERO_SKILL_UNLOCK_GOLD = 500;
 
 // ==================== HELPER FUNCTIONS ====================
 function getMonPngPath(name) {
-    return `128x128/${String(name || "").toLowerCase()}.png`;
+    return `128x128/${getSpeciesSpriteKey(name)}.png`;
 }
 
 function getMonGifPath(name) {
-    return `128x128/${String(name || "").toLowerCase()}.gif`;
+    return `128x128/${getSpeciesSpriteKey(name)}.gif`;
 }
 
 function getMonIdleGifPath(name) {
-    const lower = String(name || "").toLowerCase();
+    const lower = getSpeciesSpriteKey(name);
+    if (MON_IDLE_ASSET_OVERRIDES[lower]) return MON_IDLE_ASSET_OVERRIDES[lower];
     if (MON_LEGENDARY_GIF_OVERRIDES[lower]) return MON_LEGENDARY_GIF_OVERRIDES[lower];
     return `128x128/${lower}-idle.gif`;
 }
@@ -9014,19 +9020,22 @@ function getMonIdleGifPath(name) {
 // for main-scene AFK only — mon cards stay Legendary+ idle / Rare− PNG.
 const MONS_WITH_IDLE_GIF = new Set(["anago", "mouch", "moyaki", "moncock", "salmonad"]);
 // Main-scene AFK idle battles always animate; mon cards still follow rarity rule.
-const MONS_WITH_SCENE_IDLE_GIF = new Set(["larvanad"]);
+const MONS_WITH_SCENE_IDLE_GIF = new Set(["larvanad", "monhorse"]);
+const MON_IDLE_ASSET_OVERRIDES = {
+    monhorse: "128x128/monhorse-idle.png",
+};
 const MON_LEGENDARY_GIF_OVERRIDES = {
     moyaki: "128x128/main-moyaki.gif",
     salmonad: "128x128/slamonad-idle.gif",
 };
 
 function speciesHasIdleGifAsset(name) {
-    const lower = String(name || "").toLowerCase();
+    const lower = getSpeciesSpriteKey(name);
     return MONS_WITH_IDLE_GIF.has(lower) || MONS_WITH_SCENE_IDLE_GIF.has(lower);
 }
 
 function getMonLegendaryGifPath(name) {
-    const lower = String(name || "").toLowerCase();
+    const lower = getSpeciesSpriteKey(name);
     if (MON_LEGENDARY_GIF_OVERRIDES[lower]) return MON_LEGENDARY_GIF_OVERRIDES[lower];
     if (speciesHasIdleGifAsset(lower)) return getMonIdleGifPath(name);
     return getMonGifPath(name);
@@ -9042,7 +9051,7 @@ function getMonAvatarPath(mon) {
     const name = mon?.name || mon;
     const rarity = mon?.rarity;
     if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
-    const lower = String(name || "").toLowerCase();
+    const lower = getSpeciesSpriteKey(name);
     if (MONS_WITH_IDLE_GIF.has(lower)) return getMonIdleGifPath(name);
     if (rarity && isLegendaryOrAbove(rarity)) return getMonLegendaryGifPath(name);
     return getMonPngPath(name);
@@ -9263,8 +9272,7 @@ function getSceneIdleAttackSpritePath(name) {
 function getSceneIdleDisplaySprite(mon) {
     const name = mon?.name || mon;
     if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
-    const lower = String(name || "").toLowerCase();
-    if (speciesHasIdleGifAsset(lower)) return getMonIdleGifPath(name);
+    if (speciesHasIdleGifAsset(name)) return getMonIdleGifPath(name);
     if (getAttackSpritePath(name)) return getMonGifPath(name);
     return getMonPngPath(name);
 }
