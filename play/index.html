@@ -9010,17 +9010,25 @@ function getMonIdleGifPath(name) {
     return `128x128/${lower}-idle.gif`;
 }
 
-// Species with idle GIF assets (main scene + legendary avatars).
+// Legacy: always idle GIF on mon cards (all rarities). New species use MONS_WITH_SCENE_IDLE_GIF
+// for main-scene AFK only — mon cards stay Legendary+ idle / Rare− PNG.
 const MONS_WITH_IDLE_GIF = new Set(["anago", "mouch", "moyaki", "moncock", "salmonad"]);
+// Main-scene AFK idle battles always animate; mon cards still follow rarity rule.
+const MONS_WITH_SCENE_IDLE_GIF = new Set(["larvanad"]);
 const MON_LEGENDARY_GIF_OVERRIDES = {
     moyaki: "128x128/main-moyaki.gif",
     salmonad: "128x128/slamonad-idle.gif",
 };
 
+function speciesHasIdleGifAsset(name) {
+    const lower = String(name || "").toLowerCase();
+    return MONS_WITH_IDLE_GIF.has(lower) || MONS_WITH_SCENE_IDLE_GIF.has(lower);
+}
+
 function getMonLegendaryGifPath(name) {
     const lower = String(name || "").toLowerCase();
     if (MON_LEGENDARY_GIF_OVERRIDES[lower]) return MON_LEGENDARY_GIF_OVERRIDES[lower];
-    if (MONS_WITH_IDLE_GIF.has(lower)) return getMonIdleGifPath(name);
+    if (speciesHasIdleGifAsset(lower)) return getMonIdleGifPath(name);
     return getMonGifPath(name);
 }
 
@@ -9079,6 +9087,7 @@ const SALMONAD_SWING_SPRITES = [
     "128x128/salmonad-swing1.gif",
     "128x128/salmonad-swing2.gif"
 ];
+const LARVANAD_SWING_SPRITE = "128x128/larvanad-swing1.gif";
 const CHOG_SWING_SPRITES = [
     CHOG_SWING1_PATH,
     CHOG_SWING2_PATH
@@ -9102,6 +9111,10 @@ function isMoncock(name) {
 
 function isSalmonad(name) {
     return String(name || "").toLowerCase() === "salmonad";
+}
+
+function isLarvanad(name) {
+    return String(name || "").toLowerCase() === "larvanad";
 }
 
 function pickAnagoSwingSprite() {
@@ -9234,6 +9247,7 @@ function getAttackSpritePath(name) {
     if (isAnago(name)) return pickAnagoSwingSprite();
     if (isMoncock(name)) return pickMoncockSwingSprite();
     if (isSalmonad(name)) return pickSalmonadSwingSprite();
+    if (isLarvanad(name)) return LARVANAD_SWING_SPRITE;
     if (isChog(name)) return pickChogSwingSprite();
     return ATTACK_SPRITE_MAP[name] || null;
 }
@@ -9250,9 +9264,69 @@ function getSceneIdleDisplaySprite(mon) {
     const name = mon?.name || mon;
     if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
     const lower = String(name || "").toLowerCase();
-    if (MONS_WITH_IDLE_GIF.has(lower)) return getMonIdleGifPath(name);
+    if (speciesHasIdleGifAsset(lower)) return getMonIdleGifPath(name);
     if (getAttackSpritePath(name)) return getMonGifPath(name);
     return getMonPngPath(name);
+}
+
+// GIFs that play one full browser loop — no per-species ms table rows.
+const GIF_NATURAL_LOOP_PATHS = new Set([
+    "128x128/larvanad-idle.gif",
+    "128x128/larvanad-swing1.gif",
+]);
+const gifLoopMsCache = new Map();
+
+function usesGifNaturalLoop(spritePath) {
+    return GIF_NATURAL_LOOP_PATHS.has(normalizeSpritePath(spritePath));
+}
+
+function sampleGifFrameHash(imgEl) {
+    if (!imgEl?.naturalWidth) return null;
+    const canvas = document.createElement("canvas");
+    const w = Math.min(imgEl.naturalWidth, 24);
+    const h = Math.min(imgEl.naturalHeight, 24);
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(imgEl, 0, 0, w, h);
+    const data = ctx.getImageData(0, 0, w, h).data;
+    let hash = 0;
+    for (let i = 0; i < data.length; i += 16) hash = ((hash << 5) - hash + data[i]) | 0;
+    return String(hash);
+}
+
+async function detectGifLoopMs(imgEl, maxMs = 8000) {
+    if (!imgEl) return 0;
+    try {
+        if (imgEl.decode) await imgEl.decode();
+    } catch (_) { /* ignore */ }
+    const started = performance.now();
+    let firstHash = null;
+    let seenChange = false;
+    while (performance.now() - started < maxMs) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        const hash = sampleGifFrameHash(imgEl);
+        if (!hash) continue;
+        if (!firstHash) {
+            firstHash = hash;
+            continue;
+        }
+        if (hash !== firstHash) seenChange = true;
+        if (seenChange && hash === firstHash && performance.now() - started > 80) {
+            return Math.max(48, performance.now() - started);
+        }
+    }
+    return 0;
+}
+
+async function measureGifLoopMs(imgEl, spritePath) {
+    const key = normalizeSpritePath(spritePath);
+    if (gifLoopMsCache.has(key)) return gifLoopMsCache.get(key);
+    const detected = await detectGifLoopMs(imgEl);
+    const loopMs = detected > 0 ? detected : 1920;
+    gifLoopMsCache.set(key, loopMs);
+    return loopMs;
 }
 
 function normalizeSpritePath(src) {
@@ -9576,15 +9650,28 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
             await setSceneIdleSprite(atkImg, attackPath, true);
             if (token !== sceneIdleBattleToken) return;
             const animStart = Number(atkImg.dataset.animStart) || performance.now();
-            const playMs = getSceneIdleAttackPlayMs(attackPath, atkMon.name);
-            const hitAtMs = Math.min(getSceneIdleSpriteHitAtMs(attackPath, atkMon.name), playMs - 16);
-            const hitShake = waitSceneIdleUntil(animStart, hitAtMs, token).then(() => {
+            if (usesGifNaturalLoop(attackPath)) {
+                const loopMs = await measureGifLoopMs(atkImg, attackPath);
+                const playMs = Math.max(48, loopMs - SCENE_GIF_LOOP_GUARD_MS);
+                const hitAtMs = Math.min(Math.floor(loopMs * 0.45), playMs - 16);
+                const hitShake = waitSceneIdleUntil(animStart, hitAtMs, token).then(() => {
+                    if (token !== sceneIdleBattleToken) return;
+                    sceneIdleShakeHit(defEl);
+                });
+                await waitSceneIdleUntil(animStart, playMs, token);
                 if (token !== sceneIdleBattleToken) return;
-                sceneIdleShakeHit(defEl);
-            });
-            await waitSceneIdleUntil(animStart, playMs, token);
-            if (token !== sceneIdleBattleToken) return;
-            await hitShake;
+                await hitShake;
+            } else {
+                const playMs = getSceneIdleAttackPlayMs(attackPath, atkMon.name);
+                const hitAtMs = Math.min(getSceneIdleSpriteHitAtMs(attackPath, atkMon.name), playMs - 16);
+                const hitShake = waitSceneIdleUntil(animStart, hitAtMs, token).then(() => {
+                    if (token !== sceneIdleBattleToken) return;
+                    sceneIdleShakeHit(defEl);
+                });
+                await waitSceneIdleUntil(animStart, playMs, token);
+                if (token !== sceneIdleBattleToken) return;
+                await hitShake;
+            }
             await setSceneIdleSprite(atkImg, idleSprite, true);
         } else {
             await delay(scaleSceneIdleSpriteMs(280));
@@ -9732,13 +9819,19 @@ async function delayUntil(animStart, targetMs) {
     if (wait > 0) await delay(wait);
 }
 
-async function finishSwingGif(animStart, attackPath, name) {
+async function finishSwingGif(animStart, attackPath, name, spriteEl) {
+    if (usesGifNaturalLoop(attackPath) && spriteEl) {
+        const loopMs = await measureGifLoopMs(spriteEl, attackPath);
+        await delayUntil(animStart, Math.max(48, loopMs - SCENE_GIF_LOOP_GUARD_MS));
+        return;
+    }
     const totalMs = getBattleAttackDurationMs(attackPath, name);
     await delayUntil(animStart, totalMs);
 }
 
 async function completeGifAttackReturn(atkSide, atk, attackPath, animStart) {
-    await finishSwingGif(animStart, attackPath, atk.name);
+    const sprite = document.getElementById("sprite-" + atkSide);
+    await finishSwingGif(animStart, attackPath, atk.name, sprite);
     setBattleSprite(atkSide, atk.sprite, atk.name, false);
     await dashHome(atkSide, ATTACK_DASH_MS);
     endAttackAnim(atkSide, atk);
@@ -16423,7 +16516,12 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         await dashHorizontal(atkSide, dashDist, ATTACK_DASH_MS);
         await replayBattleAttackGif(atkSide, attackPath, atk.name);
         animStart = Date.now();
-        await delayUntil(animStart, getBattleAttackHitAtMs(attackPath, atk.name));
+        const battleSprite = document.getElementById("sprite-" + atkSide);
+        let hitMs = getBattleAttackHitAtMs(attackPath, atk.name);
+        if (usesGifNaturalLoop(attackPath) && battleSprite) {
+            hitMs = Math.floor((await measureGifLoopMs(battleSprite, attackPath)) * 0.45);
+        }
+        await delayUntil(animStart, hitMs);
     } else {
         await approach(atkSide, defSide);
     }
