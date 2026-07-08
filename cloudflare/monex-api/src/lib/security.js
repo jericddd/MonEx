@@ -20,7 +20,7 @@ export function getClientIp(request) {
 }
 
 export function sanitizeReturnTo(returnTo) {
-  const fallback = "/home.html";
+  const fallback = "/";
   if (!returnTo || typeof returnTo !== "string") return fallback;
   const trimmed = returnTo.trim();
   if (!trimmed.startsWith("/")) return fallback;

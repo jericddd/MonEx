@@ -15,11 +15,12 @@ describe("security helpers", () => {
   });
 
   it("sanitizeReturnTo allows safe relative paths only", () => {
+    assert.equal(sanitizeReturnTo("/"), "/");
     assert.equal(sanitizeReturnTo("/home.html"), "/home.html");
-    assert.equal(sanitizeReturnTo("https://evil.com"), "/home.html");
-    assert.equal(sanitizeReturnTo("//evil.com"), "/home.html");
-    assert.equal(sanitizeReturnTo("/../secret"), "/home.html");
-    assert.equal(sanitizeReturnTo(null), "/home.html");
+    assert.equal(sanitizeReturnTo("https://evil.com"), "/");
+    assert.equal(sanitizeReturnTo("//evil.com"), "/");
+    assert.equal(sanitizeReturnTo("/../secret"), "/");
+    assert.equal(sanitizeReturnTo(null), "/");
   });
 
   it("isAllowedOrigin permits production and staging hosts", () => {

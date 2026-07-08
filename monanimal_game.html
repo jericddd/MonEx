@@ -14363,7 +14363,7 @@ async function logout() {
         } catch (_) {}
         await MonExAuth.logout();
     }
-    window.location.href = 'home.html';
+    window.location.href = '/';
 }
 
 async function runPostLoginBootstrap() {
@@ -14384,12 +14384,12 @@ async function runPostLoginBootstrap() {
 async function checkLogin() {
     if (typeof MonExAuth !== "undefined" && MonExAuth.enforceServerResetEpoch) {
         if (await MonExAuth.enforceServerResetEpoch()) {
-            window.location.href = "home.html?fresh=1";
+            window.location.href = "/?fresh=1";
             return;
         }
     }
     if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
-        window.location.href = 'home.html';
+        window.location.href = '/';
         return;
     }
     try {
@@ -14398,7 +14398,7 @@ async function checkLogin() {
             delay(10000).then(() => readCachedUserFallback()),
         ]);
         if (!user) {
-            window.location.href = 'home.html';
+            window.location.href = '/';
             return;
         }
         currentUser = user.username || MonExAuth.getDisplayName();
@@ -14421,7 +14421,7 @@ async function checkLogin() {
             showMainScene();
             return;
         }
-        window.location.href = 'home.html';
+        window.location.href = '/';
     }
 }
 

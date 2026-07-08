@@ -369,7 +369,7 @@ async function handleRequest(request, env) {
         return json({ ok: false, error: "X OAuth not configured on server" }, 503, request, env);
       }
       await enforceRateLimit(request, env, "auth-x", { limit: 30, windowSec: 60 });
-      const returnTo = sanitizeReturnTo(url.searchParams.get("returnTo") || "/home.html");
+      const returnTo = sanitizeReturnTo(url.searchParams.get("returnTo") || "/");
       const authorizeUrl = await buildXAuthorizeUrl(env, env.MONEX_KV, returnTo);
       return Response.redirect(authorizeUrl, 302);
     }
@@ -381,13 +381,13 @@ async function handleRequest(request, env) {
       const frontend = env.FRONTEND_ORIGIN || "https://monexmonad.xyz";
 
       if (oauthErr || !code || !state) {
-        const dest = `${frontend}/home.html?auth_error=${encodeURIComponent(oauthErr || "denied")}`;
+        const dest = `${frontend}/?auth_error=${encodeURIComponent(oauthErr || "denied")}`;
         return Response.redirect(dest, 302);
       }
 
       const pending = await consumeOAuthState(env.MONEX_KV, state);
       if (!pending) {
-        const dest = `${frontend}/home.html?auth_error=expired_state`;
+        const dest = `${frontend}/?auth_error=expired_state`;
         return Response.redirect(dest, 302);
       }
 
@@ -400,7 +400,7 @@ async function handleRequest(request, env) {
         profileImageUrl: xUser.profile_image_url,
       });
 
-      const returnTo = sanitizeReturnTo(pending.returnTo || "/home.html");
+      const returnTo = sanitizeReturnTo(pending.returnTo || "/");
       const joiner = returnTo.includes("?") ? "&" : "?";
       const dest = `${frontend}${returnTo}${joiner}session=${encodeURIComponent(token)}`;
       return Response.redirect(dest, 302);

@@ -100,7 +100,7 @@ async function fetchMe() {
 
 async function startXLogin(returnTo) {
   const base = getApiBase();
-  const path = returnTo || "/home.html";
+  const path = returnTo || "/";
   window.location.href = `${base}/api/auth/x?returnTo=${encodeURIComponent(path)}`;
 }
 
