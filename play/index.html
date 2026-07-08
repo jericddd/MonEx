@@ -6588,6 +6588,30 @@ body.afk-layout .currency-pill .currency-tip {
     color: #fde68a;
     text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
+.quest-milestone-track-wrap,
+.quest-chests {
+    overflow: visible;
+}
+.quest-chest.has-hover-tip .hover-tip-panel {
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    min-width: 120px;
+    max-width: 220px;
+    z-index: 30;
+}
+.quest-chest.has-hover-tip .hover-tip-desc .inline-currency {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 4px 4px 0;
+    vertical-align: middle;
+}
+.quest-chest.has-hover-tip:hover .quest-chest-btn:disabled {
+    filter: brightness(1.05);
+    opacity: 0.75;
+}
 .quest-task-list {
     padding: 14px 14px 10px;
     display: flex;
@@ -7757,6 +7781,7 @@ const BATTLE_HUB_BG = `${BANNER_DIR}/battlescene_background.png?v=${BATTLE_HUB_B
 const BATTLE_HUB_ART = { w: 1672, h: 941 };
 const CHAPTER_BG_MAX = 2;
 const ADVENTURE_MODE_HUB_BG = `${BANNER_DIR}/adventure_chapter1.jpg`;
+const PATROL_OFFICE_BG = ADVENTURE_MODE_HUB_BG;
 const ADVENTURE_CHAPTER_PLACEHOLDER = BANNER_DIR + "/adventure_chapter_placeholder.png";
 const CHAPTER_BG_FALLBACK = ADVENTURE_CHAPTER_PLACEHOLDER;
 const BATTLE_HUB_BTN_DIR = BANNER_DIR + "/battle_hub";
@@ -7905,6 +7930,17 @@ function refreshAdventureModeHubBackground() {
     setBattleSceneBackground(getAdventureModeHubBackgroundPath());
 }
 
+function refreshPatrolOfficeBackground() {
+    setBattleSceneBackground(PATROL_OFFICE_BG);
+    applyBattleStageChapterBackground(null);
+}
+
+function getBattleStageLabel() {
+    if (activeBattleMode === "patrol") return "PATROL BATTLE";
+    const boss = isBossStage(currentStage);
+    return `${boss ? "BOSS — " : ""}CH.${currentChapter} STAGE ${currentStage}`;
+}
+
 function setAdventureHubMode(active) {
     document.querySelector(".game-container")?.classList.toggle("adventure-hub-mode", !!active);
 }
@@ -7965,7 +8001,7 @@ function warmAdventureHubSceneAssets() {
 }
 
 function warmPatrolBattleAssets() {
-    return preloadImage(getChapterBackgroundPath(currentChapter));
+    return preloadImage(PATROL_OFFICE_BG);
 }
 
 let currentChapter = 1;
@@ -8330,6 +8366,31 @@ function grantQuestReward(grant) {
     updateUI();
 }
 
+function describeQuestChestGrant(grant) {
+    if (!grant) return "";
+    const parts = [];
+    if (grant.gold) parts.push(currencyQty("gold", grant.gold, 12));
+    if (grant.essence) parts.push(currencyQty("essence", grant.essence, 12));
+    if (grant.monballs) parts.push(currencyQty("monball", grant.monballs, 12));
+    if (grant.monShards) parts.push(currencyQty("shards", grant.monShards, 12));
+    if (grant.trainerXp) parts.push(currencyQty("trainerXp", grant.trainerXp, 12));
+    return parts.join(" ");
+}
+
+function renderQuestChestHoverTip(milestone) {
+    const chest = QUEST_CHEST_REWARDS[milestone];
+    if (!chest) return "";
+    const claimed = questState.claimedChests.includes(milestone);
+    const unlocked = questState.points >= milestone;
+    const status = claimed
+        ? "Already claimed"
+        : unlocked
+            ? "Ready — tap gift to claim"
+            : `Reach ${milestone} quest points`;
+    const rewards = describeQuestChestGrant(chest.grant) || chest.label;
+    return renderHoverTip(`${milestone} PTS CHEST`, `${rewards}<br><span style="opacity:0.85;font-size:11px;">${status}</span>`);
+}
+
 function grantTrainerLevelReward(level) {
     const goldBonus = 35 + level * 15;
     money += goldBonus;
@@ -8685,28 +8746,24 @@ function renderDailyQuest() {
     const title = document.getElementById("quest-modal-title");
     if (title) title.textContent = tab === "dailies" ? "DAILY QUESTS" : "QUESTS";
 
+    const showMilestones = tab === "dailies" || tab === "weeklies";
     const fillPct = Math.min(100, (questState.points / QUEST_MAX_POINTS) * 100);
     const chestsHtml = QUEST_MILESTONES.map(ms => {
         const claimed = questState.claimedChests.includes(ms);
         const unlocked = questState.points >= ms;
         const canClaim = unlocked && !claimed;
         return `
-            <div class="quest-chest" data-ms="${ms}">
+            <div class="quest-chest has-hover-tip" data-ms="${ms}">
                 <button type="button" class="quest-chest-btn${claimed ? " claimed" : ""}"
-                    title="${QUEST_CHEST_REWARDS[ms]?.label || "Reward"}"
+                    aria-label="${QUEST_CHEST_REWARDS[ms]?.label || "Milestone reward"}"
                     onclick="claimQuestChest(${ms})"
                     ${canClaim ? "" : "disabled"}>🎁</button>
+                ${renderQuestChestHoverTip(ms)}
                 <span class="quest-chest-ms">${ms}</span>
             </div>`;
     }).join("");
 
-    const tasks = questState.tasks[tab] || [];
-    const tasksHtml = tasks.length
-        ? tasks.map(task => renderQuestTaskCard(task, tab)).join("")
-        : `<p class="hub-empty-msg" style="padding:24px 8px;">No quests in this tab yet.</p>`;
-
-    root.innerHTML = `
-        <div class="quest-refresh-bar">${refreshLabels[tab] || ""}</div>
+    const milestoneHtml = showMilestones ? `
         <div class="quest-milestone-section">
             <div class="quest-milestone-row">
                 <div class="quest-points-badge">
@@ -8720,7 +8777,16 @@ function renderDailyQuest() {
                     </div>
                 </div>
             </div>
-        </div>
+        </div>` : "";
+
+    const tasks = questState.tasks[tab] || [];
+    const tasksHtml = tasks.length
+        ? tasks.map(task => renderQuestTaskCard(task, tab)).join("")
+        : `<p class="hub-empty-msg" style="padding:24px 8px;">No quests in this tab yet.</p>`;
+
+    root.innerHTML = `
+        <div class="quest-refresh-bar">${refreshLabels[tab] || ""}</div>
+        ${milestoneHtml}
         <div class="quest-task-list">${tasksHtml}</div>
         <div class="quest-tabs">
             <button type="button" class="quest-tab-btn${tab === "dailies" ? " active" : ""}" onclick="switchQuestTab('dailies')">Dailies</button>
@@ -14830,7 +14896,7 @@ function renderPatrolScanStage(encounter) {
             <div class="patrol-scan-hud">
                 <div class="patrol-scan-top">
                     <span class="patrol-scan-title">◈ OFFICE SCAN</span>
-                    <span class="patrol-scan-chapter">Monad HQ · Ch.${currentChapter}</span>
+                    <span class="patrol-scan-chapter">Monad HQ · Patrol</span>
                 </div>
                 <div class="patrol-scan-viewport" id="patrol-scan-viewport">
                     <div class="patrol-scan-grid"></div>
@@ -14871,7 +14937,7 @@ async function animatePatrolScanProgress(from, to, ms) {
 async function runPatrolScanSequence(encounter, scanToken) {
     battleScreen = "patrol-scan";
     setPatrolScanUI(true);
-    refreshAdventureModeHubBackground();
+    refreshPatrolOfficeBackground();
     renderPatrolScanStage(encounter);
     setPatrolScanProgress(0);
     setPatrolScanHint("");
@@ -14979,7 +15045,6 @@ function startPatrolBattle(encounter) {
     activeBattleMode = "patrol";
     activePatrolEncounter = encounter;
     setAdventureHubMode(false);
-    refreshAdventureChapterBackground();
     isInAdventureBattle = true;
     start3v3Battle(party.slice(0, 3), {
         enemyTeam: makePatrolEnemyTeam(currentChapter, encounter),
@@ -15397,7 +15462,8 @@ function start3v3Battle(playerParty, options = {}) {
     saveData();
     ensureBattleSceneOpen();
     setAdventureMode(true);
-    refreshAdventureChapterBackground();
+    if (activeBattleMode === "patrol") refreshPatrolOfficeBackground();
+    else refreshAdventureChapterBackground();
     const playerTeam = playerParty.slice(0, 3).map(m => makeFighter(m, true));
     const enemyTeam = options.enemyTeam || makeEnemyTeam(currentChapter, currentStage);
     renderBattleScene();
@@ -15407,7 +15473,7 @@ function start3v3Battle(playerParty, options = {}) {
 
 function renderBattleScene() {
     stopAllBurnGifLoops();
-    const boss = isBossStage(currentStage);
+    const boss = activeBattleMode !== "patrol" && isBossStage(currentStage);
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui battle-scene-ui--fight cover-art-layer";
     content.innerHTML = `
@@ -15442,7 +15508,7 @@ function renderBattleScene() {
             </div>
             ${renderBattleMeterPanelHtml("player")}
             ${renderBattleMeterPanelHtml("enemy")}
-            <div class="stage-label${boss ? ' boss-label' : ''}">${boss ? 'BOSS — ' : ''}CH.${currentChapter} STAGE ${currentStage}</div>
+            <div class="stage-label${boss ? ' boss-label' : ''}">${getBattleStageLabel()}</div>
             <div class="fighter-wrap enemy" id="wrap-enemy">
                 <div class="fighter-skill-callout" id="skill-callout-enemy" aria-hidden="true"></div>
                 <div class="battle-body-shadow" id="battle-shadow-enemy" aria-hidden="true"></div>
