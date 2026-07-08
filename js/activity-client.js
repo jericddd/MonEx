@@ -328,35 +328,6 @@ function injectActivityUiStyles() {
 .activity-mon-card--mini .activity-mon-rarity.rarity-legendary { background: #ca8a04; }
 .activity-mon-rarity.rarity-mythic,
 .activity-mon-card--mini .activity-mon-rarity.rarity-mythic { background: #9f1239; }
-.activity-mon-skills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
-    justify-content: center;
-}
-.activity-mon-skill-chip {
-    font-size: 6px;
-    line-height: 1.25;
-    padding: 2px 4px;
-    border: 1px solid #d4d4d8;
-    background: #fafafa;
-    border-radius: 3px;
-    color: #3f3f46;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.activity-mon-skill-chip.is-ult {
-    border-color: #ca8a04;
-    background: #fffbeb;
-    color: #92400e;
-}
-.activity-mon-skill-chip.is-passive {
-    border-color: #6B21A8;
-    background: #f3e8ff;
-    color: #5b21b6;
-}
 .activity-skills-grid {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -447,15 +418,7 @@ function injectActivityUiStyles() {
     font-family: "Press Start 2P", monospace;
     font-size: 7px;
     color: #f5f3ff;
-    margin-bottom: 3px;
     line-height: 1.4;
-}
-.activity-skills-grid .skill-tip-type {
-    font-family: "Lato", sans-serif;
-    font-size: 9px;
-    color: #c4b5fd;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
 }
 .activity-wild-log-grid {
     display: grid;
@@ -667,14 +630,8 @@ function renderActivitySkillIcon(skill) {
 }
 
 function renderActivitySkillTip(skill) {
-    const typeLabel = skill.type === "ultimate"
-        ? "ULTIMATE"
-        : skill.type === "passive"
-            ? "PASSIVE"
-            : "ACTIVE";
     return `<div class="skill-tip">
         <div class="skill-tip-name">${escapeActivityHtml(skill.name)}</div>
-        <div class="skill-tip-type">${typeLabel}</div>
     </div>`;
 }
 
