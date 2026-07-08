@@ -178,7 +178,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       }
 
       if (env.ENABLE_X_REPLY === "1") {
-        const dailyLimit = Math.max(1, parseInt(env.DAILY_REPLY_LIMIT || "5", 10));
+        const dailyLimit = Math.max(1, parseInt(env.DAILY_REPLY_LIMIT || "4", 10));
         const replyUser = state.users[tweet.authorId];
         const usedToday = replyUser ? getReplyCountToday(replyUser) : 0;
         const repliesLeftAfter = dailyLimit - usedToday - 1;

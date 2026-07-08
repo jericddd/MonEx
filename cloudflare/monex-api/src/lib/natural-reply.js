@@ -1,3 +1,11 @@
+import {
+  buildCatchSummaryFields,
+  formatRaritySummary,
+  pickHighlightMons,
+} from "./catch-summary.js";
+
+export const DEFAULT_DAILY_REPLY_LIMIT = 4;
+
 function hashSeed(str) {
   let h = 2166136261;
   for (let i = 0; i < str.length; i++) {
@@ -11,22 +19,37 @@ function pick(arr, seed) {
   return arr[seed % arr.length];
 }
 
-function formatNameList(names) {
-  const unique = [...new Set(names.filter(Boolean))];
-  if (!unique.length) return "";
-  if (unique.length === 1) return unique[0];
-  if (unique.length === 2) return `${unique[0]} and ${unique[1]}`;
-  return `${unique.slice(0, -1).join(", ")}, and ${unique.at(-1)}`;
+const GAME_CHECK_LINES = [
+  "they're in your box — open monexmonad to check them out.",
+  "full haul's in game, Profile → X log.",
+  "mons are synced — hop on monexmonad when you can.",
+  "pull up the game to see them in your box.",
+  "worth opening monexmonad for these — Profile → X log.",
+  "claim them in your box on monexmonad.",
+  "rest of the roster's waiting in game.",
+  "box is updated — monexmonad has the full lineup.",
+];
+
+const GAME_CHECK_AFTER_MISS_LINES = [
+  "catch still logs on monexmonad if you want to double-check.",
+  "Profile → X log in game has the run if you sync.",
+  "hop on monexmonad when ready — rng might flip next time.",
+];
+
+function appendGameCheck(message, caughtN, seed) {
+  if (caughtN > 0) {
+    return `${message} ${pick(GAME_CHECK_LINES, seed)}`;
+  }
+  return `${message} ${pick(GAME_CHECK_AFTER_MISS_LINES, seed)}`;
 }
 
-function buildCatchContext({ username, monballSpend, results, monballsLeft, repliesLeftAfter, dailyLimit }) {
+function buildCatchContext({ monballSpend, results, monballsLeft, repliesLeftAfter, dailyLimit, seed }) {
   const caught = results.filter((r) => !r.escaped);
   const escaped = results.filter((r) => r.escaped);
+  const summary = buildCatchSummaryFields(caught, escaped, seed);
+
   return {
-    u: username,
     spend: monballSpend,
-    caughtList: formatNameList(caught.map((r) => r.mon.name)),
-    escapedList: formatNameList(escaped.map((r) => r.name)),
     caughtN: caught.length,
     escapedN: escaped.length,
     total: results.length,
@@ -34,93 +57,103 @@ function buildCatchContext({ username, monballSpend, results, monballsLeft, repl
     allEscaped: caught.length === 0,
     allCaught: escaped.length === 0,
     repliesLeftAfter: repliesLeftAfter ?? null,
-    dailyLimit: dailyLimit ?? 5,
+    dailyLimit: dailyLimit ?? DEFAULT_DAILY_REPLY_LIMIT,
+    ...summary,
   };
 }
 
-function appendReplyQuotaFooter(message, repliesLeftAfter, dailyLimit) {
+function appendReplyQuotaFooter(message, repliesLeftAfter, dailyLimit, seed = 0) {
   if (repliesLeftAfter == null || dailyLimit == null) return message;
+
   if (repliesLeftAfter <= 0) {
-    return `${message} No @ replies left today (0/${dailyLimit}). Don't worry — catches still work! Check Profile → X log in-game.`;
+    const closers = [
+      `that's your last @ reply today (0/${dailyLimit}). catch still logged — Profile → X log in game.`,
+      `no @ replies left today (0/${dailyLimit}). you're good though, catch is saved. Profile → X log.`,
+      `out of @ replies for today (0/${dailyLimit}). rng still ran — check Profile → X log when you sync.`,
+    ];
+    return `${message} ${pick(closers, seed)}`;
   }
-  return `${message} @ replies left today: ${repliesLeftAfter}/${dailyLimit}.`;
+
+  const footers = [
+    `${repliesLeftAfter}/${dailyLimit} @ replies left today.`,
+    `@ replies today: ${repliesLeftAfter}/${dailyLimit} left.`,
+    `(${repliesLeftAfter}/${dailyLimit} @ replies left today)`,
+  ];
+  return `${message} ${pick(footers, seed)}`;
 }
 
-/**
- * 12 human-style catch reply templates (no AI). One is picked per tweet via seed.
- * Placeholders: {caughtList}, {escapedList}, {caughtN}, {escapedN}, {total}, {left}, {spend}
- */
+// No @username in reply text — postReply() threads via in_reply_to_tweet_id (they still get notified).
 export const CATCH_REPLY_TEMPLATE_SAMPLES = [
-  "@player wild session — caught {caughtList}. {escapedList} got away ({caughtN}/{total}). {left} Monballs left. Visit the site to play!",
-  "@player okay {spend} Monballs in. You bagged {caughtList}. Missed: {escapedList}. {left} Monballs remaining — see you on the site!",
-  "@player not bad — {caughtN}/{total} hooked ({caughtList}). Slipped away: {escapedList}. {left} Monballs in your pouch. Hop on the site!",
-  "@player ha, messy run. Got {caughtList}, lost {escapedList}. Score {caughtN}-{escapedN}. {left} Monballs left — come play on the site!",
-  "@player {spend} Monballs later… caught {caughtList}. {escapedList} weren't cooperating. {left} Monballs left. Site's waiting!",
-  "@player yo! {caughtList} in, {escapedList} out. {caughtN}/{total} caught. {left} Monballs to spare — visit the site!",
-  "@player field was spicy. Secured {caughtList}. Escaped: {escapedList}. {left} Monballs on hand. Play on the site!",
-  "@player solid work — {caughtList} caught, shame about {escapedList}. {left} Monballs left. Head to the site to sync!",
-  "@player ranger log: {caughtN} caught ({caughtList}), {escapedN} escaped ({escapedList}). {left} Monballs. Visit the site!",
-  "@player that {spend}-ball run is done. Caught: {caughtList}. Got away: {escapedList}. {left} Monballs left — claim on the site!",
-  "@player nice throws. {caughtList} stayed, {escapedList} fled. {caughtN} of {total}. {left} Monballs left — visit the site to play!",
-  "@player catch report: {caughtList} ✓ · {escapedList} ✗ · {caughtN}/{total} · {left} Monballs left. See you on the site!",
+  "{spend} balls in → {raritySummary} ({caughtN}/{total}). {highlights} carried. {escapedNote}. {left} Monballs left.",
+  "that {spend}-ball session cooked — {raritySummary}. eyes on {highlights}. {escapedNote}.",
+  "rng was kind-ish: {raritySummary} off {spend}. standouts → {highlights}. {escapedNote}.",
+  "pulled {raritySummary} ({caughtN}/{total}). fwiw {highlights} are the keepers. {escapedNote}.",
+  "{spend} Monballs → {raritySummary}. lowkey watch {highlights}. {escapedNote}. {left} remaining.",
+  "field report: {raritySummary}, {caughtN}/{total}. {highlights} > the rest imo. {escapedNote}.",
+  "threw {spend}, walked away with {raritySummary}. {highlights} might be it. {escapedNote}.",
+  "respectable haul — {raritySummary}. {highlights} are the headline. {escapedNote}. {left} in the bag.",
+  "{caughtN}/{total} stuck: {raritySummary}. peep {highlights} when you sync. {escapedNote}.",
+  "not bad for {spend} balls — {raritySummary}. {highlights} look proper. {escapedNote}.",
+  "{raritySummary} from a {spend}-ball rip. {highlights} stood out. {escapedNote}. {left} Monballs on you.",
+  "ok this one hits — {raritySummary} ({caughtN}/{total}). {highlights}. {escapedNote}. sync when you're back.",
+  "(+ game check line) they're in your box — open monexmonad to check them out.",
 ];
 
-/** Mixed results — at least one catch and at least one escape */
 const MIXED_CATCH_TEMPLATES = [
   (c) =>
-    `@${c.u} wild session — caught ${c.caughtList}. ${c.escapedList} got away (${c.caughtN}/${c.total}). ${c.left} Monballs left. Visit the site to play!`,
+    `${c.spend} balls in → ${c.raritySummary} (${c.caughtN}/${c.total}). ${c.highlights} carried. ${c.escapedNote}. ${c.left} Monballs left.`,
   (c) =>
-    `@${c.u} okay ${c.spend} Monballs in. You bagged ${c.caughtList}. Missed: ${c.escapedList}. ${c.left} Monballs remaining — see you on the site!`,
+    `that ${c.spend}-ball session cooked — ${c.raritySummary}. eyes on ${c.highlights}. ${c.escapedNote}.`,
   (c) =>
-    `@${c.u} not bad — ${c.caughtN}/${c.total} hooked (${c.caughtList}). Slipped away: ${c.escapedList}. ${c.left} Monballs in your pouch. Hop on the site!`,
+    `rng was kind-ish: ${c.raritySummary} off ${c.spend}. standouts → ${c.highlights}. ${c.escapedNote}. ${c.left} on you.`,
   (c) =>
-    `@${c.u} ha, messy run. Got ${c.caughtList}, lost ${c.escapedList}. Score ${c.caughtN}-${c.escapedN}. ${c.left} Monballs left — come play on the site!`,
+    `pulled ${c.raritySummary} (${c.caughtN}/${c.total}). fwiw ${c.highlights} are the keepers. ${c.escapedNote}.`,
   (c) =>
-    `@${c.u} ${c.spend} Monballs later… caught ${c.caughtList}. ${c.escapedList} weren't cooperating. ${c.left} Monballs left. Site's waiting!`,
+    `${c.spend} Monballs → ${c.raritySummary}. lowkey watch ${c.highlights}. ${c.escapedNote}. ${c.left} remaining.`,
   (c) =>
-    `@${c.u} yo! ${c.caughtList} in, ${c.escapedList} out. ${c.caughtN}/${c.total} caught. ${c.left} Monballs to spare — visit the site!`,
+    `field report: ${c.raritySummary}, ${c.caughtN}/${c.total}. ${c.highlights} > the rest imo. ${c.escapedNote}.`,
   (c) =>
-    `@${c.u} field was spicy. Secured ${c.caughtList}. Escaped: ${c.escapedList}. ${c.left} Monballs on hand. Play on the site!`,
+    `threw ${c.spend}, walked away with ${c.raritySummary}. ${c.highlights} might be it. ${c.escapedNote}.`,
   (c) =>
-    `@${c.u} solid work — ${c.caughtList} caught, shame about ${c.escapedList}. ${c.left} Monballs left. Head to the site to sync!`,
+    `respectable haul — ${c.raritySummary}. ${c.highlights} are the headline. ${c.escapedNote}. ${c.left} in the bag.`,
   (c) =>
-    `@${c.u} ranger log: ${c.caughtN} caught (${c.caughtList}), ${c.escapedN} escaped (${c.escapedList}). ${c.left} Monballs. Visit the site!`,
+    `${c.caughtN}/${c.total} stuck: ${c.raritySummary}. peep ${c.highlights} when you sync. ${c.escapedNote}.`,
   (c) =>
-    `@${c.u} that ${c.spend}-ball run is done. Caught: ${c.caughtList}. Got away: ${c.escapedList}. ${c.left} Monballs left — claim on the site!`,
+    `not bad for ${c.spend} balls — ${c.raritySummary}. ${c.highlights} look proper. ${c.escapedNote}.`,
   (c) =>
-    `@${c.u} nice throws. ${c.caughtList} stayed, ${c.escapedList} fled. ${c.caughtN} of ${c.total}. ${c.left} Monballs left — visit the site to play!`,
+    `${c.raritySummary} from a ${c.spend}-ball rip. ${c.highlights} stood out. ${c.escapedNote}. ${c.left} Monballs.`,
   (c) =>
-    `@${c.u} catch report: ${c.caughtList} ✓ · ${c.escapedList} ✗ · ${c.caughtN}/${c.total} · ${c.left} Monballs left. See you on the site!`,
+    `ok this one hits — ${c.raritySummary} (${c.caughtN}/${c.total}). ${c.highlights}. ${c.escapedNote}. sync when you're back.`,
 ];
 
 const ALL_CAUGHT_TEMPLATES = [
   (c) =>
-    `@${c.u} clean sweep with ${c.spend} Monballs — ${c.caughtList}, every single one (${c.total}/${c.total}). ${c.left} Monballs left. Visit the site to play!`,
+    `clean ${c.spend}-ball sweep — ${c.raritySummary}, ${c.caughtN}/${c.total} hooked. ${c.highlights} ate. ${c.left} Monballs left.`,
   (c) =>
-    `@${c.u} perfect run! Bagged ${c.caughtList}. Not one escape. ${c.left} Monballs remaining — hop on the site!`,
+    `perfect rip. ${c.raritySummary}, nothing escaped. ${c.highlights} are the ones. ${c.left} remaining.`,
   (c) =>
-    `@${c.u} flawless ${c.spend}-ball session. All ${c.caughtList} caught. ${c.left} Monballs in the bag. See you on the site!`,
+    `flawless session tbh — ${c.raritySummary}. all ${c.caughtN} landed. ${c.highlights} > everything else.`,
 ];
 
 const ALL_ESCAPED_TEMPLATES = [
   (c) =>
-    `@${c.u} rough one — ${c.escapedList} all got away (0/${c.total}). ${c.left} Monballs left though. Shake it off and visit the site!`,
+    `brutal — ${c.escapedN}/${c.total} slipped (${c.spend} balls gone). ${c.left} Monballs left. rng hates us sometimes.`,
   (c) =>
-    `@${c.u} oof, ${c.spend} Monballs and nothing stuck. ${c.escapedList} slipped every throw. ${c.left} Monballs left — try again on the site!`,
+    `oof, ${c.spend} Monballs and nothing stuck. ${c.escapedList} said no every time. ${c.left} left in the bag.`,
   (c) =>
-    `@${c.u} the wild won this round. ${c.escapedList} escaped clean. ${c.left} Monballs still in your pouch. Visit the site when ready!`,
+    `wild took the W this round. ${c.escapedNote}. still got ${c.left} Monballs — run it back when ready.`,
 ];
 
 const INVALID_DENOM_LINES = [
-  (u) => `@${u} hmm that amount doesn't work — try 10, 20, 30, 40, or 50 Monballs`,
-  (u) => `@${u} need a valid amount: 10 / 20 / 30 / 40 / 50 Monballs only`,
-  (u) => `@${u} whoops — catches are in steps of 10 up to 50 Monballs`,
+  () => `that amount doesn't fly — catches are 10, 20, 30, 40, or 50 Monballs`,
+  () => `need a valid stack: 10 / 20 / 30 / 40 / 50 Monballs only`,
+  () => `nah — we do catches in tens up to 50 Monballs`,
 ];
 
 const INSUFFICIENT_LINES = [
-  (u, have, need) => `@${u} you're short on Monballs (${have}/${need}). Need at least 10 to play.`,
-  (u, have, need) => `@${u} not enough Monballs right now — you have ${have}, need ${need}.`,
-  (u, have, need) => `@${u} can't run that catch yet (${have} Monballs, need ${need}).`,
+  (_u, have, need) => `you're light on Monballs (${have}/${need}). need at least 10 to run a catch.`,
+  (_u, have, need) => `not enough Monballs rn — ${have} on you, ${need} needed.`,
+  (_u, have, need) => `can't rip that yet (${have} Monballs, need ${need}).`,
 ];
 
 export function buildNaturalCatchReply({
@@ -130,43 +163,49 @@ export function buildNaturalCatchReply({
   monballsLeft,
   seed = 0,
   repliesLeftAfter,
-  dailyLimit = 5,
+  dailyLimit = DEFAULT_DAILY_REPLY_LIMIT,
 }) {
   const ctx = buildCatchContext({
-    username,
     monballSpend,
     results,
     monballsLeft,
     repliesLeftAfter,
     dailyLimit,
+    seed,
   });
   let pool = MIXED_CATCH_TEMPLATES;
   if (ctx.allEscaped) pool = ALL_ESCAPED_TEMPLATES;
   else if (ctx.allCaught) pool = ALL_CAUGHT_TEMPLATES;
   const body = pick(pool, seed)(ctx);
-  return appendReplyQuotaFooter(body, repliesLeftAfter, dailyLimit).replace(/\s+/g, " ").trim().slice(0, 280);
+  const withGameCheck = appendGameCheck(body, ctx.caughtN, seed + 7);
+  return appendReplyQuotaFooter(withGameCheck, repliesLeftAfter, dailyLimit, seed + 1)
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 280);
 }
 
-export function buildDailyLimitNoticeReply(username, dailyLimit = 5, seed = 0) {
+export function buildDailyLimitNoticeReply(_username, dailyLimit = DEFAULT_DAILY_REPLY_LIMIT, seed = 0) {
   const lines = [
-    (u, limit) =>
-      `@${u} you're out of @ replies for today (${limit}/${limit} used). Don't worry — your catch still worked! Check Profile → X log in-game. Visit the site to sync.`,
-    (u, limit) =>
-      `@${u} daily @ reply cap reached (${limit}/${limit}). Catches still count — no stress! See Profile → X log for results. Hop on the site when ready.`,
-    (u, limit) =>
-      `@${u} no @ replies left today (${limit}/${limit}). Your catch is saved though! Open the game → Profile → X log. Visit the site to claim mons.`,
+    (limit) =>
+      `you're out of @ replies for today (${limit}/${limit}). catch still went through though — Profile → X log in game.`,
+    (limit) =>
+      `daily @ reply cap hit (${limit}/${limit}). rng still ran, no stress. check Profile → X log when you sync.`,
+    (limit) =>
+      `no @ replies left today (${limit}/${limit}). your haul is saved — Profile → X log has the breakdown.`,
   ];
-  return pick(lines, seed)(username, dailyLimit).slice(0, 280);
+  return pick(lines, seed)(dailyLimit).slice(0, 280);
 }
 
-export function buildNaturalInvalidDenomReply(username, seed = 0) {
-  return pick(INVALID_DENOM_LINES, seed)(username).slice(0, 280);
+export function buildNaturalInvalidDenomReply(_username, seed = 0) {
+  return pick(INVALID_DENOM_LINES, seed)().slice(0, 280);
 }
 
-export function buildNaturalInsufficientReply(username, have, need, seed = 0) {
-  return pick(INSUFFICIENT_LINES, seed)(username, have, need).slice(0, 280);
+export function buildNaturalInsufficientReply(_username, have, need, seed = 0) {
+  return pick(INSUFFICIENT_LINES, seed)(_username, have, need).slice(0, 280);
 }
 
 export function getReplySeed(tweet) {
   return hashSeed(`${tweet.id || ""}:${tweet.authorId || ""}:${tweet.text || ""}`);
 }
+
+export { formatRaritySummary, pickHighlightMons };

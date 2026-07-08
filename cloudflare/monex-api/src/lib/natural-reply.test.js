@@ -22,16 +22,19 @@ test("natural catch reply reads like human text", () => {
     monballsLeft: 0,
     seed: 42,
     repliesLeftAfter: 2,
-    dailyLimit: 5,
+    dailyLimit: 4,
   });
 
-  assert.ok(text.startsWith("@jeric"));
-  assert.ok(/caught|bagged|hooked|secured|stayed|in,/i.test(text));
-  assert.ok(text.includes("Chog"));
-  assert.ok(text.includes("Mouch"));
-  assert.ok(/Visit the site|on the site/i.test(text));
-  assert.ok(/@ replies left today: \d+\/5/.test(text));
+  assert.ok(!text.startsWith("@jeric"));
+  assert.ok(/Legendary|Rare|Uncommon|Common/.test(text));
+  assert.ok(
+    /carried|eyes on|standouts|keepers|lowkey|fwiw|field report|respectable|peep|look proper|stood out|this one hits|might be it|cooked|kind-ish|pulled|not bad/i.test(
+      text
+    )
+  );
   assert.equal(text.includes("http"), false);
+  assert.ok(/monexmonad|Profile → X log|your box|in game/i.test(text));
+  assert.ok(/@ replies.*\d+\/4/i.test(text));
   assert.ok(text.length <= 280);
 });
 
@@ -54,15 +57,19 @@ test("last reply warns catches still work", () => {
     monballsLeft: 5,
     seed: 0,
     repliesLeftAfter: 0,
-    dailyLimit: 5,
+    dailyLimit: 4,
   });
-  assert.ok(text.includes("No @ replies left today"));
+  assert.ok(text.includes("last @ reply today") || text.includes("no @ replies left today"));
   assert.ok(text.includes("Profile → X log"));
 });
 
 test("daily limit notice reassures player", () => {
-  const text = buildDailyLimitNoticeReply("jeric", 5, 0);
-  assert.ok(text.includes("catch still worked") || text.includes("Catches still count"));
+  const text = buildDailyLimitNoticeReply("jeric", 4, 0);
+  assert.ok(
+    text.includes("catch still went through") ||
+      text.includes("rng still ran") ||
+      text.includes("haul is saved")
+  );
   assert.ok(text.includes("Profile → X log"));
 });
 
