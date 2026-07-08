@@ -8822,9 +8822,12 @@ const SCENE_SPRITE_DURATION_MS = {
     "128x128/salmonad-swing2.gif": 1680
 };
 
-// Play each main-scene swing GIF for its full measured loop (no early cut / hold).
+// End one loop slightly before the browser restarts infinite GIFs (loop ext = 0).
+const SCENE_GIF_LOOP_GUARD_MS = 34;
+
 function getSceneIdleAttackPlayMs(spritePath, monName) {
-    return getSceneIdleSpriteDurationMs(spritePath, monName);
+    const durationMs = getSceneIdleSpriteDurationMs(spritePath, monName);
+    return Math.max(48, durationMs - SCENE_GIF_LOOP_GUARD_MS);
 }
 
 const sceneIdleFighterBusy = new Set();
@@ -8912,77 +8915,101 @@ function getSceneSpriteHitAtMs(spritePath, monName, durationMs) {
 
 function markSceneIdleGifStart(imgEl) {
     if (!imgEl) return;
-    imgEl.dataset.animStart = String(Date.now());
+    imgEl.dataset.animStart = String(performance.now());
 }
 
-async function waitSceneIdleLoopBoundary(imgEl, spritePath, monName, token) {
-    if (!imgEl || !spritePath?.endsWith(".gif")) return;
-    const durationMs = getSceneIdleSpriteDurationMs(spritePath, monName);
-    if (durationMs <= 0) return;
-    const animStart = Number(imgEl.dataset.animStart);
-    if (!animStart) {
-        markSceneIdleGifStart(imgEl);
+async function waitSceneIdleUntil(animStart, targetMs, token) {
+    let remaining = targetMs - (performance.now() - animStart);
+    while (remaining > 0) {
+        if (token !== sceneIdleBattleToken) return;
+        await delay(Math.min(remaining, 32));
+        remaining = targetMs - (performance.now() - animStart);
+    }
+}
+
+async function initSceneIdleGifTiming(imgEl) {
+    if (!imgEl) return;
+    const src = normalizeSpritePath(imgEl.dataset.spriteBase || imgEl.src);
+    if (!src.endsWith(".gif")) return;
+    const mark = () => markSceneIdleGifStart(imgEl);
+    try {
+        if (imgEl.complete) await imgEl.decode();
+    } catch (_) { /* ignore decode errors */ }
+    if (imgEl.complete) {
+        requestAnimationFrame(() => requestAnimationFrame(mark));
         return;
     }
-    const inLoop = (Date.now() - animStart) % durationMs;
-    const remaining = durationMs - inLoop;
-    if (remaining <= 24 || remaining >= durationMs - 24) return;
-    await waitSceneGifMs(remaining, token);
+    imgEl.addEventListener(
+        "load",
+        () => {
+            imgEl.decode().then(() => {
+                requestAnimationFrame(() => requestAnimationFrame(mark));
+            }).catch(() => {
+                requestAnimationFrame(() => requestAnimationFrame(mark));
+            });
+        },
+        { once: true }
+    );
 }
 
 function setSceneIdleSprite(imgEl, spritePath, forceReplay) {
     if (!imgEl || !spritePath) return Promise.resolve();
     const base = normalizeSpritePath(spritePath);
     const current = normalizeSpritePath(imgEl.dataset.spriteBase || imgEl.src);
-    if (!forceReplay && current === base) return Promise.resolve();
+    const isGif = spritePath.endsWith(".gif");
+    if (!forceReplay && current === base && isGif) return Promise.resolve();
 
     const monName = imgEl.dataset.mon;
     const mirrored = imgEl.classList.contains("mirrored");
-    const apply = () => {
+    const applyMeta = () => {
         imgEl.dataset.spriteBase = base;
         applySceneIdleSpriteTransform(imgEl, monName, mirrored, spritePath);
     };
 
-    if (!spritePath.endsWith(".gif")) {
-        apply();
+    if (!isGif) {
+        applyMeta();
         imgEl.src = spritePath;
         delete imgEl.dataset.animStart;
         return Promise.resolve();
     }
 
     return new Promise(resolve => {
-        const url = spritePath + "?t=" + Date.now();
-        const pre = new Image();
-        const finish = () => {
-            apply();
-            imgEl.src = url;
-            requestAnimationFrame(() => {
+        const url = base + "?t=" + Date.now();
+        let settled = false;
+        const onReady = () => {
+            if (settled) return;
+            settled = true;
+            imgEl.removeEventListener("load", onReady);
+            imgEl.removeEventListener("error", onReady);
+            const mark = () => {
                 markSceneIdleGifStart(imgEl);
-                requestAnimationFrame(resolve);
+                resolve();
+            };
+            imgEl.decode().then(() => {
+                requestAnimationFrame(() => requestAnimationFrame(mark));
+            }).catch(() => {
+                requestAnimationFrame(() => requestAnimationFrame(mark));
             });
         };
-        pre.onload = finish;
-        pre.onerror = finish;
-        pre.src = url;
+        imgEl.addEventListener("load", onReady, { once: true });
+        imgEl.addEventListener("error", onReady, { once: true });
+        applyMeta();
+        imgEl.src = url;
+        if (imgEl.complete) onReady();
     });
 }
 
 function stampSceneIdleGifStarts() {
-    document.querySelectorAll(".scene-idle-sprite").forEach(img => {
-        const src = normalizeSpritePath(img.dataset.spriteBase || img.src);
-        if (src.endsWith(".gif")) markSceneIdleGifStart(img);
-    });
+    document.querySelectorAll(".scene-idle-sprite").forEach(initSceneIdleGifTiming);
 }
 
 async function waitSceneGifMs(ms, token) {
     const durationMs = Math.max(0, ms);
-    const step = 50;
-    let elapsed = 0;
-    while (elapsed < durationMs) {
+    if (!durationMs) return;
+    const started = performance.now();
+    while (performance.now() - started < durationMs) {
         if (token !== sceneIdleBattleToken) return;
-        const chunk = Math.min(step, durationMs - elapsed);
-        await delay(chunk);
-        elapsed += chunk;
+        await delay(16);
     }
 }
 
@@ -9068,7 +9095,7 @@ function refreshSceneIdleHeroFighters(heroes) {
         }
         if (sceneIdleFighterBusy.has(`hero-${idx}`)) return;
         applySceneIdleSpriteTransform(img, mon.name, isMirrored, spritePath);
-        setSceneIdleSprite(img, spritePath);
+        setSceneIdleSprite(img, spritePath, false);
     });
 }
 
@@ -9162,11 +9189,6 @@ function sceneIdleShakeHit(defEl) {
     setTimeout(() => defEl.classList.remove("hit-shake"), 300);
 }
 
-async function waitSceneIdleUntil(animStart, targetMs, token) {
-    let remaining = targetMs - (Date.now() - animStart);
-    await waitSceneGifMs(remaining, token);
-}
-
 async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
     if (token !== sceneIdleBattleToken) return;
     const busyKey = `${atkTeam}-${atkIdx}`;
@@ -9185,13 +9207,12 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
         const attackPath = getAttackSpritePath(atkMon.name);
         const idleSprite = getSceneIdleDisplaySprite(atkMon);
         if (attackPath) {
-            await waitSceneIdleLoopBoundary(atkImg, idleSprite, atkMon.name, token);
             if (token !== sceneIdleBattleToken) return;
-            await setSceneIdleSprite(atkImg, attackPath);
+            await setSceneIdleSprite(atkImg, attackPath, true);
             if (token !== sceneIdleBattleToken) return;
-            const animStart = Number(atkImg.dataset.animStart) || Date.now();
+            const animStart = Number(atkImg.dataset.animStart) || performance.now();
             const playMs = getSceneIdleAttackPlayMs(attackPath, atkMon.name);
-            const hitAtMs = getSceneIdleSpriteHitAtMs(attackPath, atkMon.name);
+            const hitAtMs = Math.min(getSceneIdleSpriteHitAtMs(attackPath, atkMon.name), playMs - 16);
             const hitShake = waitSceneIdleUntil(animStart, hitAtMs, token).then(() => {
                 if (token !== sceneIdleBattleToken) return;
                 sceneIdleShakeHit(defEl);
