@@ -8048,6 +8048,17 @@ let xHandle = "";
 let profileActivitySignature = "";
 let profileActivityHandle = "";
 
+/** OAuth session @handle wins over a stale manual link in cloud/local save. */
+function resolveXHandle() {
+    const session = (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn() && MonExAuth.getUsername()) || "";
+    if (session) {
+        xHandle = String(session).replace(/^@/, "").toLowerCase();
+        return xHandle;
+    }
+    xHandle = String(xHandle || "").replace(/^@/, "").toLowerCase();
+    return xHandle;
+}
+
 const PARTY_MAX = 3;
 
 function partyHasSpecies(name, excludeIndex = -1) {
@@ -13078,7 +13089,8 @@ function applyLoadedSave(data) {
     gearInventory = (data.gearInventory || []).map(normalizeGear);
     gearInventorySeedVersion = data.gearInventorySeedVersion ?? 0;
     lastResetDate = data.lastResetDate || null;
-    xHandle = data.xHandle || xHandle || "";
+    xHandle = String(data.xHandle || xHandle || "").replace(/^@/, "").toLowerCase();
+    resolveXHandle();
     loadResourceChestTimestamp(data, false);
     patrolScansUsed = data.patrolScansUsed ?? 0;
     patrolScansDay = data.patrolScansDay || null;
@@ -13112,7 +13124,7 @@ async function loadData() {
                 delay(8000).then(() => null),
             ]);
             if (cloud?.found && cloud.save) cloudData = cloud.save;
-            if (MonExAuth.getUsername()) xHandle = MonExAuth.getUsername();
+            resolveXHandle();
         } catch (_) {}
     }
 
@@ -13165,7 +13177,7 @@ async function loadData() {
         gearInventorySeedVersion = 0;
         lastResetDate = null;
         resourceChestLastCollectAt = Date.now();
-        if (!xHandle && MonExAuth?.getUsername()) xHandle = MonExAuth.getUsername();
+        resolveXHandle();
         saveData();
     }
     checkDailyReset();
@@ -13636,14 +13648,15 @@ function saveXHandle() {
 }
 
 async function syncXWildMons(silent) {
-    if (!xHandle || typeof MonExActivity === "undefined") return 0;
+    const handle = resolveXHandle();
+    if (!handle || typeof MonExActivity === "undefined") return 0;
     if (wildSyncInFlight) return wildSyncInFlight;
 
     wildSyncInFlight = (async () => {
         const statusEl = document.getElementById("profile-pending-text");
         try {
             const boxMax = Number.isFinite(STAGING_BETA_BOX_MAX) ? STAGING_BETA_BOX_MAX : 500;
-            const data = await MonExActivity.syncWild(xHandle, party.length, box.length, PARTY_MAX, boxMax);
+            const data = await MonExActivity.syncWild(handle, party.length, box.length, PARTY_MAX, boxMax);
             const seen = getWildPendingIds();
             let added = 0;
             for (const raw of data.party || []) {
@@ -13680,7 +13693,7 @@ async function syncXWildMons(silent) {
                 } else if (added > 0) {
                     statusEl.textContent = "All X catches synced to Party/Box.";
                 } else {
-                    statusEl.textContent = "Linked as @" + xHandle + " — new X catches appear automatically.";
+                    statusEl.textContent = "Linked as @" + handle + " — new X catches appear automatically.";
                 }
             }
             return added;
@@ -13703,10 +13716,9 @@ function renderProfile() {
     const linked = document.getElementById("profile-x-linked");
     const manual = document.getElementById("profile-x-manual");
     const display = document.getElementById("x-handle-display");
-    const sessionHandle = (typeof MonExAuth !== "undefined" && MonExAuth.getUsername()) || xHandle;
+    const sessionHandle = resolveXHandle();
 
     if (sessionHandle && MonExAuth?.isLoggedIn()) {
-        xHandle = sessionHandle;
         if (linked) linked.style.display = "flex";
         if (manual) manual.style.display = "none";
         if (display) display.textContent = "@" + sessionHandle;
@@ -14378,6 +14390,7 @@ async function runPostLoginBootstrap() {
         adventureForfeitNotice = false;
         alert("Your adventure battle was abandoned. It counts as a defeat — your team was restored to full HP.");
     }
+    resolveXHandle();
     try { await syncXWildMons(true); } catch (_) {}
     updateUI();
 }
@@ -15195,7 +15208,11 @@ window.onload = async function() {
     bindHeaderCurrencyTips();
     window.addEventListener("resize", scheduleRailTabIconNormalize);
     document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState !== "hidden" || !currentUser) return;
+        if (!currentUser) return;
+        if (document.visibilityState === "visible") {
+            syncXWildMons(true).catch(() => {});
+            return;
+        }
         flushSaveToCloud().catch(() => {});
     });
     window.addEventListener("pagehide", () => {
