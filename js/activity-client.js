@@ -646,15 +646,6 @@ function buildActivitySkillIconsHtml(skillsStr) {
     ).join("")}</div>`;
 }
 
-function buildActivitySkillChipsHtml(skillsStr) {
-    const skills = parseActivitySkills(skillsStr);
-    if (!skills.length) return "";
-    return `<div class="activity-mon-skills">${skills.map((s) => {
-        const cls = s.isUlt ? " is-ult" : s.isPassive ? " is-passive" : "";
-        return `<span class="activity-mon-skill-chip${cls}">${escapeActivityHtml(s.label)}</span>`;
-    }).join("")}</div>`;
-}
-
 function buildActivityMonCardHtml(mon, mode) {
     if (!mon) return "";
     const name = getActivityMonDisplayName(mon.name);
@@ -900,6 +891,7 @@ function formatActivityTableRow(entry, rowNum, idx) {
 
 function renderActivityTable(el, data, emptyMsg, opts = {}) {
     if (!el) return;
+    injectActivityUiStyles();
     const entries = data.entries || [];
     const page = data.page || 1;
     const limit = data.limit || 50;
