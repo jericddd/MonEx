@@ -8002,15 +8002,25 @@ const SCENE_IDLE_SPRITE_SCALE = {
 };
 const SCENE_IDLE_SPRITE_SCALE_DEFAULT = 1.0;
 
+const CHOG_SWING1_PATH = "128x128/chog1-swing.gif";
 const CHOG_SWING2_PATH = "128x128/chog-swing2.gif";
 const CHOG_SWING2_VISUAL_SCALE = 1.1;
+/** Swing GIF canvas reads smaller than other mons (+5% on both swing clips). */
+const CHOG_SWING_VISUAL_BOOST = 1.05;
+
+function isChogSwingPath(spritePath) {
+    const key = normalizeSpritePath(spritePath);
+    return key === CHOG_SWING1_PATH || key === CHOG_SWING2_PATH;
+}
 
 function isChogSwing2Path(spritePath) {
     return normalizeSpritePath(spritePath) === CHOG_SWING2_PATH;
 }
 
 function getChogSwingPathScale(spritePath) {
-    return isChogSwing2Path(spritePath) ? CHOG_SWING2_VISUAL_SCALE : 1;
+    if (!isChogSwingPath(spritePath)) return 1;
+    if (isChogSwing2Path(spritePath)) return CHOG_SWING2_VISUAL_SCALE * CHOG_SWING_VISUAL_BOOST;
+    return CHOG_SWING_VISUAL_BOOST;
 }
 
 function getSceneIdleSpriteTransform(monName, mirrored, spritePath) {
@@ -8722,8 +8732,8 @@ const SALMONAD_SWING_SPRITES = [
     "128x128/salmonad-swing2.gif"
 ];
 const CHOG_SWING_SPRITES = [
-    "128x128/chog1-swing.gif",
-    "128x128/chog-swing2.gif"
+    CHOG_SWING1_PATH,
+    CHOG_SWING2_PATH
 ];
 
 function isJohnw(name) {
