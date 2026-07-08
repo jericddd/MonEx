@@ -171,6 +171,17 @@ function injectActivityUiStyles() {
     min-width: 220px;
     vertical-align: middle;
 }
+.wild-log-table td {
+    vertical-align: middle;
+}
+.wild-log-table .col-num,
+.wild-log-table .col-time,
+.wild-log-table .col-user,
+.wild-log-table .col-spend,
+.wild-log-table .col-throws,
+.wild-log-table .col-left {
+    vertical-align: middle;
+}
 .wild-log-mini-cards {
     display: flex;
     flex-wrap: wrap;
@@ -247,6 +258,7 @@ function injectActivityUiStyles() {
 .activity-mon-card--box {
     padding: 8px;
     min-width: 0;
+    overflow: visible;
 }
 .activity-mon-card-chrome {
     display: flex;
@@ -344,6 +356,106 @@ function injectActivityUiStyles() {
     border-color: #6B21A8;
     background: #f3e8ff;
     color: #5b21b6;
+}
+.activity-skills-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 3px;
+    width: 100%;
+    margin-top: 2px;
+}
+.activity-skills-grid .activity-skill-square {
+    width: 100%;
+    aspect-ratio: 1;
+    min-width: 0;
+    border: 2px solid #8b4513;
+    background: linear-gradient(145deg, #a85a2a, #6b3518);
+    box-shadow: 1px 1px 0 #3d2010;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: help;
+    overflow: visible;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.activity-skills-grid .activity-skill-square.skill-ult {
+    background: linear-gradient(145deg, #fde68a, #f59e0b);
+    border-color: #b45309;
+    color: #7c2d12;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.55), 1px 1px 0 #92400e;
+}
+.activity-skills-grid .activity-skill-square.skill-passive {
+    background: linear-gradient(145deg, #94a3b8, #64748b);
+    border-color: #475569;
+    border-style: dashed;
+    color: #f8fafc;
+    box-shadow: 1px 1px 0 #334155;
+}
+.activity-skills-grid .activity-skill-square.skill-active {
+    background: linear-gradient(145deg, #c084fc, #7c3aed);
+    border-color: #6b21a8;
+    box-shadow: 1px 1px 0 #4c1d95;
+}
+.activity-skills-grid .activity-skill-square:hover {
+    transform: scale(1.15);
+    z-index: 20;
+    box-shadow: 2px 2px 0 #4c1d95;
+}
+.activity-skills-grid .activity-skill-square.skill-ult:hover {
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.65), 2px 2px 0 #92400e;
+}
+.activity-skills-grid .activity-skill-square .skill-icon-img {
+    width: 70%;
+    height: 70%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    position: relative;
+    z-index: 1;
+}
+.activity-skills-grid .activity-skill-square .skill-icon-fallback {
+    font-family: "Press Start 2P", monospace;
+    font-size: 7px;
+    line-height: 1;
+    position: relative;
+    z-index: 1;
+}
+.activity-skills-grid .activity-skill-square .skill-tip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a2e;
+    color: #e0e0ff;
+    padding: 7px 10px;
+    font-family: "Lato", system-ui, sans-serif;
+    white-space: normal;
+    width: max-content;
+    max-width: 200px;
+    text-align: left;
+    line-height: 1.35;
+    box-shadow: 3px 3px 0 #6b21a8;
+    border: 2px solid #6b21a8;
+    z-index: 999;
+    pointer-events: none;
+}
+.activity-skills-grid .activity-skill-square:hover .skill-tip {
+    display: block;
+}
+.activity-skills-grid .skill-tip-name {
+    font-family: "Press Start 2P", monospace;
+    font-size: 7px;
+    color: #f5f3ff;
+    margin-bottom: 3px;
+    line-height: 1.4;
+}
+.activity-skills-grid .skill-tip-type {
+    font-family: "Lato", sans-serif;
+    font-size: 9px;
+    color: #c4b5fd;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 .activity-wild-log-grid {
     display: grid;
@@ -450,6 +562,133 @@ function parseActivitySkills(skillsStr) {
         }));
 }
 
+const ACTIVITY_SKILL_ICON_DIR = "game_icons/skill/";
+const ACTIVITY_SKILL_ICON_MAP = {
+    "Slash": "slash.png",
+    "Flame Burst": "flame-burst.png",
+    "Aqua Jet": "aqua-jet.png",
+    "Shock Bolt": "shock-bolt.png",
+    "Rock Throw": "rock-throw.png",
+    "Venom Bite": "venom-bite.png",
+    "Frost Shard": "frost-shard.png",
+    "Gale Slash": "gale-slash.png",
+    "Shadow Strike": "shadow-strike.png",
+    "Psy Beam": "psy-beam.png",
+    "Holy Palm": "holy-palm.png",
+    "Starfall Palm": "starfall-palm.png",
+    "Star Swipe": "star-swipe.png",
+    "Power Fist": "power-fist.png",
+    "Ember Flask": "ember-flask.png",
+    "Star Hammer": "star-hammer.png",
+    "Crushing Hammer": "crushing-hammer.png",
+    "Solar Vortex": "solar-vortex.png",
+    "Flash Burst": "flash-burst.png",
+    "Divine Gaze": "divine-gaze.png",
+    "Force Palm": "force-palm.png",
+    "Radiant Aura": "radiant-aura.png",
+    "Verdant Canopy": "verdant-canopy.png",
+    "Volt Seed": "volt-seed.png",
+    "Divine Pillars": "divine-pillars.png",
+    "Radiant Strike": "radiant-strike.png",
+    "Void Monolith": "void-monolith.png",
+    "Holy Blade": "holy-blade.png",
+    "Arc Lightning": "arc-lightning.png",
+    "Mending Rain": "mending-rain.png",
+    "Spirit Beam": "spirit-beam.png",
+    "Cleanse": "sacred-word.png",
+    "Arcane Blast": "arcane-blast.png",
+    "Mend": "mend.png",
+    "Renew": "renew.png",
+    "Life Bloom": "life-bloom.png",
+    "Tough Hide": "tough-hide.png",
+    "Sharp Claws": "sharp-claws.png",
+    "Critical Instinct": "critical-instinct.png",
+    "Evasive": "evasive.png",
+    "Bulwark": "bulwark.png",
+    "Regenerator": "regenerator.png",
+    "Static Aegis": "static-aegis.png",
+    "Shield Stance": "shield-stance.png",
+    "Storm Guard": "storm-guard.png",
+    "Emerald Ward": "emerald-ward.png",
+    "Iron Will": "iron-will.png",
+    "Mystic Sigil": "mystic-sigil.png",
+    "Eagle Eye": "eagle-eye.png",
+    "Piercing Gaze": "piercing-gaze.png",
+    "Swift Feet": "swift-feet.png",
+};
+const ACTIVITY_SKILL_NAME_KEYS = Object.keys(ACTIVITY_SKILL_ICON_MAP);
+
+function resolveActivitySkillName(shortOrFull) {
+    const s = String(shortOrFull || "").trim();
+    if (!s) return s;
+    if (ACTIVITY_SKILL_ICON_MAP[s]) return s;
+    const lower = s.toLowerCase();
+    const match = ACTIVITY_SKILL_NAME_KEYS.find(
+        (k) => k.toLowerCase() === lower || k.toLowerCase().startsWith(lower)
+    );
+    return match || s;
+}
+
+function parseActivitySkillObjects(skillsStr) {
+    return parseActivitySkills(skillsStr).map((entry) => {
+        if (entry.isUlt) {
+            return { type: "ultimate", name: entry.label.slice(1).trim() };
+        }
+        if (entry.isPassive) {
+            return {
+                type: "passive",
+                name: resolveActivitySkillName(entry.label.slice(2).trim()),
+            };
+        }
+        return { type: "active", name: resolveActivitySkillName(entry.label) };
+    });
+}
+
+function getActivitySkillIconPath(skill) {
+    if (!skill || skill.type === "ultimate") return null;
+    const mapped = ACTIVITY_SKILL_ICON_MAP[skill.name];
+    if (mapped) return ACTIVITY_SKILL_ICON_DIR + mapped;
+    if (skill.type === "passive") return ACTIVITY_SKILL_ICON_DIR + "tough-hide.png";
+    return ACTIVITY_SKILL_ICON_DIR + "slash.png";
+}
+
+function getActivitySkillSquareClass(skill) {
+    if (skill.type === "ultimate") return "skill-ult";
+    if (skill.type === "passive") return "skill-passive";
+    return "skill-active";
+}
+
+function renderActivitySkillIcon(skill) {
+    if (skill.type === "ultimate") return '<span class="skill-icon-fallback">★</span>';
+    const path = getActivitySkillIconPath(skill);
+    const fb = skill.type === "passive" ? "P" : skill.name.substring(0, 2).toUpperCase();
+    if (!path) return `<span class="skill-icon-fallback">${escapeActivityHtml(fb)}</span>`;
+    return `<span class="skill-icon-fallback">${escapeActivityHtml(fb)}</span><img class="skill-icon-img" src="${escapeActivityHtml(path)}" alt="" onerror="this.remove()">`;
+}
+
+function renderActivitySkillTip(skill) {
+    const typeLabel = skill.type === "ultimate"
+        ? "ULTIMATE"
+        : skill.type === "passive"
+            ? "PASSIVE"
+            : "ACTIVE";
+    return `<div class="skill-tip">
+        <div class="skill-tip-name">${escapeActivityHtml(skill.name)}</div>
+        <div class="skill-tip-type">${typeLabel}</div>
+    </div>`;
+}
+
+function buildActivitySkillIconsHtml(skillsStr) {
+    const skills = parseActivitySkillObjects(skillsStr);
+    if (!skills.length) return "";
+    return `<div class="activity-skills-grid">${skills.map((skill) =>
+        `<div class="activity-skill-square ${getActivitySkillSquareClass(skill)}" tabindex="0">
+            ${renderActivitySkillIcon(skill)}
+            ${renderActivitySkillTip(skill)}
+        </div>`
+    ).join("")}</div>`;
+}
+
 function buildActivitySkillChipsHtml(skillsStr) {
     const skills = parseActivitySkills(skillsStr);
     if (!skills.length) return "";
@@ -493,7 +732,7 @@ function buildActivityMonCardHtml(mon, mode) {
             <div class="activity-mon-rarity-row">
                 <span class="activity-mon-rarity ${rarityClass}">${escapeActivityHtml(String(rarity).toUpperCase())}</span>
             </div>
-            ${buildActivitySkillChipsHtml(mon.skills)}
+            ${buildActivitySkillIconsHtml(mon.skills)}
         </div>
     </div>`;
 }
