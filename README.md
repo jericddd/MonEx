@@ -16,4 +16,4 @@ Pushes to `main` run the **Deploy GitHub Pages** workflow when Actions is the Pa
 ## Branches
 
 - `main` — live game (GitHub Pages)
-- `staging` — preview (Cloudflare Pages)
+- `staging` — preview at **https://monex.pages.dev/** (Cloudflare Pages project `monex`)
