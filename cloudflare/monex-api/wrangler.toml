@@ -15,7 +15,8 @@ BOT_USERNAME = "monexmonad"
 STARTING_MONBALLS = "10"
 ENABLE_X_POLL = "1"
 # Set to 1 so @monexmonad replies to valid catch tweets (requires X app Read+Write).
-ENABLE_X_REPLY = "0"
+# wrangler deploy overwrites dashboard plaintext vars — keep this in sync.
+ENABLE_X_REPLY = "1"
 # Max @monexmonad reply tweets per X user per UTC day (catch still logs after limit).
 DAILY_REPLY_LIMIT = "4"
 # Set to 1 for Cloudflare Workers AI replies (falls back to natural templates if unavailable).
