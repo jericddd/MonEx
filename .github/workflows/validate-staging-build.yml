@@ -25,9 +25,13 @@ jobs:
 
       - name: Verify bundle
         run: |
+          test -f staging-dist/index.html
           test -f staging-dist/home.html
           test -f staging-dist/play/index.html
           test -f staging-dist/monanimal_game.html
+          grep -q MARKETPLACE staging-dist/index.html
+          grep -q showcase-panel-body staging-dist/index.html
+          grep -q monex_game_entry staging-dist/play/index.html
           test ! -f staging-dist/CNAME
           test -f staging-dist/js/staging-banner.js
           echo "Staging bundle OK — ready for Cloudflare Pages"
