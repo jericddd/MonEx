@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MonEx — Newbie Guide</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; font-family: 'Lato', system-ui, sans-serif; background: #f8f8f8; color: #111; }
+        .header { background: white; padding: 15px 0; }
+        .header-inner { max-width: 800px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; }
+        .nav-btn { padding: 8px 14px; border: none; background: #fff; color: #111; font-weight: 600; cursor: pointer; font-family: "Press Start 2P", sans-serif; font-size: 11px; }
+        .nav-btn:hover { background: #f0f0f0; }
+        .container { max-width: 800px; margin: 32px auto; padding: 0 24px 48px; }
+        .content-box { background: white; border: 4px solid #6B21A8; box-shadow: 4px 4px 0 #6B21A8; padding: 36px; line-height: 1.7; }
+        h1 { font-family: 'Press Start 2P', monospace; color: #6B21A8; font-size: 18px; margin: 0 0 8px; }
+        h2 { font-family: 'Press Start 2P', monospace; color: #6B21A8; font-size: 12px; margin: 32px 0 12px; }
+        h3 { font-size: 16px; color: #333; margin: 20px 0 8px; }
+        p, li { font-size: 15px; }
+        ol, ul { padding-left: 1.4em; }
+        li { margin-bottom: 8px; }
+        a { color: #6B21A8; font-weight: 600; }
+        .step { border-left: 4px solid #c084fc; padding-left: 16px; margin: 20px 0; }
+        .tip { background: #f3e8ff; border: 2px solid #c084fc; padding: 12px 16px; margin: 16px 0; font-size: 14px; }
+        .muted { color: #666; font-size: 14px; }
+        code { background: #f3e8ff; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-inner">
+        <img src="../logo.png" alt="MonEx" style="height: 40px;">
+        <div>
+            <button class="nav-btn" onclick="window.location.href='/'">HOME</button>
+            <button class="nav-btn" onclick="window.location.href='../docs.html'">DOCS</button>
+            <button class="nav-btn" onclick="window.location.href='/play/'">GAME</button>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="content-box">
+        <h1>Newbie Guide</h1>
+        <p class="muted">Everything you need to start playing MonEx — catch Monanimals on X, build your party, and battle through the Monad office.</p>
+
+        <h2>1. Create your account</h2>
+        <div class="step">
+            <ol>
+                <li>Go to the <a href="/">MonEx home page</a>.</li>
+                <li>Click <b>LOGIN WITH X</b> and sign in with your X account.</li>
+                <li>Click <b>GAME START</b> in the sidebar to enter the game.</li>
+            </ol>
+        </div>
+        <p>Logging in with X saves your progress to the cloud and links your catches to your account.</p>
+
+        <h2>2. Set up your X handle</h2>
+        <div class="step">
+            <ol>
+                <li>In the game, open <b>PROFILE</b> (left rail).</li>
+                <li>On the <b>ACCOUNT</b> tab, enter your X @handle and tap <b>SAVE</b>.</li>
+                <li>Use the same handle you post catches from on X.</li>
+            </ol>
+        </div>
+        <p>Your handle connects wild catches on X to your in-game Party and Box.</p>
+
+        <h2>3. Catch Monanimals on X</h2>
+        <div class="step">
+            <ol>
+                <li>On X, post a tweet like:<br><code>@monexmonad catch 10 monanimals</code></li>
+                <li>Each catch costs <b>1 Monball</b>. Catching 10 Mons uses 10 Monballs.</li>
+                <li>Wait a moment, then open <b>PROFILE → CATCH LOG</b> in the game to see your results.</li>
+                <li>New Mons go to your <b>Party</b> first (up to 3 slots). When the party is full, extras go to your <b>Box</b>.</li>
+            </ol>
+        </div>
+        <div class="tip">
+            <b>Tip:</b> The home page <b>X Wild Log</b> shows live catches from everyone. Click a row to see the full catch breakdown with skills and rarity.
+        </div>
+        <p>You can also tap <b>CATCH ON X</b> in the game for a quick reminder of the tweet format.</p>
+
+        <h2>4. Claim your daily reward</h2>
+        <div class="step">
+            <ol>
+                <li>On the home page, tap the <b>DAILY LOGIN</b> box (right sidebar).</li>
+                <li>You receive <b>1 Monball</b> sent to your in-game <b>MAILBOX</b>.</li>
+                <li>Open the game → <b>MAILBOX</b> (left rail) → claim the reward.</li>
+            </ol>
+        </div>
+        <p>Daily login has a cooldown — come back after the timer resets for your next Monball.</p>
+
+        <h2>5. Know your Party and Box</h2>
+        <ul>
+            <li><b>Party</b> — up to <b>3 Monanimals</b> that fight for you. Open <b>PARTY</b> on the right rail to view or swap members.</li>
+            <li><b>Box</b> — storage for extra Mons. Move Mons between Party and Box anytime.</li>
+            <li>Each species can only appear once in your party at a time.</li>
+        </ul>
+
+        <h2>6. Battle and progress</h2>
+        <h3>Main scene (home base)</h3>
+        <p>Your party idles on the main scene. Tap the <b>resource chest</b> when it shows <b>READY</b> to collect AFK rewards (gold, trainer XP, and more).</p>
+
+        <h3>Battle Hub</h3>
+        <p>Open <b>BATTLE</b> on the right rail to enter the Battle Hub. From there:</p>
+        <ul>
+            <li><b>Adventure</b> — choose <b>Campaign</b> (story chapters and bosses) or <b>Patrol</b> (office scans for gear and loot). Patrol has a daily scan limit.</li>
+            <li><b>House Tower</b> — climb tower floors for tougher fights and rewards.</li>
+            <li><b>Arena</b> and <b>PVP Wager</b> — coming soon. See <a href="whats-coming.html">What's Coming</a> for the Arena betting plan.</li>
+        </ul>
+
+        <h2>7. Grow stronger</h2>
+        <ul>
+            <li><b>Shop</b> — buy Monballs, materials, and items with <b>Gold</b> or <b>KB's Onion</b> (essence).</li>
+            <li><b>Armory</b> — equip, enhance, and synthesize gear for your Mons.</li>
+            <li><b>Inventory</b> — view materials, shards, and items.</li>
+            <li><b>Daily Quest</b> — complete daily, weekly, and campaign tasks for bonus rewards and milestone chests.</li>
+            <li><b>Trainer level</b> — gain trainer XP from battles and quests to unlock stronger progression.</li>
+        </ul>
+
+        <h2>8. Rarity and skills</h2>
+        <p>Every Monanimal has a rarity tier:</p>
+        <ul>
+            <li><b>Common</b> → <b>Uncommon</b> → <b>Rare</b> → <b>Legendary</b> → <b>Mythic</b></li>
+        </ul>
+        <p>Higher rarity means better stats and more skills. Hover skill icons in battle or the Wild Log to see what each skill does.</p>
+
+        <h2>Quick reference</h2>
+        <table style="width:100%; border-collapse:collapse; font-size:14px; margin-top:12px;">
+            <tr style="border-bottom:2px solid #e9d5ff;"><th style="text-align:left; padding:8px;">Action</th><th style="text-align:left; padding:8px;">Where</th></tr>
+            <tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">Catch on X</td><td style="padding:8px;">Tweet <code>@monexmonad catch N monanimals</code></td></tr>
+            <tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">View catches</td><td style="padding:8px;">Profile → Catch Log, or home X Wild Log</td></tr>
+            <tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">Daily Monball</td><td style="padding:8px;">Home → Daily Login → Mailbox in game</td></tr>
+            <tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">Story battles</td><td style="padding:8px;">Battle → Adventure → Campaign</td></tr>
+            <tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">Farm gear</td><td style="padding:8px;">Battle → Adventure → Patrol</td></tr>
+            <tr><td style="padding:8px;">Quest rewards</td><td style="padding:8px;">Left rail → Daily Quest</td></tr>
+        </table>
+
+        <p style="margin-top:32px;"><a href="../docs.html">← Back to Docs</a> · <a href="whats-coming.html">What's Coming →</a></p>
+    </div>
+</div>
+
+</body>
+</html>
