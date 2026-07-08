@@ -78,8 +78,15 @@ npx wrangler kv namespace create MONEX_KV</pre>
 
     <div class="step">
         <h2>6. GitHub Pages (free game site)</h2>
-        <p>Repo → Settings → Pages → branch <code>main</code> → folder <code>/ (root)</code></p>
-        <p>Site: <code>https://jericddd.github.io/MonEx/home.html</code></p>
+        <p><b>If the site shows 404</b> (common after toggling the repo private → public):</p>
+        <ol>
+            <li>Repo → <b>Settings</b> → <b>Pages</b></li>
+            <li><b>Build and deployment</b> → Source: <b>GitHub Actions</b> <i>or</i> Deploy from branch <code>main</code> → <code>/ (root)</code></li>
+            <li><b>Custom domain</b>: <code>monexmonad.xyz</code> (matches <code>CNAME</code> in repo) → Save</li>
+            <li>Wait 1–2 min, then open <a href="https://monexmonad.xyz/">monexmonad.xyz</a></li>
+        </ol>
+        <p>Pushes to <code>main</code> run the <b>Deploy GitHub Pages</b> workflow when Actions is the source.</p>
+        <p>Site: <code>https://monexmonad.xyz/</code> (redirects to <code>home.html</code>)</p>
     </div>
 
     <div class="step">
