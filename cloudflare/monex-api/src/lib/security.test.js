@@ -5,6 +5,7 @@ import {
   sanitizeReturnTo,
   isAllowedOrigin,
   isStagingOrigin,
+  resolveFrontendOrigin,
   simulateAllowed,
 } from "./security.js";
 import { devAuthAllowed, stagingDevAuthEnabled } from "./auth.js";
@@ -40,14 +41,21 @@ describe("security helpers", () => {
   });
 
   it("isStagingOrigin detects preview hosts only", () => {
-    assert.equal(isStagingOrigin("https://monex-staging.pages.dev"), true);
+    assert.equal(isStagingOrigin("https://monex.pages.dev"), true);
     assert.equal(isStagingOrigin("http://localhost:3000"), true);
     assert.equal(isStagingOrigin("https://monexmonad.xyz"), false);
   });
 
+  it("resolveFrontendOrigin allows staging and rejects unknown hosts", () => {
+    const env = { FRONTEND_ORIGIN: "https://monexmonad.xyz" };
+    assert.equal(resolveFrontendOrigin(env, "https://monex.pages.dev"), "https://monex.pages.dev");
+    assert.equal(resolveFrontendOrigin(env, "https://evil.com"), "https://monexmonad.xyz");
+    assert.equal(resolveFrontendOrigin(env, null), "https://monexmonad.xyz");
+  });
+
   it("devAuthAllowed gates staging dev login by Origin", () => {
     const env = { ENABLE_STAGING_DEV_AUTH: "1" };
-    const stagingReq = { headers: { get: (k) => (k === "Origin" ? "https://monex-staging.pages.dev" : null) } };
+    const stagingReq = { headers: { get: (k) => (k === "Origin" ? "https://monex.pages.dev" : null) } };
     const liveReq = { headers: { get: (k) => (k === "Origin" ? "https://monexmonad.xyz" : null) } };
     assert.equal(devAuthAllowed(env), true);
     assert.equal(devAuthAllowed(env, stagingReq), true);

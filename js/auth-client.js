@@ -101,7 +101,11 @@ async function fetchMe() {
 async function startXLogin(returnTo) {
   const base = getApiBase();
   const path = returnTo || "/";
-  window.location.href = `${base}/api/auth/x?returnTo=${encodeURIComponent(path)}`;
+  const params = new URLSearchParams({
+    returnTo: path,
+    frontendOrigin: window.location.origin,
+  });
+  window.location.href = `${base}/api/auth/x?${params}`;
 }
 
 async function devLogin(username) {

@@ -38,6 +38,14 @@ function parseExtraOrigins(env) {
     .filter(Boolean);
 }
 
+export function resolveFrontendOrigin(env, candidate) {
+  const fallback = (env.FRONTEND_ORIGIN || "https://monexmonad.xyz").replace(/\/$/, "");
+  if (!candidate || typeof candidate !== "string") return fallback;
+  const origin = candidate.trim().replace(/\/$/, "");
+  if (!origin.startsWith("https://") && !origin.startsWith("http://")) return fallback;
+  return isAllowedOrigin(origin, env) ? origin : fallback;
+}
+
 export function isStagingOrigin(origin) {
   if (!origin) return false;
   try {

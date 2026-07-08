@@ -44,6 +44,7 @@ import {
   buildCorsHeaders,
   enforceRateLimit,
   sanitizeReturnTo,
+  resolveFrontendOrigin,
   simulateAllowed,
   timingSafeEqual,
 } from "./lib/security.js";
@@ -372,7 +373,8 @@ async function handleRequest(request, env) {
       }
       await enforceRateLimit(request, env, "auth-x", { limit: 30, windowSec: 60 });
       const returnTo = sanitizeReturnTo(url.searchParams.get("returnTo") || "/");
-      const authorizeUrl = await buildXAuthorizeUrl(env, env.MONEX_KV, returnTo);
+      const frontendOrigin = resolveFrontendOrigin(env, url.searchParams.get("frontendOrigin"));
+      const authorizeUrl = await buildXAuthorizeUrl(env, env.MONEX_KV, returnTo, frontendOrigin);
       return Response.redirect(authorizeUrl, 302);
     }
 
@@ -380,18 +382,20 @@ async function handleRequest(request, env) {
       const code = url.searchParams.get("code");
       const state = url.searchParams.get("state");
       const oauthErr = url.searchParams.get("error");
-      const frontend = env.FRONTEND_ORIGIN || "https://monexmonad.xyz";
+      const defaultFrontend = resolveFrontendOrigin(env, null);
 
       if (oauthErr || !code || !state) {
-        const dest = `${frontend}/?auth_error=${encodeURIComponent(oauthErr || "denied")}`;
+        const dest = `${defaultFrontend}/?auth_error=${encodeURIComponent(oauthErr || "denied")}`;
         return Response.redirect(dest, 302);
       }
 
       const pending = await consumeOAuthState(env.MONEX_KV, state);
       if (!pending) {
-        const dest = `${frontend}/?auth_error=expired_state`;
+        const dest = `${defaultFrontend}/?auth_error=expired_state`;
         return Response.redirect(dest, 302);
       }
+
+      const frontend = resolveFrontendOrigin(env, pending.frontendOrigin);
 
       const tokenData = await exchangeXCode(env, code, pending.codeVerifier);
       const xUser = await fetchXUser(tokenData.access_token);

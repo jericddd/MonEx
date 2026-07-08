@@ -47,11 +47,11 @@ function oauthStateKey(state) {
   return `monex:oauth:${state}`;
 }
 
-export async function createOAuthState(kv, { codeVerifier, returnTo }) {
+export async function createOAuthState(kv, { codeVerifier, returnTo, frontendOrigin }) {
   const state = randomToken(16);
   await kv.put(
     oauthStateKey(state),
-    JSON.stringify({ codeVerifier, returnTo, createdAt: Date.now() }),
+    JSON.stringify({ codeVerifier, returnTo, frontendOrigin, createdAt: Date.now() }),
     { expirationTtl: OAUTH_STATE_TTL_SEC }
   );
   return state;
@@ -65,10 +65,10 @@ export async function consumeOAuthState(kv, state) {
   return JSON.parse(raw);
 }
 
-export async function buildXAuthorizeUrl(env, kv, returnTo) {
+export async function buildXAuthorizeUrl(env, kv, returnTo, frontendOrigin) {
   const codeVerifier = base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)));
   const codeChallenge = await sha256Base64Url(codeVerifier);
-  const state = await createOAuthState(kv, { codeVerifier, returnTo });
+  const state = await createOAuthState(kv, { codeVerifier, returnTo, frontendOrigin });
   const redirectUri = env.X_REDIRECT_URI || `${new URL(env.WORKER_ORIGIN || "https://monex-api.0xjericd.workers.dev").origin}/api/auth/callback`;
 
   const params = new URLSearchParams({
