@@ -59,7 +59,7 @@ test("last reply warns catches still work", () => {
     repliesLeftAfter: 0,
     dailyLimit: 4,
   });
-  assert.ok(text.includes("last @ reply today") || text.includes("no @ replies left today"));
+  assert.ok(text.includes("out of @ replies for today (4/4)") || text.includes("daily @ reply cap hit (4/4)") || text.includes("no @ replies left today (4/4)"));
   assert.ok(/catch commands still work|can still catch|catches still run/i.test(text));
   assert.ok(text.includes("Profile → X log"));
 });
@@ -79,6 +79,22 @@ test("daily limit notice variants mention catch command", () => {
     assert.ok(/catch/i.test(text));
     assert.ok(text.length <= 280);
   }
+});
+
+test("fourth reply embeds daily cap notice", () => {
+  const results = [{ escaped: false, mon: { name: "Chog", rarity: "Rare" } }];
+  const text = buildNaturalCatchReply({
+    username: "jeric",
+    monballSpend: 10,
+    results,
+    monballsLeft: 0,
+    seed: 0,
+    repliesLeftAfter: 0,
+    dailyLimit: 4,
+  });
+  assert.ok(/\(4\/4\)/.test(text));
+  assert.ok(/catch commands still work|can still catch|catches still run/i.test(text));
+  assert.ok(/tag @monexmonad catch|keep using catch|tag catch anytime/i.test(text));
 });
 
 test("reply seed is stable per tweet", () => {

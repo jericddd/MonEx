@@ -192,6 +192,9 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
             try {
               await postReply(env, replyText, tweet.id);
               recordReplySent(replyUser);
+              if (repliesLeftAfter <= 0) {
+                replyUser.limitNoticeDay = new Date().toISOString().slice(0, 10);
+              }
               status.replies += 1;
             } catch (err) {
               status.replyErrors = status.replyErrors || [];
