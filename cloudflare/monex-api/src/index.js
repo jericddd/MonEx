@@ -49,6 +49,7 @@ import {
 } from "./lib/security.js";
 import { buildMentionReplyText } from "./lib/mention-reply.js";
 import { buildDailyLimitNoticeReply, getReplySeed } from "./lib/natural-reply.js";
+import { claimDailyLoginReward, claimMailboxItem, getDailyLoginStatus } from "./lib/mailbox.js";
 
 const API_CODE_VERSION = "fetch-oauth-v1";
 
@@ -571,6 +572,42 @@ async function handleRequest(request, env) {
       await enforceRateLimit(request, env, "simulate", { limit: 30, windowSec: 60 });
       const body = await request.json();
       return handleSimulate(body, env, request);
+    }
+
+    if (path === "/api/daily-login/status" && request.method === "GET") {
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      const { save } = await loadCloudSave(env.MONEX_KV, auth.session.xUserId);
+      const status = getDailyLoginStatus(save);
+      return json({ ok: true, ...status }, 200, request, env);
+    }
+
+    if (path === "/api/daily-login/claim" && request.method === "POST") {
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      await enforceRateLimit(request, env, "daily-login", { limit: 20, windowSec: 60 });
+      try {
+        const result = await claimDailyLoginReward(env.MONEX_KV, auth.session);
+        const status = result.ok ? 200 : result.error === "cooldown" ? 429 : 400;
+        return json(result, status, request, env);
+      } catch (err) {
+        return json({ ok: false, error: err.message || "claim failed" }, 500, request, env);
+      }
+    }
+
+    if (path === "/api/mailbox/claim" && request.method === "POST") {
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      await enforceRateLimit(request, env, "mailbox-claim", { limit: 60, windowSec: 60 });
+      const body = await request.json().catch(() => ({}));
+      const mailId = body?.mailId || body?.id || "";
+      try {
+        const result = await claimMailboxItem(env.MONEX_KV, auth.session, mailId);
+        const status = result.ok ? 200 : 404;
+        return json(result, status, request, env);
+      } catch (err) {
+        return json({ ok: false, error: err.message || "claim failed" }, 500, request, env);
+      }
     }
 
     if (path === "/api/admin/reset" && request.method === "POST") {

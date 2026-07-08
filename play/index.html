@@ -487,6 +487,7 @@ button.green:hover {
 #modal-inventory .game-modal-panel,
 #modal-profile .game-modal-panel,
 #modal-daily-quest .game-modal-panel,
+#modal-mailbox .game-modal-panel,
 #modal-party-switch .game-modal-panel {
     width: min(920px, 96vw);
     max-width: min(920px, 96vw);
@@ -507,6 +508,7 @@ button.green:hover {
 #modal-inventory .game-modal-header,
 #modal-profile .game-modal-header,
 #modal-daily-quest .game-modal-header,
+#modal-mailbox .game-modal-header,
 #modal-party-switch .game-modal-header {
     display: none;
 }
@@ -517,6 +519,7 @@ button.green:hover {
 #modal-inventory .game-modal-body,
 #modal-profile .game-modal-body,
 #modal-daily-quest .game-modal-body,
+#modal-mailbox .game-modal-body,
 #modal-party-switch .game-modal-body {
     padding: 0;
 }
@@ -1841,6 +1844,73 @@ button.green:hover {
     margin: 0 0 12px;
     max-height: 100px;
     overflow-y: auto;
+}
+
+.mailbox-hub-content {
+    padding: 12px 14px 16px;
+    min-height: 200px;
+}
+.mailbox-empty {
+    color: #888;
+    font-size: 12px;
+    text-align: center;
+    padding: 24px 12px;
+}
+.mailbox-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 10px;
+    border-bottom: 2px solid #e9d5ff;
+    font-size: 12px;
+}
+.mailbox-item:last-child { border-bottom: none; }
+.mailbox-item.claimed { opacity: 0.55; }
+.mailbox-item-title {
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 9px;
+    color: #6B21A8;
+    margin: 0 0 6px 0;
+}
+.mailbox-item-body { margin: 0; color: #444; font-size: 11px; }
+.mailbox-item-meta { font-size: 9px; color: #888; margin-top: 4px; }
+.mailbox-claim-btn {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    border: 2px solid #6B21A8;
+    background: #fff;
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 8px;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 #6B21A8;
+}
+.mailbox-claim-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+    box-shadow: none;
+}
+.rail-mail-badge {
+    display: none;
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 9px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    z-index: 3;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+    pointer-events: none;
+}
+#rail-mailbox img {
+    --rail-icon-scale: 0.92;
 }
 
 /* ===== Equipment (Phase 3) ===== */
@@ -6973,6 +7043,11 @@ body.afk-layout .currency-pill .currency-tip {
             <img src="game_icons/button%20tabs/monball.png?v=5" alt="">
             <span class="rail-tip">BUY BALL ($MONEX soon)</span>
         </button>
+        <button type="button" class="side-icon-btn" id="rail-mailbox" onclick="openGameModal('mailbox')">
+            <span class="rail-mail-badge" id="rail-mailbox-badge" aria-hidden="true">0</span>
+            <img src="game_icons/mailbox.png?v=1" alt="">
+            <span class="rail-tip">MAILBOX</span>
+        </button>
         <button type="button" class="side-icon-btn" id="rail-profile" onclick="goToProfile()">
             <img src="game_icons/button%20tabs/profile.png?v=5" alt="">
             <span class="rail-tip">PROFILE</span>
@@ -7174,6 +7249,22 @@ body.afk-layout .currency-pill .currency-tip {
     </div>
 </div>
 
+<!-- Mailbox modal -->
+<div id="modal-mailbox" class="game-modal" onclick="if(event.target===this)closeGameModal('mailbox')">
+    <div class="game-modal-panel" onclick="event.stopPropagation()">
+        <div class="game-modal-header">
+            <h2>MAILBOX</h2>
+            <button type="button" class="game-modal-close" onclick="closeGameModal('mailbox')">×</button>
+        </div>
+        <div class="game-modal-body">
+            <div class="hub-frame">
+                <button type="button" class="hub-close-btn" onclick="closeGameModal('mailbox')" aria-label="Close mailbox">×</button>
+                <div id="mailbox-content" class="mailbox-hub-content hub-scrollbar-panel"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Profile modal -->
 <div id="modal-profile" class="game-modal" onclick="if(event.target===this)closeGameModal('profile')">
     <div class="game-modal-panel game-modal-wide" onclick="event.stopPropagation()">
@@ -7225,6 +7316,7 @@ body.afk-layout .currency-pill .currency-tip {
 <script src="js/escape-html.js"></script>
 <script src="js/activity-client.js"></script>
 <script src="js/auth-client.js"></script>
+<script src="js/mailbox-client.js"></script>
 <script>
 // =====================================================
 // MONEX - CLEAN ORGANIZED STRUCTURE
@@ -8239,6 +8331,8 @@ function defaultQuestState() {
 }
 
 let questState = defaultQuestState();
+let mailbox = [];
+let dailyLoginLastClaimAt = null;
 
 function normalizeQuestState(loaded) {
     const base = defaultQuestState();
@@ -13092,6 +13186,8 @@ function buildSavePayload() {
         resourceChestLastCollectAt,
         patrolScansUsed, patrolScansDay,
         questState,
+        mailbox,
+        dailyLoginLastClaimAt,
         saveVersion: 2,
         updatedAt: new Date().toISOString(),
     };
@@ -13166,6 +13262,8 @@ function applyLoadedSave(data) {
     ensurePatrolDailyReset();
     questState = normalizeQuestState(data.questState);
     ensureQuestResets();
+    mailbox = Array.isArray(data.mailbox) ? data.mailbox : [];
+    dailyLoginLastClaimAt = data.dailyLoginLastClaimAt || null;
 
     [...party, ...box].forEach((mon) => {
         try {
@@ -13264,6 +13362,7 @@ function updateUI() {
         document.getElementById("gold-count").innerText = money;
         document.getElementById("essence-count").innerText = essence;
         document.getElementById("shard-count").innerText = monShards;
+        updateMailboxBadge();
 
         const tInfo = getTrainerLevelInfo(trainerXp);
         const best = globalProgressToChapterStage(adventureGlobalBest);
@@ -14591,11 +14690,89 @@ function readCachedUserFallback() {
     }
 }
 
+// ==================== MAILBOX ====================
+function getUnclaimedMailboxCount() {
+    return (mailbox || []).filter((m) => m && !m.claimedAt).length;
+}
+
+function updateMailboxBadge() {
+    const badge = document.getElementById("rail-mailbox-badge");
+    if (!badge) return;
+    const n = getUnclaimedMailboxCount();
+    badge.textContent = n > 9 ? "9+" : String(n);
+    badge.style.display = n > 0 ? "block" : "none";
+}
+
+function formatMailboxDate(iso) {
+    if (!iso) return "";
+    try {
+        return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    } catch {
+        return "";
+    }
+}
+
+function renderMailbox() {
+    const el = document.getElementById("mailbox-content");
+    if (!el) return;
+    const items = [...(mailbox || [])].sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0));
+    if (!items.length) {
+        el.innerHTML = '<p class="mailbox-empty">No mail yet. Claim Daily Login on the homepage to receive rewards here.</p>';
+        return;
+    }
+    el.innerHTML = items.map((item) => {
+        const claimed = !!item.claimedAt;
+        const reward = item.type === "monballs"
+            ? `${item.amount || 1} Monball${(item.amount || 1) > 1 ? "s" : ""}`
+            : (item.title || "Reward");
+        const safeTitle = typeof escapeHtml === "function" ? escapeHtml(item.title || "Mail") : (item.title || "Mail");
+        const safeBody = typeof escapeHtml === "function" ? escapeHtml(item.body || reward) : (item.body || reward);
+        const btn = claimed
+            ? '<button type="button" class="mailbox-claim-btn" disabled>CLAIMED</button>'
+            : `<button type="button" class="mailbox-claim-btn" onclick="claimMailboxReward('${String(item.id).replace(/'/g, "\\'")}')">CLAIM</button>`;
+        return `<div class="mailbox-item${claimed ? " claimed" : ""}">
+            <div>
+                <p class="mailbox-item-title">${safeTitle}</p>
+                <p class="mailbox-item-body">${safeBody}</p>
+                <p class="mailbox-item-meta">${claimed ? "Claimed " + formatMailboxDate(item.claimedAt) : "Received " + formatMailboxDate(item.createdAt)}</p>
+            </div>
+            ${btn}
+        </div>`;
+    }).join("");
+}
+
+async function claimMailboxReward(mailId) {
+    if (!mailId) return;
+    if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
+        alert("Login required to claim mail.");
+        return;
+    }
+    try {
+        const result = await MonExMailbox.claimMailboxMail(mailId);
+        if (result.save) {
+            applyLoadedSave(result.save);
+            writeLocalSave(result.save);
+        } else {
+            const item = (mailbox || []).find((m) => m.id === mailId);
+            if (item) {
+                item.claimedAt = new Date().toISOString();
+                if (item.type === "monballs") monballs += item.amount || 1;
+            }
+            saveData();
+        }
+        renderMailbox();
+        updateUI();
+    } catch (e) {
+        alert(e.message || "Could not claim mail.");
+    }
+}
+
 // ==================== AFK NAVIGATION ====================
 const RAIL_TAB_BY_MODAL = {
     "daily-quest": "rail-daily-quest",
     shop: "rail-shop",
     armory: "rail-armory",
+    mailbox: "rail-mailbox",
     profile: "rail-profile",
     party: "rail-party",
     box: "rail-box",
@@ -14672,6 +14849,7 @@ function openGameModal(name) {
         ensureQuestResets();
         renderDailyQuest();
     }
+    if (name === "mailbox") renderMailbox();
     syncActiveRailTab();
 }
 

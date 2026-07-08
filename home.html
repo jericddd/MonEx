@@ -473,6 +473,20 @@
         border-radius: 4px;
         box-shadow: 0 4px 12px rgba(29, 161, 242, 0.4);
     }
+    .side-box-clickable {
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .side-box-clickable:hover {
+        transform: translateY(-2px);
+        box-shadow: 6px 6px 0px #6B21A8;
+    }
+    .daily-login-sub {
+        font-size: 11px;
+        color: #6B21A8;
+        font-weight: 700;
+        margin-top: 8px;
+    }
     @keyframes blink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.3; }
@@ -553,9 +567,10 @@
                 <span id="status-text" style="color: #22c55e;">Online</span>
             </div>
         </div>
-        <div class="side-box">
+        <div class="side-box side-box-clickable" id="daily-login-box" onclick="handleDailyLoginClick()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();handleDailyLoginClick();}">
             <h2>DAILY LOGIN</h2>
-            <p>Claim your daily reward!</p>
+            <p id="daily-login-text">Claim your daily reward!</p>
+            <p id="daily-login-status" class="daily-login-sub"></p>
         </div>
     </div>
 </div>
@@ -620,6 +635,7 @@ startAutoPlay();
 <script src="js/escape-html.js?v=20260708b"></script>
 <script src="js/activity-client.js?v=20260708b"></script>
 <script src="js/auth-client.js?v=20260708b"></script>
+<script src="js/mailbox-client.js?v=20260708a"></script>
 <script>
 // Dynamic Header Logic
 async function updateHeader() {
@@ -659,6 +675,7 @@ async function updateHeader() {
             <button class="nav-btn" onclick="logout()">LOGOUT</button>
         `;
     }
+    refreshDailyLoginPanel();
 }
 
 async function stagingTestLogin() {
@@ -699,6 +716,54 @@ async function handleGameStart() {
         return;
     }
     openGameEntry();
+}
+
+async function refreshDailyLoginPanel() {
+    const statusEl = document.getElementById("daily-login-status");
+    const textEl = document.getElementById("daily-login-text");
+    if (!statusEl || !textEl) return;
+    if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
+        textEl.textContent = "Claim your daily reward!";
+        statusEl.textContent = "Login required";
+        return;
+    }
+    try {
+        const s = await MonExMailbox.fetchDailyLoginStatus();
+        if (s.ready) {
+            textEl.textContent = "Tap to claim 1 Monball!";
+            statusEl.textContent = s.unclaimed
+                ? `${s.unclaimed} reward${s.unclaimed === 1 ? "" : "s"} in Mailbox`
+                : "Reward goes to your Mailbox";
+        } else {
+            textEl.textContent = "Come back later";
+            statusEl.textContent = `Next claim in ${MonExMailbox.formatCooldownRemaining(s.nextClaimAt)}`;
+        }
+    } catch (_) {
+        statusEl.textContent = "";
+    }
+}
+
+async function handleDailyLoginClick() {
+    if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
+        showCustomModal("Please login with X first");
+        return;
+    }
+    try {
+        const result = await MonExMailbox.claimDailyLogin();
+        if (!result.ok) {
+            if (result.error === "cooldown") {
+                showCustomModal(`Daily reward on cooldown. Try again in ${MonExMailbox.formatCooldownRemaining(result.nextClaimAt)}.`);
+            } else {
+                showCustomModal(result.error || "Could not claim daily reward");
+            }
+            refreshDailyLoginPanel();
+            return;
+        }
+        showCustomModal("1 Monball sent to your Mailbox! Open the game and tap Mailbox to collect.");
+        refreshDailyLoginPanel();
+    } catch (e) {
+        showCustomModal(e.message || "Claim failed");
+    }
 }
 
 function openMarketplaceNotice() {
