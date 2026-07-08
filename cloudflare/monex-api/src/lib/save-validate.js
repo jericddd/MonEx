@@ -2,11 +2,17 @@
 
 export const MONANIMAL_NAMES = new Set([
   "Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal",
-  "Monavara", "Moncock", "Mondigrade", "Montiger", "Mosferatu", "Moxy", "Shramp",
+  "Monavara", "Moncock", "Mondigrade", "Montiger", "Mosferatu", "Monhorse", "Shramp",
   "Spidermon", "Moyaki",
 ]);
 
 export const REMOVED_MONANIMAL_NAMES = new Set(["Mopo"]);
+
+const MONANIMAL_LEGACY_RENAMES = { Moxy: "Monhorse" };
+
+function canonicalMonanimalName(name) {
+  return MONANIMAL_LEGACY_RENAMES[name] || name;
+}
 
 export const RARITY_ORDER = ["Common", "Uncommon", "Rare", "Legendary", "Mythic"];
 
@@ -279,7 +285,8 @@ function sanitizeEquipment(raw) {
 
 export function sanitizeMon(raw) {
   if (!raw || typeof raw !== "object") return null;
-  const name = trimString(raw.name, 48);
+  let name = trimString(raw.name, 48);
+  name = canonicalMonanimalName(name);
   if (!name || !MONANIMAL_NAMES.has(name) || REMOVED_MONANIMAL_NAMES.has(name)) return null;
 
   const rarity = RARITY_ORDER.includes(raw.rarity) ? raw.rarity : "Common";

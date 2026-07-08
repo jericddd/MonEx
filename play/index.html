@@ -7359,8 +7359,9 @@ function bindHoverFloatTips(root) {
     });
 }
 
-const MONANIMAL_NAMES = ["Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal", "Monavara", "Moncock", "Mondigrade", "Montiger", "Mosferatu", "Moxy", "Shramp", "Spidermon", "Moyaki"];
+const MONANIMAL_NAMES = ["Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal", "Monavara", "Moncock", "Mondigrade", "Montiger", "Mosferatu", "Monhorse", "Shramp", "Spidermon", "Moyaki"];
 const REMOVED_MONANIMAL_NAMES = new Set(["Mopo"]);
+const MONANIMAL_RENAME_MAP = { Moxy: "Monhorse" };
 // Fixed house per species — every monanimal belongs to exactly one house.
 const SPECIES_HOUSE = {
     Chog: "chog",
@@ -7377,7 +7378,7 @@ const SPECIES_HOUSE = {
     Moyaki: "moyaki",
     Salmonad: "moyaki",
     Moncock: "moyaki",
-    Moxy: "moyaki",
+    Monhorse: "moyaki",
     Larvanad: "moyaki",
     Mosferatu: "moyaki",
 };
@@ -7399,7 +7400,7 @@ const SPRITE_MAP = {
     "Salmonad": "128x128/salmonad.png", "Anago": "128x128/anago.png", "Larvanad": "128x128/larvanad.png",
     "Lyraffe": "128x128/lyraffe.png", "Mokadal": "128x128/mokadal.png", "Monavara": "128x128/monavara.png",
     "Moncock": "128x128/moncock.png", "Mondigrade": "128x128/mondigrade.png", "Montiger": "128x128/montiger.png",
-    "Mosferatu": "128x128/mosferatu.png", "Moxy": "128x128/moxy.png",
+    "Mosferatu": "128x128/mosferatu.png", "Monhorse": "128x128/monhorse.png",
     "Shramp": "128x128/shramp.png", "Spidermon": "128x128/spidermon.png", "Moyaki": "128x128/moyaki.png",
     "Johnw": "128x128/johnw.png"
 };
@@ -7596,7 +7597,7 @@ const SPECIES_ULTIMATE = {
         multiHit: [0.55, 0.55, 0.55, 0.55],
         stunPerHit: 0.15,
     },
-    "Moxy": {
+    "Monhorse": {
         name: "Shock Nova", element: "electric", power: 2.1,
         desc: "Lightning nova. +20% SPD for 2 turns.",
         selfBuff: { id: "shockswift", turns: 2, statMods: { spdPct: 0.20 } },
@@ -7642,7 +7643,7 @@ const SPECIES_STAT_PROFILE = {
     Mondigrade: { specialty: "block",  bias: { spd: 0.20, crit: 0.40, dodge: 0.25, block: 0.96, hit: 0.45, pierce: 0.35 } },
     Montiger:   { specialty: "crit",   bias: { spd: 0.65, crit: 0.95, dodge: 0.35, block: 0.25, hit: 0.70, pierce: 0.55 } },
     Mosferatu:  { specialty: "dodge",  bias: { spd: 0.50, crit: 0.55, dodge: 0.92, block: 0.35, hit: 0.45, pierce: 0.40 } },
-    Moxy:       { specialty: "spd",    bias: { spd: 0.90, crit: 0.55, dodge: 0.50, block: 0.25, hit: 0.60, pierce: 0.50 } },
+    Monhorse:       { specialty: "spd",    bias: { spd: 0.90, crit: 0.55, dodge: 0.50, block: 0.25, hit: 0.60, pierce: 0.50 } },
     Shramp:     { specialty: "block",  bias: { spd: 0.35, crit: 0.35, dodge: 0.45, block: 0.88, hit: 0.50, pierce: 0.30 } },
     Spidermon:  { specialty: "dodge",  bias: { spd: 0.55, crit: 0.45, dodge: 0.94, block: 0.30, hit: 0.50, pierce: 0.45 } },
     Moyaki:     { specialty: "hit",    bias: { spd: 0.50, crit: 0.70, dodge: 0.35, block: 0.30, hit: 0.90, pierce: 0.50 } },
@@ -9719,7 +9720,7 @@ const SPRITE_NATURAL_FACING = {
     Mondigrade: "right",
     Montiger: "right",
     Mosferatu: "right",
-    Moxy: "right",
+    Monhorse: "right",
     Shramp: "left",
     Spidermon: "left",
     Moyaki: "left",
@@ -13174,6 +13175,7 @@ function applyLoadedSave(data) {
             });
         } catch (e) { console.error("Skipped invalid mon on load:", e); }
     });
+    migrateMonanimalRenames();
     purgeRemovedMonanimalsFromSave();
     if (dedupePartySpecies()) saveData();
     migrateAllGear();
@@ -14218,6 +14220,20 @@ function replaceRemovedMon(mon, index) {
     replacement.current_hp = Math.max(1, Math.min(replacement.max_hp, Math.ceil(replacement.max_hp * hpPct)));
     if (mon?.equipment) replacement.equipment = { ...mon.equipment };
     return replacement;
+}
+
+function migrateMonanimalRenames() {
+    let changed = false;
+    const rename = (mon) => {
+        const next = MONANIMAL_RENAME_MAP[mon?.name];
+        if (next) {
+            mon.name = next;
+            changed = true;
+        }
+    };
+    party.forEach(rename);
+    box.forEach(rename);
+    if (changed) saveData();
 }
 
 function purgeRemovedMonanimalsFromSave() {
