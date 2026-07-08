@@ -186,7 +186,16 @@ function injectActivityUiStyles() {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    align-items: stretch;
+    align-items: center;
+}
+.wild-log-table .col-mons .activity-mon-card--mini {
+    flex-shrink: 0;
+}
+.wild-log-table .col-mons .activity-mon-card--mini img {
+    max-width: 34px;
+    max-height: 34px;
+    width: 34px;
+    height: 34px;
 }
 .wild-log-mini-more {
     display: inline-flex;
@@ -329,16 +338,18 @@ function injectActivityUiStyles() {
 .activity-mon-rarity.rarity-mythic,
 .activity-mon-card--mini .activity-mon-rarity.rarity-mythic { background: #9f1239; }
 .activity-skills-grid {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 3px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
     width: 100%;
-    margin-top: 2px;
+    margin-top: 4px;
 }
 .activity-skills-grid .activity-skill-square {
-    width: 100%;
-    aspect-ratio: 1;
-    min-width: 0;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
     border: 2px solid #8b4513;
     background: linear-gradient(145deg, #a85a2a, #6b3518);
     box-shadow: 1px 1px 0 #3d2010;
@@ -349,6 +360,7 @@ function injectActivityUiStyles() {
     cursor: help;
     overflow: visible;
     transition: transform 0.1s ease, box-shadow 0.1s ease;
+    box-sizing: border-box;
 }
 .activity-skills-grid .activity-skill-square.skill-ult {
     background: linear-gradient(145deg, #fde68a, #f59e0b);
