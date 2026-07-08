@@ -8,4 +8,5 @@ saved OAth/
 # Local dev / tooling
 /node_modules/
 /staging-dist/
+/pages-dist/
 scripts/__pycache__/
