@@ -8883,6 +8883,12 @@ function getAttackSpritePath(name) {
     return ATTACK_SPRITE_MAP[name] || null;
 }
 
+/** Main-scene idle fights: chog-swing2 is battle-only (avoids main-scene scale glitch). */
+function getSceneIdleAttackSpritePath(name) {
+    if (isChog(name)) return CHOG_SWING1_PATH;
+    return getAttackSpritePath(name);
+}
+
 // Main-scene battle sprites: stable GIF idle for animated species, PNG for everyone else.
 // Party/box/switch still use getMonAvatarPath (rarity-driven GIF for Legendary+).
 function getSceneIdleDisplaySprite(mon) {
@@ -9208,7 +9214,7 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
 
     sceneIdleFighterBusy.add(busyKey);
     try {
-        const attackPath = getAttackSpritePath(atkMon.name);
+        const attackPath = getSceneIdleAttackSpritePath(atkMon.name);
         const idleSprite = getSceneIdleDisplaySprite(atkMon);
         if (attackPath) {
             if (token !== sceneIdleBattleToken) return;
