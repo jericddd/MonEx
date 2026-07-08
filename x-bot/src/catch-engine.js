@@ -138,7 +138,7 @@ function generateSkills(name, rarity) {
 
 export function getRarityRoll() {
   const roll = Math.random() * 100;
-  if (roll < 0.1) return "Mythic";
+  // Mythic catch rate disabled (0%) until re-enabled
   if (roll < 4.1) return "Legendary";
   if (roll < 16.1) return "Rare";
   if (roll < 49.1) return "Uncommon";
