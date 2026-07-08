@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MonEx — What's Coming</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; font-family: 'Lato', system-ui, sans-serif; background: #f8f8f8; color: #111; }
+        .header { background: white; padding: 15px 0; }
+        .header-inner { max-width: 800px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; }
+        .nav-btn { padding: 8px 14px; border: none; background: #fff; color: #111; font-weight: 600; cursor: pointer; font-family: "Press Start 2P", sans-serif; font-size: 11px; }
+        .nav-btn:hover { background: #f0f0f0; }
+        .container { max-width: 800px; margin: 32px auto; padding: 0 24px 48px; }
+        .content-box { background: white; border: 4px solid #6B21A8; box-shadow: 4px 4px 0 #6B21A8; padding: 36px; line-height: 1.7; }
+        h1 { font-family: 'Press Start 2P', monospace; color: #6B21A8; font-size: 18px; margin: 0 0 8px; }
+        h2 { font-family: 'Press Start 2P', monospace; color: #6B21A8; font-size: 12px; margin: 28px 0 12px; }
+        h3 { font-size: 16px; color: #333; margin: 18px 0 8px; }
+        p, li { font-size: 15px; }
+        ul, ol { padding-left: 1.4em; }
+        li { margin-bottom: 8px; }
+        a { color: #6B21A8; font-weight: 600; }
+        .card { border: 3px solid #6B21A8; padding: 20px; margin: 20px 0; box-shadow: 3px 3px 0 #6B21A8; }
+        .card.planned { border-color: #b45309; background: #fffbeb; box-shadow: 3px 3px 0 #b45309; }
+        .tag { display: inline-block; background: #ede9fe; color: #5b21b6; font-size: 11px; padding: 3px 10px; border-radius: 4px; font-weight: 700; margin-bottom: 8px; }
+        .tag.soon { background: #fef3c7; color: #92400e; }
+        .muted { color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-inner">
+        <img src="../logo.png" alt="MonEx" style="height: 40px;">
+        <div>
+            <button class="nav-btn" onclick="window.location.href='/'">HOME</button>
+            <button class="nav-btn" onclick="window.location.href='../docs.html'">DOCS</button>
+            <button class="nav-btn" onclick="window.location.href='/play/'">GAME</button>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="content-box">
+        <h1>What's Coming</h1>
+        <p class="muted">Planned features for MonEx. These are not live yet — gold and essence remain the main currencies until each update ships.</p>
+
+        <div class="card planned">
+            <span class="tag soon">PLANNED</span>
+            <h2>Arena — bet with $MONEX</h2>
+            <p>The <b>Arena</b> statue in the Battle Hub will open as a spectator and betting zone for live arena matches.</p>
+
+            <h3>How it will work</h3>
+            <ol>
+                <li>Connect your wallet on the <b>Monad</b> network and link it to your MonEx account.</li>
+                <li>Open the Arena from the Battle Hub when a match is scheduled or in progress.</li>
+                <li>Watch trainers battle with their party Mons in arena-format fights.</li>
+                <li>Place a <b>$MONEX</b> bet on who you think will win before the match locks.</li>
+                <li>If your pick wins, you receive a payout from the betting pool. If not, your stake goes to the winners.</li>
+            </ol>
+
+            <h3>What you need to know</h3>
+            <ul>
+                <li><b>$MONEX</b> is the Monad token used for Arena bets (and future shop purchases).</li>
+                <li>You pay gas in <b>MON</b> (Monad's native coin) when sending a bet transaction.</li>
+                <li>Minimum and maximum bet amounts will be shown in the Arena UI when it launches.</li>
+                <li>Only linked wallets tied to your logged-in X account can place bets — this keeps rewards tied to you.</li>
+                <li>Arena matches will use the same party Mons you train in Campaign and Patrol.</li>
+            </ul>
+
+            <p><b>Status today:</b> tapping Arena shows "coming soon." Betting, match scheduling, and wallet connect are still being built.</p>
+        </div>
+
+        <div class="card planned">
+            <span class="tag soon">PLANNED</span>
+            <h2>PVP Wager</h2>
+            <p>Direct player-versus-player wagering — challenge another trainer and stake <b>$MONEX</b> on the outcome of your fight.</p>
+            <ul>
+                <li>Find an opponent through the PVP Wager statue in the Battle Hub.</li>
+                <li>Both players agree on a wager amount before the battle starts.</li>
+                <li>The winner takes the pooled stake (minus any small arena fee, if applicable).</li>
+            </ul>
+            <p><b>Status today:</b> PVP Wager is not open yet. It will arrive after core Arena betting is stable.</p>
+        </div>
+
+        <div class="card planned">
+            <span class="tag soon">PLANNED</span>
+            <h2>Shop — buy Monballs with $MONEX</h2>
+            <p>Monball packs in the Shop will support <b>$MONEX</b> payments on Monad. Each purchase is a one-time on-chain payment — no in-game $MONEX balance required.</p>
+            <ol>
+                <li>Connect your Monad wallet and link it once to your X account.</li>
+                <li>Open Shop → Monball Pack → <b>Buy with $MONEX</b>.</li>
+                <li>Approve and send the transaction from your wallet.</li>
+                <li>Monballs are added to your save after the payment is confirmed.</li>
+            </ol>
+            <p>Gold and KB's Onion prices stay available so free-to-play grinding remains a full path.</p>
+        </div>
+
+        <div class="card planned">
+            <span class="tag soon">PLANNED</span>
+            <h2>Marketplace</h2>
+            <p>Trade Monanimals and items with other players. The Marketplace button on the home page will open when this feature is ready.</p>
+        </div>
+
+        <h2>Already live</h2>
+        <p>For features you can play right now, see the <a href="newbie-guide.html">Newbie Guide</a>:</p>
+        <ul>
+            <li>X wild catch (<code>@monexmonad catch N monanimals</code>)</li>
+            <li>Party, Box, and cloud save with X login</li>
+            <li>Daily login reward → Mailbox</li>
+            <li>Adventure Campaign and Patrol</li>
+            <li>House Tower, Shop, Armory, Quests, and resource chest</li>
+            <li>Live X Wild Log on the home page</li>
+        </ul>
+
+        <p style="margin-top:32px;"><a href="../docs.html">← Back to Docs</a> · <a href="newbie-guide.html">Newbie Guide →</a></p>
+    </div>
+</div>
+
+</body>
+</html>

@@ -487,6 +487,7 @@ button.green:hover {
 #modal-inventory .game-modal-panel,
 #modal-profile .game-modal-panel,
 #modal-daily-quest .game-modal-panel,
+#modal-mailbox .game-modal-panel,
 #modal-party-switch .game-modal-panel {
     width: min(920px, 96vw);
     max-width: min(920px, 96vw);
@@ -507,6 +508,7 @@ button.green:hover {
 #modal-inventory .game-modal-header,
 #modal-profile .game-modal-header,
 #modal-daily-quest .game-modal-header,
+#modal-mailbox .game-modal-header,
 #modal-party-switch .game-modal-header {
     display: none;
 }
@@ -517,6 +519,7 @@ button.green:hover {
 #modal-inventory .game-modal-body,
 #modal-profile .game-modal-body,
 #modal-daily-quest .game-modal-body,
+#modal-mailbox .game-modal-body,
 #modal-party-switch .game-modal-body {
     padding: 0;
 }
@@ -1841,6 +1844,73 @@ button.green:hover {
     margin: 0 0 12px;
     max-height: 100px;
     overflow-y: auto;
+}
+
+.mailbox-hub-content {
+    padding: 12px 14px 16px;
+    min-height: 200px;
+}
+.mailbox-empty {
+    color: #888;
+    font-size: 12px;
+    text-align: center;
+    padding: 24px 12px;
+}
+.mailbox-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 10px;
+    border-bottom: 2px solid #e9d5ff;
+    font-size: 12px;
+}
+.mailbox-item:last-child { border-bottom: none; }
+.mailbox-item.claimed { opacity: 0.55; }
+.mailbox-item-title {
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 9px;
+    color: #6B21A8;
+    margin: 0 0 6px 0;
+}
+.mailbox-item-body { margin: 0; color: #444; font-size: 11px; }
+.mailbox-item-meta { font-size: 9px; color: #888; margin-top: 4px; }
+.mailbox-claim-btn {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    border: 2px solid #6B21A8;
+    background: #fff;
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 8px;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 #6B21A8;
+}
+.mailbox-claim-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+    box-shadow: none;
+}
+.rail-mail-badge {
+    display: none;
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 9px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    z-index: 3;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+    pointer-events: none;
+}
+#rail-mailbox img {
+    --rail-icon-scale: 0.92;
 }
 
 /* ===== Equipment (Phase 3) ===== */
@@ -6973,6 +7043,11 @@ body.afk-layout .currency-pill .currency-tip {
             <img src="game_icons/button%20tabs/monball.png?v=5" alt="">
             <span class="rail-tip">BUY BALL ($MONEX soon)</span>
         </button>
+        <button type="button" class="side-icon-btn" id="rail-mailbox" onclick="openGameModal('mailbox')">
+            <span class="rail-mail-badge" id="rail-mailbox-badge" aria-hidden="true">0</span>
+            <img src="game_icons/mailbox.png?v=1" alt="">
+            <span class="rail-tip">MAILBOX</span>
+        </button>
         <button type="button" class="side-icon-btn" id="rail-profile" onclick="goToProfile()">
             <img src="game_icons/button%20tabs/profile.png?v=5" alt="">
             <span class="rail-tip">PROFILE</span>
@@ -7174,6 +7249,22 @@ body.afk-layout .currency-pill .currency-tip {
     </div>
 </div>
 
+<!-- Mailbox modal -->
+<div id="modal-mailbox" class="game-modal" onclick="if(event.target===this)closeGameModal('mailbox')">
+    <div class="game-modal-panel" onclick="event.stopPropagation()">
+        <div class="game-modal-header">
+            <h2>MAILBOX</h2>
+            <button type="button" class="game-modal-close" onclick="closeGameModal('mailbox')">×</button>
+        </div>
+        <div class="game-modal-body">
+            <div class="hub-frame">
+                <button type="button" class="hub-close-btn" onclick="closeGameModal('mailbox')" aria-label="Close mailbox">×</button>
+                <div id="mailbox-content" class="mailbox-hub-content hub-scrollbar-panel"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Profile modal -->
 <div id="modal-profile" class="game-modal" onclick="if(event.target===this)closeGameModal('profile')">
     <div class="game-modal-panel game-modal-wide" onclick="event.stopPropagation()">
@@ -7225,6 +7316,7 @@ body.afk-layout .currency-pill .currency-tip {
 <script src="js/escape-html.js"></script>
 <script src="js/activity-client.js"></script>
 <script src="js/auth-client.js"></script>
+<script src="js/mailbox-client.js"></script>
 <script>
 // =====================================================
 // MONEX - CLEAN ORGANIZED STRUCTURE
@@ -7359,8 +7451,14 @@ function bindHoverFloatTips(root) {
     });
 }
 
-const MONANIMAL_NAMES = ["Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal", "Monavara", "Moncock", "Mondigrade", "Montiger", "Mosferatu", "Moxy", "Shramp", "Spidermon", "Moyaki"];
+const MONANIMAL_NAMES = ["Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal", "Monavara", "Moncock", "Mondigrade", "Montiger", "Mosferatu", "Monhorse", "Shramp", "Spidermon", "Moyaki"];
 const REMOVED_MONANIMAL_NAMES = new Set(["Mopo"]);
+const MONANIMAL_RENAME_MAP = { Moxy: "Monhorse" };
+
+function getSpeciesSpriteKey(name) {
+    const display = MONANIMAL_RENAME_MAP[name] || name;
+    return String(display || "").toLowerCase();
+}
 // Fixed house per species — every monanimal belongs to exactly one house.
 const SPECIES_HOUSE = {
     Chog: "chog",
@@ -7377,7 +7475,7 @@ const SPECIES_HOUSE = {
     Moyaki: "moyaki",
     Salmonad: "moyaki",
     Moncock: "moyaki",
-    Moxy: "moyaki",
+    Monhorse: "moyaki",
     Larvanad: "moyaki",
     Mosferatu: "moyaki",
 };
@@ -7399,7 +7497,7 @@ const SPRITE_MAP = {
     "Salmonad": "128x128/salmonad.png", "Anago": "128x128/anago.png", "Larvanad": "128x128/larvanad.png",
     "Lyraffe": "128x128/lyraffe.png", "Mokadal": "128x128/mokadal.png", "Monavara": "128x128/monavara.png",
     "Moncock": "128x128/moncock.png", "Mondigrade": "128x128/mondigrade.png", "Montiger": "128x128/montiger.png",
-    "Mosferatu": "128x128/mosferatu.png", "Moxy": "128x128/moxy.png",
+    "Mosferatu": "128x128/mosferatu.png", "Monhorse": "128x128/monhorse.png",
     "Shramp": "128x128/shramp.png", "Spidermon": "128x128/spidermon.png", "Moyaki": "128x128/moyaki.png",
     "Johnw": "128x128/johnw.png"
 };
@@ -7596,7 +7694,7 @@ const SPECIES_ULTIMATE = {
         multiHit: [0.55, 0.55, 0.55, 0.55],
         stunPerHit: 0.15,
     },
-    "Moxy": {
+    "Monhorse": {
         name: "Shock Nova", element: "electric", power: 2.1,
         desc: "Lightning nova. +20% SPD for 2 turns.",
         selfBuff: { id: "shockswift", turns: 2, statMods: { spdPct: 0.20 } },
@@ -7642,7 +7740,7 @@ const SPECIES_STAT_PROFILE = {
     Mondigrade: { specialty: "block",  bias: { spd: 0.20, crit: 0.40, dodge: 0.25, block: 0.96, hit: 0.45, pierce: 0.35 } },
     Montiger:   { specialty: "crit",   bias: { spd: 0.65, crit: 0.95, dodge: 0.35, block: 0.25, hit: 0.70, pierce: 0.55 } },
     Mosferatu:  { specialty: "dodge",  bias: { spd: 0.50, crit: 0.55, dodge: 0.92, block: 0.35, hit: 0.45, pierce: 0.40 } },
-    Moxy:       { specialty: "spd",    bias: { spd: 0.90, crit: 0.55, dodge: 0.50, block: 0.25, hit: 0.60, pierce: 0.50 } },
+    Monhorse:       { specialty: "spd",    bias: { spd: 0.90, crit: 0.55, dodge: 0.50, block: 0.25, hit: 0.60, pierce: 0.50 } },
     Shramp:     { specialty: "block",  bias: { spd: 0.35, crit: 0.35, dodge: 0.45, block: 0.88, hit: 0.50, pierce: 0.30 } },
     Spidermon:  { specialty: "dodge",  bias: { spd: 0.55, crit: 0.45, dodge: 0.94, block: 0.30, hit: 0.50, pierce: 0.45 } },
     Moyaki:     { specialty: "hit",    bias: { spd: 0.50, crit: 0.70, dodge: 0.35, block: 0.30, hit: 0.90, pierce: 0.50 } },
@@ -8238,6 +8336,8 @@ function defaultQuestState() {
 }
 
 let questState = defaultQuestState();
+let mailbox = [];
+let dailyLoginLastClaimAt = null;
 
 function normalizeQuestState(loaded) {
     const base = defaultQuestState();
@@ -8902,30 +9002,38 @@ const HERO_SKILL_UNLOCK_GOLD = 500;
 
 // ==================== HELPER FUNCTIONS ====================
 function getMonPngPath(name) {
-    return `128x128/${String(name || "").toLowerCase()}.png`;
+    return `128x128/${getSpeciesSpriteKey(name)}.png`;
 }
 
 function getMonGifPath(name) {
-    return `128x128/${String(name || "").toLowerCase()}.gif`;
+    return `128x128/${getSpeciesSpriteKey(name)}.gif`;
 }
 
 function getMonIdleGifPath(name) {
-    const lower = String(name || "").toLowerCase();
+    const lower = getSpeciesSpriteKey(name);
     if (MON_LEGENDARY_GIF_OVERRIDES[lower]) return MON_LEGENDARY_GIF_OVERRIDES[lower];
     return `128x128/${lower}-idle.gif`;
 }
 
-// Species with idle GIF assets (main scene + legendary avatars).
+// Legacy: always idle GIF on mon cards (all rarities). New species use MONS_WITH_SCENE_IDLE_GIF
+// for main-scene AFK only — mon cards stay Legendary+ idle / Rare− PNG.
 const MONS_WITH_IDLE_GIF = new Set(["anago", "mouch", "moyaki", "moncock", "salmonad"]);
+// Main-scene AFK idle battles always animate; mon cards still follow rarity rule.
+const MONS_WITH_SCENE_IDLE_GIF = new Set(["larvanad", "monhorse"]);
 const MON_LEGENDARY_GIF_OVERRIDES = {
     moyaki: "128x128/main-moyaki.gif",
     salmonad: "128x128/slamonad-idle.gif",
 };
 
+function speciesHasIdleGifAsset(name) {
+    const lower = getSpeciesSpriteKey(name);
+    return MONS_WITH_IDLE_GIF.has(lower) || MONS_WITH_SCENE_IDLE_GIF.has(lower);
+}
+
 function getMonLegendaryGifPath(name) {
-    const lower = String(name || "").toLowerCase();
+    const lower = getSpeciesSpriteKey(name);
     if (MON_LEGENDARY_GIF_OVERRIDES[lower]) return MON_LEGENDARY_GIF_OVERRIDES[lower];
-    if (MONS_WITH_IDLE_GIF.has(lower)) return getMonIdleGifPath(name);
+    if (speciesHasIdleGifAsset(name)) return getMonIdleGifPath(name);
     return getMonGifPath(name);
 }
 
@@ -8939,7 +9047,7 @@ function getMonAvatarPath(mon) {
     const name = mon?.name || mon;
     const rarity = mon?.rarity;
     if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
-    const lower = String(name || "").toLowerCase();
+    const lower = getSpeciesSpriteKey(name);
     if (MONS_WITH_IDLE_GIF.has(lower)) return getMonIdleGifPath(name);
     if (rarity && isLegendaryOrAbove(rarity)) return getMonLegendaryGifPath(name);
     return getMonPngPath(name);
@@ -8984,6 +9092,7 @@ const SALMONAD_SWING_SPRITES = [
     "128x128/salmonad-swing1.gif",
     "128x128/salmonad-swing2.gif"
 ];
+const LARVANAD_SWING_SPRITE = "128x128/larvanad-swing1.gif";
 const CHOG_SWING_SPRITES = [
     CHOG_SWING1_PATH,
     CHOG_SWING2_PATH
@@ -9007,6 +9116,10 @@ function isMoncock(name) {
 
 function isSalmonad(name) {
     return String(name || "").toLowerCase() === "salmonad";
+}
+
+function isLarvanad(name) {
+    return String(name || "").toLowerCase() === "larvanad";
 }
 
 function pickAnagoSwingSprite() {
@@ -9139,6 +9252,7 @@ function getAttackSpritePath(name) {
     if (isAnago(name)) return pickAnagoSwingSprite();
     if (isMoncock(name)) return pickMoncockSwingSprite();
     if (isSalmonad(name)) return pickSalmonadSwingSprite();
+    if (isLarvanad(name)) return LARVANAD_SWING_SPRITE;
     if (isChog(name)) return pickChogSwingSprite();
     return ATTACK_SPRITE_MAP[name] || null;
 }
@@ -9154,10 +9268,70 @@ function getSceneIdleAttackSpritePath(name) {
 function getSceneIdleDisplaySprite(mon) {
     const name = mon?.name || mon;
     if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
-    const lower = String(name || "").toLowerCase();
-    if (MONS_WITH_IDLE_GIF.has(lower)) return getMonIdleGifPath(name);
+    if (speciesHasIdleGifAsset(name)) return getMonIdleGifPath(name);
     if (getAttackSpritePath(name)) return getMonGifPath(name);
     return getMonPngPath(name);
+}
+
+// GIFs that play one full browser loop — no per-species ms table rows.
+const GIF_NATURAL_LOOP_PATHS = new Set([
+    "128x128/larvanad-idle.gif",
+    "128x128/larvanad-swing1.gif",
+    "128x128/monhorse-idle.gif",
+]);
+const gifLoopMsCache = new Map();
+
+function usesGifNaturalLoop(spritePath) {
+    return GIF_NATURAL_LOOP_PATHS.has(normalizeSpritePath(spritePath));
+}
+
+function sampleGifFrameHash(imgEl) {
+    if (!imgEl?.naturalWidth) return null;
+    const canvas = document.createElement("canvas");
+    const w = Math.min(imgEl.naturalWidth, 24);
+    const h = Math.min(imgEl.naturalHeight, 24);
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(imgEl, 0, 0, w, h);
+    const data = ctx.getImageData(0, 0, w, h).data;
+    let hash = 0;
+    for (let i = 0; i < data.length; i += 16) hash = ((hash << 5) - hash + data[i]) | 0;
+    return String(hash);
+}
+
+async function detectGifLoopMs(imgEl, maxMs = 8000) {
+    if (!imgEl) return 0;
+    try {
+        if (imgEl.decode) await imgEl.decode();
+    } catch (_) { /* ignore */ }
+    const started = performance.now();
+    let firstHash = null;
+    let seenChange = false;
+    while (performance.now() - started < maxMs) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        const hash = sampleGifFrameHash(imgEl);
+        if (!hash) continue;
+        if (!firstHash) {
+            firstHash = hash;
+            continue;
+        }
+        if (hash !== firstHash) seenChange = true;
+        if (seenChange && hash === firstHash && performance.now() - started > 80) {
+            return Math.max(48, performance.now() - started);
+        }
+    }
+    return 0;
+}
+
+async function measureGifLoopMs(imgEl, spritePath) {
+    const key = normalizeSpritePath(spritePath);
+    if (gifLoopMsCache.has(key)) return gifLoopMsCache.get(key);
+    const detected = await detectGifLoopMs(imgEl);
+    const loopMs = detected > 0 ? detected : 1920;
+    gifLoopMsCache.set(key, loopMs);
+    return loopMs;
 }
 
 function normalizeSpritePath(src) {
@@ -9481,15 +9655,28 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
             await setSceneIdleSprite(atkImg, attackPath, true);
             if (token !== sceneIdleBattleToken) return;
             const animStart = Number(atkImg.dataset.animStart) || performance.now();
-            const playMs = getSceneIdleAttackPlayMs(attackPath, atkMon.name);
-            const hitAtMs = Math.min(getSceneIdleSpriteHitAtMs(attackPath, atkMon.name), playMs - 16);
-            const hitShake = waitSceneIdleUntil(animStart, hitAtMs, token).then(() => {
+            if (usesGifNaturalLoop(attackPath)) {
+                const loopMs = await measureGifLoopMs(atkImg, attackPath);
+                const playMs = Math.max(48, loopMs - SCENE_GIF_LOOP_GUARD_MS);
+                const hitAtMs = Math.min(Math.floor(loopMs * 0.45), playMs - 16);
+                const hitShake = waitSceneIdleUntil(animStart, hitAtMs, token).then(() => {
+                    if (token !== sceneIdleBattleToken) return;
+                    sceneIdleShakeHit(defEl);
+                });
+                await waitSceneIdleUntil(animStart, playMs, token);
                 if (token !== sceneIdleBattleToken) return;
-                sceneIdleShakeHit(defEl);
-            });
-            await waitSceneIdleUntil(animStart, playMs, token);
-            if (token !== sceneIdleBattleToken) return;
-            await hitShake;
+                await hitShake;
+            } else {
+                const playMs = getSceneIdleAttackPlayMs(attackPath, atkMon.name);
+                const hitAtMs = Math.min(getSceneIdleSpriteHitAtMs(attackPath, atkMon.name), playMs - 16);
+                const hitShake = waitSceneIdleUntil(animStart, hitAtMs, token).then(() => {
+                    if (token !== sceneIdleBattleToken) return;
+                    sceneIdleShakeHit(defEl);
+                });
+                await waitSceneIdleUntil(animStart, playMs, token);
+                if (token !== sceneIdleBattleToken) return;
+                await hitShake;
+            }
             await setSceneIdleSprite(atkImg, idleSprite, true);
         } else {
             await delay(scaleSceneIdleSpriteMs(280));
@@ -9637,13 +9824,19 @@ async function delayUntil(animStart, targetMs) {
     if (wait > 0) await delay(wait);
 }
 
-async function finishSwingGif(animStart, attackPath, name) {
+async function finishSwingGif(animStart, attackPath, name, spriteEl) {
+    if (usesGifNaturalLoop(attackPath) && spriteEl) {
+        const loopMs = await measureGifLoopMs(spriteEl, attackPath);
+        await delayUntil(animStart, Math.max(48, loopMs - SCENE_GIF_LOOP_GUARD_MS));
+        return;
+    }
     const totalMs = getBattleAttackDurationMs(attackPath, name);
     await delayUntil(animStart, totalMs);
 }
 
 async function completeGifAttackReturn(atkSide, atk, attackPath, animStart) {
-    await finishSwingGif(animStart, attackPath, atk.name);
+    const sprite = document.getElementById("sprite-" + atkSide);
+    await finishSwingGif(animStart, attackPath, atk.name, sprite);
     setBattleSprite(atkSide, atk.sprite, atk.name, false);
     await dashHome(atkSide, ATTACK_DASH_MS);
     endAttackAnim(atkSide, atk);
@@ -9719,7 +9912,7 @@ const SPRITE_NATURAL_FACING = {
     Mondigrade: "right",
     Montiger: "right",
     Mosferatu: "right",
-    Moxy: "right",
+    Monhorse: "right",
     Shramp: "left",
     Spidermon: "left",
     Moyaki: "left",
@@ -11008,6 +11201,7 @@ function formatCost(cost) {
 
 // ===== Phase 3: Equipment & Ascension =====
 function isEquipmentUnlocked() {
+    if (isStagingTestUser()) return true;
     return adventureGlobalBest >= 9
         || currentChapter >= 2
         || getGlobalAdventureProgress(currentChapter, currentStage) >= 9;
@@ -11679,7 +11873,7 @@ function openEquipModal(location, monIndex, slot) {
         : `<p class="equip-modal-empty">Nothing equipped</p>`;
     const inventoryHtml = options.length
         ? options.map(g => {
-            const levelOk = Math.floor(mon.level) >= getGearRequiredLevel(g);
+            const levelOk = isStagingTestUser() || Math.floor(mon.level) >= getGearRequiredLevel(g);
             return renderEquipOptionHtml(g, mon, levelOk ? "EQUIP" : "LV REQ", levelOk ? "equip-action-equip" : "equip-action-locked", {
                 dataGid: g.id,
                 disabled: !levelOk,
@@ -12995,6 +13189,7 @@ function ensurePatrolDailyReset(todayKey) {
 }
 
 function getPatrolScansRemaining() {
+    if (isStagingTestUser()) return PATROL_DAILY_MAX;
     ensurePatrolDailyReset();
     return Math.max(0, PATROL_DAILY_MAX - patrolScansUsed);
 }
@@ -13089,6 +13284,8 @@ function buildSavePayload() {
         resourceChestLastCollectAt,
         patrolScansUsed, patrolScansDay,
         questState,
+        mailbox,
+        dailyLoginLastClaimAt,
         saveVersion: 2,
         updatedAt: new Date().toISOString(),
     };
@@ -13163,6 +13360,8 @@ function applyLoadedSave(data) {
     ensurePatrolDailyReset();
     questState = normalizeQuestState(data.questState);
     ensureQuestResets();
+    mailbox = Array.isArray(data.mailbox) ? data.mailbox : [];
+    dailyLoginLastClaimAt = data.dailyLoginLastClaimAt || null;
 
     [...party, ...box].forEach((mon) => {
         try {
@@ -13172,6 +13371,7 @@ function applyLoadedSave(data) {
             });
         } catch (e) { console.error("Skipped invalid mon on load:", e); }
     });
+    migrateMonanimalRenames();
     purgeRemovedMonanimalsFromSave();
     if (dedupePartySpecies()) saveData();
     migrateAllGear();
@@ -13260,6 +13460,7 @@ function updateUI() {
         document.getElementById("gold-count").innerText = money;
         document.getElementById("essence-count").innerText = essence;
         document.getElementById("shard-count").innerText = monShards;
+        updateMailboxBadge();
 
         const tInfo = getTrainerLevelInfo(trainerXp);
         const best = globalProgressToChapterStage(adventureGlobalBest);
@@ -13594,7 +13795,12 @@ function openItemBuyPopup(item) {
 }
 
 function buyMonball() {
-    showMonballComingSoonNotice();
+    if (!isStagingTestUser()) {
+        showMonballComingSoonNotice();
+        return;
+    }
+    const item = SHOP_ITEMS.find((i) => i.id === "monball5");
+    if (item) openShopBuyPopup(item);
 }
 
 // Spend KB's Onion + Gold to level a party member up by one (also fully heals it).
@@ -13621,7 +13827,7 @@ function levelUpMonManual(index) {
 function buyShopItem(itemId) {
     const item = SHOP_ITEMS.find(i => i.id === itemId);
     if (!item) return;
-    if (isMonballPurchaseItem(item)) {
+    if (isMonballPurchaseItem(item) && !isStagingTestUser()) {
         showMonballComingSoonNotice();
         return;
     }
@@ -14213,6 +14419,20 @@ function replaceRemovedMon(mon, index) {
     return replacement;
 }
 
+function migrateMonanimalRenames() {
+    let changed = false;
+    const rename = (mon) => {
+        const next = MONANIMAL_RENAME_MAP[mon?.name];
+        if (next) {
+            mon.name = next;
+            changed = true;
+        }
+    };
+    party.forEach(rename);
+    box.forEach(rename);
+    if (changed) saveData();
+}
+
 function purgeRemovedMonanimalsFromSave() {
     let changed = false;
     let replaceIndex = 0;
@@ -14237,6 +14457,10 @@ function isStagingHost() {
 function isTestUser() {
     if (!currentUser) return false;
     return String(currentUser).replace(/^@/, "").toLowerCase() === "test";
+}
+
+function isStagingTestUser() {
+    return isStagingHost() && isTestUser();
 }
 
 const STAGING_BETA_RESOURCE_MIN = 999999;
@@ -14317,6 +14541,47 @@ function grantTestBattleParty() {
     ];
     localStorage.setItem(flagKey, "1");
     saveData();
+}
+
+function unlockTestMonFully(mon) {
+    if (!mon) return false;
+    ensureMonReady(mon);
+    let changed = false;
+    if ((mon.ascensionStars || 0) < HERO_ASCENSION_SKILL_CAP) {
+        mon.ascensionStars = HERO_ASCENSION_SKILL_CAP;
+        changed = true;
+    }
+    if (mon.ascensionSkillPending?.length) {
+        delete mon.ascensionSkillPending;
+        changed = true;
+    }
+    if (mon.ascensionSkillFreePick) {
+        delete mon.ascensionSkillFreePick;
+        changed = true;
+    }
+    expandSkillsForRarity(mon);
+    const usedNames = new Set((mon.skills || []).map((skill) => skill.name));
+    while ((mon.skills?.length || 0) < BATTLE_METER_SKILL_SLOTS) {
+        const skill = pickUniqueSkill(getActiveSkillPoolForMon(mon.skills), usedNames);
+        if (!skill) break;
+        mon.skills.push(skill);
+        usedNames.add(skill.name);
+        changed = true;
+    }
+    refreshMonDerivedStats(mon);
+    return changed;
+}
+
+function unlockTestAccountFeatures() {
+    if (!isStagingTestUser()) return false;
+    let changed = false;
+    if (adventureGlobalBest < 9) { adventureGlobalBest = 9; changed = true; }
+    if (highestStageCleared < 9) { highestStageCleared = 9; changed = true; }
+    if (currentChapter < 2) { currentChapter = 2; changed = true; }
+    if (currentStage < 9) { currentStage = 9; changed = true; }
+    party.forEach((mon) => { if (unlockTestMonFully(mon)) changed = true; });
+    if (changed) saveData();
+    return changed;
 }
 
 function buildTestMon(name, rarity, level, passiveName, activeNames) {
@@ -14450,6 +14715,7 @@ async function runPostLoginBootstrap() {
     try { applyStagingBetaKit(); } catch (e) { console.error("applyStagingBetaKit failed:", e); }
     if (isStagingHost() && isTestUser()) {
         try { grantTestBattleParty(); } catch (e) { console.error("grantTestBattleParty failed:", e); }
+        try { unlockTestAccountFeatures(); } catch (e) { console.error("unlockTestAccountFeatures failed:", e); }
     }
     try { resolveAbandonedAdventureBattle(); } catch (e) { console.error("resolveAbandonedAdventureBattle failed:", e); }
     if (adventureForfeitNotice) {
@@ -14522,11 +14788,89 @@ function readCachedUserFallback() {
     }
 }
 
+// ==================== MAILBOX ====================
+function getUnclaimedMailboxCount() {
+    return (mailbox || []).filter((m) => m && !m.claimedAt).length;
+}
+
+function updateMailboxBadge() {
+    const badge = document.getElementById("rail-mailbox-badge");
+    if (!badge) return;
+    const n = getUnclaimedMailboxCount();
+    badge.textContent = n > 9 ? "9+" : String(n);
+    badge.style.display = n > 0 ? "block" : "none";
+}
+
+function formatMailboxDate(iso) {
+    if (!iso) return "";
+    try {
+        return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    } catch {
+        return "";
+    }
+}
+
+function renderMailbox() {
+    const el = document.getElementById("mailbox-content");
+    if (!el) return;
+    const items = [...(mailbox || [])].sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0));
+    if (!items.length) {
+        el.innerHTML = '<p class="mailbox-empty">No mail yet. Claim Daily Login on the homepage to receive rewards here.</p>';
+        return;
+    }
+    el.innerHTML = items.map((item) => {
+        const claimed = !!item.claimedAt;
+        const reward = item.type === "monballs"
+            ? `${item.amount || 1} Monball${(item.amount || 1) > 1 ? "s" : ""}`
+            : (item.title || "Reward");
+        const safeTitle = typeof escapeHtml === "function" ? escapeHtml(item.title || "Mail") : (item.title || "Mail");
+        const safeBody = typeof escapeHtml === "function" ? escapeHtml(item.body || reward) : (item.body || reward);
+        const btn = claimed
+            ? '<button type="button" class="mailbox-claim-btn" disabled>CLAIMED</button>'
+            : `<button type="button" class="mailbox-claim-btn" onclick="claimMailboxReward('${String(item.id).replace(/'/g, "\\'")}')">CLAIM</button>`;
+        return `<div class="mailbox-item${claimed ? " claimed" : ""}">
+            <div>
+                <p class="mailbox-item-title">${safeTitle}</p>
+                <p class="mailbox-item-body">${safeBody}</p>
+                <p class="mailbox-item-meta">${claimed ? "Claimed " + formatMailboxDate(item.claimedAt) : "Received " + formatMailboxDate(item.createdAt)}</p>
+            </div>
+            ${btn}
+        </div>`;
+    }).join("");
+}
+
+async function claimMailboxReward(mailId) {
+    if (!mailId) return;
+    if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
+        alert("Login required to claim mail.");
+        return;
+    }
+    try {
+        const result = await MonExMailbox.claimMailboxMail(mailId);
+        if (result.save) {
+            applyLoadedSave(result.save);
+            writeLocalSave(result.save);
+        } else {
+            const item = (mailbox || []).find((m) => m.id === mailId);
+            if (item) {
+                item.claimedAt = new Date().toISOString();
+                if (item.type === "monballs") monballs += item.amount || 1;
+            }
+            saveData();
+        }
+        renderMailbox();
+        updateUI();
+    } catch (e) {
+        alert(e.message || "Could not claim mail.");
+    }
+}
+
 // ==================== AFK NAVIGATION ====================
 const RAIL_TAB_BY_MODAL = {
     "daily-quest": "rail-daily-quest",
     shop: "rail-shop",
     armory: "rail-armory",
+    mailbox: "rail-mailbox",
     profile: "rail-profile",
     party: "rail-party",
     box: "rail-box",
@@ -14603,6 +14947,7 @@ function openGameModal(name) {
         ensureQuestResets();
         renderDailyQuest();
     }
+    if (name === "mailbox") renderMailbox();
     syncActiveRailTab();
 }
 
@@ -14986,7 +15331,7 @@ function beginPatrolScan() {
         alert("No patrol scans left today. Come back after the daily reset!");
         return;
     }
-    patrolScansUsed++;
+    if (!isStagingTestUser()) patrolScansUsed++;
     saveData();
 
     void warmPatrolBattleAssets();
@@ -16176,7 +16521,12 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         await dashHorizontal(atkSide, dashDist, ATTACK_DASH_MS);
         await replayBattleAttackGif(atkSide, attackPath, atk.name);
         animStart = Date.now();
-        await delayUntil(animStart, getBattleAttackHitAtMs(attackPath, atk.name));
+        const battleSprite = document.getElementById("sprite-" + atkSide);
+        let hitMs = getBattleAttackHitAtMs(attackPath, atk.name);
+        if (usesGifNaturalLoop(attackPath) && battleSprite) {
+            hitMs = Math.floor((await measureGifLoopMs(battleSprite, attackPath)) * 0.45);
+        }
+        await delayUntil(animStart, hitMs);
     } else {
         await approach(atkSide, defSide);
     }

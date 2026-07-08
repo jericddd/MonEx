@@ -2,11 +2,17 @@
 
 export const MONANIMAL_NAMES = new Set([
   "Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal",
-  "Monavara", "Moncock", "Mondigrade", "Montiger", "Mosferatu", "Moxy", "Shramp",
+  "Monavara", "Moncock", "Mondigrade", "Montiger", "Mosferatu", "Monhorse", "Shramp",
   "Spidermon", "Moyaki",
 ]);
 
 export const REMOVED_MONANIMAL_NAMES = new Set(["Mopo"]);
+
+const MONANIMAL_LEGACY_RENAMES = { Moxy: "Monhorse" };
+
+function canonicalMonanimalName(name) {
+  return MONANIMAL_LEGACY_RENAMES[name] || name;
+}
 
 export const RARITY_ORDER = ["Common", "Uncommon", "Rare", "Legendary", "Mythic"];
 
@@ -64,7 +70,10 @@ export const LIMITS = {
   stringMaxLen: 120,
   gearIdMaxLen: 80,
   monLevelMax: 80,
+  mailboxMax: 50,
 };
+
+const DAILY_LOGIN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 const LEVEL_CAP_BY_RARITY = {
   Common: 20,
@@ -279,7 +288,8 @@ function sanitizeEquipment(raw) {
 
 export function sanitizeMon(raw) {
   if (!raw || typeof raw !== "object") return null;
-  const name = trimString(raw.name, 48);
+  let name = trimString(raw.name, 48);
+  name = canonicalMonanimalName(name);
   if (!name || !MONANIMAL_NAMES.has(name) || REMOVED_MONANIMAL_NAMES.has(name)) return null;
 
   const rarity = RARITY_ORDER.includes(raw.rarity) ? raw.rarity : "Common";
@@ -395,6 +405,49 @@ function sanitizeQuestState(raw) {
   };
 }
 
+function sanitizeMailboxItem(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const id = trimString(raw.id, 80);
+  if (!id) return null;
+  const type = raw.type === "monballs" ? "monballs" : null;
+  if (!type) return null;
+  const amount = clampInt(raw.amount ?? 1, 1, LIMITS.monballs);
+  const createdAt = trimString(raw.createdAt, 40) || null;
+  const claimedAt = raw.claimedAt ? trimString(raw.claimedAt, 40) : null;
+  return {
+    id,
+    type,
+    amount,
+    title: trimString(raw.title, 80) || "Reward",
+    body: trimString(raw.body, 160) || "",
+    createdAt: createdAt || new Date(0).toISOString(),
+    ...(claimedAt ? { claimedAt } : {}),
+  };
+}
+
+export function sanitizeMailbox(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.map(sanitizeMailboxItem).filter(Boolean).slice(0, LIMITS.mailboxMax);
+}
+
+function sanitizeDailyLoginLastClaimAt(raw, now = Date.now()) {
+  if (!raw) return null;
+  const ts = Date.parse(String(raw));
+  if (!Number.isFinite(ts) || ts > now + LIMITS.clockSkewMs) return null;
+  return new Date(ts).toISOString();
+}
+
+export function getDailyLoginStatusFromSave(save, now = Date.now()) {
+  const lastRaw = save?.dailyLoginLastClaimAt;
+  const last = lastRaw ? Date.parse(lastRaw) : 0;
+  const ready = !Number.isFinite(last) || now - last >= DAILY_LOGIN_COOLDOWN_MS;
+  return {
+    ready,
+    nextClaimAt: ready ? null : new Date(last + DAILY_LOGIN_COOLDOWN_MS).toISOString(),
+    unclaimed: sanitizeMailbox(save?.mailbox).filter((m) => !m.claimedAt).length,
+  };
+}
+
 /**
  * Validate and sanitize a full save object. Returns a clean payload safe to store.
  */
@@ -423,6 +476,8 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
     patrolScansDay: typeof input.patrolScansDay === "string" ? trimString(input.patrolScansDay, 32) || null : null,
     resourceChestLastCollectAt: sanitizeResourceChestTimestamp(input.resourceChestLastCollectAt, now),
     questState: sanitizeQuestState(input.questState),
+    mailbox: sanitizeMailbox(input.mailbox),
+    dailyLoginLastClaimAt: sanitizeDailyLoginLastClaimAt(input.dailyLoginLastClaimAt, now),
     adventureBattleActive: false,
     saveVersion: Number.isFinite(input.saveVersion) ? clampInt(input.saveVersion, 1, 999) : 1,
     xHandle: session.username || trimString(input.xHandle, 48) || "",

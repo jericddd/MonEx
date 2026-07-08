@@ -384,7 +384,7 @@
     .wild-log-table td {
         padding: 9px 10px;
         border-bottom: 1px solid #ede9fe;
-        vertical-align: top;
+        vertical-align: middle;
     }
     .wild-log-table tr:hover td {
         background: #faf5ff;
@@ -393,7 +393,79 @@
     .col-time { white-space: nowrap; font-size: 10px; color: #444; }
     .col-user { white-space: nowrap; }
     .col-spend, .col-throws, .col-left { text-align: center; white-space: nowrap; }
-    .col-mons { min-width: 140px; line-height: 1.4; }
+    .col-mons { min-width: 140px; line-height: 1.4; vertical-align: middle; }
+    /* Wild log mini mon cards — present before activity-client injects full styles */
+    .wild-log-mini-cards {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+    }
+    .wild-log-mini-more {
+        font-size: 9px;
+        color: #6B21A8;
+        font-weight: 700;
+        padding: 4px 6px;
+        white-space: nowrap;
+    }
+    .activity-mon-card {
+        background: #fff;
+        border: 3px solid #111;
+        box-shadow: 3px 3px 0 #111;
+        box-sizing: border-box;
+    }
+    .activity-mon-card.rarity-uncommon { border-color: #16a34a; box-shadow: 3px 3px 0 #16a34a; }
+    .activity-mon-card.rarity-rare { border-color: #2563eb; box-shadow: 3px 3px 0 #2563eb; }
+    .activity-mon-card.rarity-legendary { border-color: #ca8a04; box-shadow: 3px 3px 0 #ca8a04; }
+    .activity-mon-card.rarity-mythic { border-color: #9f1239; box-shadow: 3px 3px 0 #9f1239; }
+    .activity-mon-card--mini {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: 108px;
+        min-width: 108px;
+        padding: 5px 6px;
+    }
+    .activity-mon-card--mini .activity-mon-sprite {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .activity-mon-card--mini .activity-mon-sprite img {
+        width: 34px;
+        height: 34px;
+        max-width: 34px;
+        max-height: 34px;
+        object-fit: contain;
+        object-position: center bottom;
+        image-rendering: pixelated;
+        display: block;
+    }
+    .activity-mon-card--mini .activity-mon-identity { min-width: 0; flex: 1; }
+    .activity-mon-card--mini .activity-mon-name {
+        font-family: "Press Start 2P", monospace;
+        font-size: 6px;
+        line-height: 1.35;
+        margin: 0 0 3px;
+        word-break: break-word;
+    }
+    .activity-mon-card--mini .activity-mon-rarity {
+        display: inline-block;
+        font-size: 6px;
+        font-weight: 700;
+        padding: 2px 5px;
+        border-radius: 10px;
+        color: #fff;
+        text-transform: uppercase;
+    }
+    .activity-mon-card--mini .activity-mon-rarity.rarity-common { background: #111; }
+    .activity-mon-card--mini .activity-mon-rarity.rarity-uncommon { background: #16a34a; }
+    .activity-mon-card--mini .activity-mon-rarity.rarity-rare { background: #2563eb; }
+    .activity-mon-card--mini .activity-mon-rarity.rarity-legendary { background: #ca8a04; }
+    .activity-mon-card--mini .activity-mon-rarity.rarity-mythic { background: #9f1239; }
     .activity-user { color: #6B21A8; font-weight: 700; }
     .activity-rare { color: #2563eb; font-weight: 700; }
     .wild-log-empty {
@@ -473,6 +545,20 @@
         border-radius: 4px;
         box-shadow: 0 4px 12px rgba(29, 161, 242, 0.4);
     }
+    .side-box-clickable {
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .side-box-clickable:hover {
+        transform: translateY(-2px);
+        box-shadow: 6px 6px 0px #6B21A8;
+    }
+    .daily-login-sub {
+        font-size: 11px;
+        color: #6B21A8;
+        font-weight: 700;
+        margin-top: 8px;
+    }
     @keyframes blink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.3; }
@@ -544,7 +630,7 @@
         <div class="side-box">
             <h2 style="margin-top:0;">NEWBIE GUIDE</h2>
             <p>How to start playing MonEx</p>
-            <p style="font-size:11px; margin-top:10px;"><a href="docs/cloudflare-deploy.html" style="color:#6B21A8; font-weight:bold;">Deploy on Cloudflare (free) →</a></p>
+            <p style="font-size:11px; margin-top:10px;"><a href="docs/newbie-guide.html" style="color:#6B21A8; font-weight:bold;">Read the full guide →</a></p>
         </div>
         <div class="side-box side-box-grow">
             <h2 style="margin-top:0;">SERVER STATUS</h2>
@@ -553,9 +639,10 @@
                 <span id="status-text" style="color: #22c55e;">Online</span>
             </div>
         </div>
-        <div class="side-box">
+        <div class="side-box side-box-clickable" id="daily-login-box" onclick="handleDailyLoginClick()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();handleDailyLoginClick();}">
             <h2>DAILY LOGIN</h2>
-            <p>Claim your daily reward!</p>
+            <p id="daily-login-text">Claim your daily reward!</p>
+            <p id="daily-login-status" class="daily-login-sub"></p>
         </div>
     </div>
 </div>
@@ -621,8 +708,9 @@ startAutoPlay();
 <script src="js/staging-dev-login.js?v=20260708c"></script>
 <script src="js/monex-config.js?v=20260708b"></script>
 <script src="js/escape-html.js?v=20260708b"></script>
-<script src="js/activity-client.js?v=20260708c"></script>
+<script src="js/activity-client.js?v=20260708i"></script>
 <script src="js/auth-client.js?v=20260708b"></script>
+<script src="js/mailbox-client.js?v=20260708a"></script>
 <script>
 // Dynamic Header Logic
 async function updateHeader() {
@@ -662,6 +750,7 @@ async function updateHeader() {
             <button class="nav-btn" onclick="logout()">LOGOUT</button>
         `;
     }
+    refreshDailyLoginPanel();
 }
 
 async function stagingTestLogin() {
@@ -702,6 +791,54 @@ async function handleGameStart() {
         return;
     }
     openGameEntry();
+}
+
+async function refreshDailyLoginPanel() {
+    const statusEl = document.getElementById("daily-login-status");
+    const textEl = document.getElementById("daily-login-text");
+    if (!statusEl || !textEl) return;
+    if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
+        textEl.textContent = "Claim your daily reward!";
+        statusEl.textContent = "Login required";
+        return;
+    }
+    try {
+        const s = await MonExMailbox.fetchDailyLoginStatus();
+        if (s.ready) {
+            textEl.textContent = "Tap to claim 1 Monball!";
+            statusEl.textContent = s.unclaimed
+                ? `${s.unclaimed} reward${s.unclaimed === 1 ? "" : "s"} in Mailbox`
+                : "Reward goes to your Mailbox";
+        } else {
+            textEl.textContent = "Come back later";
+            statusEl.textContent = `Next claim in ${MonExMailbox.formatCooldownRemaining(s.nextClaimAt)}`;
+        }
+    } catch (_) {
+        statusEl.textContent = "";
+    }
+}
+
+async function handleDailyLoginClick() {
+    if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
+        showCustomModal("Please login with X first");
+        return;
+    }
+    try {
+        const result = await MonExMailbox.claimDailyLogin();
+        if (!result.ok) {
+            if (result.error === "cooldown") {
+                showCustomModal(`Daily reward on cooldown. Try again in ${MonExMailbox.formatCooldownRemaining(result.nextClaimAt)}.`);
+            } else {
+                showCustomModal(result.error || "Could not claim daily reward");
+            }
+            refreshDailyLoginPanel();
+            return;
+        }
+        showCustomModal("1 Monball sent to your Mailbox! Open the game and tap Mailbox to collect.");
+        refreshDailyLoginPanel();
+    } catch (e) {
+        showCustomModal(e.message || "Claim failed");
+    }
 }
 
 function openMarketplaceNotice() {

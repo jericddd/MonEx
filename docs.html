@@ -67,6 +67,39 @@
             font-size: 15px;
             line-height: 1.7;
         }
+        a { color: #6B21A8; font-weight: 600; }
+        .doc-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin: 24px 0;
+        }
+        .doc-card {
+            border: 3px solid #6B21A8;
+            box-shadow: 3px 3px 0 #6B21A8;
+            padding: 20px;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            transition: transform 0.15s ease;
+        }
+        .doc-card:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 5px 5px 0 #6B21A8;
+        }
+        .doc-card h4 {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 11px;
+            color: #6B21A8;
+            margin: 0 0 10px;
+        }
+        .doc-card p {
+            margin: 0;
+            font-size: 14px;
+            color: #444;
+        }
+        ul { font-size: 15px; padding-left: 1.3em; }
+        li { margin-bottom: 6px; }
     </style>
 </head>
 <body>
@@ -86,25 +119,47 @@
 <div class="container">
     <div class="content-box">
         <h2>MonEx Documentation</h2>
+        <p>Catch Monanimals on X, train your party, and battle through the Monad office. This page covers what you need to play — no dev setup required.</p>
 
-        <h3>Getting Started</h3>
-        <p>Catch Monanimals using Monballs and add them to your party.</p>
+        <div class="doc-links">
+            <a class="doc-card" href="docs/newbie-guide.html">
+                <h4>NEWBIE GUIDE</h4>
+                <p>Step-by-step: login, catch on X, daily rewards, party, battles, and quests.</p>
+            </a>
+            <a class="doc-card" href="docs/whats-coming.html">
+                <h4>WHAT'S COMING</h4>
+                <p>Arena betting with $MONEX, PVP Wager, Monball shop payments, and Marketplace.</p>
+            </a>
+        </div>
+
+        <h3>Core gameplay</h3>
+        <ul>
+            <li><b>Catch on X</b> — tweet <code>@monexmonad catch N monanimals</code> (1 Monball per catch). Mons sync to your Party, then Box.</li>
+            <li><b>Party</b> — up to 3 fighting Mons. <b>Box</b> — storage for the rest.</li>
+            <li><b>Daily login</b> — claim 1 Monball from the home page; collect it in your in-game Mailbox.</li>
+            <li><b>Resource chest</b> — AFK rewards on the main scene. Tap when READY.</li>
+        </ul>
 
         <h3>Battles</h3>
-        <p>Select a Monanimal from your party to battle wild creatures and gain XP.</p>
-
-        <h3>Skills & Rarity</h3>
-        <p>Each Monanimal has unique skills. Higher rarity Mons have more skills and better stats.</p>
+        <ul>
+            <li><b>Adventure → Campaign</b> — chapter story, bosses, and stage progression.</li>
+            <li><b>Adventure → Patrol</b> — scan the Monad office for gear drops (daily scan limit).</li>
+            <li><b>House Tower</b> — climb floors for tougher fights and loot.</li>
+            <li><b>Arena</b> — coming soon. Bet $MONEX on arena match outcomes. <a href="docs/whats-coming.html">Details →</a></li>
+        </ul>
 
         <h3>Progression</h3>
-        <p>Level up your Mons through battles and collect stronger creatures.</p>
+        <ul>
+            <li><b>Shop</b> — Monballs, materials, and items (Gold / KB's Onion). $MONEX Monball packs coming soon.</li>
+            <li><b>Armory</b> — equip, enhance, and synthesize gear.</li>
+            <li><b>Quests</b> — daily, weekly, and campaign tasks with milestone chest rewards.</li>
+            <li><b>Rarity</b> — Common, Uncommon, Rare, Legendary, Mythic. Higher rarity = better stats and more skills.</li>
+        </ul>
 
-        <h3>Coming Soon</h3>
-        <p>Adventure mode, Arena, and PVP Wager features will be added in future updates.</p>
-        <p><b>Planned integrations:</b> expanded <b>X API</b> (catch / activity) and <b>$MONEX on Monad</b> shop payments (Option A — pay per purchase). See <a href="docs/future-roadmap.html">Future Roadmap</a> for step-by-step flows when we build them.</p>
+        <h3>X Wild Log</h3>
+        <p>The home page shows live catches from X. Click any row to expand the full catch log with Mon cards, skills, and rarity borders.</p>
 
-        <h3>Security &amp; go-live</h3>
-        <p>Before promoting to live, follow the <a href="docs/security-go-live.html">Security go-live checklist</a> (API deploy, Cloudflare settings, branch protection).</p>
+        <p style="margin-top: 32px;">New here? Start with the <a href="docs/newbie-guide.html">Newbie Guide</a>.</p>
     </div>
 </div>
 
