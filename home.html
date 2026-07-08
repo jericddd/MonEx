@@ -2,12 +2,768 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=/">
-    <link rel="canonical" href="https://monexmonad.xyz/">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>MonEx</title>
-    <script>location.replace("/");</script>
+    <link rel="canonical" href="https://monexmonad.xyz/">
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+    body {
+        margin: 0;
+        font-family: 'Lato', system-ui, sans-serif;
+        background: url('for%20result%20banner/homebg.jpg') no-repeat center center fixed;
+        background-size: cover;
+        color: #111;
+        min-height: 100vh;
+    }
+
+    .header {
+    background: transparent;
+    padding: 12px 0;
+    border-bottom: none;
+}
+    .header-inner {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 15px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .nav-btn {
+        padding: 8px 16px;
+        margin: 4px 2px;
+        border: 2px solid #6B21A8;
+        background: white;
+        color: #111;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: "Press Start 2P", sans-serif;
+        font-size: 11px;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+    }
+    .nav-btn:hover {
+        background: #6B21A8;
+        color: white;
+        transform: translateY(-4px) scale(1.05);
+    }
+
+    .main-container {
+        max-width: 1200px;
+        margin: 20px auto 0;
+        padding: 20px 15px 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        background: rgba(0, 0, 0, 0.45);
+        border-radius: 8px;
+        box-sizing: border-box;
+    }
+
+    .main-columns {
+        display: flex;
+        align-items: stretch;
+        gap: 15px;
+        width: 100%;
+    }
+
+    @media (min-width: 901px) {
+        .main-columns {
+            flex-wrap: nowrap;
+        }
+    }
+
+    .home-wrap {
+        max-width: 1230px;
+        margin: 0 auto;
+        padding: 0 15px 24px;
+        box-sizing: border-box;
+    }
+
+    /* Left Sidebar */
+    .left-sidebar {
+        flex: 0 0 240px;
+        width: 240px;
+        max-width: 240px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .sidebar-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        flex-shrink: 0;
+    }
+
+    .showcase-panel {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        background: white;
+        border: 4px solid #6B21A8;
+        box-shadow: 4px 4px 0px #6B21A8;
+        padding: 12px;
+        text-align: center;
+        box-sizing: border-box;
+    }
+
+    .showcase-panel h3 {
+        margin: 0 0 10px 0;
+        font-family: "Press Start 2P", monospace;
+        color: #6B21A8;
+        font-size: 12px;
+    }
+
+    #showcase {
+        position: relative;
+        flex: 0 0 160px;
+        height: 160px;
+        overflow: hidden;
+        background: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #showcase-img {
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        transition: opacity 0.6s ease;
+    }
+
+    .showcase-panel-spacer {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    .showcase-name {
+        margin-top: 8px;
+        font-family: "Press Start 2P", monospace;
+        font-size: 12px;
+    }
+
+    .showcase-nav {
+        margin-top: 10px;
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .showcase-nav button {
+        background: #6B21A8;
+        color: white;
+        border: none;
+        width: 35px;
+        height: 35px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    .sidebar-btn {
+        padding: 16px;
+        background: white;
+        border: 4px solid #6B21A8;
+        box-shadow: 4px 4px 0px #6B21A8;
+        font-family: "Press Start 2P", sans-serif;
+        font-size: 14px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.4s ease;
+    }
+    .sidebar-btn:hover {
+        background: #6B21A8;
+        color: white;
+        transform: translateX(8px) scale(1.03);
+    }
+
+    /* Central Banner */
+    .central-banner {
+        flex: 1 1 0;
+        min-width: 280px;
+        display: flex;
+        flex-direction: column;
+        background: rgba(255,255,255,0.92);
+        border: 4px solid #6B21A8;
+        box-shadow: 4px 4px 0px #6B21A8;
+        padding: 20px;
+        text-align: center;
+        box-sizing: border-box;
+    }
+
+    .central-banner img {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        border: 4px solid #6B21A8;
+    }
+
+    .central-banner-visual {
+        flex: 1 1 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 0;
+        margin: 15px 0;
+    }
+
+    .central-banner-tagline {
+        font-size: 18px;
+        margin: 20px 0;
+        flex-shrink: 0;
+    }
+
+    /* Right Sidebar */
+    .right-sidebar {
+        flex: 0 0 260px;
+        width: 260px;
+        max-width: 260px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .right-sidebar .side-box-grow {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 0;
+    }
+
+    .side-box {
+        background: white;
+        border: 4px solid #6B21A8;
+        box-shadow: 4px 4px 0px #6B21A8;
+        padding: 15px;
+        transition: all 0.3s ease;
+    }
+    .side-box:hover {
+        transform: translateY(-5px);
+    }
+
+    h2 {
+        font-family: "Press Start 2P", monospace;
+        color: #6B21A8;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 900px) {
+        .main-columns {
+            flex-direction: column;
+            align-items: stretch;
+            flex-wrap: wrap;
+        }
+        .left-sidebar,
+        .right-sidebar,
+        .central-banner {
+            flex: 1 1 auto;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+        }
+        .showcase-panel,
+        .right-sidebar .side-box-grow,
+        .central-banner-visual,
+        .showcase-panel-spacer {
+            flex: 0 0 auto;
+        }
+        #showcase {
+            flex: 0 0 160px;
+            height: 160px;
+        }
+        .showcase-panel,
+        .right-sidebar .side-box:last-child {
+            margin-top: 0;
+        }
+        .nav-btn {
+            font-size: 10px;
+            padding: 8px 12px;
+        }
+    }
+
+    .activity-live {
+        display: inline-block;
+        width: 8px; height: 8px;
+        background: #22c55e;
+        border-radius: 50%;
+        animation: blink 1.5s infinite;
+        margin-right: 6px;
+    }
+
+    /* X Wild Log — same width as 3 columns above (inside main-container) */
+    .wild-log-section {
+        width: 100%;
+        box-sizing: border-box;
+        background: rgba(255, 255, 255, 0.96);
+        border: 4px solid #6B21A8;
+        box-shadow: 4px 4px 0px #6B21A8;
+        padding: 16px 18px 14px;
+        border-radius: 4px;
+    }
+    .wild-log-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 12px;
+        border-bottom: 2px solid #e9d5ff;
+        padding-bottom: 10px;
+    }
+    .wild-log-header h2 {
+        margin: 0;
+        font-size: 13px;
+    }
+    .wild-log-sub {
+        font-size: 11px;
+        color: #666;
+        margin: 0;
+    }
+    .wild-log-table-wrap {
+        overflow-x: auto;
+        overflow-y: auto;
+        max-height: min(52vh, 480px);
+        min-height: 120px;
+        scrollbar-gutter: stable;
+        scrollbar-width: thin;
+        scrollbar-color: #6B21A8 rgba(107, 33, 168, 0.15);
+        -webkit-overflow-scrolling: touch;
+        padding-right: 4px;
+    }
+    .wild-log-table-wrap::-webkit-scrollbar { width: 10px; }
+    .wild-log-table-wrap::-webkit-scrollbar-track {
+        background: rgba(107, 33, 168, 0.12);
+        border-radius: 5px;
+        margin-top: 8px;
+        margin-bottom: 8px;
+    }
+    .wild-log-table-wrap::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #a855f7, #6b21a8);
+        border: 1px solid #6b21a8;
+        border-radius: 5px;
+    }
+    .wild-log-table tr.activity-row-clickable { cursor: pointer; }
+    .wild-log-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+        text-align: left;
+    }
+    .wild-log-table th {
+        font-family: "Press Start 2P", monospace;
+        font-size: 8px;
+        color: #6B21A8;
+        padding: 8px 10px;
+        border-bottom: 2px solid #6B21A8;
+        white-space: nowrap;
+        background: #faf5ff;
+    }
+    .wild-log-table td {
+        padding: 9px 10px;
+        border-bottom: 1px solid #ede9fe;
+        vertical-align: top;
+    }
+    .wild-log-table tr:hover td {
+        background: #faf5ff;
+    }
+    .col-num { width: 36px; color: #888; font-size: 10px; }
+    .col-time { white-space: nowrap; font-size: 10px; color: #444; }
+    .col-user { white-space: nowrap; }
+    .col-spend, .col-throws, .col-left { text-align: center; white-space: nowrap; }
+    .col-mons { min-width: 140px; line-height: 1.4; }
+    .activity-user { color: #6B21A8; font-weight: 700; }
+    .activity-rare { color: #2563eb; font-weight: 700; }
+    .wild-log-empty {
+        color: #888;
+        font-size: 12px;
+        text-align: center;
+        padding: 24px 12px;
+        margin: 0;
+    }
+    .wild-log-pagination {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 2px solid #e9d5ff;
+    }
+    .page-btn, .page-nav {
+        font-family: "Press Start 2P", monospace;
+        font-size: 9px;
+        padding: 6px 10px;
+        border: 2px solid #6B21A8;
+        background: white;
+        color: #6B21A8;
+        cursor: pointer;
+    }
+    .page-btn:hover, .page-nav:hover:not(:disabled) {
+        background: #6B21A8;
+        color: white;
+    }
+    .page-btn.active {
+        background: #6B21A8;
+        color: white;
+    }
+    .page-nav:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+    }
+    .page-ellipsis {
+        font-size: 12px;
+        color: #888;
+        padding: 0 4px;
+    }
+    .page-info {
+        font-size: 10px;
+        color: #666;
+        margin-left: 8px;
+        width: 100%;
+        text-align: center;
+    }
+    @media (min-width: 901px) {
+        .page-info { width: auto; text-align: left; }
+    }
+    @media (max-width: 600px) {
+        .header-inner {
+            flex-direction: column;
+            gap: 10px;
+        }
+    }
+    .nav-buttons {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        min-height: 44px;
+    }
+    .login-x-btn {
+        padding: 12px 28px;
+        background: linear-gradient(145deg, #1DA1F2, #0A7CC2);
+        color: white;
+        border: none;
+        font-weight: bold;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(29, 161, 242, 0.4);
+    }
+    @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+</style>
 </head>
 <body>
-    <p>Redirecting to <a href="/">monexmonad.xyz</a>…</p>
+
+<!-- Header - Transparent -->
+<div class="header" style="background: transparent; border-bottom: none;">
+    <div class="header-inner">
+    <img src="logo.png" alt="MonEx Logo" style="height: 45px; margin-top: 5px;">
+    <div id="nav-buttons" class="nav-buttons">
+        <button type="button" class="login-x-btn" onclick="startLogin()">LOGIN WITH X</button>
+    </div>
+</div>
+</div>
+
+<div class="home-wrap">
+
+<div class="main-container">
+
+<div class="main-columns">
+<!-- Left Sidebar -->
+<div class="left-sidebar">
+    <div class="sidebar-nav">
+    <div class="sidebar-btn" onclick="handleGameStart()" 
+     style="background: linear-gradient(145deg, #c084fc, #7c3aed); 
+            color: white; 
+            font-size: 15px; 
+            box-shadow: 0 0 25px rgba(168, 85, 247, 0.9), 
+                        inset 0 6px 15px rgba(255,255,255,0.5); 
+            text-shadow: 0 2px 4px rgba(0,0,0,0.4); 
+            border: 4px solid #6B21A8;">
+    GAME START
+</div>
+    
+    <div class="sidebar-btn" onclick="window.location.href='docs.html'">DOCS</div>
+    
+    <div class="sidebar-btn" onclick="window.location.href='monanimal_game.html'">SHOP</div>
+    </div>
+
+    <div class="showcase-panel">
+    <h3>MONANIMAL SHOWCASE</h3>
+    
+    <div id="showcase">
+            <img id="showcase-img" src="" alt="">
+        </div>
+        
+        <div class="showcase-name" id="showcase-name"></div>
+        
+        <div class="showcase-nav">
+            <button type="button" onclick="prevMon()" aria-label="Previous">←</button>
+            <button type="button" onclick="nextMon()" aria-label="Next">→</button>
+        </div>
+        <div class="showcase-panel-spacer" aria-hidden="true"></div>
+    </div>
+</div>
+
+    <!-- Central Banner -->
+    <div class="central-banner">
+        <h2>WELCOME TO MONEX</h2>
+        <p class="central-banner-tagline">Catch. Train. Battle.</p>
+        <div class="central-banner-visual">
+            <img src="for%20result%20banner/homepagebackground.jpg" alt="MonEx heroes">
+        </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="right-sidebar">
+        <div class="side-box">
+            <h2 style="margin-top:0;">NEWBIE GUIDE</h2>
+            <p>How to start playing MonEx</p>
+            <p style="font-size:11px; margin-top:10px;"><a href="docs/cloudflare-deploy.html" style="color:#6B21A8; font-weight:bold;">Deploy on Cloudflare (free) →</a></p>
+        </div>
+        <div class="side-box side-box-grow">
+            <h2 style="margin-top:0;">SERVER STATUS</h2>
+            <div id="server-status" style="font-weight: bold; font-size: 16px; display: flex; align-items: center; gap: 10px;">
+                <span id="status-dot" style="display: inline-block; width: 12px; height: 12px; background: #22c55e; border-radius: 50%; animation: blink 1.5s infinite;"></span>
+                <span id="status-text" style="color: #22c55e;">Online</span>
+            </div>
+        </div>
+        <div class="side-box">
+            <h2>DAILY LOGIN</h2>
+            <p>Claim your daily reward!</p>
+        </div>
+    </div>
+</div>
+
+<!-- X Wild Log — aligned with columns above -->
+<div class="wild-log-section">
+    <div class="wild-log-header">
+        <div>
+            <h2><span class="activity-live"></span>X WILD LOG</h2>
+            <p class="wild-log-sub">Live catches from X — tweet <b>@monexmonad catch 10 monanimals</b> · click a row for full catch log</p>
+        </div>
+        <p class="wild-log-sub" id="wild-log-status">Loading…</p>
+    </div>
+    <div class="wild-log-table-wrap" id="x-activity-feed">
+        <p class="wild-log-empty">Loading activity…</p>
+    </div>
+    <div class="wild-log-pagination" id="wild-log-pagination"></div>
+</div>
+
+</div>
+
+<script>
+// Monanimal Showcase
+const monanimals = [
+    {name: "Chog", path: "128x128/chog.gif"},
+    {name: "Salmonad", path: "128x128/salmonad.png"},
+    {name: "Molandak", path: "128x128/molandak.gif"},
+    {name: "Monavara", path: "128x128/monavara.png"},
+    {name: "Moxy", path: "128x128/moxy.png"}
+];
+
+let currentIndex = 0;
+let autoPlayInterval;
+
+function updateShowcase() {
+    const img = document.getElementById("showcase-img");
+    const nameEl = document.getElementById("showcase-name");
+    img.src = monanimals[currentIndex].path;
+    nameEl.textContent = monanimals[currentIndex].name;
+}
+
+function nextMon() {
+    currentIndex = (currentIndex + 1) % monanimals.length;
+    updateShowcase();
+}
+
+function prevMon() {
+    currentIndex = (currentIndex - 1 + monanimals.length) % monanimals.length;
+    updateShowcase();
+}
+
+function startAutoPlay() {
+    autoPlayInterval = setInterval(nextMon, 3500);
+}
+
+updateShowcase();
+startAutoPlay();
+</script>
+<script src="js/staging-banner.js?v=20260708a"></script>
+<script src="js/monex-config.js?v=20260708a"></script>
+<script src="js/escape-html.js?v=20260708a"></script>
+<script src="js/activity-client.js?v=20260708a"></script>
+<script src="js/auth-client.js?v=20260708a"></script>
+<script>
+// Dynamic Header Logic
+async function updateHeader() {
+    const nav = document.getElementById("nav-buttons");
+    if (!nav) return;
+    let loggedIn = false;
+    let displayName = "";
+
+    try {
+        if (typeof MonExAuth !== "undefined") {
+            const user = await Promise.race([
+                MonExAuth.ensureUser(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error("auth timeout")), 8000)),
+            ]);
+            loggedIn = !!user;
+            displayName = user ? `@${user.username}` : "";
+        }
+    } catch (_) {
+        loggedIn = false;
+    }
+
+    if (!loggedIn) {
+        nav.innerHTML = `
+            <button type="button" class="login-x-btn" onclick="startLogin()">
+                LOGIN WITH X
+            </button>
+        `;
+    } else {
+        const safeName = typeof escapeHtml === "function" ? escapeHtml(displayName) : displayName;
+        nav.innerHTML = `
+            <span style="font-size:12px; color:#6B21A8; margin-right:10px;">${safeName}</span>
+            <button class="nav-btn" onclick="goToProfile()">PROFILE</button>
+            <button class="nav-btn" onclick="logout()">LOGOUT</button>
+        `;
+    }
+}
+
+async function startLogin() {
+    try {
+        const health = await fetch(`${getMonexApiBase()}/api/health`).then((r) => r.json());
+        if (health.xOAuth) {
+            MonExAuth.startXLogin("/");
+            return;
+        }
+    } catch (_) {}
+
+    const handle = prompt("Enter your X @handle (dev login until OAuth is configured):");
+    if (!handle) return;
+    try {
+        await MonExAuth.devLogin(handle);
+        updateHeader();
+    } catch (e) {
+        showCustomModal(e.message || "Login failed");
+    }
+}
+async function handleGameStart() {
+    if (!MonExAuth.isLoggedIn()) {
+        showCustomModal("Please login with X first");
+        return;
+    }
+    window.location.href = 'monanimal_game.html';
+}
+
+function showCustomModal(message) {
+    const modal = document.createElement("div");
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.7); display: flex; align-items: center;
+        justify-content: center; z-index: 300;
+    `;
+    const panel = document.createElement("div");
+    panel.style.cssText = `
+        background:white; padding:30px; border:4px solid #6B21A8;
+        box-shadow:4px 4px 0px #6B21A8; text-align:center; min-width:320px;
+    `;
+    const text = document.createElement("p");
+    text.style.cssText = "font-size:16px; margin-bottom:25px;";
+    text.textContent = String(message ?? "");
+    const button = document.createElement("button");
+    button.textContent = "OK";
+    button.style.cssText = "padding:10px 30px; background:#6B21A8; color:white; border:none; cursor:pointer;";
+    button.addEventListener("click", () => modal.remove());
+    panel.appendChild(text);
+    panel.appendChild(button);
+    modal.appendChild(panel);
+    document.body.appendChild(modal);
+}
+
+function goToProfile() {
+    sessionStorage.setItem("monex_open_profile", "1");
+    window.location.href = "monanimal_game.html";
+}
+
+async function logout() {
+    await MonExAuth.logout();
+    window.location.href = '/';
+}
+
+// Initialize
+(async function initHome() {
+    const params = new URLSearchParams(location.search);
+    const authErr = params.get("auth_error");
+    if (authErr) {
+        showCustomModal("X login failed: " + authErr);
+        params.delete("auth_error");
+        history.replaceState({}, "", location.pathname + (params.toString() ? "?" + params : ""));
+    }
+    await updateHeader();
+})();
+</script>
+<script>
+let wildLogPage = 1;
+
+async function refreshHomeActivity(page) {
+    if (page) wildLogPage = page;
+    const el = document.getElementById("x-activity-feed");
+    const pager = document.getElementById("wild-log-pagination");
+    const status = document.getElementById("wild-log-status");
+    if (!el) return;
+    try {
+        const data = await MonExActivity.fetchGlobal(MonExActivity.PAGE_SIZE, wildLogPage);
+        if (!data?.ok) throw new Error("activity API returned an error");
+        MonExActivity.renderTable(el, data, "No X catches yet. Try: @monexmonad catch 10 monanimals");
+        MonExActivity.renderPagination(pager, data, (p) => refreshHomeActivity(p));
+        if (status) {
+            status.textContent = data.total
+                ? `${data.total} total catches · showing ${data.entries.length} on this page`
+                : "Waiting for first catch…";
+        }
+    } catch (e) {
+        console.warn("X Wild Log load failed:", e);
+        const api = typeof getMonexApiBase === "function" ? getMonexApiBase() : "";
+        el.innerHTML = `<p class="wild-log-empty">Could not load X Wild Log. Hard-refresh the page (Ctrl+Shift+R). API: ${api || "not set"}</p>`;
+        if (pager) pager.innerHTML = "";
+        if (status) status.textContent = "Offline";
+    }
+}
+
+refreshHomeActivity(1);
+setInterval(() => refreshHomeActivity(wildLogPage), 8000);
+
+fetch((getMonexApiBase() || "") + "/api/health").then(r => r.ok && r.json()).then(d => {
+    if (!d?.ok) return;
+    const dot = document.getElementById("status-dot");
+    const txt = document.getElementById("status-text");
+    if (dot) dot.style.background = "#22c55e";
+    if (txt) { txt.textContent = "Online"; txt.style.color = "#22c55e"; }
+}).catch(() => {
+    const dot = document.getElementById("status-dot");
+    const txt = document.getElementById("status-text");
+    if (dot) dot.style.background = "#eab308";
+    if (txt) { txt.textContent = "Game only"; txt.style.color = "#ca8a04"; }
+});
+</script>
 </body>
 </html>

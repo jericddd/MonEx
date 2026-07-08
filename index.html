@@ -606,11 +606,11 @@ function startAutoPlay() {
 updateShowcase();
 startAutoPlay();
 </script>
-<script src="js/staging-banner.js?v=20260707b"></script>
-<script src="js/monex-config.js?v=20260707b"></script>
-<script src="js/escape-html.js?v=20260707b"></script>
-<script src="js/activity-client.js?v=20260707b"></script>
-<script src="js/auth-client.js?v=20260707b"></script>
+<script src="js/staging-banner.js?v=20260708a"></script>
+<script src="js/monex-config.js?v=20260708a"></script>
+<script src="js/escape-html.js?v=20260708a"></script>
+<script src="js/activity-client.js?v=20260708a"></script>
+<script src="js/auth-client.js?v=20260708a"></script>
 <script>
 // Dynamic Header Logic
 async function updateHeader() {
@@ -711,6 +711,9 @@ async function logout() {
 
 // Initialize
 (async function initHome() {
+    if (/\/home\.html$/i.test(location.pathname)) {
+        history.replaceState({}, "", "/" + location.search + location.hash);
+    }
     const params = new URLSearchParams(location.search);
     const authErr = params.get("auth_error");
     if (authErr) {
