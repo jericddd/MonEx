@@ -10942,6 +10942,7 @@ function formatCost(cost) {
 
 // ===== Phase 3: Equipment & Ascension =====
 function isEquipmentUnlocked() {
+    if (isStagingTestUser()) return true;
     return adventureGlobalBest >= 9
         || currentChapter >= 2
         || getGlobalAdventureProgress(currentChapter, currentStage) >= 9;
@@ -11613,7 +11614,7 @@ function openEquipModal(location, monIndex, slot) {
         : `<p class="equip-modal-empty">Nothing equipped</p>`;
     const inventoryHtml = options.length
         ? options.map(g => {
-            const levelOk = Math.floor(mon.level) >= getGearRequiredLevel(g);
+            const levelOk = isStagingTestUser() || Math.floor(mon.level) >= getGearRequiredLevel(g);
             return renderEquipOptionHtml(g, mon, levelOk ? "EQUIP" : "LV REQ", levelOk ? "equip-action-equip" : "equip-action-locked", {
                 dataGid: g.id,
                 disabled: !levelOk,
@@ -12929,6 +12930,7 @@ function ensurePatrolDailyReset(todayKey) {
 }
 
 function getPatrolScansRemaining() {
+    if (isStagingTestUser()) return PATROL_DAILY_MAX;
     ensurePatrolDailyReset();
     return Math.max(0, PATROL_DAILY_MAX - patrolScansUsed);
 }
@@ -13528,7 +13530,12 @@ function openItemBuyPopup(item) {
 }
 
 function buyMonball() {
-    showMonballComingSoonNotice();
+    if (!isStagingTestUser()) {
+        showMonballComingSoonNotice();
+        return;
+    }
+    const item = SHOP_ITEMS.find((i) => i.id === "monball5");
+    if (item) openShopBuyPopup(item);
 }
 
 // Spend KB's Onion + Gold to level a party member up by one (also fully heals it).
@@ -13555,7 +13562,7 @@ function levelUpMonManual(index) {
 function buyShopItem(itemId) {
     const item = SHOP_ITEMS.find(i => i.id === itemId);
     if (!item) return;
-    if (isMonballPurchaseItem(item)) {
+    if (isMonballPurchaseItem(item) && !isStagingTestUser()) {
         showMonballComingSoonNotice();
         return;
     }
@@ -14173,6 +14180,10 @@ function isTestUser() {
     return String(currentUser).replace(/^@/, "").toLowerCase() === "test";
 }
 
+function isStagingTestUser() {
+    return isStagingHost() && isTestUser();
+}
+
 const STAGING_BETA_RESOURCE_MIN = 999999;
 const STAGING_BETA_LEGENDARY_COPIES = 10;
 const STAGING_BETA_RARE_COPIES = 6;
@@ -14251,6 +14262,47 @@ function grantTestBattleParty() {
     ];
     localStorage.setItem(flagKey, "1");
     saveData();
+}
+
+function unlockTestMonFully(mon) {
+    if (!mon) return false;
+    ensureMonReady(mon);
+    let changed = false;
+    if ((mon.ascensionStars || 0) < HERO_ASCENSION_SKILL_CAP) {
+        mon.ascensionStars = HERO_ASCENSION_SKILL_CAP;
+        changed = true;
+    }
+    if (mon.ascensionSkillPending?.length) {
+        delete mon.ascensionSkillPending;
+        changed = true;
+    }
+    if (mon.ascensionSkillFreePick) {
+        delete mon.ascensionSkillFreePick;
+        changed = true;
+    }
+    expandSkillsForRarity(mon);
+    const usedNames = new Set((mon.skills || []).map((skill) => skill.name));
+    while ((mon.skills?.length || 0) < BATTLE_METER_SKILL_SLOTS) {
+        const skill = pickUniqueSkill(getActiveSkillPoolForMon(mon.skills), usedNames);
+        if (!skill) break;
+        mon.skills.push(skill);
+        usedNames.add(skill.name);
+        changed = true;
+    }
+    refreshMonDerivedStats(mon);
+    return changed;
+}
+
+function unlockTestAccountFeatures() {
+    if (!isStagingTestUser()) return false;
+    let changed = false;
+    if (adventureGlobalBest < 9) { adventureGlobalBest = 9; changed = true; }
+    if (highestStageCleared < 9) { highestStageCleared = 9; changed = true; }
+    if (currentChapter < 2) { currentChapter = 2; changed = true; }
+    if (currentStage < 9) { currentStage = 9; changed = true; }
+    party.forEach((mon) => { if (unlockTestMonFully(mon)) changed = true; });
+    if (changed) saveData();
+    return changed;
 }
 
 function buildTestMon(name, rarity, level, passiveName, activeNames) {
@@ -14384,6 +14436,7 @@ async function runPostLoginBootstrap() {
     try { applyStagingBetaKit(); } catch (e) { console.error("applyStagingBetaKit failed:", e); }
     if (isStagingHost() && isTestUser()) {
         try { grantTestBattleParty(); } catch (e) { console.error("grantTestBattleParty failed:", e); }
+        try { unlockTestAccountFeatures(); } catch (e) { console.error("unlockTestAccountFeatures failed:", e); }
     }
     try { resolveAbandonedAdventureBattle(); } catch (e) { console.error("resolveAbandonedAdventureBattle failed:", e); }
     if (adventureForfeitNotice) {
@@ -14920,7 +14973,7 @@ function beginPatrolScan() {
         alert("No patrol scans left today. Come back after the daily reset!");
         return;
     }
-    patrolScansUsed++;
+    if (!isStagingTestUser()) patrolScansUsed++;
     saveData();
 
     void warmPatrolBattleAssets();
