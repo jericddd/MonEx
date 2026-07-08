@@ -11086,7 +11086,8 @@ function addTrainerXp(amount) {
 }
 
 function isBossStage(stage) {
-    return stage === 1 || (stage > 0 && stage % 4 === 0);
+    // Stage 1 is a warm-up — first boss is stage 4
+    return stage > 1 && stage > 0 && stage % 4 === 0;
 }
 
 function getGlobalAdventureProgress(chapter, stage) {
@@ -11118,18 +11119,36 @@ function migrateAdventureSave() {
 }
 
 function getAdventureEnemyLevel(globalProgress, slotIndex, boss) {
-    const base = Math.floor(4 + globalProgress * 0.75);
-    const bossBonus = boss ? 3 : 0;
-    const leadBonus = slotIndex === 0 ? 2 : 0;
-    const jitter = randInt(-1, boss ? 3 : 2);
+    const gp = Math.max(1, globalProgress || 1);
+    let base;
+    if (gp <= 10) {
+        base = 1 + Math.floor(gp * 0.35);
+    } else if (gp <= 25) {
+        base = 3 + Math.floor(gp * 0.5);
+    } else {
+        base = Math.floor(4 + gp * 0.75);
+    }
+    const bossBonus = boss ? (gp <= 10 ? 1 : gp <= 25 ? 2 : 3) : 0;
+    const leadBonus = slotIndex === 0 ? (gp <= 10 ? 1 : 2) : 0;
+    const jitter = randInt(-1, boss ? (gp <= 10 ? 2 : 3) : 2);
     return Math.min(80, Math.max(1, base + bossBonus + leadBonus + jitter));
 }
 
 function rollAdventureEnemyRarity(globalProgress, slotIndex, boss) {
     const order = ["Common", "Uncommon", "Rare", "Legendary", "Mythic"];
-    let minIdx = Math.min(order.length - 1, Math.floor((globalProgress - 1) / 14));
-    if (boss) minIdx = Math.min(order.length - 1, minIdx + (slotIndex === 0 ? 2 : 1));
-    else if (slotIndex === 0) minIdx = Math.min(order.length - 1, minIdx + 1);
+    const gp = Math.max(1, globalProgress || 1);
+    let minIdx = Math.min(order.length - 1, Math.floor((gp - 1) / 14));
+    if (gp <= 5) {
+        minIdx = Math.min(minIdx, slotIndex === 0 ? 1 : 0);
+    } else if (gp <= 12) {
+        minIdx = Math.min(minIdx, slotIndex === 0 ? 2 : 1);
+    }
+    if (boss) {
+        const bossBump = gp <= 8 ? 1 : (slotIndex === 0 ? 2 : 1);
+        minIdx = Math.min(order.length - 1, minIdx + bossBump);
+    } else if (slotIndex === 0) {
+        minIdx = Math.min(order.length - 1, minIdx + 1);
+    }
     return rollRarityAtLeast(order[minIdx]);
 }
 
@@ -11146,9 +11165,11 @@ function buildAdventureEnemyMon(name, globalProgress, slotIndex, boss) {
     mon.stats = generateStats(name, rarity);
     mon.statVersion = STAT_SYSTEM_VERSION;
     if (boss) {
-        mon.stats.crit += 8;
-        mon.stats.spd += 10;
-        mon.stats.hit += 5;
+        const gp = Math.max(1, globalProgress || 1);
+        const mult = gp <= 10 ? 0.5 : gp <= 25 ? 0.75 : 1;
+        mon.stats.crit += Math.round(8 * mult);
+        mon.stats.spd += Math.round(10 * mult);
+        mon.stats.hit += Math.round(5 * mult);
     }
     const ascStacks = getEnemyAscensionStacks(globalProgress, boss, slotIndex);
     for (let s = 0; s < ascStacks; s++) {
