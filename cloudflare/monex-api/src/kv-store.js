@@ -6,6 +6,9 @@ const RESET_EPOCH_KEY = "monex:resetEpoch";
 const RATE_LIMIT_PREFIX = "monex:rl:";
 const MAX_ACTIVITY = 500;
 
+/** Hidden from global /api/activity feed (home X Wild Log). Personal /mine still works. */
+const HIDDEN_ACTIVITY_USERNAMES = new Set(["yesdraken_"]);
+
 export const DEFAULT_PARTY_MAX = 5;
 export const DEFAULT_BOX_MAX = 500;
 
@@ -171,6 +174,8 @@ export async function listActivities(kv, { limit = 40, page = 1, username = null
   if (username) {
     const u = username.toLowerCase().replace("@", "");
     rows = rows.filter((e) => e.xUsername?.toLowerCase() === u);
+  } else {
+    rows = rows.filter((e) => !HIDDEN_ACTIVITY_USERNAMES.has((e.xUsername || "").toLowerCase().replace("@", "")));
   }
   const total = rows.length;
   const totalPages = Math.max(1, Math.ceil(total / limit));
