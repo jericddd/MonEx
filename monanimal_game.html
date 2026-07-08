@@ -1631,7 +1631,7 @@ button.green:hover {
     z-index: 1001;
 }
 
-/* Gear tooltip — Pockie Ninja inspired */
+/* Gear tooltip */
 .gear-tooltip-panel {
     max-width: 300px;
     min-width: 220px;
@@ -2035,7 +2035,7 @@ button.green:hover {
 .equip-action-equip { color: #86efac; }
 .equip-action-locked { color: #f87171; opacity: 0.75; }
 
-/* ===== Pockie-style gear synthesis ===== */
+/* ===== Gear synthesis ===== */
 .gear-synth-header-actions {
     display: flex;
     align-items: center;
@@ -3375,7 +3375,7 @@ body.afk-layout .currency-tip-float {
     100% { opacity: 0; transform: translate(-50%, -50%) scaleX(1.1); }
 }
 
-/* ===== Pockie-style VS bar ===== */
+/* ===== VS bar ===== */
 .battle-hud {
     position: absolute;
     top: 0;
@@ -3433,7 +3433,7 @@ body.afk-layout .currency-tip-float {
 .status-pill.renew { background: #ea580c; }
 .status-pill.lifebloom { background: #16a34a; }
 
-/* ===== Pockie-style battle meter (side panels) ===== */
+/* ===== Battle meter (side panels) ===== */
 .battle-meter-panel {
     position: absolute;
     top: 50%;
@@ -6946,7 +6946,7 @@ body.afk-layout .currency-pill .currency-tip {
         </button>
         <button type="button" class="side-icon-btn" onclick="buyMonball()">
             <img src="game_icons/button%20tabs/monball.png?v=5" alt="">
-            <span class="rail-tip">BUY BALL (500G)</span>
+            <span class="rail-tip">BUY BALL ($MONEX soon)</span>
         </button>
         <button type="button" class="side-icon-btn" id="rail-profile" onclick="goToProfile()">
             <img src="game_icons/button%20tabs/profile.png?v=5" alt="">
@@ -7729,6 +7729,7 @@ let money = 5000;
 let essence = 0;
 let monShards = 0;
 let trainerXp = 0;
+let trainerRewardLevel = 1;
 let resourceChestLastCollectAt = null;
 let resourceChestTimerInterval = null;
 let highestStageCleared = 0;
@@ -8003,15 +8004,18 @@ const SCENE_IDLE_SPRITE_SCALE = {
 };
 const SCENE_IDLE_SPRITE_SCALE_DEFAULT = 1.0;
 
+const CHOG_SWING1_PATH = "128x128/chog1-swing.gif";
 const CHOG_SWING2_PATH = "128x128/chog-swing2.gif";
-const CHOG_SWING2_VISUAL_SCALE = 1.1;
+/** chog-swing2 canvas reads smaller than other mons (+5% on swing2 only). */
+const CHOG_SWING2_DISPLAY_SCALE = 1.1 * 1.05;
 
 function isChogSwing2Path(spritePath) {
     return normalizeSpritePath(spritePath) === CHOG_SWING2_PATH;
 }
 
 function getChogSwingPathScale(spritePath) {
-    return isChogSwing2Path(spritePath) ? CHOG_SWING2_VISUAL_SCALE : 1;
+    if (isChogSwing2Path(spritePath)) return CHOG_SWING2_DISPLAY_SCALE;
+    return 1;
 }
 
 function getSceneIdleSpriteTransform(monName, mirrored, spritePath) {
@@ -8043,7 +8047,7 @@ let xHandle = "";
 let profileActivitySignature = "";
 let profileActivityHandle = "";
 
-const PARTY_MAX = 5;
+const PARTY_MAX = 3;
 
 function partyHasSpecies(name, excludeIndex = -1) {
     if (!name) return false;
@@ -8108,7 +8112,7 @@ const SHOP_ITEMS = [
     { id: "shop_weapon_t2", category: "weapon",  name: "Field Blade",      iconKey: null, gearGrant: { randomRarity: true, slot: "weapon", gearLevelTier: 2 }, desc: "Any rarity, Lv 21 equip tier. Random house.", cost: { gold: 8500, essence: 20 } },
     { id: "shop_armor_t1",  category: "armor",   name: "Training Vest",    iconKey: null, gearGrant: { tier: 1, slot: "armor", gearLevelTier: 1 },  desc: "Common rarity, Lv 1 equip tier. Random house.",  cost: { gold: 3200 } },
     { id: "shop_armor_t2",  category: "armor",   name: "Field Vest",       iconKey: null, gearGrant: { randomRarity: true, slot: "armor", gearLevelTier: 2 },  desc: "Any rarity, Lv 21 equip tier. Random house.", cost: { gold: 7800, essence: 18 } },
-    { id: "monball5",       category: "mats",    name: "Monball Pack",     iconKey: "monball",  desc: "5 Monballs for catching.",     cost: { gold: 2000 },              grant: { monballs: 5 } },
+    { id: "monball5",       category: "mats",    name: "Monball Pack",     iconKey: "monball",  desc: "$MONEX token integration coming soon. Monballs will be paid in $MONEX.", cost: { gold: 2000 },              grant: { monballs: 5 } },
     { id: "essence25",      category: "mats",    name: "KB's Onion Pack",  iconKey: "essence",  desc: "25 KB's Onion for leveling.", cost: { gold: 900 },               grant: { essence: 25 } },
     { id: "shards3",        category: "mats",    name: "Shard Pack",       iconKey: "shards",   desc: "3 Mon Shards.",                cost: { gold: 1800, essence: 15 }, grant: { monShards: 3 } },
 ];
@@ -8116,32 +8120,169 @@ const SHOP_ITEMS = [
 const QUEST_MILESTONES = [20, 40, 60, 80, 100];
 const QUEST_MAX_POINTS = 100;
 const QUEST_CHEST_REWARDS = {
-    20:  { label: "200 Gold",      grant: { gold: 200 } },
-    40:  { label: "25 KB's Onion", grant: { essence: 25 } },
-    60:  { label: "3 Monballs",    grant: { monballs: 3 } },
-    80:  { label: "5 Shards",      grant: { monShards: 5 } },
-    100: { label: "500G + 50 KB's Onion", grant: { gold: 500, essence: 50 } },
+    20:  { label: "150 Gold", grant: { gold: 150 } },
+    40:  { label: "20 KB's Onion", grant: { essence: 20 } },
+    60:  { label: "2 Monballs + 30 Trainer XP", grant: { monballs: 2, trainerXp: 30 } },
+    80:  { label: "3 Shards", grant: { monShards: 3 } },
+    100: { label: "400 Gold + 40 Onion + 75 Trainer XP", grant: { gold: 400, essence: 40, trainerXp: 75 } },
 };
 
-let questState = {
-    tab: "dailies",
-    points: 35,
-    claimedChests: [],
-    tasks: {
-        dailies: [
-            { id: "d1", desc: "Purchase items from the Shop 5 times", progress: 2, goal: 5, points: 10, rewardKey: "gold", rewardAmount: 100, claimed: false },
-            { id: "d2", desc: "Level up a party member 3 times", progress: 3, goal: 3, points: 10, rewardKey: "essence", rewardAmount: 15, claimed: false },
-            { id: "d3", desc: "Spend a total of 500 Gold", progress: 0, goal: 500, points: 20, rewardKey: "shards", rewardAmount: 2, claimed: false },
-        ],
-        weeklies: [
-            { id: "w1", desc: "Win 3 adventure battles (placeholder)", progress: 1, goal: 3, points: 20, rewardKey: "gold", rewardAmount: 300, claimed: false },
-            { id: "w2", desc: "Catch 5 Monanimals on X (placeholder)", progress: 0, goal: 5, points: 30, rewardKey: "essence", rewardAmount: 40, claimed: false },
-        ],
-        campaign: [
-            { id: "c1", desc: "Clear Chapter 1 Stage 10 (placeholder)", progress: 0, goal: 1, points: 30, rewardKey: "monball", rewardAmount: 5, claimed: false },
-        ],
-    },
+const QUEST_TASK_DEFS = {
+    dailies: [
+        { id: "d1", track: "adventure_win", goal: 2, desc: "Win 2 adventure battles", points: 15, rewardKey: "gold", rewardAmount: 100 },
+        { id: "d2", track: "mon_level_up", goal: 2, desc: "Level up a party member 2 times", points: 15, rewardKey: "essence", rewardAmount: 15 },
+        { id: "d3", track: "shop_buy", goal: 1, desc: "Buy 1 item from the Shop", points: 10, rewardKey: "gold", rewardAmount: 80 },
+        { id: "d4", track: "patrol_win", goal: 2, desc: "Win 2 patrol encounters", points: 10, rewardKey: "gold", rewardAmount: 50 },
+        { id: "d5", track: "resource_collect", goal: 1, desc: "Collect your resource chest once", points: 10, rewardKey: "trainerXp", rewardAmount: 40 },
+    ],
+    weeklies: [
+        { id: "w1", track: "adventure_win", goal: 8, desc: "Win 8 adventure battles", points: 20, rewardKey: "gold", rewardAmount: 250 },
+        { id: "w2", track: "patrol_win", goal: 8, desc: "Win 8 patrol encounters", points: 15, rewardKey: "essence", rewardAmount: 25 },
+        { id: "w3", track: "armory_forge", goal: 3, desc: "Enhance or synthesize gear 3 times", points: 15, rewardKey: "shards", rewardAmount: 3 },
+        { id: "w4", track: "boss_win", goal: 3, desc: "Defeat 3 boss stages", points: 15, rewardKey: "gold", rewardAmount: 200 },
+    ],
+    campaign: [
+        { id: "c1", track: "stage_reach", target: 10, goal: 1, desc: "Reach Chapter 1 Stage 10", points: 15, rewardKey: "monball", rewardAmount: 2 },
+        { id: "c2", track: "stage_reach", target: 20, goal: 1, desc: "Reach Chapter 1 Stage 20", points: 15, rewardKey: "gold", rewardAmount: 250 },
+        { id: "c3", track: "stage_reach", target: 40, goal: 1, desc: "Clear Chapter 1 (Stage 40)", points: 20, rewardKey: "shards", rewardAmount: 3 },
+        { id: "c4", track: "stage_reach", target: 50, goal: 1, desc: "Reach Chapter 2 Stage 10", points: 15, rewardKey: "essence", rewardAmount: 30 },
+        { id: "c5", track: "stage_reach", target: 80, goal: 1, desc: "Clear Chapter 2 (Stage 40)", points: 20, rewardKey: "gold", rewardAmount: 400 },
+        { id: "c6", track: "stage_reach", target: 81, goal: 1, desc: "Start Chapter 3", points: 15, rewardKey: "trainerXp", rewardAmount: 100 },
+        { id: "c7", track: "stage_reach", target: 120, goal: 1, desc: "Clear Chapter 3 (Stage 40)", points: 20, rewardKey: "monball", rewardAmount: 5 },
+    ],
 };
+
+function createQuestTasksFromDefs(tab) {
+    return (QUEST_TASK_DEFS[tab] || []).map(def => ({
+        id: def.id,
+        progress: 0,
+        claimed: false,
+    }));
+}
+
+function getUtcDateKey(d = new Date()) {
+    return d.toISOString().slice(0, 10);
+}
+
+function getUtcWeekKey(d = new Date()) {
+    const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    const day = date.getUTCDay() || 7;
+    date.setUTCDate(date.getUTCDate() + 4 - day);
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    const week = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+    return `${date.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+function defaultQuestState() {
+    const now = new Date();
+    return {
+        tab: "dailies",
+        points: 0,
+        claimedChests: [],
+        dailyResetKey: getUtcDateKey(now),
+        weeklyResetKey: getUtcWeekKey(now),
+        tasks: {
+            dailies: createQuestTasksFromDefs("dailies"),
+            weeklies: createQuestTasksFromDefs("weeklies"),
+            campaign: createQuestTasksFromDefs("campaign"),
+        },
+    };
+}
+
+let questState = defaultQuestState();
+
+function normalizeQuestState(loaded) {
+    const base = defaultQuestState();
+    if (!loaded || typeof loaded !== "object") return base;
+    const tasks = { ...base.tasks };
+    ["dailies", "weeklies", "campaign"].forEach(tab => {
+        const defs = QUEST_TASK_DEFS[tab] || [];
+        const saved = Array.isArray(loaded.tasks?.[tab]) ? loaded.tasks[tab] : [];
+        tasks[tab] = defs.map(def => {
+            const row = saved.find(t => t.id === def.id) || {};
+            return {
+                id: def.id,
+                progress: Math.max(0, Math.floor(Number(row.progress) || 0)),
+                claimed: !!row.claimed,
+            };
+        });
+    });
+    return {
+        tab: ["dailies", "weeklies", "campaign"].includes(loaded.tab) ? loaded.tab : "dailies",
+        points: Math.max(0, Math.min(QUEST_MAX_POINTS, Math.floor(Number(loaded.points) || 0))),
+        claimedChests: Array.isArray(loaded.claimedChests)
+            ? loaded.claimedChests.map(n => Number(n)).filter(n => QUEST_MILESTONES.includes(n))
+            : [],
+        dailyResetKey: typeof loaded.dailyResetKey === "string" ? loaded.dailyResetKey : base.dailyResetKey,
+        weeklyResetKey: typeof loaded.weeklyResetKey === "string" ? loaded.weeklyResetKey : base.weeklyResetKey,
+        tasks,
+    };
+}
+
+function ensureQuestResets() {
+    const now = new Date();
+    const dayKey = getUtcDateKey(now);
+    const weekKey = getUtcWeekKey(now);
+    let changed = false;
+
+    if (questState.weeklyResetKey !== weekKey) {
+        questState.weeklyResetKey = weekKey;
+        questState.points = 0;
+        questState.claimedChests = [];
+        questState.tasks.weeklies = createQuestTasksFromDefs("weeklies");
+        questState.tasks.dailies = createQuestTasksFromDefs("dailies");
+        questState.dailyResetKey = dayKey;
+        changed = true;
+    } else if (questState.dailyResetKey !== dayKey) {
+        questState.dailyResetKey = dayKey;
+        questState.tasks.dailies = createQuestTasksFromDefs("dailies");
+        changed = true;
+    }
+
+    syncCampaignQuestProgress();
+    if (changed) saveData();
+}
+
+function getQuestTaskDef(tab, taskId) {
+    return (QUEST_TASK_DEFS[tab] || []).find(t => t.id === taskId) || null;
+}
+
+function syncCampaignQuestProgress() {
+    const g = Math.max(0, adventureGlobalBest || 0);
+    const tasks = questState.tasks.campaign || [];
+    QUEST_TASK_DEFS.campaign.forEach(def => {
+        const task = tasks.find(t => t.id === def.id);
+        if (!task || task.claimed) return;
+        if (def.track === "stage_reach") {
+            task.progress = g >= def.target ? def.goal : 0;
+        }
+    });
+}
+
+function bumpQuestProgress(track, amount = 1, opts = {}) {
+    if (!track || amount <= 0) return;
+    ensureQuestResets();
+    let changed = false;
+
+    ["dailies", "weeklies"].forEach(tab => {
+        (QUEST_TASK_DEFS[tab] || []).forEach(def => {
+            if (def.track !== track) return;
+            if (def.bossOnly && !opts.boss) return;
+            const task = questState.tasks[tab].find(t => t.id === def.id);
+            if (!task || task.claimed) return;
+            const next = Math.min(def.goal, (task.progress || 0) + amount);
+            if (next !== task.progress) {
+                task.progress = next;
+                changed = true;
+            }
+        });
+    });
+
+    if (changed) {
+        saveData();
+        if (document.getElementById("daily-quest-content")) renderDailyQuest();
+    }
+}
 
 function getQuestRefreshLabel() {
     const now = new Date();
@@ -8151,6 +8292,19 @@ function getQuestRefreshLabel() {
     const h = Math.floor(ms / 3600000);
     const m = Math.floor((ms % 3600000) / 60000);
     return `Daily Quest Refresh: ${h} Hours ${m} Min`;
+}
+
+function getWeeklyQuestRefreshLabel() {
+    const now = new Date();
+    const next = new Date(now);
+    const day = next.getUTCDay() || 7;
+    next.setUTCDate(next.getUTCDate() + (8 - day));
+    next.setUTCHours(0, 0, 0, 0);
+    const ms = Math.max(0, next - now);
+    const d = Math.floor(ms / 86400000);
+    const h = Math.floor((ms % 86400000) / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    return `Weekly Quest Refresh: ${d} Days ${h} Hours ${m} Min`;
 }
 
 function grantQuestReward(grant) {
@@ -8164,14 +8318,32 @@ function grantQuestReward(grant) {
     updateUI();
 }
 
+function grantTrainerLevelReward(level) {
+    const goldBonus = 35 + level * 15;
+    money += goldBonus;
+    let extras = "";
+    if (level % 5 === 0) {
+        const ess = 8 + level * 2;
+        essence += ess;
+        extras = ` + ${ess} ${KBS_ONION_NAME}`;
+    }
+    if (level % 10 === 0) {
+        monShards += 1;
+        extras += " + 1 Shard";
+    }
+    saveData();
+    updateUI();
+    showHubNotice(`Trainer Level ${level}!<br>+${goldBonus} Gold${extras}`, "LEVEL UP");
+}
+
 const RESOURCE_CHEST_MAX_MS = 24 * 60 * 60 * 1000;
 const RESOURCE_CHEST_TIMER_TICK_MS = 1000;
 const RESOURCE_CHEST_RATES = {
-    1: { gold: 1200, essence: 180, trainerXp: 600, gearChance: 0 },
-    2: { gold: 2000, essence: 320, trainerXp: 1000, gearChance: 0.12 },
-    3: { gold: 3000, essence: 480, trainerXp: 1500, gearChance: 0.15 },
-    4: { gold: 4200, essence: 660, trainerXp: 2100, gearChance: 0.18 },
-    5: { gold: 5600, essence: 880, trainerXp: 2800, gearChance: 0.22 },
+    1: { gold: 450, essence: 55, trainerXp: 175, gearChance: 0 },
+    2: { gold: 720, essence: 90, trainerXp: 280, gearChance: 0.08 },
+    3: { gold: 1050, essence: 125, trainerXp: 400, gearChance: 0.10 },
+    4: { gold: 1400, essence: 165, trainerXp: 520, gearChance: 0.12 },
+    5: { gold: 1800, essence: 210, trainerXp: 650, gearChance: 0.14 },
 };
 
 function getResourceChestChapter() {
@@ -8184,10 +8356,10 @@ function getResourceChestRates(chapter) {
     const base = RESOURCE_CHEST_RATES[5];
     const extra = ch - 5;
     return {
-        gold: base.gold + extra * 900,
-        essence: base.essence + extra * 120,
-        trainerXp: base.trainerXp + extra * 450,
-        gearChance: Math.min(0.35, base.gearChance + extra * 0.03),
+        gold: base.gold + extra * 280,
+        essence: base.essence + extra * 40,
+        trainerXp: base.trainerXp + extra * 120,
+        gearChance: Math.min(0.25, base.gearChance + extra * 0.02),
     };
 }
 
@@ -8311,6 +8483,7 @@ function collectResourceChest() {
 
     playResourceChestCollectFx(preview);
     grantQuestReward(grant);
+    bumpQuestProgress("resource_collect", 1);
     if (gear) {
         gearInventory.push(gear);
         saveData();
@@ -8337,7 +8510,7 @@ function renderResourceChestModal() {
             <div class="resource-chest-timer-value">${elapsed} / 24:00:00</div>
             <div class="resource-chest-timer-cap">${preview.progress >= 1 ? "Chest is full — collect now!" : "Keeps collecting offline (max 24h). Resets when you collect."}</div>
         </div>
-        <p class="resource-chest-chapter-note">Rewards scale by <b>Chapter ${preview.chapter}</b> progress (updates when you advance to the next chapter).</p>
+        <p class="resource-chest-chapter-note">Passive AFK rewards scale by <b>Chapter ${preview.chapter}</b>. Modest payout — active play earns more.</p>
         <div class="resource-chest-rewards">
             <div class="resource-chest-reward-row">
                 <img src="${GAME_ICONS.gold.src}" alt="">
@@ -8422,22 +8595,29 @@ function openResourceChestModal() {
 
 function switchQuestTab(tab) {
     questState.tab = tab;
+    ensureQuestResets();
     renderDailyQuest();
 }
 
 function advanceQuestTask(taskId) {
-    const tasks = questState.tasks[questState.tab] || [];
+    ensureQuestResets();
+    const tab = questState.tab;
+    const tasks = questState.tasks[tab] || [];
     const task = tasks.find(t => t.id === taskId);
-    if (!task || task.claimed || task.progress < task.goal) return;
+    const def = getQuestTaskDef(tab, taskId);
+    if (!task || !def || task.claimed || task.progress < def.goal) return;
     task.claimed = true;
-    questState.points = Math.min(QUEST_MAX_POINTS, questState.points + task.points);
-    if (task.rewardKey && task.rewardAmount) {
+    questState.points = Math.min(QUEST_MAX_POINTS, questState.points + def.points);
+    if (def.rewardKey && def.rewardAmount) {
         const g = {};
-        if (task.rewardKey === "gold") g.gold = task.rewardAmount;
-        else if (task.rewardKey === "essence") g.essence = task.rewardAmount;
-        else if (task.rewardKey === "shards") g.monShards = task.rewardAmount;
-        else if (task.rewardKey === "monball") g.monballs = task.rewardAmount;
+        if (def.rewardKey === "gold") g.gold = def.rewardAmount;
+        else if (def.rewardKey === "essence") g.essence = def.rewardAmount;
+        else if (def.rewardKey === "shards") g.monShards = def.rewardAmount;
+        else if (def.rewardKey === "monball") g.monballs = def.rewardAmount;
+        else if (def.rewardKey === "trainerXp") g.trainerXp = def.rewardAmount;
         grantQuestReward(g);
+    } else {
+        saveData();
     }
     renderDailyQuest();
 }
@@ -8452,24 +8632,27 @@ function claimQuestChest(milestone) {
     renderDailyQuest();
 }
 
-function renderQuestTaskCard(task) {
-    const pct = Math.min(100, Math.round((task.progress / task.goal) * 100));
+function renderQuestTaskCard(task, tab) {
+    const def = getQuestTaskDef(tab, task.id);
+    if (!def) return "";
+    const pct = Math.min(100, Math.round((task.progress / def.goal) * 100));
     const done = task.claimed;
-    const canAdvance = !done && task.progress >= task.goal;
-    const rewardIcon = GAME_ICONS[task.rewardKey === "shards" ? "shards" : task.rewardKey === "monball" ? "monball" : task.rewardKey]?.src || GAME_ICONS.gold.src;
+    const canAdvance = !done && task.progress >= def.goal;
+    const rewardIconKey = def.rewardKey === "shards" ? "shards" : def.rewardKey === "monball" ? "monball" : def.rewardKey;
+    const rewardIcon = GAME_ICONS[rewardIconKey]?.src || GAME_ICONS.gold.src;
     const action = done
         ? `<span class="quest-completed-label">Completed</span>`
-        : `<button type="button" class="quest-advance-btn" onclick="advanceQuestTask('${task.id}')" ${canAdvance ? "" : "disabled"}>Advance</button>`;
+        : `<button type="button" class="quest-advance-btn" onclick="advanceQuestTask('${task.id}')" ${canAdvance ? "" : "disabled"}>Claim</button>`;
     return `
         <div class="quest-task-card${done ? " is-done" : ""}">
             <div class="quest-task-reward">
                 <img src="${rewardIcon}" alt="">
-                <span>${task.points}</span>
+                <span>${def.points}</span>
             </div>
             <div class="quest-task-body">
-                <p class="quest-task-desc">${task.desc}</p>
+                <p class="quest-task-desc">${def.desc}</p>
                 <div class="quest-task-progress"><div class="quest-task-progress-fill" style="width:${pct}%"></div></div>
-                <div class="quest-task-progress-text">${Math.min(task.progress, task.goal)} / ${task.goal}</div>
+                <div class="quest-task-progress-text">${Math.min(task.progress, def.goal)} / ${def.goal}</div>
             </div>
             <div class="quest-task-action">${action}</div>
         </div>`;
@@ -8479,12 +8662,13 @@ function renderDailyQuest() {
     const root = document.getElementById("daily-quest-content");
     if (!root) return;
 
+    ensureQuestResets();
     const tab = questState.tab;
     const tabTitles = { dailies: "DAILIES", weeklies: "WEEKLIES", campaign: "CAMPAIGN" };
     const refreshLabels = {
         dailies: getQuestRefreshLabel(),
-        weeklies: "Weekly Quest Refresh: 3 Days 14 Hours",
-        campaign: "Campaign quests — placeholder",
+        weeklies: getWeeklyQuestRefreshLabel(),
+        campaign: "Campaign quests — one-time chapter milestones",
     };
     const title = document.getElementById("quest-modal-title");
     if (title) title.textContent = tab === "dailies" ? "DAILY QUESTS" : "QUESTS";
@@ -8506,7 +8690,7 @@ function renderDailyQuest() {
 
     const tasks = questState.tasks[tab] || [];
     const tasksHtml = tasks.length
-        ? tasks.map(renderQuestTaskCard).join("")
+        ? tasks.map(task => renderQuestTaskCard(task, tab)).join("")
         : `<p class="hub-empty-msg" style="padding:24px 8px;">No quests in this tab yet.</p>`;
 
     root.innerHTML = `
@@ -8723,8 +8907,8 @@ const SALMONAD_SWING_SPRITES = [
     "128x128/salmonad-swing2.gif"
 ];
 const CHOG_SWING_SPRITES = [
-    "128x128/chog1-swing.gif",
-    "128x128/chog-swing2.gif"
+    CHOG_SWING1_PATH,
+    CHOG_SWING2_PATH
 ];
 
 function isJohnw(name) {
@@ -8823,19 +9007,13 @@ const SCENE_SPRITE_DURATION_MS = {
     "128x128/salmonad-swing2.gif": 1680
 };
 
-// End attack GIFs after the hit follow-through — skip recovery/wind-down tail frames.
-const SCENE_ATTACK_END_MS = {
-    "128x128/johnw-swing1.gif": 1200,
-    "128x128/anago-swing1.gif": 1440,
-    "128x128/anago-swing2.gif": 1440,
-    "128x128/moncock-swing1.gif": 960,
-    "128x128/moncock-swing2.gif": 1440,
-    "128x128/salmonad-swing1.gif": 1440,
-    "128x128/salmonad-swing2.gif": 1320,
-    "128x128/chog1-swing.gif": 720,
-    "128x128/chog-swing2.gif": 1320,
-    "128x128/molandak1-swing.gif": 720
-};
+// End one loop slightly before the browser restarts infinite GIFs (loop ext = 0).
+const SCENE_GIF_LOOP_GUARD_MS = 34;
+
+function getSceneIdleAttackPlayMs(spritePath, monName) {
+    const durationMs = getSceneIdleSpriteDurationMs(spritePath, monName);
+    return Math.max(48, durationMs - SCENE_GIF_LOOP_GUARD_MS);
+}
 
 const sceneIdleFighterBusy = new Set();
 const SCENE_IDLE_SPRITE_SPEED = 1;
@@ -8852,16 +9030,6 @@ function getSceneIdleSpriteHitAtMs(spritePath, monName) {
     return scaleSceneIdleSpriteMs(
         getSceneSpriteHitAtMs(spritePath, monName, getSceneSpriteDurationMs(spritePath, monName))
     );
-}
-
-function getSceneIdleAttackPlayMs(spritePath, monName) {
-    const key = normalizeSpritePath(spritePath);
-    if (SCENE_ATTACK_END_MS[key]) {
-        return scaleSceneIdleSpriteMs(SCENE_ATTACK_END_MS[key]);
-    }
-    const durationMs = getSceneIdleSpriteDurationMs(spritePath, monName);
-    const hitAtMs = getSceneIdleSpriteHitAtMs(spritePath, monName);
-    return Math.min(durationMs, Math.max(hitAtMs + 32, durationMs - 16));
 }
 
 const ATTACK_DASH_MS = 220;
@@ -8895,6 +9063,12 @@ function getAttackSpritePath(name) {
     if (isSalmonad(name)) return pickSalmonadSwingSprite();
     if (isChog(name)) return pickChogSwingSprite();
     return ATTACK_SPRITE_MAP[name] || null;
+}
+
+/** Main-scene idle fights: chog-swing2 is battle-only (avoids main-scene scale glitch). */
+function getSceneIdleAttackSpritePath(name) {
+    if (isChog(name)) return CHOG_SWING1_PATH;
+    return getAttackSpritePath(name);
 }
 
 // Main-scene battle sprites: stable GIF idle for animated species, PNG for everyone else.
@@ -8932,77 +9106,102 @@ function getSceneSpriteHitAtMs(spritePath, monName, durationMs) {
 
 function markSceneIdleGifStart(imgEl) {
     if (!imgEl) return;
-    imgEl.dataset.animStart = String(Date.now());
+    imgEl.dataset.animStart = String(performance.now());
 }
 
-async function waitSceneIdleLoopBoundary(imgEl, spritePath, monName, token) {
-    if (!imgEl || !spritePath?.endsWith(".gif")) return;
-    const durationMs = getSceneIdleSpriteDurationMs(spritePath, monName);
-    if (durationMs <= 0) return;
-    const animStart = Number(imgEl.dataset.animStart);
-    if (!animStart) {
-        markSceneIdleGifStart(imgEl);
+async function waitSceneIdleUntil(animStart, targetMs, token) {
+    let remaining = targetMs - (performance.now() - animStart);
+    while (remaining > 0) {
+        if (token !== sceneIdleBattleToken) return;
+        await delay(Math.min(remaining, 32));
+        remaining = targetMs - (performance.now() - animStart);
+    }
+}
+
+async function initSceneIdleGifTiming(imgEl) {
+    if (!imgEl) return;
+    const src = normalizeSpritePath(imgEl.dataset.spriteBase || imgEl.src);
+    if (!src.endsWith(".gif")) return;
+    const mark = () => markSceneIdleGifStart(imgEl);
+    try {
+        if (imgEl.complete) await imgEl.decode();
+    } catch (_) { /* ignore decode errors */ }
+    if (imgEl.complete) {
+        requestAnimationFrame(() => requestAnimationFrame(mark));
         return;
     }
-    const inLoop = (Date.now() - animStart) % durationMs;
-    const remaining = durationMs - inLoop;
-    if (remaining <= 24 || remaining >= durationMs - 24) return;
-    await waitSceneGifMs(remaining, token);
+    imgEl.addEventListener(
+        "load",
+        () => {
+            imgEl.decode().then(() => {
+                requestAnimationFrame(() => requestAnimationFrame(mark));
+            }).catch(() => {
+                requestAnimationFrame(() => requestAnimationFrame(mark));
+            });
+        },
+        { once: true }
+    );
 }
 
 function setSceneIdleSprite(imgEl, spritePath, forceReplay) {
     if (!imgEl || !spritePath) return Promise.resolve();
     const base = normalizeSpritePath(spritePath);
     const current = normalizeSpritePath(imgEl.dataset.spriteBase || imgEl.src);
-    if (!forceReplay && current === base) return Promise.resolve();
+    const isGif = spritePath.endsWith(".gif");
+    if (!forceReplay && current === base && isGif) return Promise.resolve();
 
     const monName = imgEl.dataset.mon;
     const mirrored = imgEl.classList.contains("mirrored");
-    const apply = () => {
+    const applyMeta = () => {
         imgEl.dataset.spriteBase = base;
-        applySceneIdleSpriteTransform(imgEl, monName, mirrored, spritePath);
     };
 
-    if (!spritePath.endsWith(".gif")) {
-        apply();
+    if (!isGif) {
+        applyMeta();
+        applySceneIdleSpriteTransform(imgEl, monName, mirrored, spritePath);
         imgEl.src = spritePath;
         delete imgEl.dataset.animStart;
         return Promise.resolve();
     }
 
     return new Promise(resolve => {
-        const url = spritePath + "?t=" + Date.now();
-        const pre = new Image();
-        const finish = () => {
-            apply();
-            imgEl.src = url;
-            requestAnimationFrame(() => {
+        const url = base + "?t=" + Date.now();
+        let settled = false;
+        const onReady = () => {
+            if (settled) return;
+            settled = true;
+            imgEl.removeEventListener("load", onReady);
+            imgEl.removeEventListener("error", onReady);
+            const mark = () => {
+                applySceneIdleSpriteTransform(imgEl, monName, mirrored, base);
                 markSceneIdleGifStart(imgEl);
-                requestAnimationFrame(resolve);
+                resolve();
+            };
+            imgEl.decode().then(() => {
+                requestAnimationFrame(() => requestAnimationFrame(mark));
+            }).catch(() => {
+                requestAnimationFrame(() => requestAnimationFrame(mark));
             });
         };
-        pre.onload = finish;
-        pre.onerror = finish;
-        pre.src = url;
+        imgEl.addEventListener("load", onReady, { once: true });
+        imgEl.addEventListener("error", onReady, { once: true });
+        applyMeta();
+        imgEl.src = url;
+        if (imgEl.complete) onReady();
     });
 }
 
 function stampSceneIdleGifStarts() {
-    document.querySelectorAll(".scene-idle-sprite").forEach(img => {
-        const src = normalizeSpritePath(img.dataset.spriteBase || img.src);
-        if (src.endsWith(".gif")) markSceneIdleGifStart(img);
-    });
+    document.querySelectorAll(".scene-idle-sprite").forEach(initSceneIdleGifTiming);
 }
 
 async function waitSceneGifMs(ms, token) {
     const durationMs = Math.max(0, ms);
-    const step = 50;
-    let elapsed = 0;
-    while (elapsed < durationMs) {
+    if (!durationMs) return;
+    const started = performance.now();
+    while (performance.now() - started < durationMs) {
         if (token !== sceneIdleBattleToken) return;
-        const chunk = Math.min(step, durationMs - elapsed);
-        await delay(chunk);
-        elapsed += chunk;
+        await delay(16);
     }
 }
 
@@ -9088,7 +9287,7 @@ function refreshSceneIdleHeroFighters(heroes) {
         }
         if (sceneIdleFighterBusy.has(`hero-${idx}`)) return;
         applySceneIdleSpriteTransform(img, mon.name, isMirrored, spritePath);
-        setSceneIdleSprite(img, spritePath);
+        setSceneIdleSprite(img, spritePath, false);
     });
 }
 
@@ -9182,11 +9381,6 @@ function sceneIdleShakeHit(defEl) {
     setTimeout(() => defEl.classList.remove("hit-shake"), 300);
 }
 
-async function waitSceneIdleUntil(animStart, targetMs, token) {
-    let remaining = targetMs - (Date.now() - animStart);
-    await waitSceneGifMs(remaining, token);
-}
-
 async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
     if (token !== sceneIdleBattleToken) return;
     const busyKey = `${atkTeam}-${atkIdx}`;
@@ -9202,16 +9396,15 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
 
     sceneIdleFighterBusy.add(busyKey);
     try {
-        const attackPath = getAttackSpritePath(atkMon.name);
+        const attackPath = getSceneIdleAttackSpritePath(atkMon.name);
         const idleSprite = getSceneIdleDisplaySprite(atkMon);
         if (attackPath) {
-            await waitSceneIdleLoopBoundary(atkImg, idleSprite, atkMon.name, token);
             if (token !== sceneIdleBattleToken) return;
-            await setSceneIdleSprite(atkImg, attackPath);
+            await setSceneIdleSprite(atkImg, attackPath, true);
             if (token !== sceneIdleBattleToken) return;
-            const animStart = Number(atkImg.dataset.animStart) || Date.now();
+            const animStart = Number(atkImg.dataset.animStart) || performance.now();
             const playMs = getSceneIdleAttackPlayMs(attackPath, atkMon.name);
-            const hitAtMs = getSceneIdleSpriteHitAtMs(attackPath, atkMon.name);
+            const hitAtMs = Math.min(getSceneIdleSpriteHitAtMs(attackPath, atkMon.name), playMs - 16);
             const hitShake = waitSceneIdleUntil(animStart, hitAtMs, token).then(() => {
                 if (token !== sceneIdleBattleToken) return;
                 sceneIdleShakeHit(defEl);
@@ -9393,9 +9586,11 @@ async function replayBattleAttackGif(side, src, name) {
         const url = src + "?t=" + Date.now();
         const pre = new Image();
         const finish = () => {
-            applyBattleSpritePresentation(sprite, side, name, src);
             sprite.src = url;
-            requestAnimationFrame(() => requestAnimationFrame(resolve));
+            requestAnimationFrame(() => {
+                applyBattleSpritePresentation(sprite, side, name, src);
+                requestAnimationFrame(resolve);
+            });
         };
         pre.onload = finish;
         pre.onerror = finish;
@@ -9418,7 +9613,7 @@ function setBattleSprite(side, src, name, replayGif) {
 
 function getBattleSpriteTransform(side, name, spritePath) {
     const mirror = shouldMirrorBattleSprite(side, name);
-    const scale = getChogSwingPathScale(spritePath);
+    const scale = name === "Chog" ? getChogSwingPathScale(spritePath) : 1;
     if (scale === 1) return mirror ? "scaleX(-1)" : "";
     return mirror ? `scale(${scale}) scaleX(-1)` : `scale(${scale})`;
 }
@@ -10604,7 +10799,18 @@ function getTrainerLevelInfo(xp) {
     return { level, progress: remaining, needed };
 }
 function addTrainerXp(amount) {
+    if (!amount) return;
+    const before = getTrainerLevelInfo(trainerXp);
     trainerXp += amount;
+    const after = getTrainerLevelInfo(trainerXp);
+    if (after.level > before.level) {
+        for (let lv = before.level + 1; lv <= after.level; lv++) {
+            if (lv > trainerRewardLevel) {
+                grantTrainerLevelReward(lv);
+                trainerRewardLevel = lv;
+            }
+        }
+    }
 }
 
 function isBossStage(stage) {
@@ -11492,7 +11698,7 @@ function analyzeGearSynthRecipe(slots) {
 function describeGearSynthRecipe(recipe) {
     if (!recipe) return "Place gear in all three slots: <b>Main Item</b> + <b>Catalyst</b> + <b>Catalyst</b>.";
     if (recipe.type === "invalid") {
-        return "Invalid recipe. Try <b>3× same tier</b> to upgrade, or <b>Main + 2 catalysts</b> to reroll (Pockie rules).";
+        return "Invalid recipe. Try <b>3× same tier</b> to upgrade, or <b>Main + 2 catalysts</b> to reroll bonus stats.";
     }
     const resultName = GEAR_TIERS[recipe.resultTier].name;
     const pct = Math.round(recipe.rate * 100);
@@ -11614,6 +11820,7 @@ function executeGearSynth() {
     const goldCost = recipe.gold;
 
     runArmoryForgeAction(() => {
+        bumpQuestProgress("armory_forge", 1);
         money -= goldCost;
         gearInventory = gearInventory.filter(g => !ids.includes(g.id));
         const mainHouse = slotsSnapshot[0]?.house || HOUSE_ORDER[randInt(0, HOUSE_ORDER.length - 1)];
@@ -11677,7 +11884,7 @@ function renderGearSynthPanel(container) {
 
     el.innerHTML = `
         <div class="gear-synth-panel">
-            <p class="gear-synth-note">Pockie-style synthesis: <b>Main Item + Catalyst + Catalyst</b>. Upgrade with 3× same tier, or reroll RNG bonus stats with main + lower-tier catalysts.</p>
+            <p class="gear-synth-note">Gear synthesis: <b>Main Item + Catalyst + Catalyst</b>. Upgrade with 3× same tier, or reroll bonus stats with main + lower-tier catalysts.</p>
             <div class="gear-synth-recipe-bar${recipeCls}">${describeGearSynthRecipe(recipe)}</div>
             <div class="gear-synth-workbench">
                 ${renderGearSynthSlotHtml(gearSynthSlots[0], 0)}
@@ -11723,7 +11930,7 @@ function renderGearEnhancePanel(container) {
     const enhanceSlotStyle = gear ? ` style="border-color:${getGearTierColor(gear)}"` : "";
 
     const infoHtml = !gear
-        ? `<h4>Select gear to enhance</h4><p>Pick an item from your inventory. Pockie-style enhancement: +1–+10 safe growth, <b>milestone bonuses at +11 and +21</b> (max +${GEAR_ENHANCE_MAX}). Stats scale with wearer level (+${Math.round(STAT_LEVEL_GROWTH_PCT * 1000) / 10}%/level).</p>`
+        ? `<h4>Select gear to enhance</h4><p>Pick an item from your inventory. Enhancement: +1–+10 safe growth, <b>milestone bonuses at +11 and +21</b> (max +${GEAR_ENHANCE_MAX}). Stats scale with wearer level (+${Math.round(STAT_LEVEL_GROWTH_PCT * 1000) / 10}%/level).</p>`
         : `<h4>${formatGearDisplayName(gear)}</h4>
            <p><b>Current stats:</b> ${formatGearRngSummary(gear)}</p>
            <p><b>Enhance level:</b> +${level} / +${GEAR_ENHANCE_MAX}</p>
@@ -11731,7 +11938,7 @@ function renderGearEnhancePanel(container) {
                 ? `<p style="color:#ca8a04;font-weight:700;">Max enhancement reached.</p>`
                 : `<p>Next enhance: <span class="gear-enhance-rate${rateCls}">${successRate}%</span> success · ${goldCost} Gold</p>
                    ${failDrop != null ? `<p style="font-size:11px;color:#b45309;">On failure, drops to +${failDrop}.</p>` : `<p style="font-size:11px;color:#64748b;">Safe enhance — no level drop on failure.</p>`}
-                   <p style="font-size:11px;color:#64748b;">Success adds slot bonuses (Pockie armory enhance).</p>`}`;
+                   <p style="font-size:11px;color:#64748b;">Success adds slot bonuses to this gear.</p>`}`;
 
     const pickItems = gearInventory.length
         ? sortGearByRarityPower(gearInventory).map(g => {
@@ -11748,7 +11955,7 @@ function renderGearEnhancePanel(container) {
 
     el.innerHTML = `
         <div class="gear-enhance-panel">
-            <p class="gear-synth-note">Pockie-style enhancement: place gear in the slot, spend Gold, and roll for +1. Higher levels have lower success rates and may drop on failure.</p>
+            <p class="gear-synth-note">Enhancement: place gear in the slot, spend Gold, and roll for +1. Higher levels have lower success rates and may drop on failure.</p>
             <div class="gear-enhance-workbench">
                 <div class="gear-enhance-slot-wrap">
                     <div class="gear-synth-slot-label">Equipment</div>
@@ -12269,6 +12476,7 @@ function executeGearEnhance() {
     const gearId = gear.id;
 
     runArmoryForgeAction(() => {
+        bumpQuestProgress("armory_forge", 1);
         const g = gearInventory.find((item) => item.id === gearId);
         if (!g) return { ok: false, text: "Selected gear is no longer in your inventory." };
         money -= goldCost;
@@ -12795,13 +13003,14 @@ function saveData() {
 
 function buildSavePayload() {
     return {
-        party, box, monballs, money, essence, monShards, trainerXp,
+        party, box, monballs, money, essence, monShards, trainerXp, trainerRewardLevel,
         highestStageCleared, adventureGlobalBest, currentChapter, currentStage,
         gearInventory, lastResetDate, xHandle,
         gearInventorySeedVersion,
         adventureBattleActive: isInAdventureBattle,
         resourceChestLastCollectAt,
         patrolScansUsed, patrolScansDay,
+        questState,
         saveVersion: 2,
         updatedAt: new Date().toISOString(),
     };
@@ -12857,6 +13066,9 @@ function applyLoadedSave(data) {
     essence = data.essence ?? 0;
     monShards = data.monShards ?? 0;
     trainerXp = data.trainerXp ?? 0;
+    trainerRewardLevel = Math.max(1, Math.floor(data.trainerRewardLevel ?? 1));
+    const trainerInfo = getTrainerLevelInfo(trainerXp);
+    trainerRewardLevel = Math.max(trainerRewardLevel, trainerInfo.level);
     highestStageCleared = data.highestStageCleared ?? 0;
     adventureGlobalBest = data.adventureGlobalBest ?? highestStageCleared ?? 0;
     currentChapter = data.currentChapter ?? 1;
@@ -12870,6 +13082,8 @@ function applyLoadedSave(data) {
     patrolScansUsed = data.patrolScansUsed ?? 0;
     patrolScansDay = data.patrolScansDay || null;
     ensurePatrolDailyReset();
+    questState = normalizeQuestState(data.questState);
+    ensureQuestResets();
 
     [...party, ...box].forEach((mon) => {
         try {
@@ -12940,6 +13154,8 @@ async function loadData() {
         essence = 0;
         monShards = 0;
         trainerXp = 0;
+        trainerRewardLevel = 1;
+        questState = defaultQuestState();
         highestStageCleared = 0;
         adventureGlobalBest = 0;
         currentChapter = 1;
@@ -13129,10 +13345,21 @@ function renderBox() {
 const MONBALL_QUICK_BUY = {
     id: "_monball1",
     name: "Monball",
-    desc: "One Monball for catching wild Monanimals.",
+    desc: "$MONEX token integration coming soon. Monballs will be paid in $MONEX.",
     cost: { gold: 500 },
     grant: { monballs: 1 },
 };
+
+const MONEX_TOKEN_COMING_SOON_HTML =
+    "$MONEX token integration coming soon.<br>Monballs will be paid in $MONEX — everything else stays in Gold.";
+
+function isMonballPurchaseItem(item) {
+    return !!(item?.grant?.monballs);
+}
+
+function showMonballComingSoonNotice() {
+    showHubNotice(MONEX_TOKEN_COMING_SOON_HTML, "COMING SOON");
+}
 
 function multiplyCost(cost, qty) {
     const out = {};
@@ -13188,6 +13415,7 @@ function executeShopPurchase(item, qty) {
     if (!canAffordCost(totalCost)) return false;
     spendCost(totalCost);
     grantShopItem(item, qty);
+    bumpQuestProgress("shop_buy", qty);
     saveData();
     updateUI();
     if (typeof renderShop === "function") renderShop();
@@ -13287,7 +13515,7 @@ function openItemBuyPopup(item) {
 }
 
 function buyMonball() {
-    openItemBuyPopup(MONBALL_QUICK_BUY);
+    showMonballComingSoonNotice();
 }
 
 // Spend KB's Onion + Gold to level a party member up by one (also fully heals it).
@@ -13306,6 +13534,7 @@ function levelUpMonManual(index) {
     essence -= cost.essence;
     levelUpMon(mon);
     mon.current_hp = mon.max_hp; // leveling up fully heals
+    bumpQuestProgress("mon_level_up", 1);
     saveData();
     updateUI();
 }
@@ -13313,6 +13542,10 @@ function levelUpMonManual(index) {
 function buyShopItem(itemId) {
     const item = SHOP_ITEMS.find(i => i.id === itemId);
     if (!item) return;
+    if (isMonballPurchaseItem(item)) {
+        showMonballComingSoonNotice();
+        return;
+    }
     openItemBuyPopup(item);
 }
 
@@ -13344,9 +13577,10 @@ function renderShop() {
     }
 
     grid.innerHTML = items.map(item => {
-        const afford = canAffordCost(item.cost);
-        const costShort = item.cost.gold ? item.cost.gold + "G" : formatCost(item.cost);
-        const tip = renderHoverTip(item.name, item.desc + " — " + formatCost(item.cost));
+        const monballSoon = isMonballPurchaseItem(item);
+        const afford = monballSoon || canAffordCost(item.cost);
+        const costShort = monballSoon ? "$MONEX soon" : (item.cost.gold ? item.cost.gold + "G" : formatCost(item.cost));
+        const tip = renderHoverTip(item.name, item.desc + (monballSoon ? "" : " — " + formatCost(item.cost)));
         const inner = `
             ${renderShopItemIconHtml(item)}
             <span class="shop-slot-cost">${costShort}</span>
@@ -14277,7 +14511,10 @@ function openGameModal(name) {
     if (name === "armory") renderArmoryPane();
     if (name === "shop") renderShop();
     if (name === "profile") renderProfile();
-    if (name === "daily-quest") renderDailyQuest();
+    if (name === "daily-quest") {
+        ensureQuestResets();
+        renderDailyQuest();
+    }
     syncActiveRailTab();
 }
 
@@ -14740,6 +14977,7 @@ function endPatrolBattle(win, player) {
         essence += reward.essence;
         monShards += reward.shards;
         addTrainerXp(reward.trainerXp);
+        bumpQuestProgress("patrol_win", 1);
     }
     restorePartyFullHp();
     saveData();
@@ -16019,6 +16257,9 @@ function endBattle(win, player) {
         adventureGlobalBest = Math.max(adventureGlobalBest, globalP);
         const best = globalProgressToChapterStage(adventureGlobalBest);
         highestStageCleared = best.stage;
+        bumpQuestProgress("adventure_win", 1);
+        if (boss) bumpQuestProgress("boss_win", 1);
+        syncCampaignQuestProgress();
         if (currentStage >= STAGES_PER_CHAPTER) {
             currentChapter++;
             currentStage = 1;

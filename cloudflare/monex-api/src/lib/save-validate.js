@@ -368,6 +368,33 @@ function sanitizeAdventureFields(src) {
   };
 }
 
+function sanitizeQuestState(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const tabs = ["dailies", "weeklies", "campaign"];
+  const tasks = {};
+  tabs.forEach((tab) => {
+    if (!Array.isArray(raw.tasks?.[tab])) return;
+    tasks[tab] = raw.tasks[tab]
+      .filter((t) => t && typeof t.id === "string")
+      .slice(0, 20)
+      .map((t) => ({
+        id: trimString(t.id, 16),
+        progress: clampInt(t.progress ?? 0, 0, 9999),
+        claimed: !!t.claimed,
+      }));
+  });
+  return {
+    tab: tabs.includes(raw.tab) ? raw.tab : "dailies",
+    points: clampInt(raw.points ?? 0, 0, 100),
+    claimedChests: Array.isArray(raw.claimedChests)
+      ? raw.claimedChests.map((n) => clampInt(n, 0, 100)).filter((n) => [20, 40, 60, 80, 100].includes(n)).slice(0, 5)
+      : [],
+    dailyResetKey: typeof raw.dailyResetKey === "string" ? trimString(raw.dailyResetKey, 16) : null,
+    weeklyResetKey: typeof raw.weeklyResetKey === "string" ? trimString(raw.weeklyResetKey, 16) : null,
+    tasks,
+  };
+}
+
 /**
  * Validate and sanitize a full save object. Returns a clean payload safe to store.
  */
@@ -384,6 +411,7 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
     essence: clampInt(input.essence ?? 0, 0, LIMITS.essence),
     monShards: clampInt(input.monShards ?? 0, 0, LIMITS.monShards),
     trainerXp: clampInt(input.trainerXp ?? 0, 0, LIMITS.trainerXp),
+    trainerRewardLevel: clampInt(input.trainerRewardLevel ?? 1, 1, 9999),
     highestStageCleared: adventure.highestStageCleared,
     adventureGlobalBest: adventure.adventureGlobalBest,
     currentChapter: adventure.currentChapter,
@@ -394,6 +422,7 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
     patrolScansUsed: clampInt(input.patrolScansUsed ?? 0, 0, 50),
     patrolScansDay: typeof input.patrolScansDay === "string" ? trimString(input.patrolScansDay, 32) || null : null,
     resourceChestLastCollectAt: sanitizeResourceChestTimestamp(input.resourceChestLastCollectAt, now),
+    questState: sanitizeQuestState(input.questState),
     adventureBattleActive: false,
     saveVersion: Number.isFinite(input.saveVersion) ? clampInt(input.saveVersion, 1, 999) : 1,
     xHandle: session.username || trimString(input.xHandle, 48) || "",

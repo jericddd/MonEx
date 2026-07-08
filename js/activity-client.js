@@ -354,12 +354,12 @@ function getAuthHeaders() {
   return headers;
 }
 
-async function syncWildMons(username, partyCount, boxCount, partyMax = 5, boxMax = 500) {
+async function syncWildMons(username, partyCount, boxCount, partyMax = 3, boxMax = 500) {
     const base = getMonexApiBase();
     const body = {
         partyCount: partyCount || 0,
         boxCount: boxCount || 0,
-        partyMax: partyMax || 5,
+        partyMax: partyMax || 3,
         boxMax: boxMax || 500,
     };
     if (username) body.username = username.replace("@", "");
