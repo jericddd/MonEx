@@ -89,6 +89,9 @@ function injectActivityUiStyles() {
     border-radius: 4px;
     color: #1f1235;
 }
+.activity-detail-panel--home.activity-detail-panel--wide {
+    width: min(960px, 96vw);
+}
 .activity-detail-close {
     position: absolute;
     top: 10px;
@@ -164,6 +167,202 @@ function injectActivityUiStyles() {
     color: rgba(61, 26, 8, 0.7);
     margin-top: 8px;
 }
+.wild-log-table .col-mons {
+    min-width: 220px;
+    vertical-align: middle;
+}
+.wild-log-mini-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: stretch;
+}
+.wild-log-mini-more {
+    display: inline-flex;
+    align-items: center;
+    font-size: 9px;
+    color: #6B21A8;
+    font-weight: 700;
+    padding: 4px 6px;
+    white-space: nowrap;
+}
+.activity-mon-card {
+    background: #fff;
+    border: 3px solid #111;
+    box-shadow: 3px 3px 0 #111;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+}
+.activity-mon-card.rarity-common { border-color: #111; box-shadow: 3px 3px 0 #111; }
+.activity-mon-card.rarity-uncommon { border-color: #16a34a; box-shadow: 3px 3px 0 #16a34a; }
+.activity-mon-card.rarity-rare { border-color: #2563eb; box-shadow: 3px 3px 0 #2563eb; }
+.activity-mon-card.rarity-legendary { border-color: #ca8a04; box-shadow: 3px 3px 0 #ca8a04; }
+.activity-mon-card.rarity-mythic { border-color: #9f1239; box-shadow: 3px 3px 0 #9f1239; }
+.activity-mon-card--mini {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 108px;
+    min-width: 108px;
+    padding: 5px 6px;
+}
+.activity-mon-card--mini .activity-mon-sprite {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.activity-mon-card--mini .activity-mon-sprite img {
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+    object-position: center bottom;
+    image-rendering: pixelated;
+    display: block;
+}
+.activity-mon-card--mini .activity-mon-identity {
+    min-width: 0;
+    flex: 1;
+}
+.activity-mon-card--mini .activity-mon-name {
+    font-family: "Press Start 2P", monospace;
+    font-size: 6px;
+    line-height: 1.35;
+    margin: 0 0 3px;
+    word-break: break-word;
+}
+.activity-mon-card--mini .activity-mon-rarity {
+    display: inline-block;
+    font-size: 6px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 10px;
+    color: #fff;
+    text-transform: uppercase;
+    line-height: 1.2;
+}
+.activity-mon-card--box {
+    padding: 8px;
+    min-width: 0;
+}
+.activity-mon-card-chrome {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 4px;
+    min-height: 18px;
+}
+.activity-mon-card-chrome .activity-house-icon {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+.activity-mon-card-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.activity-mon-card--box .activity-mon-sprite {
+    width: 100%;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 6px;
+}
+.activity-mon-card--box .activity-mon-sprite img {
+    width: 64px;
+    height: 64px;
+    max-width: 64px;
+    max-height: 64px;
+    object-fit: contain;
+    object-position: center bottom;
+    image-rendering: pixelated;
+    display: block;
+}
+.activity-mon-card--box .activity-mon-name {
+    font-family: "Press Start 2P", monospace;
+    font-size: 7px;
+    line-height: 1.4;
+    text-align: center;
+    margin: 0 0 6px;
+    text-transform: uppercase;
+}
+.activity-mon-card--box .activity-mon-rarity-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 6px;
+}
+.activity-mon-card--box .activity-mon-rarity {
+    display: inline-block;
+    font-size: 7px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    color: #fff;
+    text-transform: uppercase;
+}
+.activity-mon-rarity.rarity-common,
+.activity-mon-card--mini .activity-mon-rarity.rarity-common { background: #111; }
+.activity-mon-rarity.rarity-uncommon,
+.activity-mon-card--mini .activity-mon-rarity.rarity-uncommon { background: #16a34a; }
+.activity-mon-rarity.rarity-rare,
+.activity-mon-card--mini .activity-mon-rarity.rarity-rare { background: #2563eb; }
+.activity-mon-rarity.rarity-legendary,
+.activity-mon-card--mini .activity-mon-rarity.rarity-legendary { background: #ca8a04; }
+.activity-mon-rarity.rarity-mythic,
+.activity-mon-card--mini .activity-mon-rarity.rarity-mythic { background: #9f1239; }
+.activity-mon-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    justify-content: center;
+}
+.activity-mon-skill-chip {
+    font-size: 6px;
+    line-height: 1.25;
+    padding: 2px 4px;
+    border: 1px solid #d4d4d8;
+    background: #fafafa;
+    border-radius: 3px;
+    color: #3f3f46;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.activity-mon-skill-chip.is-ult {
+    border-color: #ca8a04;
+    background: #fffbeb;
+    color: #92400e;
+}
+.activity-mon-skill-chip.is-passive {
+    border-color: #6B21A8;
+    background: #f3e8ff;
+    color: #5b21b6;
+}
+.activity-wild-log-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+@media (max-width: 900px) {
+    .activity-wild-log-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+@media (max-width: 560px) {
+    .activity-wild-log-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .wild-log-mini-cards { max-width: 230px; }
+}
 `;
     document.head.appendChild(style);
 }
@@ -188,6 +387,124 @@ function escapeActivityHtml(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
+}
+
+const ACTIVITY_SPECIES_HOUSE = {
+    Chog: "chog",
+    Mouch: "chog",
+    Anago: "chog",
+    Shramp: "chog",
+    Spidermon: "chog",
+    Molandak: "molandak",
+    Lyraffe: "molandak",
+    Mondigrade: "molandak",
+    Montiger: "molandak",
+    Mokadal: "molandak",
+    Monavara: "molandak",
+    Moyaki: "moyaki",
+    Salmonad: "moyaki",
+    Moncock: "moyaki",
+    Monhorse: "moyaki",
+    Moxy: "moyaki",
+    Larvanad: "moyaki",
+    Mosferatu: "moyaki",
+};
+
+const ACTIVITY_HOUSE_ICONS = {
+    chog: "game_icons/house/chogicon.png",
+    molandak: "game_icons/house/molandakicon.png",
+    moyaki: "game_icons/house/moyakiicon.png",
+};
+
+const ACTIVITY_MON_DISPLAY_NAMES = { Moxy: "Monhorse" };
+
+function getActivityMonDisplayName(name) {
+    return ACTIVITY_MON_DISPLAY_NAMES[name] || name;
+}
+
+function getActivityRarityClass(rarity) {
+    return "rarity-" + String(rarity || "Common").toLowerCase();
+}
+
+function getActivityMonSprite(name) {
+    const display = getActivityMonDisplayName(name);
+    return `128x128/${String(display).toLowerCase()}.png`;
+}
+
+function getActivityHouseIcon(name) {
+    const display = getActivityMonDisplayName(name);
+    const houseId = ACTIVITY_SPECIES_HOUSE[display] || ACTIVITY_SPECIES_HOUSE[name];
+    return houseId ? ACTIVITY_HOUSE_ICONS[houseId] : null;
+}
+
+function parseActivitySkills(skillsStr) {
+    if (!skillsStr) return [];
+    return String(skillsStr)
+        .split("|")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((label) => ({
+            label,
+            isUlt: label.startsWith("★"),
+            isPassive: label.startsWith("P:"),
+        }));
+}
+
+function buildActivitySkillChipsHtml(skillsStr) {
+    const skills = parseActivitySkills(skillsStr);
+    if (!skills.length) return "";
+    return `<div class="activity-mon-skills">${skills.map((s) => {
+        const cls = s.isUlt ? " is-ult" : s.isPassive ? " is-passive" : "";
+        return `<span class="activity-mon-skill-chip${cls}">${escapeActivityHtml(s.label)}</span>`;
+    }).join("")}</div>`;
+}
+
+function buildActivityMonCardHtml(mon, mode) {
+    if (!mon) return "";
+    const name = getActivityMonDisplayName(mon.name);
+    const rarity = mon.rarity || "Common";
+    const rarityClass = getActivityRarityClass(rarity);
+    const sprite = getActivityMonSprite(mon.name);
+    const houseIcon = getActivityHouseIcon(mon.name);
+
+    if (mode === "mini") {
+        return `<div class="activity-mon-card activity-mon-card--mini ${rarityClass}" aria-hidden="true">
+            <div class="activity-mon-sprite">
+                <img src="${escapeActivityHtml(sprite)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+            </div>
+            <div class="activity-mon-identity">
+                <div class="activity-mon-name">${escapeActivityHtml(name)}</div>
+                <span class="activity-mon-rarity ${rarityClass}">${escapeActivityHtml(rarity)}</span>
+            </div>
+        </div>`;
+    }
+
+    const houseHtml = houseIcon
+        ? `<div class="activity-mon-card-chrome"><img class="activity-house-icon" src="${escapeActivityHtml(houseIcon)}" alt=""></div>`
+        : `<div class="activity-mon-card-chrome"></div>`;
+
+    return `<div class="activity-mon-card activity-mon-card--box ${rarityClass}">
+        ${houseHtml}
+        <div class="activity-mon-card-top">
+            <div class="activity-mon-sprite">
+                <img src="${escapeActivityHtml(sprite)}" alt="${escapeActivityHtml(name)}" loading="lazy" onerror="this.style.visibility='hidden'">
+            </div>
+            <div class="activity-mon-name">${escapeActivityHtml(name)}</div>
+            <div class="activity-mon-rarity-row">
+                <span class="activity-mon-rarity ${rarityClass}">${escapeActivityHtml(String(rarity).toUpperCase())}</span>
+            </div>
+            ${buildActivitySkillChipsHtml(mon.skills)}
+        </div>
+    </div>`;
+}
+
+function buildWildLogMiniCardsHtml(mons, totalCaught) {
+    if (!mons || !mons.length) return "—";
+    const shown = mons.slice(0, 2);
+    const cards = shown.map((m) => buildActivityMonCardHtml(m, "mini")).join("");
+    const total = Number.isFinite(totalCaught) ? totalCaught : mons.length;
+    const more = total > 2 ? `<span class="wild-log-mini-more">+${total - 2} more</span>` : "";
+    return `<div class="wild-log-mini-cards">${cards}${more}</div>`;
 }
 
 function formatActivityEntryHtml(entry, opts = {}) {
@@ -235,10 +552,7 @@ function buildActivityDetailHtml(entry, opts = {}) {
     const hasFullList = !!(entry.mons && entry.mons.length);
     const userLine = showUser ? `<span class="activity-user">@${escapeActivityHtml(entry.xUsername)}</span> ` : "";
     const monRows = mons.length
-        ? mons.map((m, i) => `<div class="activity-detail-mon">
-            <div class="activity-detail-mon-name">${i + 1}. <span class="activity-rare">${escapeActivityHtml(m.rarity)}</span> ${escapeActivityHtml(m.name)}</div>
-            ${m.skills ? `<div class="activity-detail-mon-skills">Skills: ${escapeActivityHtml(m.skills)}</div>` : ""}
-        </div>`).join("")
+        ? `<div class="activity-wild-log-grid">${mons.map((m) => buildActivityMonCardHtml(m, "box")).join("")}</div>`
         : `<p class="activity-detail-note">No catches recorded for this session.</p>`;
     const legacyNote = !hasFullList && entry.caughtCount > displayCount
         ? `<p class="activity-detail-note">Older log — showing preview only (${displayCount} of ${entry.caughtCount} shown).</p>`
@@ -263,6 +577,7 @@ function openActivityDetail(entry, opts = {}) {
     const body = document.getElementById("activity-detail-body");
     if (panel) {
         panel.classList.toggle("activity-detail-panel--home", !!opts.homeTheme);
+        panel.classList.toggle("activity-detail-panel--wide", !!opts.homeTheme);
     }
     if (body) body.innerHTML = buildActivityDetailHtml(entry, opts);
     modal.hidden = false;
@@ -375,17 +690,14 @@ async function syncWildMons(username, partyCount, boxCount, partyMax = 3, boxMax
 function formatActivityTableRow(entry, rowNum, idx) {
     const time = escapeActivityHtml(new Date(entry.at).toLocaleString());
     const mons = getActivityMons(entry);
-    const caught = mons.length
-        ? mons.slice(0, 2).map((h) => `<span class="activity-rare">${escapeActivityHtml(h.rarity)}</span> ${escapeActivityHtml(h.name)}`).join(", ")
-        : "—";
-    const more = entry.caughtCount > 2 ? ` +${entry.caughtCount - 2}` : "";
+    const monsCell = buildWildLogMiniCardsHtml(mons, entry.caughtCount);
     return `<tr class="activity-row activity-row-clickable" role="button" tabindex="0" data-activity-idx="${idx}">
         <td class="col-num">${rowNum}</td>
         <td class="col-time">${time}</td>
         <td class="col-user"><span class="activity-user">@${escapeActivityHtml(entry.xUsername)}</span></td>
         <td class="col-spend"><b>${escapeActivityHtml(entry.spend)}</b></td>
         <td class="col-throws">${escapeActivityHtml(entry.caughtCount)} / ${escapeActivityHtml(entry.throws)}</td>
-        <td class="col-mons">${caught}${more}</td>
+        <td class="col-mons">${monsCell}</td>
         <td class="col-left">${escapeActivityHtml(entry.monballsLeft)}</td>
     </tr>`;
 }
