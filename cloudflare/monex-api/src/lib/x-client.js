@@ -29,13 +29,26 @@ export async function fetchMentions(env, botUserId, sinceId) {
   return mapMentionResults(data);
 }
 
-/** Backup source: recent search for @bot catch (helps surface reply mentions). */
+/** Backup: @bot catch anywhere on X (requires @mention in tweet). */
 export async function fetchCatchMentionSearch(env, botUsername, sinceId) {
   assertXKeys(env);
   const bot = (botUsername || "monexmonad").replace("@", "");
   const params = {
     ...MENTION_FIELDS,
     query: `@${bot} catch -is:retweet`,
+  };
+  if (sinceId) params.since_id = sinceId;
+  const data = await xApiGet(env, "/tweets/search/recent", params);
+  return mapMentionResults(data);
+}
+
+/** Replies on @bot posts with catch keyword (no @ required in reply text). */
+export async function fetchCatchThreadSearch(env, botUsername, sinceId) {
+  assertXKeys(env);
+  const bot = (botUsername || "monexmonad").replace("@", "");
+  const params = {
+    ...MENTION_FIELDS,
+    query: `to:${bot} catch -is:retweet`,
   };
   if (sinceId) params.since_id = sinceId;
   const data = await xApiGet(env, "/tweets/search/recent", params);

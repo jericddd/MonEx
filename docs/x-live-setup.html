@@ -62,14 +62,25 @@ X_ACCESS_TOKEN_SECRET=your_token_secret</pre>
             <li>Set <code>ENABLE_X_REPLY</code> = <code>1</code> in Cloudflare Worker variables (or <code>wrangler.toml</code>)</li>
             <li>Deploy API (GitHub Actions → <b>Deploy Cloudflare API</b>)</li>
         </ol>
-        <p>Valid catch example the bot will reply to:</p>
-        <pre>@monexmonad catch 10 monanimals</pre>
+        <p>Valid catch examples the bot will reply to:</p>
+        <pre>Reply on a @monexmonad post (no @ needed):
+catch
+catch 10
+catch 10 monanimal
+catch 10 monanimals
+catch 20 / catch 30 / catch 40 / catch 50  (higher priority)
+
+Anywhere else on X (must include @monexmonad):
+@monexmonad catch
+@monexmonad catch 10 monanimals
+@monexmonad catch 20</pre>
     </div>
 
     <div class="step">
         <h2>Step 5 — Test on X</h2>
         <p>From your <b>personal</b> X account, tweet:</p>
-        <pre>@monexmonad catch 10 monanimals</pre>
+        <pre>@monexmonad catch 10 monanimals
+—or reply on a @monexmonad post with just: catch 10</pre>
         <p>Wait ~1 minute → check <a href="../home.html">home page X Wild Log</a>.</p>
     </div>
 
