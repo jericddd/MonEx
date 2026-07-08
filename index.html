@@ -502,7 +502,7 @@
     
     <div class="sidebar-btn" onclick="window.location.href='docs.html'">DOCS</div>
     
-    <div class="sidebar-btn" onclick="handleGameShop()">SHOP</div>
+    <div class="sidebar-btn" onclick="openMarketplaceNotice()">MARKETPLACE</div>
     </div>
 
     <div class="showcase-panel">
@@ -678,12 +678,42 @@ async function handleGameStart() {
     openGameEntry();
 }
 
-async function handleGameShop() {
-    if (!MonExAuth.isLoggedIn()) {
-        showCustomModal("Please login with X first");
-        return;
-    }
-    openGameEntry();
+function openMarketplaceNotice() {
+    const modal = document.createElement("div");
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.7); display: flex; align-items: center;
+        justify-content: center; z-index: 300;
+    `;
+    modal.addEventListener("click", (e) => { if (e.target === modal) modal.remove(); });
+    const panel = document.createElement("div");
+    panel.style.cssText = `
+        background:white; padding:32px 36px; border:4px solid #6B21A8;
+        box-shadow:4px 4px 0px #6B21A8; text-align:center; min-width:320px;
+        max-width:90vw; box-sizing:border-box;
+    `;
+    panel.addEventListener("click", (e) => e.stopPropagation());
+    const title = document.createElement("p");
+    title.style.cssText = `
+        font-family:"Press Start 2P",monospace; font-size:14px; color:#6B21A8;
+        margin:0 0 18px 0; line-height:1.6;
+    `;
+    title.textContent = "MARKETPLACE";
+    const text = document.createElement("p");
+    text.style.cssText = "font-size:16px; margin:0 0 28px 0; font-weight:bold;";
+    text.textContent = "COMING SOON";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "OK";
+    button.className = "login-x-btn";
+    button.style.background = "linear-gradient(145deg, #c084fc, #7c3aed)";
+    button.style.boxShadow = "0 4px 12px rgba(107, 33, 168, 0.4)";
+    button.addEventListener("click", () => modal.remove());
+    panel.appendChild(title);
+    panel.appendChild(text);
+    panel.appendChild(button);
+    modal.appendChild(panel);
+    document.body.appendChild(modal);
 }
 
 function showCustomModal(message) {
