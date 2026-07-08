@@ -9011,7 +9011,6 @@ function getMonGifPath(name) {
 
 function getMonIdleGifPath(name) {
     const lower = getSpeciesSpriteKey(name);
-    if (MON_IDLE_ASSET_OVERRIDES[lower]) return MON_IDLE_ASSET_OVERRIDES[lower];
     if (MON_LEGENDARY_GIF_OVERRIDES[lower]) return MON_LEGENDARY_GIF_OVERRIDES[lower];
     return `128x128/${lower}-idle.gif`;
 }
@@ -9021,9 +9020,6 @@ function getMonIdleGifPath(name) {
 const MONS_WITH_IDLE_GIF = new Set(["anago", "mouch", "moyaki", "moncock", "salmonad"]);
 // Main-scene AFK idle battles always animate; mon cards still follow rarity rule.
 const MONS_WITH_SCENE_IDLE_GIF = new Set(["larvanad", "monhorse"]);
-const MON_IDLE_ASSET_OVERRIDES = {
-    monhorse: "128x128/monhorse-idle.png",
-};
 const MON_LEGENDARY_GIF_OVERRIDES = {
     moyaki: "128x128/main-moyaki.gif",
     salmonad: "128x128/slamonad-idle.gif",
@@ -9037,7 +9033,7 @@ function speciesHasIdleGifAsset(name) {
 function getMonLegendaryGifPath(name) {
     const lower = getSpeciesSpriteKey(name);
     if (MON_LEGENDARY_GIF_OVERRIDES[lower]) return MON_LEGENDARY_GIF_OVERRIDES[lower];
-    if (speciesHasIdleGifAsset(lower)) return getMonIdleGifPath(name);
+    if (speciesHasIdleGifAsset(name)) return getMonIdleGifPath(name);
     return getMonGifPath(name);
 }
 
@@ -9281,6 +9277,7 @@ function getSceneIdleDisplaySprite(mon) {
 const GIF_NATURAL_LOOP_PATHS = new Set([
     "128x128/larvanad-idle.gif",
     "128x128/larvanad-swing1.gif",
+    "128x128/monhorse-idle.gif",
 ]);
 const gifLoopMsCache = new Map();
 
