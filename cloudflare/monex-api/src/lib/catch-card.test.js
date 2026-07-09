@@ -22,13 +22,14 @@ test("buildCatchCardSvg centers card and includes mon details", () => {
       name: "Chog",
       rarity: "Legendary",
       level: 1,
-      skills: [{ type: "ultimate", name: "Croak Quake" }],
     },
-    "data:image/png;base64,AAAA"
+    "data:image/png;base64,AAAA",
+    [{ fill: "#f59e0b", label: "★" }, { fill: "#2563eb", iconDataUri: "data:image/png;base64,BBBB" }]
   );
   assert.match(svg, /width="900"/);
   assert.match(svg, /Chog/);
   assert.match(svg, /LEGENDARY/);
   assert.match(svg, /MONEX WILD CATCH/);
-  assert.match(svg, /data:image\/png;base64,AAAA/);
+  assert.match(svg, /Noto Sans/);
+  assert.match(svg, /data:image\/png;base64,BBBB/);
 });
