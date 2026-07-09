@@ -30,7 +30,9 @@ test("buildCatchCardSvg centers card and includes mon details", () => {
   assert.match(svg, /CHOG/);
   assert.match(svg, /LEGENDARY/);
   assert.match(svg, /LV 1/);
-  assert.match(svg, /MONEX WILD CATCH/);
+  assert.match(svg, /visit monexmonad\.xyz to play/);
+  assert.match(svg, /font-style="italic"/);
+  assert.match(svg, /fill="#888888"/);
   assert.match(svg, /Press Start 2P/);
   assert.match(svg, /data:image\/png;base64,BBBB/);
 });

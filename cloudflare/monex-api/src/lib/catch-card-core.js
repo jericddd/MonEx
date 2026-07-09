@@ -1,4 +1,4 @@
-import { CATCH_CARD_FONT_FAMILY } from "./catch-card-font.js";
+import { CATCH_CARD_FONT_FAMILY, CATCH_CARD_FOOTER_FONT_FAMILY } from "./catch-card-font.js";
 
 const CANVAS_W = 900;
 const CANVAS_H = 520;
@@ -7,6 +7,7 @@ const CARD_H = 400;
 const CARD_X = (CANVAS_W - CARD_W) / 2;
 const CARD_Y = (CANVAS_H - CARD_H) / 2;
 const FONT = CATCH_CARD_FONT_FAMILY;
+const FOOTER_FONT = CATCH_CARD_FOOTER_FONT_FAMILY;
 
 const RARITY_STYLES = {
   Common: { border: "#111111", badge: "#111111", badgeText: "#ffffff" },
@@ -88,7 +89,7 @@ export function buildCatchCardSvg(mon, spriteDataUri, skillTiles = []) {
   <text x="${CARD_X + CARD_W / 2}" y="${CARD_Y + 234}" text-anchor="middle" fill="${style.badgeText}" font-size="10" font-family="${FONT}" font-weight="400">${escapeXml(String(rarity).toUpperCase())}</text>
   <text x="${CARD_X + CARD_W / 2}" y="${CARD_Y + 268}" text-anchor="middle" fill="#111111" font-size="11" font-family="${FONT}" font-weight="400">LV ${level}</text>
   ${buildSkillTilesSvg(skillTiles)}
-  <text x="${CARD_X + CARD_W / 2}" y="${CARD_Y + CARD_H - 18}" text-anchor="middle" fill="#6b21a8" font-size="12" font-family="${FONT}" font-weight="700">MONEX WILD CATCH</text>
+  <text x="${CARD_X + CARD_W / 2}" y="${CARD_Y + CARD_H - 14}" text-anchor="middle" fill="#888888" font-size="11" font-family="${FOOTER_FONT}" font-style="italic" font-weight="400">visit monexmonad.xyz to play</text>
 </svg>`;
 }
 
