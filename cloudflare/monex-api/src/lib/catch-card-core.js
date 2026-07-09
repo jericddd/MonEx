@@ -1,4 +1,4 @@
-import { CATCH_CARD_FONT_FAMILY } from "./catch-card-font.js";
+import { CATCH_CARD_FONT_FAMILY, CATCH_CARD_FOOTER_FONT_FAMILY } from "./catch-card-font.js";
 
 const CANVAS_W = 900;
 const CANVAS_H = 520;
@@ -7,6 +7,7 @@ const CARD_H = 400;
 const CARD_X = (CANVAS_W - CARD_W) / 2;
 const CARD_Y = (CANVAS_H - CARD_H) / 2;
 const FONT = CATCH_CARD_FONT_FAMILY;
+const FOOTER_FONT = CATCH_CARD_FOOTER_FONT_FAMILY;
 
 const RARITY_STYLES = {
   Common: { border: "#111111", badge: "#111111", badgeText: "#ffffff" },
@@ -38,11 +39,11 @@ function getRarityStyle(rarity) {
 function buildSkillTilesSvg(tiles) {
   if (!tiles?.length) return "";
   const size = 34;
-  const gap = 8;
+  const gap = 6;
   const iconSize = 22;
   const totalW = tiles.length * size + (tiles.length - 1) * gap;
   const startX = CARD_X + (CARD_W - totalW) / 2;
-  const y = CARD_Y + 306;
+  const y = CARD_Y + 322;
 
   return tiles
     .map((tile, index) => {
@@ -83,12 +84,12 @@ export function buildCatchCardSvg(mon, spriteDataUri, skillTiles = []) {
   <rect x="${CARD_X}" y="${CARD_Y}" width="${CARD_W}" height="${CARD_H}" fill="#ffffff" stroke="${style.border}" stroke-width="8"/>
   <rect x="${CARD_X + 14}" y="${CARD_Y + 14}" width="${CARD_W - 28}" height="168" fill="#f8f5ff"/>
   <image href="${spriteDataUri}" x="${CARD_X + (CARD_W - 128) / 2}" y="${CARD_Y + 28}" width="128" height="128" preserveAspectRatio="xMidYMid meet"/>
-  <text x="${CARD_X + CARD_W / 2}" y="${CARD_Y + 214}" text-anchor="middle" fill="#111111" font-size="28" font-family="${FONT}" font-weight="700">${escapeXml(name)}</text>
-  <rect x="${CARD_X + CARD_W / 2 - 72}" y="${CARD_Y + 228}" width="144" height="30" fill="${style.badge}" stroke="${style.border}" stroke-width="2"/>
-  <text x="${CARD_X + CARD_W / 2}" y="${CARD_Y + 249}" text-anchor="middle" fill="${style.badgeText}" font-size="13" font-family="${FONT}" font-weight="700">${escapeXml(String(rarity).toUpperCase())}</text>
-  <text x="${CARD_X + CARD_W / 2}" y="${CARD_Y + 286}" text-anchor="middle" fill="#444444" font-size="16" font-family="${FONT}" font-weight="600">LV ${level}</text>
+  <text x="${CARD_X + CARD_W / 2}" y="${CARD_Y + 208}" text-anchor="middle" fill="#111111" font-size="18" font-family="${FONT}" font-weight="400">${escapeXml(name.toUpperCase())}</text>
+  <rect x="${CARD_X + CARD_W / 2 - 58}" y="${CARD_Y + 218}" width="116" height="22" rx="11" fill="${style.badge}" stroke="${style.border}" stroke-width="2"/>
+  <text x="${CARD_X + CARD_W / 2}" y="${CARD_Y + 234}" text-anchor="middle" fill="${style.badgeText}" font-size="10" font-family="${FONT}" font-weight="400">${escapeXml(String(rarity).toUpperCase())}</text>
+  <text x="${CARD_X + CARD_W / 2}" y="${CARD_Y + 268}" text-anchor="middle" fill="#111111" font-size="11" font-family="${FONT}" font-weight="400">LV ${level}</text>
   ${buildSkillTilesSvg(skillTiles)}
-  <text x="${CARD_X + CARD_W / 2}" y="${CARD_Y + CARD_H - 18}" text-anchor="middle" fill="#6b21a8" font-size="12" font-family="${FONT}" font-weight="700">MONEX WILD CATCH</text>
+  <text x="${CARD_X + CARD_W / 2}" y="${CARD_Y + CARD_H - 14}" text-anchor="middle" fill="#888888" font-size="11" font-family="${FOOTER_FONT}" font-style="italic" font-weight="400">visit monexmonad.xyz to play</text>
 </svg>`;
 }
 
