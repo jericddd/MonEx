@@ -7295,7 +7295,7 @@ body.afk-layout .currency-pill .currency-tip {
                                 <input id="x-handle-input" type="text" placeholder="X username (e.g. jeric)" maxlength="40">
                                 <button type="button" onclick="saveXHandle()">SAVE</button>
                             </div>
-                            <p style="font-size:11px; margin:0;">On X post: <b>@monexmonad catch 10 monanimals</b> (1 Monball = 1 catch)</p>
+                            <p style="font-size:11px; margin:0;">On X post: <b>@monexmonad catch 1 monanimal</b> (1 Monball = 1 catch, up to 50)</p>
                         </div>
                         <div id="profile-pane-log" class="profile-pane profile-pane--log">
                             <h3 class="profile-log-title">YOUR X CATCH LOG</h3>
@@ -14063,7 +14063,7 @@ async function refreshProfileActivity(opts = {}) {
         if (!force && !handleChanged && sig === profileActivitySignature) return;
         profileActivitySignature = sig;
         MonExActivity.renderFeed(el, items, {
-            emptyText: "No successful @monexmonad catches yet. Tweet @monexmonad catch 10 monanimals on X!",
+            emptyText: "No successful @monexmonad catches yet. Tweet @monexmonad catch 1 monanimal on X!",
             showUser: false,
         });
         el.dataset.profileActivityLoaded = "1";
