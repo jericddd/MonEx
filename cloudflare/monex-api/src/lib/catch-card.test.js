@@ -22,7 +22,6 @@ test("buildCatchCardSvg centers card and includes mon details", () => {
       name: "Chog",
       rarity: "Legendary",
       level: 1,
-      skills: [{ type: "ultimate", name: "Croak Quake" }],
     },
     "data:image/png;base64,AAAA"
   );

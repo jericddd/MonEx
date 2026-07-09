@@ -32,39 +32,6 @@ function getRarityStyle(rarity) {
   return RARITY_STYLES[rarity] || RARITY_STYLES.Common;
 }
 
-function skillSquareSvg(skill, x, y, size) {
-  let fill = "#6b21a8";
-  let label = "??";
-  if (skill.type === "ultimate") {
-    fill = "#f59e0b";
-    label = "★";
-  } else if (skill.type === "passive") {
-    fill = "#7c3aed";
-    label = "P";
-  } else if (skill.type === "heal") {
-    fill = "#16a34a";
-    label = "+";
-  } else {
-    fill = "#2563eb";
-    label = escapeXml(String(skill.name || "??").slice(0, 2).toUpperCase());
-  }
-  return `<rect x="${x}" y="${y}" width="${size}" height="${size}" fill="${fill}" stroke="#111" stroke-width="2"/>
-    <text x="${x + size / 2}" y="${y + size / 2 + 5}" text-anchor="middle" fill="#ffffff" font-size="14" font-family="sans-serif" font-weight="700">${label}</text>`;
-}
-
-function buildSkillsRowSvg(skills) {
-  const list = Array.isArray(skills) ? skills.slice(0, 6) : [];
-  if (!list.length) return "";
-  const size = 34;
-  const gap = 8;
-  const totalW = list.length * size + (list.length - 1) * gap;
-  const startX = CARD_X + (CARD_W - totalW) / 2;
-  const y = CARD_Y + 318;
-  return list
-    .map((skill, i) => skillSquareSvg(skill, startX + i * (size + gap), y, size))
-    .join("");
-}
-
 export function buildCatchCardSvg(mon, spriteDataUri) {
   const name = getMonDisplayName(mon.name);
   const rarity = mon.rarity || "Common";
@@ -92,7 +59,6 @@ export function buildCatchCardSvg(mon, spriteDataUri) {
   <rect x="${CARD_X + CARD_W / 2 - 72}" y="${CARD_Y + 228}" width="144" height="30" rx="0" fill="${style.badge}" stroke="${style.border}" stroke-width="2"/>
   <text x="${CARD_X + CARD_W / 2}" y="${CARD_Y + 249}" text-anchor="middle" fill="${style.badgeText}" font-size="13" font-family="sans-serif" font-weight="700">${escapeXml(String(rarity).toUpperCase())}</text>
   <text x="${CARD_X + CARD_W / 2}" y="${CARD_Y + 286}" text-anchor="middle" fill="#444444" font-size="16" font-family="sans-serif" font-weight="600">LV ${level}</text>
-  ${buildSkillsRowSvg(mon.skills)}
   <text x="${CARD_X + CARD_W / 2}" y="${CARD_Y + CARD_H - 18}" text-anchor="middle" fill="#6b21a8" font-size="12" font-family="sans-serif" font-weight="700">MONEX WILD CATCH</text>
 </svg>`;
 }
