@@ -40,6 +40,7 @@ import {
   getBearerToken,
 } from "./lib/auth.js";
 import { loadCloudSave, writeCloudSave, buildSavePayload } from "./lib/save.js";
+import { grantMonballs } from "./lib/grant-monballs.js";
 import {
   buildCorsHeaders,
   enforceRateLimit,
@@ -357,6 +358,27 @@ async function handleRequest(request, env) {
         request,
         env
       );
+    }
+
+    if (path === "/api/admin/grant-monballs" && request.method === "POST") {
+      const adminSecret = env.ADMIN_RESET_SECRET;
+      if (!adminSecret) {
+        return json({ ok: false, error: "ADMIN_RESET_SECRET not configured" }, 503, request, env);
+      }
+      const body = await request.json().catch(() => ({}));
+      const provided = request.headers.get("X-Admin-Secret") || body?.secret || "";
+      if (!timingSafeEqual(provided, adminSecret)) {
+        return json({ ok: false, error: "unauthorized" }, 401, request, env);
+      }
+      const username = body?.username || url.searchParams.get("username") || "";
+      const amount = body?.amount ?? url.searchParams.get("amount") ?? 100;
+      try {
+        const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
+        const result = await grantMonballs(env.MONEX_KV, username, amount, starting);
+        return json(result, 200, request, env);
+      } catch (err) {
+        return json({ ok: false, error: err.message || "grant failed" }, 400, request, env);
+      }
     }
 
     if (path === "/api/admin/run-poll" && request.method === "POST") {
