@@ -83,8 +83,13 @@ const SPECIES_ULTIMATE = {
   Moyaki: { name: "Flame Geyser", element: "fire" },
 };
 
-export const CATCH_DENOMINATIONS = [10, 20, 30, 40, 50];
-export const MIN_MONBALLS = 10;
+export const MIN_CATCH_SPEND = 1;
+export const MAX_CATCH_SPEND = 50;
+export const CATCH_DENOMINATIONS = Array.from(
+  { length: MAX_CATCH_SPEND - MIN_CATCH_SPEND + 1 },
+  (_, i) => i + MIN_CATCH_SPEND
+);
+export const MIN_MONBALLS = MIN_CATCH_SPEND;
 export const MONBALLS_PER_THROW = 1;
 export const CATCH_RATE = 0.95;
 
@@ -169,7 +174,7 @@ export function attemptSingleCatch() {
   };
 }
 
-/** Spend `monballSpend` (10–50). 1 Monball = 1 catch. Returns { throws, results } */
+/** Spend `monballSpend` (1–50). 1 Monball = 1 catch. Returns { throws, results } */
 export function runCatchSession(monballSpend) {
   const throws = monballSpend / MONBALLS_PER_THROW;
   const results = [];

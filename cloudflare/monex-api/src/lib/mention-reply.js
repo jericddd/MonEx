@@ -28,7 +28,7 @@ export function buildMentionReplyText(result, tweet, env, quota = {}) {
   }
 
   if (result.skipReason === "insufficient") {
-    return buildNaturalInsufficientReply(username, result.monballs ?? 0, result.parsed?.spend ?? 10, seed);
+    return buildNaturalInsufficientReply(username, result.monballs ?? 0, result.parsed?.spend ?? 1, seed);
   }
 
   return null;

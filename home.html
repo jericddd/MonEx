@@ -653,7 +653,7 @@
     <div class="wild-log-header">
         <div>
             <h2><span class="activity-live"></span>X WILD LOG</h2>
-            <p class="wild-log-sub">Live catches from X — tweet <b>@monexmonad catch 10 monanimals</b> · click a row for full catch log</p>
+            <p class="wild-log-sub">Live catches from X — tweet <b>@monexmonad catch 1 monanimal</b> (1–50) · click a row for full catch log</p>
         </div>
         <p class="wild-log-sub" id="wild-log-status">Loading…</p>
     </div>
@@ -943,7 +943,7 @@ async function refreshHomeActivity(page) {
     try {
         const data = await MonExActivity.fetchGlobal(MonExActivity.PAGE_SIZE, wildLogPage);
         if (!data?.ok) throw new Error("activity API returned an error");
-        MonExActivity.renderTable(el, data, "No X catches yet. Try: @monexmonad catch 10 monanimals");
+        MonExActivity.renderTable(el, data, "No X catches yet. Try: @monexmonad catch 1 monanimal");
         MonExActivity.renderPagination(pager, data, (p) => refreshHomeActivity(p));
         if (status) {
             status.textContent = data.total

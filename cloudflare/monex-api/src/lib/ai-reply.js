@@ -57,7 +57,7 @@ Do not start with @username (reply is threaded). Mention caught AND escaped mons
 Facts:
 - Player: @${facts.username}
 - Problem: invalid Monball amount
-- Valid amounts: 10, 20, 30, 40, 50
+- Valid amounts: 1–50
 
 Do not start with @username (reply is threaded).`;
   }
@@ -67,7 +67,7 @@ Do not start with @username (reply is threaded).`;
 Facts:
 - Player: @${facts.username}
 - Has ${facts.have} Monballs, needs ${facts.need}
-- Minimum to play: 10 Monballs
+- Minimum to play: 1 Monball
 
 Do not start with @username (reply is threaded).`;
 }
@@ -96,7 +96,7 @@ export async function tryAiMentionReply(result, tweet, env) {
     facts = {
       username: tweet.username || "player",
       have: result.monballs ?? 0,
-      need: result.parsed?.spend ?? 10,
+      need: result.parsed?.spend ?? 1,
     };
   } else {
     return null;
