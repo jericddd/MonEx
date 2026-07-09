@@ -27,7 +27,7 @@ async function hmacSha1Base64(key, message) {
   return btoa(binary);
 }
 
-function buildOAuthHeader(oauth) {
+export function buildOAuthHeader(oauth) {
   return (
     "OAuth " +
     Object.keys(oauth)

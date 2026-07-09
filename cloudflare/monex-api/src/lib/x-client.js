@@ -92,12 +92,15 @@ export function mergeMentionTweets(...groups) {
 }
 
 /** Post a reply tweet as @monexmonad (requires X app Read+Write + OAuth 1.0a keys). */
-export async function postReply(env, text, inReplyToTweetId) {
+export async function postReply(env, text, inReplyToTweetId, mediaIds = []) {
   assertXKeys(env);
   if (!inReplyToTweetId) throw new Error("inReplyToTweetId required");
-  const data = await xApiPost(env, "/tweets", {
+  const body = {
     text: String(text).slice(0, 280),
     reply: { in_reply_to_tweet_id: String(inReplyToTweetId) },
-  });
+  };
+  const ids = (mediaIds || []).filter(Boolean).map(String);
+  if (ids.length) body.media = { media_ids: ids };
+  const data = await xApiPost(env, "/tweets", body);
   return data.data;
 }
