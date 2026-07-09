@@ -4,11 +4,15 @@ import {
   buildNaturalInsufficientReply,
   getReplySeed,
 } from "./natural-reply.js";
+import { getDailyReplyLimitForUser } from "./reply-limits.js";
 
 export function buildMentionReplyText(result, tweet, env, quota = {}) {
   const username = tweet.username || "player";
   const seed = getReplySeed(tweet);
-  const dailyLimit = Math.max(1, parseInt(env?.DAILY_REPLY_LIMIT || quota.dailyLimit || "4", 10));
+  const dailyLimit = Math.max(
+    1,
+    Number.parseInt(quota.dailyLimit ?? getDailyReplyLimitForUser(username, env), 10)
+  );
   const repliesLeftAfter = quota.repliesLeftAfter;
 
   if (result.activity) {

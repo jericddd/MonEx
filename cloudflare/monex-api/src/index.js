@@ -54,6 +54,7 @@ import {
 } from "./lib/security.js";
 import { buildMentionReplyText } from "./lib/mention-reply.js";
 import { buildDailyLimitNoticeReply, getReplySeed } from "./lib/natural-reply.js";
+import { getDailyReplyLimitForUser } from "./lib/reply-limits.js";
 import { claimDailyLoginReward, claimMailboxItem, getDailyLoginStatus } from "./lib/mailbox.js";
 
 const API_CODE_VERSION = "fetch-oauth-v1";
@@ -197,7 +198,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       }
 
       if (env.ENABLE_X_REPLY === "1") {
-        const dailyLimit = Math.max(1, parseInt(env.DAILY_REPLY_LIMIT || "4", 10));
+        const dailyLimit = getDailyReplyLimitForUser(tweet.username, env);
         const replyUser = state.users[tweet.authorId];
         const usedToday = replyUser ? getReplyCountToday(replyUser) : 0;
         const repliesLeftAfter = dailyLimit - usedToday - 1;
