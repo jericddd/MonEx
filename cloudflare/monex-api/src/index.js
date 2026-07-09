@@ -25,6 +25,10 @@ import {
   getReplyCountToday,
 } from "./kv-store.js";
 import { resolveBotUser, fetchMentions, fetchCatchMentionSearch, fetchCatchThreadSearch, mergeMentionTweets, assertXKeys, postReply } from "./lib/x-client.js";
+import { uploadTwitterMedia } from "./lib/x-media.js";
+import { getFirstCaughtMon } from "./lib/catch-card-core.js";
+import { renderCatchCardPng } from "./lib/catch-card.js";
+import { generateSkills } from "./lib/catch-engine.js";
 import {
   oauthConfigured,
   devAuthAllowed,
@@ -205,7 +209,22 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
           });
           if (replyText) {
             try {
-              await postReply(env, replyText, tweet.id);
+              let mediaIds = [];
+              const cardMon = getFirstCaughtMon(result.catchResults || []);
+              if (cardMon) {
+                try {
+                  const png = await renderCatchCardPng(cardMon, env);
+                  const mediaId = await uploadTwitterMedia(env, png);
+                  mediaIds = [mediaId];
+                } catch (cardErr) {
+                  status.replyErrors = status.replyErrors || [];
+                  status.replyErrors.push({
+                    id: tweet.id,
+                    error: `catch_card: ${cardErr.message || String(cardErr)}`,
+                  });
+                }
+              }
+              await postReply(env, replyText, tweet.id, mediaIds);
               recordReplySent(replyUser);
               if (repliesLeftAfter <= 0) {
                 replyUser.limitNoticeDay = new Date().toISOString().slice(0, 10);
@@ -641,6 +660,31 @@ async function handleRequest(request, env) {
         return json(result, status, request, env);
       } catch (err) {
         return json({ ok: false, error: err.message || "claim failed" }, 500, request, env);
+      }
+    }
+
+    if (path === "/api/catch-card-preview" && request.method === "GET") {
+      const url = new URL(request.url);
+      const monName = url.searchParams.get("mon") || "Chog";
+      const rarity = url.searchParams.get("rarity") || "Rare";
+      const previewMon = {
+        name: monName,
+        rarity,
+        level: 1,
+        skills: generateSkills(monName, rarity),
+      };
+      try {
+        const png = await renderCatchCardPng(previewMon, env);
+        return new Response(png, {
+          status: 200,
+          headers: {
+            "Content-Type": "image/png",
+            "Cache-Control": "public, max-age=300",
+            ...buildCorsHeaders(request, env),
+          },
+        });
+      } catch (err) {
+        return json({ ok: false, error: err.message || "preview failed" }, 500, request, env);
       }
     }
 

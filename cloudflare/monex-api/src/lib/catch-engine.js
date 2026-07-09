@@ -127,7 +127,7 @@ function getSkillCount(rarity) {
   return 6;
 }
 
-function generateSkills(name, rarity) {
+export function generateSkills(name, rarity) {
   const count = getSkillCount(rarity);
   const usedNames = new Set();
   const skills = [{ ...getSpeciesUltimate(name) }];
