@@ -1,23 +1,20 @@
-const PRESS_START_URL =
-  "https://cdn.jsdelivr.net/gh/googlefonts/press-start-2p@main/PressStart2P-Regular.ttf";
-const NOTO_ITALIC_URL =
-  "https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@main/hinted/ttf/NotoSans/NotoSans-Italic.ttf";
+import { PRESS_START_TTF_B64, NOTO_ITALIC_TTF_B64 } from "./catch-card-font-data.js";
 
 let fontCache = null;
 
-async function fetchFontBuffer(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`font fetch failed (${res.status}) for ${url}`);
-  return new Uint8Array(await res.arrayBuffer());
+function b64ToUint8Array(b64) {
+  const binary = atob(b64);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+  return out;
 }
 
 export async function getCatchCardFonts() {
   if (fontCache) return fontCache;
-  const [pressStart, notoItalic] = await Promise.all([
-    fetchFontBuffer(PRESS_START_URL),
-    fetchFontBuffer(NOTO_ITALIC_URL),
-  ]);
-  fontCache = { pressStart, notoItalic };
+  fontCache = {
+    pressStart: b64ToUint8Array(PRESS_START_TTF_B64),
+    notoItalic: b64ToUint8Array(NOTO_ITALIC_TTF_B64),
+  };
   return fontCache;
 }
 
