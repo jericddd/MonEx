@@ -27,9 +27,10 @@ test("buildCatchCardSvg centers card and includes mon details", () => {
     [{ fill: "#f59e0b", label: "★" }, { fill: "#2563eb", iconDataUri: "data:image/png;base64,BBBB" }]
   );
   assert.match(svg, /width="900"/);
-  assert.match(svg, /Chog/);
+  assert.match(svg, /CHOG/);
   assert.match(svg, /LEGENDARY/);
+  assert.match(svg, /LV 1/);
   assert.match(svg, /MONEX WILD CATCH/);
-  assert.match(svg, /Noto Sans/);
+  assert.match(svg, /Press Start 2P/);
   assert.match(svg, /data:image\/png;base64,BBBB/);
 });

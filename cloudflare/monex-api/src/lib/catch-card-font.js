@@ -1,7 +1,5 @@
-const FONT_REGULAR_URL =
-  "https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@main/hinted/ttf/NotoSans/NotoSans-Regular.ttf";
-const FONT_BOLD_URL =
-  "https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@main/hinted/ttf/NotoSans/NotoSans-Bold.ttf";
+const FONT_URL =
+  "https://cdn.jsdelivr.net/gh/googlefonts/press-start-2p@main/PressStart2P-Regular.ttf";
 
 let fontCache = null;
 
@@ -13,21 +11,18 @@ async function fetchFontBuffer(url) {
 
 export async function getCatchCardFonts() {
   if (fontCache) return fontCache;
-  const [regular, bold] = await Promise.all([
-    fetchFontBuffer(FONT_REGULAR_URL),
-    fetchFontBuffer(FONT_BOLD_URL),
-  ]);
-  fontCache = { regular, bold };
+  const regular = await fetchFontBuffer(FONT_URL);
+  fontCache = { regular };
   return fontCache;
 }
 
 export function buildResvgFontOptions(fonts) {
   return {
     loadSystemFonts: false,
-    defaultFontFamily: "Noto Sans",
-    sansSerifFamily: "Noto Sans",
-    fontBuffers: [fonts.regular, fonts.bold],
+    defaultFontFamily: "Press Start 2P",
+    monospaceFamily: "Press Start 2P",
+    fontBuffers: [fonts.regular],
   };
 }
 
-export const CATCH_CARD_FONT_FAMILY = "Noto Sans";
+export const CATCH_CARD_FONT_FAMILY = "Press Start 2P";
