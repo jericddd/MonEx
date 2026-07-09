@@ -6,7 +6,7 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "reset-kv": "node scripts/reset-production-kv.mjs",
-    "test": "node --test src/lib/save-validate.test.js src/lib/security.test.js src/lib/parse-mention.test.js src/lib/catch-reply.test.js src/lib/natural-reply.test.js src/lib/catch-summary.test.js src/lib/catch-card.test.js"
+    "test": "node --test src/lib/save-validate.test.js src/lib/security.test.js src/lib/parse-mention.test.js src/lib/catch-reply.test.js src/lib/natural-reply.test.js src/lib/catch-summary.test.js src/lib/catch-card.test.js src/lib/reply-limits.test.js"
   },
   "dependencies": {
     "@resvg/resvg-wasm": "^2.6.2"
