@@ -44,8 +44,9 @@ import {
   getBearerToken,
 } from "./lib/auth.js";
 import { loadCloudSave, writeCloudSave, buildSavePayload } from "./lib/save.js";
-import { grantMonballs, clampMonballs, mergeMonballBalances, alignCatchMonballsToMerged } from "./lib/grant-monballs.js";
-import { alignCatchMonballsToSave, resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsAfterCatch, getAuthoritativeMonballs } from "./lib/save-reconcile.js";
+import { grantMonballs, alignCatchMonballsToMerged } from "./lib/grant-monballs.js";
+import { resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsAfterCatch, getAuthoritativeMonballs } from "./lib/save-reconcile.js";
+import { backfillPendingForUser } from "./lib/backfill-pending.js";
 import {
   buildCorsHeaders,
   enforceRateLimit,
@@ -625,56 +626,72 @@ async function handleRequest(request, env) {
       const username = auth.session.username;
       const xUserId = auth.session.xUserId;
       const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
-      const partyCount = Math.max(0, parseInt(body?.partyCount ?? 0, 10));
-      const boxCount = Math.max(0, parseInt(body?.boxCount ?? 0, 10));
       const partyMax = Math.max(1, parseInt(body?.partyMax ?? DEFAULT_PARTY_MAX, 10));
       const boxMax = Math.max(1, parseInt(body?.boxMax ?? DEFAULT_BOX_MAX, 10));
 
-      const result = await withUserSyncLock(xUserId || username, async () => {
+      let syncResult = {
+        ok: false,
+        added: 0,
+        remaining: 0,
+        syncedParty: [],
+        syncedBox: [],
+        monballs: null,
+        save: null,
+      };
+
+      if (xUserId) {
+        syncResult = await withUserSyncLock(xUserId || username, async () => {
+          const state = await loadState(env.MONEX_KV);
+          const { save } = await loadCloudSave(env.MONEX_KV, xUserId);
+          const result = backfillPendingForUser(state, {
+            xUserId,
+            username,
+            save,
+            partyMax,
+            boxMax,
+            startingMonballs: starting,
+          });
+          await saveState(env.MONEX_KV, state);
+          if (result.ok && result.save) {
+            await writeCloudSave(env.MONEX_KV, xUserId, result.save, { skipStaleCheck: true });
+            await alignCatchMonballsToMerged(env.MONEX_KV, auth.session, result.monballs, starting);
+          }
+          return result;
+        });
+      } else {
         const state = await loadState(env.MONEX_KV);
         const slots = syncPendingForSession(
           state,
-          xUserId,
+          null,
           username,
-          partyCount,
-          boxCount,
+          0,
+          0,
           partyMax,
           boxMax,
           starting
         );
         await saveState(env.MONEX_KV, state);
-        return slots;
-      });
-
-      let cloudMonballs = null;
-      let mergedMonballs = null;
-      if (typeof result.monballs === "number" && xUserId) {
-        const { save } = await loadCloudSave(env.MONEX_KV, xUserId);
-        const state = await loadState(env.MONEX_KV);
-        const catchUser = resolveCatchUser(state, xUserId, username, starting);
-        mergedMonballs = resolveMergedMonballs(catchUser, save, result.monballs);
-        await alignCatchMonballsToMerged(env.MONEX_KV, auth.session, mergedMonballs, starting);
-        const nextSave = {
-          ...save,
-          monballs: mergedMonballs,
-          xHandle: save.xHandle || username,
-          updatedAt: new Date().toISOString(),
+        syncResult = {
+          ok: true,
+          added: slots.party.length + slots.box.length,
+          remaining: slots.remaining,
+          syncedParty: slots.party,
+          syncedBox: slots.box,
+          monballs: slots.monballs,
+          save: null,
         };
-        await writeCloudSave(env.MONEX_KV, xUserId, nextSave, { skipStaleCheck: true });
-        cloudMonballs = mergedMonballs;
-        result.monballs = mergedMonballs;
       }
 
       return json(
         {
           ok: true,
           username,
-          party: result.party,
-          box: result.box,
-          added: result.party.length + result.box.length,
-          remaining: result.remaining,
-          monballs: result.monballs,
-          cloudMonballs,
+          party: syncResult.syncedParty || [],
+          box: syncResult.syncedBox || [],
+          added: syncResult.added || 0,
+          remaining: syncResult.remaining || 0,
+          monballs: syncResult.monballs,
+          save: syncResult.save || null,
         },
         200,
         request,
