@@ -378,6 +378,17 @@ function sanitizeAdventureFields(src) {
   };
 }
 
+function sanitizeQuestGrant(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const grant = {};
+  if (raw.gold != null) grant.gold = clampInt(raw.gold, 0, LIMITS.money);
+  if (raw.essence != null) grant.essence = clampInt(raw.essence, 0, LIMITS.essence);
+  if (raw.monballs != null) grant.monballs = clampInt(raw.monballs, 0, LIMITS.monballs);
+  if (raw.monShards != null) grant.monShards = clampInt(raw.monShards, 0, LIMITS.monShards);
+  if (raw.trainerXp != null) grant.trainerXp = clampInt(raw.trainerXp, 0, LIMITS.trainerXp);
+  return Object.keys(grant).length ? grant : null;
+}
+
 function sanitizeQuestState(raw) {
   if (!raw || typeof raw !== "object") return null;
   const tabs = ["dailies", "weeklies", "campaign"];
@@ -393,12 +404,16 @@ function sanitizeQuestState(raw) {
         claimed: !!t.claimed,
       }));
   });
+  const grantedKeys = Array.isArray(raw.grantedKeys)
+    ? raw.grantedKeys.map((k) => trimString(k, 48)).filter(Boolean).slice(0, 80)
+    : [];
   return {
     tab: tabs.includes(raw.tab) ? raw.tab : "dailies",
     points: clampInt(raw.points ?? 0, 0, 100),
     claimedChests: Array.isArray(raw.claimedChests)
       ? raw.claimedChests.map((n) => clampInt(n, 0, 100)).filter((n) => [20, 40, 60, 80, 100].includes(n)).slice(0, 5)
       : [],
+    grantedKeys,
     dailyResetKey: typeof raw.dailyResetKey === "string" ? trimString(raw.dailyResetKey, 16) : null,
     weeklyResetKey: typeof raw.weeklyResetKey === "string" ? trimString(raw.weeklyResetKey, 16) : null,
     tasks,
@@ -409,20 +424,27 @@ function sanitizeMailboxItem(raw) {
   if (!raw || typeof raw !== "object") return null;
   const id = trimString(raw.id, 80);
   if (!id) return null;
-  const type = raw.type === "monballs" ? "monballs" : null;
+  const type = raw.type === "monballs" ? "monballs" : raw.type === "resources" ? "resources" : null;
   if (!type) return null;
-  const amount = clampInt(raw.amount ?? 1, 1, LIMITS.monballs);
   const createdAt = trimString(raw.createdAt, 40) || null;
   const claimedAt = raw.claimedAt ? trimString(raw.claimedAt, 40) : null;
-  return {
+  const base = {
     id,
     type,
-    amount,
     title: trimString(raw.title, 80) || "Reward",
     body: trimString(raw.body, 160) || "",
     createdAt: createdAt || new Date(0).toISOString(),
     ...(claimedAt ? { claimedAt } : {}),
   };
+  if (type === "monballs") {
+    return {
+      ...base,
+      amount: clampInt(raw.amount ?? 1, 1, LIMITS.monballs),
+    };
+  }
+  const grant = sanitizeQuestGrant(raw.grant);
+  if (!grant) return null;
+  return { ...base, grant };
 }
 
 export function sanitizeMailbox(raw) {

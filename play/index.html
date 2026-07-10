@@ -8326,6 +8326,7 @@ function defaultQuestState() {
         tab: "dailies",
         points: 0,
         claimedChests: [],
+        grantedKeys: [],
         dailyResetKey: getUtcDateKey(now),
         weeklyResetKey: getUtcWeekKey(now),
         tasks: {
@@ -8362,10 +8363,117 @@ function normalizeQuestState(loaded) {
         claimedChests: Array.isArray(loaded.claimedChests)
             ? loaded.claimedChests.map(n => Number(n)).filter(n => QUEST_MILESTONES.includes(n))
             : [],
+        grantedKeys: Array.isArray(loaded.grantedKeys)
+            ? loaded.grantedKeys.map(k => String(k)).filter(Boolean).slice(0, 80)
+            : [],
         dailyResetKey: typeof loaded.dailyResetKey === "string" ? loaded.dailyResetKey : base.dailyResetKey,
         weeklyResetKey: typeof loaded.weeklyResetKey === "string" ? loaded.weeklyResetKey : base.weeklyResetKey,
         tasks,
     };
+}
+
+function filterQuestGrantedKeys(keys, opts = {}) {
+    const list = Array.isArray(keys) ? keys : [];
+    if (opts.clearAll) return [];
+    return list.filter((key) => {
+        if (opts.clearDailies && key.startsWith("task:dailies:")) return false;
+        if (opts.clearWeeklies && key.startsWith("task:weeklies:")) return false;
+        if (opts.clearChests && key.startsWith("chest:")) return false;
+        return true;
+    });
+}
+
+function questGrantKey(tab, taskId) {
+    return `task:${tab}:${taskId}`;
+}
+
+function questChestGrantKey(milestone) {
+    return `chest:${milestone}`;
+}
+
+function buildQuestGrantFromDef(def) {
+    if (!def?.rewardKey || !def.rewardAmount) return null;
+    const grant = {};
+    if (def.rewardKey === "gold") grant.gold = def.rewardAmount;
+    else if (def.rewardKey === "essence") grant.essence = def.rewardAmount;
+    else if (def.rewardKey === "shards") grant.monShards = def.rewardAmount;
+    else if (def.rewardKey === "monball") grant.monballs = def.rewardAmount;
+    else if (def.rewardKey === "trainerXp") grant.trainerXp = def.rewardAmount;
+    return Object.keys(grant).length ? grant : null;
+}
+
+function ensureQuestGrantedKeys() {
+    if (!Array.isArray(questState.grantedKeys)) questState.grantedKeys = [];
+}
+
+function markQuestGrantKey(key) {
+    ensureQuestGrantedKeys();
+    if (!key || questState.grantedKeys.includes(key)) return false;
+    questState.grantedKeys.push(key);
+    return true;
+}
+
+function applyQuestGrantToResources(grant) {
+    if (!grant) return;
+    if (grant.gold) money = Number(money) + Number(grant.gold);
+    if (grant.essence) essence = Number(essence) + Number(grant.essence);
+    if (grant.monballs) monballs = Number(monballs) + Number(grant.monballs);
+    if (grant.monShards) monShards = Number(monShards) + Number(grant.monShards);
+    if (grant.trainerXp) addTrainerXp(Number(grant.trainerXp));
+}
+
+function updateHeaderCurrencies() {
+    const monballEl = document.getElementById("monball-count");
+    const goldEl = document.getElementById("gold-count");
+    const essenceEl = document.getElementById("essence-count");
+    const shardEl = document.getElementById("shard-count");
+    if (monballEl) monballEl.innerText = monballs;
+    if (goldEl) goldEl.innerText = money;
+    if (essenceEl) essenceEl.innerText = essence;
+    if (shardEl) shardEl.innerText = monShards;
+    updateMailboxBadge();
+    const tInfo = getTrainerLevelInfo(trainerXp);
+    const best = globalProgressToChapterStage(adventureGlobalBest);
+    const meta = document.getElementById("trainer-meta");
+    if (meta) {
+        meta.innerText = `Trainer Lv.${tInfo.level} (${tInfo.progress}/${tInfo.needed} XP) • Highest: Ch.${best.chapter} Stage ${best.stage}`;
+    }
+}
+
+function reconcileUngrantedQuestRewards(options = {}) {
+    ensureQuestGrantedKeys();
+    let changed = false;
+    const granted = new Set(questState.grantedKeys);
+
+    ["dailies", "weeklies", "campaign"].forEach(tab => {
+        (questState.tasks[tab] || []).forEach(task => {
+            const def = getQuestTaskDef(tab, task.id);
+            const key = questGrantKey(tab, task.id);
+            if (!task.claimed || !def || granted.has(key)) return;
+            applyQuestGrantToResources(buildQuestGrantFromDef(def));
+            questState.grantedKeys.push(key);
+            granted.add(key);
+            changed = true;
+        });
+    });
+
+    QUEST_MILESTONES.forEach(ms => {
+        const key = questChestGrantKey(ms);
+        if (!questState.claimedChests.includes(ms) || granted.has(key)) return;
+        const chest = QUEST_CHEST_REWARDS[ms];
+        if (!chest?.grant) return;
+        applyQuestGrantToResources(chest.grant);
+        questState.grantedKeys.push(key);
+        granted.add(key);
+        changed = true;
+    });
+
+    if (changed) {
+        saveData();
+        updateHeaderCurrencies();
+        if (!options.silent && document.getElementById("daily-quest-content")) renderDailyQuest();
+    }
+    return changed;
 }
 
 function ensureQuestResets() {
@@ -8378,12 +8486,18 @@ function ensureQuestResets() {
         questState.weeklyResetKey = weekKey;
         questState.points = 0;
         questState.claimedChests = [];
+        questState.grantedKeys = filterQuestGrantedKeys(questState.grantedKeys, {
+            clearDailies: true,
+            clearWeeklies: true,
+            clearChests: true,
+        });
         questState.tasks.weeklies = createQuestTasksFromDefs("weeklies");
         questState.tasks.dailies = createQuestTasksFromDefs("dailies");
         questState.dailyResetKey = dayKey;
         changed = true;
     } else if (questState.dailyResetKey !== dayKey) {
         questState.dailyResetKey = dayKey;
+        questState.grantedKeys = filterQuestGrantedKeys(questState.grantedKeys, { clearDailies: true });
         questState.tasks.dailies = createQuestTasksFromDefs("dailies");
         changed = true;
     }
@@ -8456,15 +8570,22 @@ function getWeeklyQuestRefreshLabel() {
     return `Weekly Quest Refresh: ${d} Days ${h} Hours ${m} Min`;
 }
 
-function grantQuestReward(grant) {
-    if (!grant) return;
-    if (grant.gold) money += grant.gold;
-    if (grant.essence) essence += grant.essence;
-    if (grant.monballs) monballs += grant.monballs;
-    if (grant.monShards) monShards += grant.monShards;
-    if (grant.trainerXp) addTrainerXp(grant.trainerXp);
+function grantQuestReward(grant, grantKey) {
+    if (!grant) return false;
+    if (grantKey && questState.grantedKeys?.includes(grantKey)) return false;
+    applyQuestGrantToResources(grant);
+    if (grantKey) markQuestGrantKey(grantKey);
     saveData();
-    updateUI();
+    updateHeaderCurrencies();
+    return true;
+}
+
+async function persistQuestClaim() {
+    if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+        try {
+            await flushSaveToCloud();
+        } catch (_) {}
+    }
 }
 
 function describeQuestChestGrant(grant) {
@@ -8780,30 +8901,30 @@ function advanceQuestTask(taskId) {
     const task = tasks.find(t => t.id === taskId);
     const def = getQuestTaskDef(tab, taskId);
     if (!task || !def || task.claimed || task.progress < def.goal) return;
+    const grantKey = questGrantKey(tab, taskId);
+    if (questState.grantedKeys?.includes(grantKey)) return;
     task.claimed = true;
     questState.points = Math.min(QUEST_MAX_POINTS, questState.points + def.points);
-    if (def.rewardKey && def.rewardAmount) {
-        const g = {};
-        if (def.rewardKey === "gold") g.gold = def.rewardAmount;
-        else if (def.rewardKey === "essence") g.essence = def.rewardAmount;
-        else if (def.rewardKey === "shards") g.monShards = def.rewardAmount;
-        else if (def.rewardKey === "monball") g.monballs = def.rewardAmount;
-        else if (def.rewardKey === "trainerXp") g.trainerXp = def.rewardAmount;
-        grantQuestReward(g);
-    } else {
+    const grant = buildQuestGrantFromDef(def);
+    if (!grant || !grantQuestReward(grant, grantKey)) {
         saveData();
     }
     renderDailyQuest();
+    persistQuestClaim();
 }
 
 function claimQuestChest(milestone) {
     if (questState.points < milestone || questState.claimedChests.includes(milestone)) return;
     const chest = QUEST_CHEST_REWARDS[milestone];
     if (!chest) return;
+    const grantKey = questChestGrantKey(milestone);
+    if (questState.grantedKeys?.includes(grantKey)) return;
     questState.claimedChests.push(milestone);
-    grantQuestReward(chest.grant);
-    alert("Chest reward claimed: " + chest.label);
+    if (!grantQuestReward(chest.grant, grantKey)) {
+        saveData();
+    }
     renderDailyQuest();
+    persistQuestClaim();
 }
 
 function renderQuestTaskCard(task, tab) {
@@ -13385,14 +13506,73 @@ function getSaveTimestamp(data) {
 window.handleCloudSaveConflict = function handleCloudSaveConflict(cloudSave) {
     if (!cloudSave || typeof cloudSave !== "object") return;
     const localData = readLocalSaveData();
-    const localTs = getSaveTimestamp(localData);
-    const cloudTs = getSaveTimestamp(cloudSave);
-    if (cloudTs >= localTs) {
+    if (!localData) {
         applyLoadedSave(cloudSave);
         writeLocalSave(cloudSave);
         updateUI();
+        return;
     }
+    const merged = mergeSaveSnapshots(localData, cloudSave);
+    applyLoadedSave(merged);
+    writeLocalSave(merged);
+    reconcileUngrantedQuestRewards({ silent: true });
+    if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+        MonExAuth.scheduleCloudSave(buildSavePayload(), 200);
+    }
+    updateUI();
 };
+
+function mergeSaveSnapshots(local, cloud) {
+    const localTs = getSaveTimestamp(local);
+    const cloudTs = getSaveTimestamp(cloud);
+    const newer = cloudTs >= localTs ? cloud : local;
+    const older = cloudTs >= localTs ? local : cloud;
+    const merged = { ...newer };
+
+    merged.money = Math.max(Number(older.money) || 0, Number(newer.money) || 0);
+    merged.essence = Math.max(Number(older.essence) || 0, Number(newer.essence) || 0);
+    merged.monballs = Math.max(Number(older.monballs) || 0, Number(newer.monballs) || 0);
+    merged.monShards = Math.max(Number(older.monShards) || 0, Number(newer.monShards) || 0);
+    merged.trainerXp = Math.max(Number(older.trainerXp) || 0, Number(newer.trainerXp) || 0);
+    merged.trainerRewardLevel = Math.max(
+        Number(older.trainerRewardLevel) || 1,
+        Number(newer.trainerRewardLevel) || 1
+    );
+
+    const localQuest = normalizeQuestState(local.questState);
+    const cloudQuest = normalizeQuestState(cloud.questState);
+    const questMerged = normalizeQuestState(newer.questState);
+    questMerged.grantedKeys = [
+        ...new Set([...(localQuest.grantedKeys || []), ...(cloudQuest.grantedKeys || [])]),
+    ];
+    questMerged.points = Math.max(localQuest.points || 0, cloudQuest.points || 0);
+    questMerged.claimedChests = [
+        ...new Set([...(localQuest.claimedChests || []), ...(cloudQuest.claimedChests || [])]),
+    ].filter(ms => QUEST_MILESTONES.includes(ms)).sort((a, b) => a - b);
+    ["dailies", "weeklies", "campaign"].forEach(tab => {
+        questMerged.tasks[tab] = (questMerged.tasks[tab] || []).map(task => {
+            const localTask = (localQuest.tasks[tab] || []).find(t => t.id === task.id);
+            const cloudTask = (cloudQuest.tasks[tab] || []).find(t => t.id === task.id);
+            return {
+                id: task.id,
+                progress: Math.max(localTask?.progress || 0, cloudTask?.progress || 0, task.progress || 0),
+                claimed: !!(localTask?.claimed || cloudTask?.claimed || task.claimed),
+            };
+        });
+    });
+    merged.questState = questMerged;
+
+    const mailById = new Map();
+    [...(older.mailbox || []), ...(newer.mailbox || [])].forEach(item => {
+        if (!item?.id) return;
+        const prev = mailById.get(item.id);
+        if (!prev || (!item.claimedAt && prev.claimedAt)) mailById.set(item.id, item);
+    });
+    merged.mailbox = [...mailById.values()];
+
+    merged.updatedAt = new Date(Math.max(localTs, cloudTs, Date.now())).toISOString();
+    return merged;
+}
 
 function readLocalSaveData() {
     if (!currentUser) return null;
@@ -13409,11 +13589,11 @@ function readLocalSaveData() {
 function applyLoadedSave(data) {
     party = data.party || [];
     box = data.box || [];
-    monballs = data.monballs ?? 15;
-    money = data.money ?? 5000;
-    essence = data.essence ?? 0;
-    monShards = data.monShards ?? 0;
-    trainerXp = data.trainerXp ?? 0;
+    monballs = Number(data.monballs ?? 15);
+    money = Number(data.money ?? 5000);
+    essence = Number(data.essence ?? 0);
+    monShards = Number(data.monShards ?? 0);
+    trainerXp = Number(data.trainerXp ?? 0);
     trainerRewardLevel = Math.max(1, Math.floor(data.trainerRewardLevel ?? 1));
     const trainerInfo = getTrainerLevelInfo(trainerXp);
     trainerRewardLevel = Math.max(trainerRewardLevel, trainerInfo.level);
@@ -13529,16 +13709,7 @@ function updateUI() {
     try {
         document.body.classList.toggle("test-user-session", isStagingHost() && isTestUser());
         document.getElementById("trainer-name").innerText = currentUser ? "@" + currentUser.replace(/^@/, "") : "Trainer";
-        document.getElementById("monball-count").innerText = monballs;
-        document.getElementById("gold-count").innerText = money;
-        document.getElementById("essence-count").innerText = essence;
-        document.getElementById("shard-count").innerText = monShards;
-        updateMailboxBadge();
-
-        const tInfo = getTrainerLevelInfo(trainerXp);
-        const best = globalProgressToChapterStage(adventureGlobalBest);
-        document.getElementById("trainer-meta").innerText =
-            `Trainer Lv.${tInfo.level} (${tInfo.progress}/${tInfo.needed} XP) • Highest: Ch.${best.chapter} Stage ${best.stage}`;
+        updateHeaderCurrencies();
     } catch (e) {
         console.error("updateUI header failed:", e);
     }
@@ -14885,6 +15056,23 @@ function updateMailboxBadge() {
     badge.style.display = n > 0 ? "block" : "none";
 }
 
+function describeMailboxReward(item) {
+    if (item.type === "monballs") {
+        const amount = item.amount || 1;
+        return `${amount} Monball${amount > 1 ? "s" : ""}`;
+    }
+    if (item.type === "resources" && item.grant) {
+        const parts = [];
+        if (item.grant.gold) parts.push(`${item.grant.gold} Gold`);
+        if (item.grant.essence) parts.push(`${item.grant.essence} KB's Onion`);
+        if (item.grant.monballs) parts.push(`${item.grant.monballs} Monball${item.grant.monballs > 1 ? "s" : ""}`);
+        if (item.grant.monShards) parts.push(`${item.grant.monShards} Shard${item.grant.monShards > 1 ? "s" : ""}`);
+        if (item.grant.trainerXp) parts.push(`${item.grant.trainerXp} Trainer XP`);
+        return parts.join(", ") || (item.title || "Reward");
+    }
+    return item.title || "Reward";
+}
+
 function formatMailboxDate(iso) {
     if (!iso) return "";
     try {
@@ -14904,9 +15092,7 @@ function renderMailbox() {
     }
     el.innerHTML = items.map((item) => {
         const claimed = !!item.claimedAt;
-        const reward = item.type === "monballs"
-            ? `${item.amount || 1} Monball${(item.amount || 1) > 1 ? "s" : ""}`
-            : (item.title || "Reward");
+        const reward = describeMailboxReward(item);
         const safeTitle = typeof escapeHtml === "function" ? escapeHtml(item.title || "Mail") : (item.title || "Mail");
         const safeBody = typeof escapeHtml === "function" ? escapeHtml(item.body || reward) : (item.body || reward);
         const btn = claimed
@@ -14939,10 +15125,12 @@ async function claimMailboxReward(mailId) {
             if (item) {
                 item.claimedAt = new Date().toISOString();
                 if (item.type === "monballs") monballs += item.amount || 1;
+                else if (item.type === "resources" && item.grant) applyQuestGrantToResources(item.grant);
             }
             saveData();
         }
         renderMailbox();
+        updateHeaderCurrencies();
         updateUI();
     } catch (e) {
         alert(e.message || "Could not claim mail.");

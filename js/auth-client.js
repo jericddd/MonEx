@@ -176,6 +176,7 @@ async function loadCloudSave() {
 
 let _saveTimer = null;
 let _saveInflight = null;
+let _pendingSaveState = null;
 
 function buildSavePayload(state) {
   return {
@@ -199,6 +200,8 @@ function buildSavePayload(state) {
     patrolScansUsed: state.patrolScansUsed,
     patrolScansDay: state.patrolScansDay,
     questState: state.questState,
+    mailbox: state.mailbox,
+    dailyLoginLastClaimAt: state.dailyLoginLastClaimAt,
     adventureBattleActive: !!state.adventureBattleActive,
     saveVersion: state.saveVersion ?? 1,
     updatedAt: state.updatedAt || new Date().toISOString(),
@@ -221,29 +224,51 @@ async function pushCloudSave(payload) {
   return { conflict: false, save: data.save || null };
 }
 
+async function runCloudSavePush() {
+  const state = _pendingSaveState;
+  if (!state || !isLoggedIn()) return null;
+  _pendingSaveState = null;
+  const payload = buildSavePayload(state);
+  if (_saveInflight) {
+    try {
+      await _saveInflight;
+    } catch (_) {}
+  }
+  _saveInflight = pushCloudSave(payload)
+    .then((result) => {
+      if (result?.conflict && result.save && typeof window.handleCloudSaveConflict === "function") {
+        window.handleCloudSaveConflict(result.save);
+      }
+      return result;
+    })
+    .catch(() => null)
+    .finally(() => {
+      _saveInflight = null;
+      if (_pendingSaveState) runCloudSavePush();
+    });
+  return _saveInflight;
+}
+
 function scheduleCloudSave(state, delayMs = 800) {
   if (!isLoggedIn()) return;
+  _pendingSaveState = state;
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => {
-    _saveInflight = pushCloudSave(buildSavePayload(state))
-      .then((result) => {
-        if (result?.conflict && result.save && typeof window.handleCloudSaveConflict === "function") {
-          window.handleCloudSaveConflict(result.save);
-        }
-      })
-      .catch(() => {});
+    runCloudSavePush();
   }, delayMs);
 }
 
 async function flushCloudSave(state) {
   if (!isLoggedIn()) return null;
   clearTimeout(_saveTimer);
-  if (_saveInflight) await _saveInflight;
-  const result = await pushCloudSave(buildSavePayload(state));
-  if (result?.conflict && result.save && typeof window.handleCloudSaveConflict === "function") {
-    window.handleCloudSaveConflict(result.save);
+  _pendingSaveState = state;
+  if (_saveInflight) {
+    try {
+      await _saveInflight;
+    } catch (_) {}
   }
-  return result;
+  _pendingSaveState = state;
+  return runCloudSavePush();
 }
 
 // Save session token as soon as auth-client loads (OAuth return URL).
