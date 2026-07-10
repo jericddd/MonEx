@@ -1,6 +1,7 @@
 import { loadCloudSave, writeCloudSave, buildSavePayload } from "./save.js";
 
 export const DAILY_LOGIN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+export const DAILY_LOGIN_REWARD_MONBALLS = 5;
 
 function makeMailId() {
   return `mail_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -27,9 +28,9 @@ export async function claimDailyLoginReward(kv, session) {
   const item = {
     id: makeMailId(),
     type: "monballs",
-    amount: 1,
+    amount: DAILY_LOGIN_REWARD_MONBALLS,
     title: "Daily Login Reward",
-    body: "1 Monball — open Mailbox in game to claim.",
+    body: `${DAILY_LOGIN_REWARD_MONBALLS} Monballs — open Mailbox in game to claim.`,
     createdAt: new Date(now).toISOString(),
   };
 
