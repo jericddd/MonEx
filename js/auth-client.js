@@ -290,6 +290,9 @@ async function pushCloudSave(payload) {
     method: "PUT",
     headers: authHeaders(),
     body: JSON.stringify(body),
+    // keepalive lets an in-flight save survive tab close / navigation so the
+    // last few seconds of progress are not lost on unload.
+    keepalive: true,
   });
   if (res.status === 403) {
     const data = await res.json().catch(() => ({}));

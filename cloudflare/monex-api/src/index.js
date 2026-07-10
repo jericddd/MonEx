@@ -43,7 +43,7 @@ import {
   requireSession,
   getBearerToken,
 } from "./lib/auth.js";
-import { loadCloudSave, writeCloudSave, buildSavePayload } from "./lib/save.js";
+import { loadCloudSave, writeCloudSave, buildSavePayload, preserveServerAuthoritativeFields } from "./lib/save.js";
 import { grantMonballs, alignCatchMonballsToMerged } from "./lib/grant-monballs.js";
 import { resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsAfterCatch, getAuthoritativeMonballs } from "./lib/save-reconcile.js";
 import { appendMonballAudit } from "./lib/monball-audit.js";
@@ -455,12 +455,16 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/admin/grant-monballs" && request.method === "POST") {
+      if (env.ENABLE_ADMIN_RESET !== "1") {
+        return json({ ok: false, error: "admin disabled" }, 404, request, env);
+      }
+      await enforceRateLimit(request, env, "admin-grant", { limit: 20, windowSec: 60 });
       const adminSecret = env.ADMIN_RESET_SECRET;
       if (!adminSecret) {
         return json({ ok: false, error: "ADMIN_RESET_SECRET not configured" }, 503, request, env);
       }
       const body = await request.json().catch(() => ({}));
-      const provided = request.headers.get("X-Admin-Secret") || body?.secret || "";
+      const provided = request.headers.get("X-Admin-Secret") || "";
       if (!timingSafeEqual(provided, adminSecret)) {
         return json({ ok: false, error: "unauthorized" }, 401, request, env);
       }
@@ -476,12 +480,16 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/admin/run-poll" && request.method === "POST") {
+      if (env.ENABLE_ADMIN_RESET !== "1") {
+        return json({ ok: false, error: "admin disabled" }, 404, request, env);
+      }
+      await enforceRateLimit(request, env, "admin-poll", { limit: 10, windowSec: 60 });
       const adminSecret = env.ADMIN_RESET_SECRET;
       if (!adminSecret) {
         return json({ ok: false, error: "ADMIN_RESET_SECRET not configured" }, 503, request, env);
       }
       const body = await request.json().catch(() => ({}));
-      const provided = request.headers.get("X-Admin-Secret") || body?.secret || "";
+      const provided = request.headers.get("X-Admin-Secret") || "";
       if (!timingSafeEqual(provided, adminSecret)) {
         return json({ ok: false, error: "unauthorized" }, 401, request, env);
       }
@@ -522,18 +530,28 @@ async function handleRequest(request, env) {
         return Response.redirect(dest, 302);
       }
 
-      const tokenData = await exchangeXCode(env, code, pending.codeVerifier);
-      const xUser = await fetchXUser(tokenData.access_token);
-      const { token, session } = await createSession(env.MONEX_KV, {
-        xUserId: xUser.id,
-        username: xUser.username,
-        name: xUser.name,
-        profileImageUrl: xUser.profile_image_url,
-      });
+      let token;
+      try {
+        const tokenData = await exchangeXCode(env, code, pending.codeVerifier);
+        const xUser = await fetchXUser(tokenData.access_token);
+        ({ token } = await createSession(env.MONEX_KV, {
+          xUserId: xUser.id,
+          username: xUser.username,
+          name: xUser.name,
+          profileImageUrl: xUser.profile_image_url,
+        }));
+      } catch (err) {
+        // Never surface X API error bodies to the browser; log server-side only.
+        console.error("[oauth] callback failed:", err?.message || err);
+        return Response.redirect(`${frontend}/?auth_error=login_failed`, 302);
+      }
 
       const returnTo = sanitizeReturnTo(pending.returnTo || "/");
       const joiner = returnTo.includes("?") ? "&" : "?";
-      const dest = `${frontend}${returnTo}${joiner}session=${encodeURIComponent(token)}`;
+      // Session token is delivered in the URL fragment (not the query string) so
+      // it is not sent to servers, logged in access logs, or leaked via Referer.
+      // auth-client.js reads it from the hash and immediately clears it.
+      const dest = `${frontend}${returnTo}${joiner}auth=1#session=${encodeURIComponent(token)}`;
       return Response.redirect(dest, 302);
     }
 
@@ -622,7 +640,8 @@ async function handleRequest(request, env) {
         return json({ ok: false, error: "dev auth disabled" }, 403, request, env);
       }
       await enforceRateLimit(request, env, "auth-dev", { limit: 20, windowSec: 60 });
-      const body = await request.json();
+      const body = await request.json().catch(() => null);
+      if (!body) return json({ ok: false, error: "invalid_json" }, 400, request, env);
       const username = (body?.username || "").trim();
       if (!username) return json({ ok: false, error: "username required" }, 400, request, env);
       const { token, session } = await createDevSession(env.MONEX_KV, username);
@@ -645,7 +664,14 @@ async function handleRequest(request, env) {
     if (path === "/api/save" && request.method === "GET") {
       const auth = await requireSession(request, env.MONEX_KV);
       if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
-      const { found, save } = await loadCloudSave(env.MONEX_KV, auth.session.xUserId);
+      const { found, corrupt, save } = await loadCloudSave(env.MONEX_KV, auth.session.xUserId);
+      if (corrupt) {
+        // Never serve "new player" defaults for a corrupt-but-present save —
+        // the client would treat it as a fresh account and overwrite real
+        // progress. Return an error so the client shows its retry modal.
+        console.error(JSON.stringify({ evt: "save_load_corrupt", xUserId: auth.session.xUserId }));
+        return json({ ok: false, error: "save_corrupt" }, 500, request, env);
+      }
       return json(
         { ok: true, found, save, user: { username: auth.session.username, xUserId: auth.session.xUserId } },
         200,
@@ -655,7 +681,8 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/save" && request.method === "PUT") {
-      const body = await request.json();
+      const body = await request.json().catch(() => null);
+      if (!body) return json({ ok: false, error: "invalid_json" }, 400, request, env);
       const auth = await requireGameplay(request, env, body);
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       await enforceRateLimit(request, env, "save-put", { limit: 120, windowSec: 60 });
@@ -666,6 +693,10 @@ async function handleRequest(request, env) {
         : null;
       let saved;
       try {
+        // Server-authoritative fields (mailbox, daily-login cooldown) are never
+        // taken from the client payload — only trusted endpoints mutate them.
+        const { save: existingSave } = await loadCloudSave(env.MONEX_KV, auth.session.xUserId);
+        preserveServerAuthoritativeFields(payload, existingSave);
         await reconcileMonballsForCloudSave(env.MONEX_KV, auth.session, payload, starting);
         saved = await writeCloudSave(env.MONEX_KV, auth.session.xUserId, payload, {
           expectedRevision: baseRevision,
@@ -776,7 +807,8 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/sync" && request.method === "POST") {
-      const body = await request.json();
+      const body = await request.json().catch(() => null);
+      if (!body) return json({ ok: false, error: "invalid_json" }, 400, request, env);
       const auth = await requireGameplay(request, env, body);
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       await enforceRateLimit(request, env, "sync", { limit: 60, windowSec: 60 });
@@ -861,7 +893,8 @@ async function handleRequest(request, env) {
         return json({ ok: false, error: "simulate disabled" }, 404, request, env);
       }
       await enforceRateLimit(request, env, "simulate", { limit: 30, windowSec: 60 });
-      const body = await request.json();
+      const body = await request.json().catch(() => null);
+      if (!body) return json({ ok: false, error: "invalid_json" }, 400, request, env);
       return handleSimulate(body, env, request);
     }
 
@@ -963,7 +996,10 @@ async function handleRequest(request, env) {
         env
       );
     }
-    return json({ ok: false, error: err.message || "server error" }, 500, request, env);
+    // Log full detail server-side; return a generic message so internal error
+    // strings (library/API messages) never reach clients.
+    console.error("[handler]", err?.stack || err?.message || err);
+    return json({ ok: false, error: "server_error" }, 500, request, env);
   }
 }
 

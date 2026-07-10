@@ -28,9 +28,12 @@ import { isStagingOrigin } from "./security.js";
 
 export function devAuthAllowed(env, request = null) {
   if (env.ENABLE_DEV_AUTH === "1") return true;
-  if (env.ENABLE_STAGING_DEV_AUTH === "0") return false;
   if (env.ENABLE_STAGING_DEV_AUTH !== "1") return false;
-  if (!request) return true;
+  // Origin-only gate is weak (Origin is spoofable by non-browser clients and
+  // anyone can host a *.pages.dev site). Default-deny when we cannot see a
+  // request, and still require a staging Origin. Only ever enable
+  // ENABLE_STAGING_DEV_AUTH on a dedicated staging Worker, never in production.
+  if (!request) return false;
   const origin = request.headers.get("Origin");
   return !!(origin && isStagingOrigin(origin));
 }
