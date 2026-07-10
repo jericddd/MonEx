@@ -6,7 +6,7 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "reset-kv": "node scripts/reset-production-kv.mjs",
-    "test": "node --test src/lib/save-validate.test.js src/lib/security.test.js src/lib/parse-mention.test.js src/lib/catch-reply.test.js src/lib/natural-reply.test.js src/lib/catch-summary.test.js src/lib/catch-card.test.js src/lib/reply-limits.test.js src/kv-store.test.js src/lib/backfill-pending.test.js src/lib/recover-activity-catches.test.js src/lib/mailbox.test.js src/lib/quest-rewards.test.js src/lib/grant-monballs.test.js src/lib/send-mailbox-reward.test.js src/lib/save-reconcile.test.js src/lib/monball-audit.test.js ../../js/patrol-reset.test.js",
+    "test": "node --test src/lib/save-validate.test.js src/lib/security.test.js src/lib/parse-mention.test.js src/lib/catch-reply.test.js src/lib/natural-reply.test.js src/lib/catch-summary.test.js src/lib/catch-card.test.js src/lib/reply-limits.test.js src/kv-store.test.js src/lib/backfill-pending.test.js src/lib/recover-activity-catches.test.js src/lib/mailbox.test.js src/lib/quest-rewards.test.js src/lib/grant-monballs.test.js src/lib/send-mailbox-reward.test.js src/lib/save-reconcile.test.js src/lib/monball-audit.test.js src/lib/game-session.test.js ../../js/patrol-reset.test.js",
     "backfill-pending": "node scripts/backfill-pending-catches.mjs",
     "recover-activity": "node scripts/recover-activity-catches.mjs",
     "backfill-quest-rewards": "node scripts/backfill-quest-rewards.mjs",

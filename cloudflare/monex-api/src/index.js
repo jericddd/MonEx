@@ -47,6 +47,14 @@ import { loadCloudSave, writeCloudSave, buildSavePayload } from "./lib/save.js";
 import { grantMonballs, alignCatchMonballsToMerged } from "./lib/grant-monballs.js";
 import { resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsAfterCatch, getAuthoritativeMonballs } from "./lib/save-reconcile.js";
 import { appendMonballAudit } from "./lib/monball-audit.js";
+import {
+  claimGameSession,
+  heartbeatGameSession,
+  getGameSessionStatus,
+  releaseGameSession,
+  requireGameplaySession,
+  getGameSessionIdFromRequest,
+} from "./lib/game-session.js";
 import { backfillPendingForUser } from "./lib/backfill-pending.js";
 import {
   buildCorsHeaders,
@@ -61,6 +69,22 @@ import { getDailyReplyLimitForUser } from "./lib/reply-limits.js";
 import { claimDailyLoginReward, claimMailboxItem, getDailyLoginStatus } from "./lib/mailbox.js";
 
 const API_CODE_VERSION = "fetch-oauth-v1";
+
+async function requireGameplay(request, env) {
+  const auth = await requireSession(request, env.MONEX_KV);
+  if (!auth.ok) return auth;
+  const gs = await requireGameplaySession(request, env.MONEX_KV, auth.session);
+  if (!gs.ok) {
+    return {
+      ok: false,
+      status: gs.status || 403,
+      error: gs.error,
+      reason: gs.reason,
+      canReclaim: gs.canReclaim,
+    };
+  }
+  return { ok: true, token: auth.token, session: auth.session, gameSessionId: gs.gameSessionId };
+}
 
 function json(data, status = 200, request, env) {
   const cors = request && env ? buildCorsHeaders(request, env) : {};
@@ -520,9 +544,53 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/auth/logout" && request.method === "POST") {
+      const auth = await requireSession(request, env.MONEX_KV);
+      const gameSessionId = getGameSessionIdFromRequest(request);
+      if (auth.ok && gameSessionId) {
+        await releaseGameSession(env.MONEX_KV, auth.session.xUserId, gameSessionId);
+      }
       const token = getBearerToken(request);
       await deleteSession(env.MONEX_KV, token);
       return json({ ok: true }, 200, request, env);
+    }
+
+    if (path === "/api/game-session/claim" && request.method === "POST") {
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      const body = await request.json().catch(() => ({}));
+      const gameSessionId = body?.gameSessionId || getGameSessionIdFromRequest(request);
+      const result = await claimGameSession(env.MONEX_KV, auth.session.xUserId, gameSessionId);
+      const status = result.ok ? 200 : 400;
+      return json(result, status, request, env);
+    }
+
+    if (path === "/api/game-session/status" && request.method === "GET") {
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      const gameSessionId =
+        url.searchParams.get("gameSessionId") || getGameSessionIdFromRequest(request);
+      const result = await getGameSessionStatus(env.MONEX_KV, auth.session.xUserId, gameSessionId);
+      const status = result.ok ? 200 : 400;
+      return json(result, status, request, env);
+    }
+
+    if (path === "/api/game-session/heartbeat" && request.method === "POST") {
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      const body = await request.json().catch(() => ({}));
+      const gameSessionId = body?.gameSessionId || getGameSessionIdFromRequest(request);
+      const result = await heartbeatGameSession(env.MONEX_KV, auth.session.xUserId, gameSessionId);
+      const status = result.ok ? 200 : 400;
+      return json(result, status, request, env);
+    }
+
+    if (path === "/api/game-session/release" && request.method === "POST") {
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      const body = await request.json().catch(() => ({}));
+      const gameSessionId = body?.gameSessionId || getGameSessionIdFromRequest(request);
+      const result = await releaseGameSession(env.MONEX_KV, auth.session.xUserId, gameSessionId);
+      return json(result, 200, request, env);
     }
 
     if (path === "/api/auth/dev" && request.method === "POST") {
@@ -551,8 +619,8 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/save" && request.method === "GET") {
-      const auth = await requireSession(request, env.MONEX_KV);
-      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      const auth = await requireGameplay(request, env);
+      if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       const { found, save } = await loadCloudSave(env.MONEX_KV, auth.session.xUserId);
       return json(
         { ok: true, found, save, user: { username: auth.session.username, xUserId: auth.session.xUserId } },
@@ -563,8 +631,8 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/save" && request.method === "PUT") {
-      const auth = await requireSession(request, env.MONEX_KV);
-      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      const auth = await requireGameplay(request, env);
+      if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       await enforceRateLimit(request, env, "save-put", { limit: 120, windowSec: 60 });
       const body = await request.json();
       const payload = buildSavePayload(body?.save || body, auth.session);
@@ -589,8 +657,8 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/activity/mine" && request.method === "GET") {
-      const auth = await requireSession(request, env.MONEX_KV);
-      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      const auth = await requireGameplay(request, env);
+      if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       const username = auth.session.username;
       const limit = Math.min(50, parseInt(url.searchParams.get("limit") || "30", 10));
       const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
@@ -599,8 +667,8 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/monballs" && request.method === "GET") {
-      const auth = await requireSession(request, env.MONEX_KV);
-      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      const auth = await requireGameplay(request, env);
+      if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
       const monballs = await getAuthoritativeMonballs(
         env.MONEX_KV,
@@ -617,8 +685,8 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/pending" && request.method === "GET") {
-      const auth = await requireSession(request, env.MONEX_KV);
-      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      const auth = await requireGameplay(request, env);
+      if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
       const state = await loadState(env.MONEX_KV);
       const result = getPendingForSession(
@@ -644,8 +712,8 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/sync" && request.method === "POST") {
-      const auth = await requireSession(request, env.MONEX_KV);
-      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      const auth = await requireGameplay(request, env);
+      if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       await enforceRateLimit(request, env, "sync", { limit: 60, windowSec: 60 });
       const body = await request.json();
       const username = auth.session.username;
@@ -755,8 +823,8 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/mailbox/claim" && request.method === "POST") {
-      const auth = await requireSession(request, env.MONEX_KV);
-      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      const auth = await requireGameplay(request, env);
+      if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       await enforceRateLimit(request, env, "mailbox-claim", { limit: 60, windowSec: 60 });
       const body = await request.json().catch(() => ({}));
       const mailId = body?.mailId || body?.id || "";

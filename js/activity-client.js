@@ -895,6 +895,9 @@ function getAuthHeaders() {
 
 async function syncWildMons(username, partyCount, boxCount, partyMax = 3, boxMax = 500) {
     const base = getMonexApiBase();
+    if (window.MonExGameSession?.ensureGameplayApiAllowed && !window.MonExGameSession.ensureGameplayApiAllowed()) {
+        throw new Error("game_session_inactive");
+    }
     const body = {
         partyCount: partyCount || 0,
         boxCount: boxCount || 0,
@@ -907,6 +910,13 @@ async function syncWildMons(username, partyCount, boxCount, partyMax = 3, boxMax
         headers: getAuthHeaders(),
         body: JSON.stringify(body),
     });
+    if (res.status === 403) {
+        const data = await res.json().catch(() => ({}));
+        if (data.error === "game_session_inactive") {
+            window.MonExGameSession?.handleInactiveFromApi?.();
+            throw new Error("game_session_inactive");
+        }
+    }
     if (!res.ok) throw new Error("sync failed");
     return res.json();
 }

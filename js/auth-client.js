@@ -48,6 +48,9 @@ function authHeaders() {
   const token = localStorage.getItem(SESSION_KEY);
   const headers = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
+  if (window.MonExGameSession?.getGameSessionId) {
+    headers["X-Game-Session-Id"] = window.MonExGameSession.getGameSessionId();
+  }
   return headers;
 }
 
@@ -124,6 +127,9 @@ async function devLogin(username) {
 async function logout() {
   const base = getApiBase();
   try {
+    if (window.MonExGameSession?.releaseSession) {
+      await window.MonExGameSession.releaseSession();
+    }
     await fetch(`${base}/api/auth/logout`, { method: "POST", headers: authHeaders() });
   } catch (_) {}
   localStorage.removeItem(SESSION_KEY);
@@ -169,7 +175,17 @@ async function ensureUser() {
 
 async function loadCloudSave() {
   const base = getApiBase();
+  if (window.MonExGameSession?.ensureGameplayApiAllowed && !window.MonExGameSession.ensureGameplayApiAllowed()) {
+    throw new Error("game_session_inactive");
+  }
   const res = await fetch(`${base}/api/save`, { headers: authHeaders() });
+  if (res.status === 403) {
+    const data = await res.json().catch(() => ({}));
+    if (data.error === "game_session_inactive") {
+      window.MonExGameSession?.handleInactiveFromApi?.();
+      throw new Error("game_session_inactive");
+    }
+  }
   if (!res.ok) throw new Error("cloud save load failed");
   return res.json();
 }
@@ -210,11 +226,21 @@ function buildSavePayload(state) {
 
 async function pushCloudSave(payload) {
   const base = getApiBase();
+  if (window.MonExGameSession?.ensureGameplayApiAllowed && !window.MonExGameSession.ensureGameplayApiAllowed()) {
+    return { conflict: false, save: null, skipped: "game_session_inactive" };
+  }
   const res = await fetch(`${base}/api/save`, {
     method: "PUT",
     headers: authHeaders(),
     body: JSON.stringify({ save: payload }),
   });
+  if (res.status === 403) {
+    const data = await res.json().catch(() => ({}));
+    if (data.error === "game_session_inactive") {
+      window.MonExGameSession?.handleInactiveFromApi?.();
+      return { conflict: false, save: null, skipped: "game_session_inactive" };
+    }
+  }
   if (res.status === 409) {
     const data = await res.json().catch(() => ({}));
     return { conflict: true, save: data.save || null };

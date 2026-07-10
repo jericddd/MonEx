@@ -6936,9 +6936,54 @@ body.afk-layout .currency-pill .currency-tip {
         transform: translateX(-50%);
     }
 }
+
+.game-session-blocker {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+}
+.game-session-blocker[hidden] {
+    display: none !important;
+}
+.game-session-blocker-dialog {
+    max-width: 520px;
+    color: #f5f5f5;
+    text-align: center;
+    font-size: 15px;
+    line-height: 1.65;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 28px 24px;
+    background: rgba(20, 20, 20, 0.92);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65);
+}
+.game-session-blocker-dialog p {
+    margin: 0 0 14px;
+}
+.game-session-blocker-dialog p:last-child {
+    margin-bottom: 0;
+}
+body.game-session-inactive .game-shell {
+    pointer-events: none;
+    user-select: none;
+}
 </style>
 </head>
 <body class="afk-layout">
+
+<div id="game-session-blocker" class="game-session-blocker" hidden aria-hidden="true">
+    <div class="game-session-blocker-dialog" role="alertdialog" aria-labelledby="game-session-blocker-title">
+        <p id="game-session-blocker-title"><strong>This game is currently open in another tab or device.</strong></p>
+        <p><strong>Only one active game session is allowed per account.</strong></p>
+        <p><strong>This session has been disabled because a newer session is now active.</strong></p>
+    </div>
+</div>
 
 <div class="game-shell">
 <div class="game-container main-scene-active">
@@ -7318,6 +7363,7 @@ body.afk-layout .currency-pill .currency-tip {
 <script src="js/escape-html.js"></script>
 <script src="js/activity-client.js"></script>
 <script src="js/auth-client.js"></script>
+<script src="js/game-session-client.js"></script>
 <script src="js/mailbox-client.js"></script>
 <script>
 // =====================================================
@@ -13487,8 +13533,27 @@ function resolveAbandonedAdventureBattle() {
     return true;
 }
 
+function showGameSessionBlocker() {
+    const el = document.getElementById("game-session-blocker");
+    if (el) {
+        el.hidden = false;
+        el.setAttribute("aria-hidden", "false");
+    }
+    document.body.classList.add("game-session-inactive");
+}
+
+function hideGameSessionBlocker() {
+    const el = document.getElementById("game-session-blocker");
+    if (el) {
+        el.hidden = true;
+        el.setAttribute("aria-hidden", "true");
+    }
+    document.body.classList.remove("game-session-inactive");
+}
+
 function saveData() {
     if (!currentUser) return;
+    if (window.MonExGameSession?.isActive && !window.MonExGameSession.isActive()) return;
     const payload = buildSavePayload();
     writeLocalSave(payload);
     if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
@@ -13580,11 +13645,19 @@ function mergeMonsterInventories(newerParty, newerBox, olderParty, olderBox) {
 
 async function refreshMonballsFromServer() {
     if (!currentUser || typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return null;
+    if (window.MonExGameSession?.isActive && !window.MonExGameSession.isActive()) return null;
     try {
         const base = typeof getMonexApiBase === "function"
             ? getMonexApiBase()
             : (window.MONEX_API || "https://monex-api.0xjericd.workers.dev").replace(/\/$/, "");
         const res = await fetch(`${base}/api/monballs`, { headers: MonExAuth.authHeaders() });
+        if (res.status === 403) {
+            const data = await res.json().catch(() => ({}));
+            if (data.error === "game_session_inactive") {
+                window.MonExGameSession?.handleInactiveFromApi?.();
+            }
+            return null;
+        }
         if (!res.ok) return null;
         const data = await res.json();
         if (typeof data.monballs !== "number") return null;
@@ -13602,6 +13675,7 @@ async function refreshMonballsFromServer() {
 }
 
 async function persistProgress(options = {}) {
+    if (window.MonExGameSession?.isActive && !window.MonExGameSession.isActive()) return;
     const { flush = true } = options;
     saveData();
     updateHeaderCurrencies();
@@ -14346,6 +14420,7 @@ async function syncXWildMons(silent) {
     const handle = resolveXHandle();
     if (!handle || typeof MonExActivity === "undefined") return 0;
     if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return 0;
+    if (window.MonExGameSession?.isActive && !window.MonExGameSession.isActive()) return 0;
     if (wildSyncInFlight) return wildSyncInFlight;
 
     wildSyncInFlight = (async () => {
@@ -15108,6 +15183,7 @@ function ensureLegendaryBoxRoster() {
 }
 
 function attemptCatch() {
+    if (window.MonExGameSession?.isActive && !window.MonExGameSession.isActive()) return;
     if (monballs <= 0) {
         alert("No monballs left! Claim Daily Login in Mailbox or earn more from quests.");
         return;
@@ -15202,6 +15278,15 @@ async function checkLogin() {
         }
         currentUser = user.username || MonExAuth.getDisplayName();
         resetToMainSceneUI();
+        if (typeof MonExGameSession !== "undefined") {
+            await MonExGameSession.claimActiveSession();
+            MonExGameSession.startSessionGuard({
+                onInactive: showGameSessionBlocker,
+                onActive: hideGameSessionBlocker,
+            });
+            if (MonExGameSession.isActive()) hideGameSessionBlocker();
+            else showGameSessionBlocker();
+        }
         await loadData();
         await refreshMonballsFromServer();
         await runPostLoginBootstrap();
@@ -15212,6 +15297,15 @@ async function checkLogin() {
         if (cached?.username && MonExAuth.isLoggedIn()) {
             currentUser = cached.username;
             resetToMainSceneUI();
+            if (typeof MonExGameSession !== "undefined") {
+                await MonExGameSession.claimActiveSession();
+                MonExGameSession.startSessionGuard({
+                    onInactive: showGameSessionBlocker,
+                    onActive: hideGameSessionBlocker,
+                });
+                if (MonExGameSession.isActive()) hideGameSessionBlocker();
+                else showGameSessionBlocker();
+            }
             try {
                 await loadData();
                 await runPostLoginBootstrap();
@@ -15303,6 +15397,7 @@ function renderMailbox() {
 
 async function claimMailboxReward(mailId) {
     if (!mailId) return;
+    if (window.MonExGameSession?.isActive && !window.MonExGameSession.isActive()) return;
     if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
         alert("Login required to claim mail.");
         return;
@@ -16096,15 +16191,26 @@ window.onload = async function() {
     document.addEventListener("visibilitychange", () => {
         if (!currentUser) return;
         if (document.visibilityState === "visible") {
-            refreshMonballsFromServer().catch(() => {});
-            syncXWildMons(true).catch(() => {});
+            if (window.MonExGameSession?.pollSessionStatus) {
+                MonExGameSession.pollSessionStatus().catch(() => {});
+            }
+            if (!window.MonExGameSession?.isActive || window.MonExGameSession.isActive()) {
+                refreshMonballsFromServer().catch(() => {});
+                syncXWildMons(true).catch(() => {});
+            }
             return;
+        }
+        if (window.MonExGameSession?.isActive?.() && window.MonExGameSession?.sendHeartbeat) {
+            MonExGameSession.sendHeartbeat().catch(() => {});
         }
         flushSaveToCloud().catch(() => {});
     });
     window.addEventListener("pagehide", () => {
         if (!currentUser) return;
         flushSaveToCloud().catch(() => {});
+        if (window.MonExGameSession?.releaseSession) {
+            MonExGameSession.releaseSession().catch(() => {});
+        }
     });
 };
 // ==================== ADVENTURE MODE ====================
