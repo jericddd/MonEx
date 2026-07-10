@@ -10,9 +10,11 @@ export function activeGameSessionKey(xUserId) {
   return `${ACTIVE_PREFIX}${String(xUserId || "")}`;
 }
 
-export function getGameSessionIdFromRequest(request) {
+export function getGameSessionIdFromRequest(request, body = null) {
   const raw = request?.headers?.get(GAME_SESSION_HEADER);
-  return raw ? String(raw).trim() : null;
+  if (raw) return String(raw).trim();
+  if (body?.gameSessionId) return String(body.gameSessionId).trim();
+  return null;
 }
 
 export async function loadActiveGameSession(kv, xUserId) {
@@ -151,8 +153,8 @@ export async function releaseGameSession(kv, xUserId, gameSessionId) {
   return { ok: true, released: false };
 }
 
-export async function requireGameplaySession(request, kv, session) {
-  const gameSessionId = getGameSessionIdFromRequest(request);
+export async function requireGameplaySession(request, kv, session, body = null) {
+  const gameSessionId = getGameSessionIdFromRequest(request, body);
   if (!gameSessionId) {
     return { ok: false, status: 403, error: "game_session_required" };
   }

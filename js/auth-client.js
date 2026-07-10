@@ -3,6 +3,27 @@
 const SESSION_KEY = "monex_session_token";
 const USER_KEY = "monex_user";
 const RESET_EPOCH_KEY = "monex_client_reset_epoch";
+const GAME_SESSION_STORAGE_KEY = "monex_game_session_id";
+const GAME_SESSION_HEADER = "X-Game-Session-Id";
+
+function readGameSessionId() {
+  if (window.MonExGameSession?.getGameSessionId) {
+    return window.MonExGameSession.getGameSessionId();
+  }
+  try {
+    let id = sessionStorage.getItem(GAME_SESSION_STORAGE_KEY);
+    if (!id) {
+      id =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `gs_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      sessionStorage.setItem(GAME_SESSION_STORAGE_KEY, id);
+    }
+    return id;
+  } catch {
+    return null;
+  }
+}
 
 function wipeMonexLocalData() {
   const keys = [];
@@ -48,9 +69,8 @@ function authHeaders() {
   const token = localStorage.getItem(SESSION_KEY);
   const headers = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
-  if (window.MonExGameSession?.getGameSessionId) {
-    headers["X-Game-Session-Id"] = window.MonExGameSession.getGameSessionId();
-  }
+  const gameSessionId = readGameSessionId();
+  if (gameSessionId) headers[GAME_SESSION_HEADER] = gameSessionId;
   return headers;
 }
 
@@ -226,13 +246,16 @@ function buildSavePayload(state) {
 
 async function pushCloudSave(payload) {
   const base = getApiBase();
+  const body = { save: payload };
+  const gameSessionId = readGameSessionId();
+  if (gameSessionId) body.gameSessionId = gameSessionId;
   if (window.MonExGameSession?.ensureGameplayApiAllowed && !window.MonExGameSession.ensureGameplayApiAllowed()) {
     return { conflict: false, save: null, skipped: "game_session_inactive" };
   }
   const res = await fetch(`${base}/api/save`, {
     method: "PUT",
     headers: authHeaders(),
-    body: JSON.stringify({ save: payload }),
+    body: JSON.stringify(body),
   });
   if (res.status === 403) {
     const data = await res.json().catch(() => ({}));
