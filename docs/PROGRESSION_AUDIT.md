@@ -103,7 +103,7 @@ Progress flows: **client mutates → `saveData()` (local + debounced cloud) → 
    *Risk:* Refresh/logout before 800ms debounce → lost shop spend, chest collect, level-up.  
    *Fix:* `persistProgress()` + flush on shop, chest, trainer level, patrol, armory, release, battles, quests.
 
-8. **Patrol daily reset not persisted**  
+8. **Patrol daily reset not persisted** — fixed; also used **UTC+8** instead of UTC (reset at 16:00 UTC). Now uses `js/patrol-reset.js` with 00:00 UTC.
    *Fix:* `ensurePatrolDailyReset` returns changed flag; save on load and before scans.
 
 9. **Team arrange drag didn't save party order**  
