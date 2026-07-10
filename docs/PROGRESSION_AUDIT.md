@@ -58,7 +58,22 @@ Progress flows: **client mutates → `saveData()` (local + debounced cloud) → 
 
 ## Issues found & fixes (this PR)
 
-### Critical — fixed
+### Critical — MonBall catch vs UI desync (fixed in follow-up)
+
+**Symptom:** Catch log shows 0 MonBalls after X catches; game header still shows 20; next catch succeeds and log jumps to 19.
+
+**Root cause:** Two monball pools (`monex:state` for X catches, `monex:save` for game UI). X catches only deducted catch state. Stale client cloud saves used `alignCatchMonballsToSave` to overwrite catch spends. Client `updatedAt` could be newer than catch `updatedAt`, resurrecting spent monballs on merge.
+
+**Fixes:**
+- `syncSaveMonballsAfterCatch` — after every X catch, mirror `monballsLeft` into cloud save
+- `reconcileMonballsForCloudSave` on `PUT /api/save` — reconcile against persisted server save + catch; block stale client increases when both pools are 0
+- `GET /api/monballs` — authoritative merged count for client refresh
+- Client `refreshMonballsFromServer()` on login, tab focus, mailbox claim
+- Client trusts server monballs from `/api/sync` (not `Math.max`)
+
+---
+
+### Critical — fixed (audit PR)
 
 1. **`mergeSaveSnapshots` used `Math.max` on currencies**  
    *Risk:* Cross-device spend reverted (e.g. shop purchase undone when older tab had higher gold).  

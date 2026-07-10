@@ -50,6 +50,7 @@ export function processMentionTweet(tweet, botUsername, state, startingMonballs,
     }
 
     user.monballs -= parsed.spend;
+    user.updatedAt = new Date().toISOString();
     const { throws, results } = runCatchSession(parsed.spend);
     const { caught, escaped, highlights, mons } = summarizeResults(results);
     const caughtMons = caught.map((r) => r.mon).slice(0, throws);
