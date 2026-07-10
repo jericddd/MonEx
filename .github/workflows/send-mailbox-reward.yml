@@ -9,8 +9,12 @@ on:
         type: boolean
         default: true
       username:
-        description: "X username without @ (leave empty to send to all users)"
+        description: "X username without @ (required unless all_users is checked)"
         required: false
+      all_users:
+        description: "Apply to every cloud save (requires explicit opt-in)"
+        type: boolean
+        default: false
       title:
         description: "Mail title shown in Mailbox"
         required: true
@@ -86,7 +90,12 @@ jobs:
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             ARGS+=(--dry-run)
           fi
-          if [ -n "${{ inputs.username }}" ]; then
+          if [ "${{ inputs.all_users }}" = "true" ]; then
+            ARGS+=(--all-users)
+          elif [ -n "${{ inputs.username }}" ]; then
             ARGS+=("${{ inputs.username }}")
+          else
+            echo "::error::Provide username or enable all_users"
+            exit 1
           fi
           node scripts/send-mailbox-reward.mjs "${ARGS[@]}"

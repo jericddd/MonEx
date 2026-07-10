@@ -30,7 +30,7 @@ risking new data loss, and documents the rest with implementation plans.
 |---|---|---|---|
 | P0 Critical | 6 | 4 | 2 (architectural) |
 | P1 High | ~22 | 11 | ~11 (mostly architectural/concurrency) |
-| P2 Low | ~30 | a few incidental | rest documented below |
+| P2 Low | ~30 | fixed (code) | deferred: #4, #7, #8–10, #14, #16–17, #18, #23–24, #30–31 |
 
 ---
 
@@ -149,9 +149,9 @@ output) so only the sanitized bundle is public. **Operationally verify** what
 
 ---
 
-## Low (P2) — documented only, do not fix now
+## Low (P2) — fixed in this pass
 
-Each: title · files · root cause · expected vs actual · repro · risk · recommended fix · effort · side effects.
+Each item below was implemented unless noted as deferred (medium/large effort).
 
 1. **`/api/health` & `/api/poll-status` info disclosure** · `index.js` · returns
    feature flags, key presence, `resetEpoch`, `sinceId` · should expose minimal

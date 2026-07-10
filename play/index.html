@@ -8399,11 +8399,13 @@ function getUtcDateKey(d = new Date()) {
 
 function getUtcWeekKey(d = new Date()) {
     const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-    const day = date.getUTCDay() || 7;
-    date.setUTCDate(date.getUTCDate() + 4 - day);
-    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-    const week = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
-    return `${date.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+    const dayNum = date.getUTCDay() || 7;
+    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+    const isoYear = date.getUTCFullYear();
+    const jan4 = new Date(Date.UTC(isoYear, 0, 4));
+    const jan4Day = jan4.getUTCDay() || 7;
+    const week = 1 + Math.floor((date - jan4 + (jan4Day - 1) * 86400000) / 604800000);
+    return `${isoYear}-W${String(week).padStart(2, "0")}`;
 }
 
 function defaultQuestState() {
@@ -8727,7 +8729,7 @@ function grantTrainerLevelReward(level) {
         monShards += 1;
         extras += " + 1 Shard";
     }
-    showHubNotice(`Trainer Level ${level}!<br>+${goldBonus} Gold${extras}`, "LEVEL UP");
+    showHubNotice(`Trainer Level ${level}!<br>+${goldBonus} Gold${extras}`, "LEVEL UP", { html: true });
 }
 
 const RESOURCE_CHEST_MAX_MS = 24 * 60 * 60 * 1000;
@@ -9001,12 +9003,11 @@ function advanceQuestTask(taskId) {
     if (!task || !def || task.claimed || task.progress < def.goal) return;
     const grantKey = questGrantKey(tab, taskId);
     if (questState.grantedKeys?.includes(grantKey)) return;
+    const grant = buildQuestGrantFromDef(def);
+    if (!grant || !grantQuestReward(grant, grantKey)) return;
     task.claimed = true;
     questState.points = Math.min(QUEST_MAX_POINTS, questState.points + def.points);
-    const grant = buildQuestGrantFromDef(def);
-    if (!grant || !grantQuestReward(grant, grantKey)) {
-        saveData();
-    }
+    saveData();
     renderDailyQuest();
     persistQuestClaim();
 }
@@ -9017,10 +9018,9 @@ function claimQuestChest(milestone) {
     if (!chest) return;
     const grantKey = questChestGrantKey(milestone);
     if (questState.grantedKeys?.includes(grantKey)) return;
+    if (!grantQuestReward(chest.grant, grantKey)) return;
     questState.claimedChests.push(milestone);
-    if (!grantQuestReward(chest.grant, grantKey)) {
-        saveData();
-    }
+    saveData();
     renderDailyQuest();
     persistQuestClaim();
 }
@@ -13549,7 +13549,8 @@ function resolveAbandonedAdventureBattle() {
     const abandonedSession = key && sessionStorage.getItem(key);
     let abandonedSave = false;
     try {
-        const saved = localStorage.getItem("monex_" + currentUser);
+        const saveKey = getSaveStorageKey();
+        const saved = saveKey && localStorage.getItem(saveKey);
         if (saved) abandonedSave = !!JSON.parse(saved).adventureBattleActive;
     } catch (_) {}
 
@@ -14084,6 +14085,7 @@ async function loadData() {
     }
     checkDailyReset();
     startResourceChestTimer();
+    reconcileUngrantedQuestRewards({ silent: true });
     updateUI();
 }
 
@@ -14265,7 +14267,7 @@ function isMonballPurchaseItem(item) {
 }
 
 function showMonballComingSoonNotice() {
-    showHubNotice(MONEX_TOKEN_COMING_SOON_HTML, "COMING SOON");
+    showHubNotice(MONEX_TOKEN_COMING_SOON_HTML, "COMING SOON", { html: true });
 }
 
 function multiplyCost(cost, qty) {
@@ -14329,7 +14331,9 @@ function executeShopPurchase(item, qty) {
     return true;
 }
 
-function showHubNotice(message, title = "NOTICE") {
+function showHubNotice(message, title = "NOTICE", options = {}) {
+    const safeTitle = options.html ? title : (typeof escapeHtml === "function" ? escapeHtml(title) : title);
+    const safeMessage = options.html ? message : (typeof escapeHtml === "function" ? escapeHtml(message) : message);
     const overlay = document.createElement("div");
     overlay.className = "popup-overlay hub-popup-overlay";
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
@@ -14337,8 +14341,8 @@ function showHubNotice(message, title = "NOTICE") {
         <div class="hub-popup-frame hub-frame" onclick="event.stopPropagation()">
             <button type="button" class="hub-popup-close-left" aria-label="Close">&times;</button>
             <div class="hub-popup-inner">
-                <h3 class="hub-popup-title">${title}</h3>
-                <p class="hub-popup-sub">${message}</p>
+                <h3 class="hub-popup-title">${safeTitle}</h3>
+                <p class="hub-popup-sub">${safeMessage}</p>
                 <div class="hub-popup-actions">
                     <button type="button" class="hub-popup-btn hub-popup-btn-primary hub-popup-ok-btn">OK</button>
                 </div>
@@ -14409,7 +14413,7 @@ function openItemBuyPopup(item) {
     };
     overlay.querySelector(".hub-popup-buy-btn").onclick = () => {
         if (!executeShopPurchase(item, qty)) {
-            showHubNotice("Not enough resources!<br>Need: " + formatCost(multiplyCost(item.cost, qty)), "CAN'T BUY");
+            showHubNotice("Not enough resources!<br>Need: " + formatCost(multiplyCost(item.cost, qty)), "CAN'T BUY", { html: true });
             return;
         }
         overlay.remove();
@@ -14723,7 +14727,7 @@ async function refreshProfileActivity(opts = {}) {
         el.dataset.profileActivityLoaded = "1";
     } catch (e) {
         if (!hasLoadedFeed || handleChanged || force) {
-            el.innerHTML = '<div class="activity-empty">Could not reach activity server. Run <code>npm run server</code> in x-bot/</div>';
+            el.innerHTML = '<div class="activity-empty">Could not reach activity server. Check your connection and API config in js/monex-config.js.</div>';
             el.removeAttribute("data-profile-activity-loaded");
         }
     }
@@ -15346,38 +15350,7 @@ function ensureLegendaryBoxRoster() {
 }
 
 function attemptCatch() {
-    if (!isGameSessionPlayable()) return;
-    if (monballs <= 0) {
-        alert("No monballs left! Claim Daily Login in Mailbox or earn more from quests.");
-        return;
-    }
-    monballs--;
-    auditMonballChange("in_game_catch", -1, monballs);
-
-    const name = MONANIMAL_NAMES[Math.floor(Math.random() * MONANIMAL_NAMES.length)];
-    const rarity = getRarityRoll();
-    const catchRate = getCatchRate(rarity);
-    const caught = Math.random() < catchRate;
-    const result = document.getElementById("catch-result");
-
-    if (caught) {
-        const newMon = createMonanimal(name, rarity, 1);
-        newMon.ultimate = { ...newMon.skills[0] };
-
-        if (party.length >= PARTY_MAX || partyHasSpecies(name)) {
-            box.push(newMon);
-            result.innerHTML = partyHasSpecies(name)
-                ? `<span style="color:green">Caught ${rarity} ${name}! Sent to Box (already in party).</span>`
-                : `<span style="color:green">Caught ${rarity} ${name}! Sent to Box.</span>`;
-        } else {
-            party.push(newMon);
-            result.innerHTML = `<span style="color:green">GOTCHA! Caught ${rarity} ${name}!</span>`;
-        }
-    } else {
-        result.innerHTML = `<span style="color:red">The wild ${name} escaped...</span>`;
-    }
-    saveData();
-    updateUI();
+    console.warn("attemptCatch is disabled — catches sync from X via /api/sync only.");
 }
 
 

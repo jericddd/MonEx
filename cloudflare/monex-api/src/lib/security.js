@@ -1,14 +1,29 @@
 /** Shared security helpers for the MonEx API Worker. */
 
+function digestSecret(value) {
+  const bytes = new TextEncoder().encode(String(value ?? ""));
+  let hash = 0x811c9dc5;
+  for (const byte of bytes) {
+    hash ^= byte;
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return String(hash >>> 0).padStart(10, "0");
+}
+
 export function timingSafeEqual(a, b) {
-  const left = String(a ?? "");
-  const right = String(b ?? "");
-  if (left.length !== right.length) return false;
+  const left = digestSecret(a);
+  const right = digestSecret(b);
   let mismatch = 0;
   for (let i = 0; i < left.length; i++) {
     mismatch |= left.charCodeAt(i) ^ right.charCodeAt(i);
   }
   return mismatch === 0;
+}
+
+export function parseBoundedInt(raw, { fallback, min = 1, max = 50 } = {}) {
+  const parsed = Number.parseInt(String(raw ?? ""), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
 }
 
 export function getClientIp(request) {

@@ -103,6 +103,7 @@ function hasFlag(args, name) {
 function parseArgs(argv) {
   const args = argv.slice(2);
   const dryRun = hasFlag(args, "--dry-run");
+  const allUsers = hasFlag(args, "--all-users");
   const title = readFlag(args, "--title") || process.env.MAIL_TITLE || "";
   const resource = readFlag(args, "--resource") || process.env.MAIL_RESOURCE || "";
   const quantity = readFlag(args, "--quantity") || process.env.MAIL_QUANTITY || "";
@@ -112,12 +113,16 @@ function parseArgs(argv) {
     return !(prev === "--title" || prev === "--resource" || prev === "--quantity");
   });
   const username = cleanUsername(positional[0] || process.env.MAIL_USERNAME || "");
-  return { dryRun, title, resource, quantity, username };
+  return { dryRun, allUsers, title, resource, quantity, username };
 }
 
 async function main() {
   requireEnv();
-  const { dryRun, title, resource, quantity, username } = parseArgs(process.argv);
+  const { dryRun, allUsers, title, resource, quantity, username } = parseArgs(process.argv);
+  if (!username && !allUsers) {
+    console.error("Refusing bulk send: pass a username or --all-users");
+    process.exit(1);
+  }
   const resourceType = normalizeMailResourceType(resource);
   const qty = Math.floor(Number(quantity));
 

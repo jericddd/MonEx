@@ -6,7 +6,13 @@ saved OAth/
 .env
 
 # Local dev / tooling
-/node_modules/
+node_modules/
+**/node_modules/
 /staging-dist/
 /pages-dist/
 scripts/__pycache__/
+.wrangler/
+*.log
+
+# Legacy x-bot runtime data
+x-bot/data/

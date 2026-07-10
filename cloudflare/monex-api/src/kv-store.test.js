@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   resolveCatchUser,
+  lookupCatchUser,
   getPendingForSession,
   syncPendingForSession,
 } from "./kv-store.js";
@@ -28,7 +29,7 @@ describe("resolveCatchUser", () => {
     });
 
     const user = resolveCatchUser(state, "12345", "jericddd", 10);
-    assert.equal(user.monballs, 7);
+    assert.equal(user.monballs, 10);
     assert.equal(user.pendingMons.length, 1);
     assert.equal(user.pendingMons[0].name, "Chog");
     assert.equal(state.users["12345"], user);
@@ -50,6 +51,51 @@ describe("resolveCatchUser", () => {
     assert.equal(user.pendingMons.length, 1);
     assert.equal(state.users["99999"], user);
     assert.equal(state.users.sim_jericddd, undefined);
+  });
+
+  it("merges legacy monballs when coexisting username rows are collapsed", () => {
+    const state = makeState({
+      "12345": {
+        username: "jericddd",
+        monballs: 7,
+        pendingMons: [],
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+      sim_jericddd: {
+        username: "jericddd",
+        monballs: 12,
+        pendingMons: [{ name: "Chog", rarity: "Rare", pendingId: "p_1" }],
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+    });
+
+    const user = resolveCatchUser(state, "12345", "jericddd", 10);
+    assert.equal(user.monballs, 12);
+    assert.equal(user.pendingMons.length, 1);
+    assert.equal(state.users.sim_jericddd, undefined);
+  });
+
+  it("lookupCatchUser is read-only and still exposes merged pending view", () => {
+    const state = makeState({
+      "12345": {
+        username: "jericddd",
+        monballs: 7,
+        pendingMons: [{ name: "Chog", rarity: "Rare", pendingId: "p_1" }],
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+      sim_jericddd: {
+        username: "jericddd",
+        monballs: 10,
+        pendingMons: [{ name: "Mouch", rarity: "Common", pendingId: "p_2" }],
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+    });
+
+    const pending = getPendingForSession(state, "12345", "jericddd", 10);
+    assert.equal(pending.found, true);
+    assert.equal(pending.monballs, 10);
+    assert.equal(pending.pendingMons.length, 2);
+    assert.ok(state.users.sim_jericddd, "read path must not delete legacy rows");
   });
 });
 

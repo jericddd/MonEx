@@ -244,9 +244,8 @@ function sanitizeSkill(raw) {
       chance: raw.effect.chance != null ? clampNum(raw.effect.chance, 0, 1) : undefined,
     };
   }
-  if (raw.selfBuff && typeof raw.selfBuff === "object") {
-    skill.selfBuff = raw.selfBuff;
-  }
+  const selfBuff = sanitizeBuffDef(raw.selfBuff);
+  if (selfBuff) skill.selfBuff = selfBuff;
   if (Array.isArray(raw.multiHit)) {
     skill.multiHit = raw.multiHit.map((v) => clampNum(v, 0, 10)).filter((v) => v > 0).slice(0, 8);
   }
@@ -272,10 +271,24 @@ function sanitizeSkill(raw) {
   if (typeof raw.shieldId === "string") skill.shieldId = trimString(raw.shieldId, 24);
   if (raw.stunPerHit != null) skill.stunPerHit = clampNum(raw.stunPerHit, 0, 1);
   if (raw.stunIfBelowHp != null) skill.stunIfBelowHp = clampNum(raw.stunIfBelowHp, 0, 1);
-  if (raw.enemyDebuff && typeof raw.enemyDebuff === "object") {
-    skill.enemyDebuff = raw.enemyDebuff;
-  }
+  const enemyDebuff = sanitizeBuffDef(raw.enemyDebuff);
+  if (enemyDebuff) skill.enemyDebuff = enemyDebuff;
   return skill.name ? skill : null;
+}
+
+function sanitizeBuffDef(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const buff = {};
+  if (typeof raw.id === "string") buff.id = trimString(raw.id, 24);
+  if (raw.turns != null) buff.turns = clampInt(raw.turns, 1, 99);
+  if (raw.statMods && typeof raw.statMods === "object") {
+    const mods = {};
+    for (const key of ["atk", "hp", "spd", "crit", "dodge", "block", "hit", "pierce"]) {
+      if (raw.statMods[key] != null) mods[key] = clampInt(raw.statMods[key], -200, 200);
+    }
+    if (Object.keys(mods).length) buff.statMods = mods;
+  }
+  return Object.keys(buff).length ? buff : null;
 }
 
 function sanitizeEquipment(raw) {
@@ -452,6 +465,14 @@ function sanitizeMailboxItem(raw) {
 export function sanitizeMailbox(raw) {
   if (!Array.isArray(raw)) return [];
   return raw.map(sanitizeMailboxItem).filter(Boolean).slice(0, LIMITS.mailboxMax);
+}
+
+export function unclaimedMailboxCount(raw) {
+  return sanitizeMailbox(raw).filter((item) => !item.claimedAt).length;
+}
+
+export function mailboxHasCapacity(raw, max = LIMITS.mailboxMax) {
+  return unclaimedMailboxCount(raw) < max;
 }
 
 function sanitizeDailyLoginLastClaimAt(raw, now = Date.now()) {

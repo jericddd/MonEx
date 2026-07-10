@@ -9,8 +9,12 @@ on:
         type: boolean
         default: true
       username:
-        description: "Optional X username without @ (omit to scan all saves)"
+        description: "Optional X username without @ (required unless all_users is checked)"
         required: false
+      all_users:
+        description: "Scan every cloud save (requires explicit opt-in)"
+        type: boolean
+        default: false
       confirm:
         description: "Type PREVIEW to dry-run, or BACKFILL to apply"
         required: true
@@ -67,7 +71,12 @@ jobs:
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             ARGS+=(--dry-run)
           fi
-          if [ -n "${{ inputs.username }}" ]; then
+          if [ "${{ inputs.all_users }}" = "true" ]; then
+            ARGS+=(--all-users)
+          elif [ -n "${{ inputs.username }}" ]; then
             ARGS+=("${{ inputs.username }}")
+          else
+            echo "::error::Provide username or enable all_users"
+            exit 1
           fi
           node scripts/backfill-quest-rewards.mjs "${ARGS[@]}"

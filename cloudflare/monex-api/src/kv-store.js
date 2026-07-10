@@ -1,3 +1,6 @@
+import { mergeMonballBalances } from "./lib/grant-monballs.js";
+import { safeJsonParse } from "./lib/safe-json.js";
+
 const STATE_KEY = "monex:state";
 const ACTIVITY_KEY = "monex:activity";
 const POLL_KEY = "monex:poll:sinceId";
@@ -37,7 +40,7 @@ const DEFAULT_ACTIVITY = { entries: [] };
 export async function loadState(kv) {
   const raw = await kv.get(STATE_KEY);
   if (!raw) return structuredClone(DEFAULT_STATE);
-  return JSON.parse(raw);
+  return safeJsonParse(raw, structuredClone(DEFAULT_STATE));
 }
 
 export async function saveState(kv, state) {
@@ -174,14 +177,47 @@ export function resolveCatchUser(state, xUserId, username, startingMonballs = 10
     if (legacy.pendingMons?.length) {
       user.pendingMons = [...(user.pendingMons || []), ...legacy.pendingMons];
     }
+    user.monballs = mergeMonballBalances(user.monballs ?? startingMonballs, legacy.monballs ?? startingMonballs);
     delete state.users[legacyKey];
   }
 
   return user;
 }
 
+/** Read-only catch user lookup — does not create rows or persist legacy merges. */
+export function lookupCatchUser(state, xUserId, username, startingMonballs = 10) {
+  const uid = String(xUserId || "");
+  const uname = (username || "").toLowerCase().replace("@", "");
+  if (!uid) return findUserByUsername(state, uname);
+
+  const user = state.users[uid] || null;
+  const legacyMatch = findLegacyUserByUsername(state, uname, uid);
+  const legacy = legacyMatch?.user || null;
+
+  if (!user && legacy) {
+    return {
+      username: uname || legacy.username,
+      monballs: legacy.monballs ?? startingMonballs,
+      pendingMons: [...(legacy.pendingMons || [])],
+    };
+  }
+  if (!user) return null;
+
+  if (legacy && legacy !== user) {
+    return {
+      ...user,
+      monballs: mergeMonballBalances(user.monballs ?? startingMonballs, legacy.monballs ?? startingMonballs),
+      pendingMons: [
+        ...(user.pendingMons || []),
+        ...(legacy.pendingMons || []),
+      ],
+    };
+  }
+  return user;
+}
+
 export function getPendingForSession(state, xUserId, username, startingMonballs = 10) {
-  const user = resolveCatchUser(state, xUserId, username, startingMonballs);
+  const user = lookupCatchUser(state, xUserId, username, startingMonballs);
   if (!user) return { found: false, monballs: null, pendingMons: [] };
   return {
     found: true,
@@ -234,7 +270,7 @@ export function syncPendingToSlots(
 export async function loadActivityLog(kv) {
   const raw = await kv.get(ACTIVITY_KEY);
   if (!raw) return structuredClone(DEFAULT_ACTIVITY);
-  return JSON.parse(raw);
+  return safeJsonParse(raw, structuredClone(DEFAULT_ACTIVITY));
 }
 
 export async function saveActivityLog(kv, log) {
@@ -252,6 +288,8 @@ export async function appendActivity(kv, entry) {
 }
 
 export async function listActivities(kv, { limit = 40, page = 1, username = null, successOnly = true } = {}) {
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? limit : 40;
+  const safePage = Number.isFinite(page) && page > 0 ? page : 1;
   const log = await loadActivityLog(kv);
   let rows = log.entries;
   if (successOnly) rows = rows.filter((e) => e.status === "success");
@@ -262,14 +300,14 @@ export async function listActivities(kv, { limit = 40, page = 1, username = null
     rows = rows.filter((e) => !HIDDEN_ACTIVITY_USERNAMES.has((e.xUsername || "").toLowerCase().replace("@", "")));
   }
   const total = rows.length;
-  const totalPages = Math.max(1, Math.ceil(total / limit));
-  const safePage = Math.min(Math.max(1, page), totalPages);
-  const offset = (safePage - 1) * limit;
+  const totalPages = Math.max(1, Math.ceil(total / safeLimit));
+  const pageNum = Math.min(Math.max(1, safePage), totalPages);
+  const offset = (pageNum - 1) * safeLimit;
   return {
-    entries: rows.slice(offset, offset + limit),
+    entries: rows.slice(offset, offset + safeLimit),
     total,
-    page: safePage,
-    limit,
+    page: pageNum,
+    limit: safeLimit,
     totalPages,
   };
 }
@@ -293,11 +331,7 @@ export async function clearPollSinceId(kv) {
 export async function getPollStatus(kv) {
   const raw = await kv.get(POLL_STATUS_KEY);
   if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
+  return safeJsonParse(raw, null);
 }
 
 export async function setPollStatus(kv, status) {
