@@ -1,10 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import {
+import "./patrol-reset.js";
+
+const {
   getPatrolDayKey,
   applyPatrolDailyReset,
   mergePatrolProgress,
-} from "./patrol-reset.js";
+} = globalThis.MonExPatrolReset;
 
 describe("getPatrolDayKey", () => {
   it("uses UTC calendar date", () => {

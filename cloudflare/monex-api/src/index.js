@@ -77,6 +77,17 @@ async function requireGameplay(request, env, body = null) {
   if (!auth.ok) return auth;
   const gs = await requireGameplaySession(request, env.MONEX_KV, auth.session, body);
   if (!gs.ok) {
+    try {
+      console.log(JSON.stringify({
+        evt: "gameplay_rejected",
+        path: new URL(request.url).pathname,
+        xUserId: auth.session.xUserId,
+        username: auth.session.username,
+        gameSessionId: getGameSessionIdFromRequest(request, body),
+        error: gs.error,
+        reason: gs.reason,
+      }));
+    } catch (_) {}
     return {
       ok: false,
       status: gs.status || 403,
@@ -650,16 +661,56 @@ async function handleRequest(request, env) {
       await enforceRateLimit(request, env, "save-put", { limit: 120, windowSec: 60 });
       const payload = buildSavePayload(body?.save || body, auth.session);
       const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
+      const baseRevision = body?.baseRevision != null && Number.isFinite(Number(body.baseRevision))
+        ? Number(body.baseRevision)
+        : null;
+      let saved;
       try {
         await reconcileMonballsForCloudSave(env.MONEX_KV, auth.session, payload, starting);
-        await writeCloudSave(env.MONEX_KV, auth.session.xUserId, payload);
+        saved = await writeCloudSave(env.MONEX_KV, auth.session.xUserId, payload, {
+          expectedRevision: baseRevision,
+        });
       } catch (err) {
-        if (err?.code === "stale_save") {
-          return json({ ok: false, error: "stale_save", save: err.existingSave }, 409, request, env);
+        if (err?.code === "stale_save" || err?.code === "revision_conflict") {
+          try {
+            console.log(JSON.stringify({
+              evt: "save_put_conflict",
+              xUserId: auth.session.xUserId,
+              gameSessionId: auth.gameSessionId,
+              error: err.code,
+              baseRevision,
+              currentRevision: err.currentRevision ?? err.existingSave?.revision,
+              incomingUpdatedAt: payload.updatedAt,
+              existingUpdatedAt: err.existingSave?.updatedAt,
+            }));
+          } catch (_) {}
+          return json(
+            {
+              ok: false,
+              error: err.code,
+              save: err.existingSave,
+              revision: err.currentRevision ?? err.existingSave?.revision,
+            },
+            409,
+            request,
+            env
+          );
         }
         throw err;
       }
-      return json({ ok: true, savedAt: payload.updatedAt, save: payload }, 200, request, env);
+      try {
+        console.log(JSON.stringify({
+          evt: "save_put_ok",
+          xUserId: auth.session.xUserId,
+          gameSessionId: auth.gameSessionId,
+          baseRevision,
+          revision: saved.revision,
+          updatedAt: saved.updatedAt,
+          monballs: saved.monballs,
+          money: saved.money,
+        }));
+      } catch (_) {}
+      return json({ ok: true, savedAt: saved.updatedAt, save: saved, revision: saved.revision }, 200, request, env);
     }
 
     if (path === "/api/activity" && request.method === "GET") {

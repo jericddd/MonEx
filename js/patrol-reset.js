@@ -1,6 +1,14 @@
-/** Patrol daily reset helpers — all resets use 00:00 UTC (same as daily quests). */
+/**
+ * Patrol daily reset helpers — all resets use 00:00 UTC (same as daily quests).
+ *
+ * IMPORTANT: this file is loaded as a classic <script>. Do not use ESM
+ * `export` statements here — they are a parse-time SyntaxError in classic
+ * scripts and silently kill the whole file. Expose via window.MonExPatrolReset.
+ */
+(() => {
+"use strict";
 
-export function getPatrolDayKey(d = new Date()) {
+function getPatrolDayKey(d = new Date()) {
   return d.toISOString().slice(0, 10);
 }
 
@@ -8,7 +16,7 @@ export function getPatrolDayKey(d = new Date()) {
  * Apply patrol day rollover. Returns { patrolScansUsed, patrolScansDay, changed }.
  * Migrates legacy UTC+8 day keys (one day ahead) without wiping progress.
  */
-export function applyPatrolDailyReset(patrolScansUsed, patrolScansDay, now = new Date()) {
+function applyPatrolDailyReset(patrolScansUsed, patrolScansDay, now = new Date()) {
   const today = getPatrolDayKey(now);
   const used = Math.max(0, Math.floor(Number(patrolScansUsed) || 0));
 
@@ -44,7 +52,7 @@ function isPatrolDayCurrent(day, today) {
 }
 
 /** Merge patrol counters from local + cloud snapshots without losing today's progress. */
-export function mergePatrolProgress(local, cloud, now = new Date()) {
+function mergePatrolProgress(local, cloud, now = new Date()) {
   const today = getPatrolDayKey(now);
   const localUsed = Math.max(0, Math.floor(Number(local?.patrolScansUsed) || 0));
   const cloudUsed = Math.max(0, Math.floor(Number(cloud?.patrolScansUsed) || 0));
@@ -60,7 +68,7 @@ export function mergePatrolProgress(local, cloud, now = new Date()) {
   return { patrolScansDay: today, patrolScansUsed: mergedUsed };
 }
 
-export function getPatrolResetCountdownLabel(now = new Date()) {
+function getPatrolResetCountdownLabel(now = new Date()) {
   const next = new Date(now);
   next.setUTCHours(24, 0, 0, 0);
   const ms = Math.max(0, next - now);
@@ -79,3 +87,7 @@ const api = {
 if (typeof window !== "undefined") {
   window.MonExPatrolReset = api;
 }
+if (typeof globalThis !== "undefined") {
+  globalThis.MonExPatrolReset = api;
+}
+})();

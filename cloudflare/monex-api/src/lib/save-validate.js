@@ -501,6 +501,7 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
     mailbox: sanitizeMailbox(input.mailbox),
     dailyLoginLastClaimAt: sanitizeDailyLoginLastClaimAt(input.dailyLoginLastClaimAt, now),
     adventureBattleActive: false,
+    revision: clampInt(input.revision ?? 0, 0, Number.MAX_SAFE_INTEGER),
     saveVersion: Number.isFinite(input.saveVersion) ? clampInt(input.saveVersion, 1, 999) : 1,
     xHandle: session.username || trimString(input.xHandle, 48) || "",
     updatedAt: resolveUpdatedAt(input, now),
