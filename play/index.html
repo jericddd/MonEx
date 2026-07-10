@@ -8978,8 +8978,13 @@ const GEAR_ENHANCE_STAT_PER_LEVEL = {
 };
 const HERO_ASCENSION_STAT_BONUS_PCT = 0.05;
 const RARITY_ORDER = ["Common", "Uncommon", "Rare", "Legendary", "Mythic"];
-const ASCEND_SHARD_COST = { Common: 5, Uncommon: 10, Rare: 20, Legendary: 40 };
+const ASCEND_SHARD_COST = { Legendary: 40 };
+const MIN_RARITY_TO_ASCEND = "Legendary";
 const RELEASE_SHARD_REWARD = { Common: 0, Uncommon: 1, Rare: 2, Legendary: 4, Mythic: 0 };
+
+function canAscendRarity(rarity) {
+    return rarity === MIN_RARITY_TO_ASCEND;
+}
 
 function getReleaseShardReward(rarity) {
     return RELEASE_SHARD_REWARD[rarity] ?? 0;
@@ -10852,6 +10857,7 @@ function renderGearRow(location, index, mon) {
 }
 
 function renderAscendBtn(index, mon) {
+    if (!canAscendRarity(mon.rarity)) return "";
     const next = getNextRarity(mon.rarity);
     if (!next) return "";
     const cap = getLevelCap(mon);
@@ -12810,6 +12816,10 @@ function ascendMonRarity(index) {
     const mon = party[index];
     if (!mon) return;
     ensureMonReady(mon);
+    if (!canAscendRarity(mon.rarity)) {
+        alert("Only Legendary monanimals can ascend to Mythic.");
+        return;
+    }
     const cap = getLevelCap(mon);
     if (Math.floor(mon.level) < cap) {
         alert(mon.name + " must reach max level (" + cap + ") before ascending.");
