@@ -8,8 +8,8 @@ import {
   getUser,
   appendActivity,
   listActivities,
-  getPendingForUsername,
-  syncPendingToSlots,
+  getPendingForSession,
+  syncPendingForSession,
   getPollSinceId,
   setPollSinceId,
   clearPollSinceId,
@@ -44,7 +44,7 @@ import {
   getBearerToken,
 } from "./lib/auth.js";
 import { loadCloudSave, writeCloudSave, buildSavePayload } from "./lib/save.js";
-import { grantMonballs } from "./lib/grant-monballs.js";
+import { grantMonballs, clampMonballs } from "./lib/grant-monballs.js";
 import {
   buildCorsHeaders,
   enforceRateLimit,
@@ -562,8 +562,15 @@ async function handleRequest(request, env) {
     if (path === "/api/pending" && request.method === "GET") {
       const auth = await requireSession(request, env.MONEX_KV);
       if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
       const state = await loadState(env.MONEX_KV);
-      const result = getPendingForUsername(state, auth.session.username);
+      const result = getPendingForSession(
+        state,
+        auth.session.xUserId,
+        auth.session.username,
+        starting
+      );
+      await saveState(env.MONEX_KV, state);
       return json(
         {
           ok: true,
@@ -585,24 +592,41 @@ async function handleRequest(request, env) {
       await enforceRateLimit(request, env, "sync", { limit: 60, windowSec: 60 });
       const body = await request.json();
       const username = auth.session.username;
+      const xUserId = auth.session.xUserId;
+      const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
       const partyCount = Math.max(0, parseInt(body?.partyCount ?? 0, 10));
       const boxCount = Math.max(0, parseInt(body?.boxCount ?? 0, 10));
       const partyMax = Math.max(1, parseInt(body?.partyMax ?? DEFAULT_PARTY_MAX, 10));
       const boxMax = Math.max(1, parseInt(body?.boxMax ?? DEFAULT_BOX_MAX, 10));
 
-      const result = await withUserSyncLock(username, async () => {
+      const result = await withUserSyncLock(xUserId || username, async () => {
         const state = await loadState(env.MONEX_KV);
-        const slots = syncPendingToSlots(
+        const slots = syncPendingForSession(
           state,
+          xUserId,
           username,
           partyCount,
           boxCount,
           partyMax,
-          boxMax
+          boxMax,
+          starting
         );
         await saveState(env.MONEX_KV, state);
         return slots;
       });
+
+      let cloudMonballs = null;
+      if (typeof result.monballs === "number" && xUserId) {
+        const { save } = await loadCloudSave(env.MONEX_KV, xUserId);
+        cloudMonballs = clampMonballs(result.monballs);
+        const nextSave = {
+          ...save,
+          monballs: cloudMonballs,
+          xHandle: save.xHandle || username,
+          updatedAt: new Date().toISOString(),
+        };
+        await writeCloudSave(env.MONEX_KV, xUserId, nextSave, { skipStaleCheck: true });
+      }
 
       return json(
         {
@@ -612,6 +636,8 @@ async function handleRequest(request, env) {
           box: result.box,
           added: result.party.length + result.box.length,
           remaining: result.remaining,
+          monballs: result.monballs,
+          cloudMonballs,
         },
         200,
         request,
