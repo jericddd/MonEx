@@ -13665,6 +13665,29 @@ function isGameSessionPlayable() {
     return !window.MonExGameSession?.isGameplayAllowed || window.MonExGameSession.isGameplayAllowed();
 }
 
+let gameSessionBootLoaded = false;
+
+async function onGameSessionActive() {
+    hideGameSessionModal();
+    if (!gameSessionBootLoaded) return;
+    // Regained ownership after being pending/inactive: memory may be stale.
+    // Rehydrate from the authoritative cloud save before any writes.
+    try {
+        const currentRevision = Number(MonExAuth.getSaveRevision?.() ?? 0);
+        const cloud = await MonExAuth.loadCloudSave();
+        const cloudRevision = Number(cloud?.save?.revision ?? 0);
+        if (cloud?.found && cloud.save && cloudRevision > currentRevision) {
+            console.info("[monex-save] rehydrating after session activation", {
+                fromRevision: currentRevision,
+                toRevision: cloudRevision,
+            });
+            applyLoadedSave(cloud.save);
+            writeLocalSave(cloud.save);
+            updateUI();
+        }
+    } catch (_) {}
+}
+
 function saveData() {
     if (!currentUser) return;
     if (!isGameSessionPlayable()) return;
@@ -13936,6 +13959,9 @@ function readLocalSaveData() {
 }
 
 function applyLoadedSave(data) {
+    if (data?.revision != null && window.MonExAuth?.setSaveRevision) {
+        MonExAuth.setSaveRevision(data.revision);
+    }
     party = data.party || [];
     box = data.box || [];
     monballs = Number(data.monballs ?? 15);
@@ -14009,9 +14035,19 @@ async function loadData() {
     let shouldSyncCloud = false;
     let shouldPersistLocal = false;
     if (localData && cloudData) {
-        data = mergeSaveSnapshots(localData, cloudData);
-        shouldPersistLocal = true;
-        shouldSyncCloud = true;
+        // Cloud is authoritative. Only merge when local has strictly newer
+        // unsaved progress; otherwise stale local data could roll back
+        // progress made in another browser/device.
+        const localTs = getSaveTimestamp(localData);
+        const cloudTs = getSaveTimestamp(cloudData);
+        if (localTs > cloudTs) {
+            data = mergeSaveSnapshots(localData, cloudData);
+            shouldPersistLocal = true;
+            shouldSyncCloud = true;
+        } else {
+            data = cloudData;
+            shouldPersistLocal = true;
+        }
     } else if (cloudData) {
         data = cloudData;
         shouldPersistLocal = true;
@@ -15396,18 +15432,21 @@ async function checkLogin() {
         }
         setAccountContext(user);
         resetToMainSceneUI();
-        await loadData();
-        if (cloudLoadFailed) return;
         if (typeof MonExGameSession !== "undefined") {
             MonExGameSession.initCrossTabListeners();
             await MonExGameSession.claimActiveSession();
             MonExGameSession.startSessionGuard({
                 onSuperseded: showGameSessionModal,
-                onActive: hideGameSessionModal,
+                onActive: onGameSessionActive,
             });
             if (MonExGameSession.isSuperseded()) showGameSessionModal();
             else hideGameSessionModal();
+        } else {
+            console.error("[monex-session] MonExGameSession failed to load — session enforcement disabled");
         }
+        await loadData();
+        if (cloudLoadFailed) return;
+        gameSessionBootLoaded = true;
         await refreshMonballsFromServer();
         await runPostLoginBootstrap();
         showMainScene();
@@ -15417,27 +15456,30 @@ async function checkLogin() {
         if (cached?.username && MonExAuth.isLoggedIn()) {
             setAccountContext(cached);
             resetToMainSceneUI();
+            if (typeof MonExGameSession !== "undefined") {
+                MonExGameSession.initCrossTabListeners();
+                await MonExGameSession.claimActiveSession();
+                MonExGameSession.startSessionGuard({
+                    onSuperseded: showGameSessionModal,
+                    onActive: onGameSessionActive,
+                });
+                if (MonExGameSession.isSuperseded()) showGameSessionModal();
+                else hideGameSessionModal();
+            } else {
+                console.error("[monex-session] MonExGameSession failed to load — session enforcement disabled");
+            }
             try {
                 await loadData();
                 if (cloudLoadFailed) {
                     showMainScene();
                     return;
                 }
+                gameSessionBootLoaded = true;
             } catch (inner) {
                 console.error("checkLogin fallback load failed:", inner);
                 showCloudLoadErrorModal();
                 showMainScene();
                 return;
-            }
-            if (typeof MonExGameSession !== "undefined") {
-                MonExGameSession.initCrossTabListeners();
-                await MonExGameSession.claimActiveSession();
-                MonExGameSession.startSessionGuard({
-                    onSuperseded: showGameSessionModal,
-                    onActive: hideGameSessionModal,
-                });
-                if (MonExGameSession.isSuperseded()) showGameSessionModal();
-                else hideGameSessionModal();
             }
             try {
                 await runPostLoginBootstrap();

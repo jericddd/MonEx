@@ -1,4 +1,13 @@
-/** X login session + cloud save client */
+/**
+ * X login session + cloud save client.
+ *
+ * IMPORTANT: wrapped in an IIFE. Classic <script> tags share one global
+ * lexical scope; top-level const/let collisions with other scripts throw a
+ * parse-time SyntaxError that silently kills whole files. Keep every
+ * declaration inside the IIFE and expose only window.MonExAuth.
+ */
+(() => {
+"use strict";
 
 const SESSION_KEY = "monex_session_token";
 const USER_KEY = "monex_user";
@@ -204,6 +213,18 @@ async function ensureUser() {
   return null;
 }
 
+// ---- Save revision (server-managed optimistic locking) ----
+let _saveRevision = null;
+
+function setSaveRevision(rev) {
+  const n = Number(rev);
+  if (Number.isFinite(n) && n >= 0) _saveRevision = n;
+}
+
+function getSaveRevision() {
+  return _saveRevision;
+}
+
 async function loadCloudSave() {
   const base = getApiBase();
   const res = await fetch(`${base}/api/save`, { headers: authHeaders() });
@@ -214,7 +235,9 @@ async function loadCloudSave() {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || "cloud save load failed");
   }
-  return res.json();
+  const data = await res.json();
+  if (data?.save?.revision != null) setSaveRevision(data.save.revision);
+  return data;
 }
 
 let _saveTimer = null;
@@ -258,7 +281,9 @@ async function pushCloudSave(payload) {
   if (gameSessionId) body.gameSessionId = gameSessionId;
   const sessionOpenedAt = readSessionOpenedAt();
   if (sessionOpenedAt) body.sessionOpenedAt = sessionOpenedAt;
+  if (_saveRevision != null) body.baseRevision = _saveRevision;
   if (window.MonExGameSession?.isGameplayAllowed && !window.MonExGameSession.isGameplayAllowed()) {
+    console.info("[monex-save] push skipped: game session not active", { gameSessionId });
     return { conflict: false, save: null, skipped: "game_session_inactive" };
   }
   const res = await fetch(`${base}/api/save`, {
@@ -268,17 +293,34 @@ async function pushCloudSave(payload) {
   });
   if (res.status === 403) {
     const data = await res.json().catch(() => ({}));
-    if (data.error === "game_session_inactive") {
+    console.warn("[monex-save] push rejected 403", { error: data.error, reason: data.reason, gameSessionId });
+    if (data.error === "game_session_inactive" || data.error === "game_session_required") {
       window.MonExGameSession?.handleInactiveFromApi?.();
-      return { conflict: false, save: null, skipped: "game_session_inactive" };
+      return { conflict: false, save: null, skipped: data.error };
     }
   }
   if (res.status === 409) {
     const data = await res.json().catch(() => ({}));
+    console.warn("[monex-save] push conflict 409", {
+      error: data.error,
+      serverRevision: data.save?.revision ?? data.revision,
+      baseRevision: body.baseRevision,
+      gameSessionId,
+    });
+    if (data.save?.revision != null) setSaveRevision(data.save.revision);
+    else if (data.revision != null) setSaveRevision(data.revision);
     return { conflict: true, save: data.save || null };
   }
   if (!res.ok) throw new Error("cloud save failed");
   const data = await res.json();
+  if (data?.save?.revision != null) setSaveRevision(data.save.revision);
+  else if (data?.revision != null) setSaveRevision(data.revision);
+  console.info("[monex-save] push ok", {
+    revision: data?.save?.revision ?? data?.revision,
+    baseRevision: body.baseRevision,
+    gameSessionId,
+    updatedAt: payload.updatedAt,
+  });
   return { conflict: false, save: data.save || null };
 }
 
@@ -299,7 +341,10 @@ async function runCloudSavePush() {
       }
       return result;
     })
-    .catch(() => null)
+    .catch((err) => {
+      console.warn("[monex-save] push failed", err?.message || err);
+      return null;
+    })
     .finally(() => {
       _saveInflight = null;
       if (_pendingSaveState) runCloudSavePush();
@@ -352,4 +397,7 @@ window.MonExAuth = {
   authHeaders,
   enforceServerResetEpoch,
   wipeMonexLocalData,
+  setSaveRevision,
+  getSaveRevision,
 };
+})();

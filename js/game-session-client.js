@@ -1,4 +1,14 @@
-/** Single active in-game session guard (play/index.html only). */
+/**
+ * Single active in-game session guard (play/index.html only).
+ *
+ * IMPORTANT: wrapped in an IIFE. Classic <script> tags share one global
+ * lexical scope, and top-level const collisions with other scripts cause a
+ * parse-time SyntaxError that silently kills the whole file (this exact bug
+ * disabled session enforcement in production). Never declare top-level
+ * const/let in this file outside the IIFE.
+ */
+(() => {
+"use strict";
 
 const GAME_SESSION_STORAGE_KEY = "monex_game_session_id";
 const GAME_SESSION_OPENED_AT_KEY = "monex_game_session_opened_at";
@@ -21,6 +31,17 @@ let _guardRunning = false;
 let _broadcast = null;
 let _fetchPatched = false;
 let _clickBlocker = null;
+let _apiUnavailable = false;
+
+function debugLog(event, detail) {
+  try {
+    console.info("[monex-session]", event, {
+      state: _state,
+      gameSessionId: _gameSessionId,
+      ...detail,
+    });
+  } catch (_) {}
+}
 
 function getApiBase() {
   if (typeof getMonexApiBase === "function") return getMonexApiBase();
@@ -161,16 +182,27 @@ function initCrossTabListeners() {
 function markActive() {
   if (_state === "active") return;
   _state = "active";
+  debugLog("active");
   if (typeof _onActive === "function") _onActive();
 }
 
 function markSuperseded(reason) {
   if (_state === "superseded") return;
   _state = "superseded";
+  debugLog("superseded", { reason });
   if (typeof _onSuperseded === "function") _onSuperseded();
-  try {
-    console.info("[game-session] superseded:", reason, getGameSessionId());
-  } catch (_) {}
+}
+
+function markApiUnavailable(where) {
+  if (!_apiUnavailable) {
+    _apiUnavailable = true;
+    try {
+      console.warn(
+        `[monex-session] game-session API unavailable (${where}); single-session enforcement is disabled until the API is deployed`
+      );
+    } catch (_) {}
+  }
+  markActive();
 }
 
 function applyServerStatus(status) {
@@ -196,13 +228,17 @@ async function verifyAndApplyStatus() {
 async function claimActiveSession() {
   if (!MonExAuth?.isLoggedIn?.()) return { ok: false, error: "not_logged_in" };
   initCrossTabListeners();
-  const before = _state;
   const res = await fetch(`${getApiBase()}/api/game-session/claim`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify(sessionPayload()),
   });
+  if (res.status === 404) {
+    markApiUnavailable("claim");
+    return { ok: true, active: true, unsupported: true };
+  }
   const data = await res.json().catch(() => ({}));
+  debugLog("claim_response", { httpStatus: res.status, active: data.active, tookOver: data.tookOver, reason: data.reason });
   if (!res.ok || data.ok === false) {
     if (data.reason === "superseded") markSuperseded("claim_rejected");
     return data;
@@ -223,6 +259,10 @@ async function fetchSessionStatus() {
   url.searchParams.set("gameSessionId", gameSessionId);
   url.searchParams.set("sessionOpenedAt", String(getSessionOpenedAt()));
   const res = await fetch(url.toString(), { headers: authHeaders() });
+  if (res.status === 404) {
+    markApiUnavailable("status");
+    return { ok: true, active: true, unsupported: true };
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) return { ok: false, error: data.error || "status_failed", httpStatus: res.status };
   return data;
@@ -235,6 +275,10 @@ async function sendHeartbeat() {
     headers: authHeaders(),
     body: JSON.stringify(sessionPayload()),
   });
+  if (res.status === 404) {
+    markApiUnavailable("heartbeat");
+    return { ok: true, active: true, unsupported: true };
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) return { ok: false, error: data.error || "heartbeat_failed" };
   const before = _state;
@@ -249,7 +293,7 @@ async function pollSessionStatus() {
   if (!MonExAuth?.isLoggedIn?.()) return;
   if (_state === "superseded") return;
   try {
-    let status = await fetchSessionStatus();
+    const status = await fetchSessionStatus();
     if (!status.ok) return;
 
     if (status.active) {
@@ -291,7 +335,7 @@ function installFetchInterceptor() {
       const url = typeof input === "string" ? input : input?.url || "";
       if (!url.includes("/api/")) return response;
       if (url.includes("/api/game-session/")) return response;
-      if (!isGameplayResponseInactive(response, null)) return response;
+      if (response.status !== 403) return response;
       const clone = response.clone();
       const data = await clone.json().catch(() => ({}));
       if (isGameplayResponseInactive(response, data)) {
@@ -309,11 +353,9 @@ function installFetchInterceptor() {
 function installClickBlocker() {
   if (_clickBlocker) return;
   _clickBlocker = (event) => {
-    if (_state === "active") return;
-    if (_state === "superseded") {
-      event.stopPropagation();
-      event.preventDefault();
-    }
+    if (_state !== "superseded") return;
+    event.stopPropagation();
+    event.preventDefault();
   };
   document.addEventListener("click", _clickBlocker, true);
   document.addEventListener("keydown", _clickBlocker, true);
@@ -335,6 +377,7 @@ function startSessionGuard(options = {}) {
   installFetchInterceptor();
   installClickBlocker();
   getGameSessionId();
+  debugLog("guard_started");
 
   if (!_guardRunning) {
     _guardRunning = true;
@@ -404,15 +447,9 @@ async function handleInactiveFromApi() {
     markSuperseded("api");
     return;
   }
-  if (status?.ok && status.reason === "unclaimed") {
+  if (status?.ok && (status.reason === "unclaimed" || (status.reason === "stale_other" && status.canReclaim))) {
     await claimActiveSession();
-    return;
   }
-  if (status?.ok && status.reason === "stale_other" && status.canReclaim) {
-    await claimActiveSession();
-    return;
-  }
-  if (status?.ok && status.reason === "superseded") markSuperseded("api");
 }
 
 /** Block gameplay unless this tab is the authoritative active session. */
@@ -447,3 +484,4 @@ window.MonExGameSession = {
   authHeaders,
   initCrossTabListeners,
 };
+})();
