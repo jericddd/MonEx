@@ -18,6 +18,10 @@ const GAME_SESSION_BROADCAST = "monex-game-session";
 const STATUS_POLL_VISIBLE_MS = 1500;
 const STATUS_POLL_HIDDEN_MS = 4000;
 const HEARTBEAT_MS = 10000;
+const TAB_LOCK_PREFIX = "monex_gs_tab_lock_";
+const TAB_LOCK_FRESH_MS = 5000;
+const TAB_LOCK_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const OWNER_PING_WAIT_MS = 350;
 
 /** @type {"pending" | "active" | "superseded"} */
 let _state = "pending";
@@ -32,6 +36,9 @@ let _broadcast = null;
 let _fetchPatched = false;
 let _clickBlocker = null;
 let _apiUnavailable = false;
+let _ensureUniquePromise = null;
+let _lockEstablished = false;
+const _sentPingNonces = new Set();
 
 function debugLog(event, detail) {
   try {
@@ -113,6 +120,168 @@ function sessionPayload() {
   };
 }
 
+// ---- Duplicate-tab detection ----
+// Duplicating a tab copies sessionStorage, so the duplicate inherits the
+// original's game session ID and both tabs would look like ONE session to the
+// server. Each live tab therefore maintains an ownership lock for its ID in
+// localStorage (heartbeat + released-on-pagehide) and answers BroadcastChannel
+// owner pings. At boot, if the stored ID is still owned by a living tab, the
+// new tab mints a fresh ID (with a newer openedAt) and takes over.
+
+function tabLockKey(id) {
+  return TAB_LOCK_PREFIX + id;
+}
+
+function writeTabLockRaw(released) {
+  if (!_gameSessionId) return;
+  try {
+    localStorage.setItem(
+      tabLockKey(_gameSessionId),
+      JSON.stringify({ ts: Date.now(), released: !!released })
+    );
+  } catch (_) {}
+}
+
+/**
+ * Refresh this tab's ownership lock. No-op until ensureUniqueGameSessionId
+ * has decided which ID this tab owns — otherwise a boot-time lock write with
+ * the inherited (copied) ID would make a plain refresh look like a duplicate.
+ */
+function writeTabLock(released) {
+  if (!_lockEstablished) return;
+  writeTabLockRaw(released);
+}
+
+function establishTabLock() {
+  _lockEstablished = true;
+  writeTabLockRaw(false);
+}
+
+function readTabLock(id) {
+  try {
+    const raw = localStorage.getItem(tabLockKey(id));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function cleanupStaleTabLocks() {
+  try {
+    const now = Date.now();
+    const stale = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(TAB_LOCK_PREFIX)) continue;
+      try {
+        const lock = JSON.parse(localStorage.getItem(key));
+        if (!lock || !Number.isFinite(lock.ts) || now - lock.ts > TAB_LOCK_MAX_AGE_MS) {
+          stale.push(key);
+        }
+      } catch {
+        stale.push(key);
+      }
+    }
+    stale.forEach((key) => localStorage.removeItem(key));
+  } catch (_) {}
+}
+
+function mintNewGameSession(reason) {
+  _gameSessionId = createGameSessionId();
+  _sessionOpenedAt = Date.now();
+  try {
+    sessionStorage.setItem(GAME_SESSION_STORAGE_KEY, _gameSessionId);
+    sessionStorage.setItem(GAME_SESSION_OPENED_AT_KEY, String(_sessionOpenedAt));
+  } catch (_) {}
+  establishTabLock();
+  debugLog("minted_new_session", { reason });
+  return _gameSessionId;
+}
+
+function pingForOwner(gameSessionId, timeoutMs) {
+  return new Promise((resolve) => {
+    if (typeof BroadcastChannel === "undefined") {
+      resolve(false);
+      return;
+    }
+    let channel;
+    try {
+      channel = new BroadcastChannel(GAME_SESSION_BROADCAST);
+    } catch {
+      resolve(false);
+      return;
+    }
+    let done = false;
+    const nonce = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    _sentPingNonces.add(nonce);
+    const finish = (value) => {
+      if (done) return;
+      done = true;
+      try {
+        channel.close();
+      } catch (_) {}
+      resolve(value);
+    };
+    channel.addEventListener("message", (event) => {
+      const data = event.data;
+      if (data?.type === "gs-owner-pong" && data.gameSessionId === gameSessionId && data.nonce === nonce) {
+        finish(true);
+      }
+    });
+    try {
+      channel.postMessage({ type: "gs-owner-ping", gameSessionId, nonce });
+    } catch (_) {
+      finish(false);
+      return;
+    }
+    setTimeout(() => finish(false), timeoutMs);
+  });
+}
+
+/**
+ * Guarantee this tab has a game session ID no other LIVING tab owns.
+ * - Fresh tab (no stored ID): mint.
+ * - Duplicated tab (stored ID owned by a live tab): mint a new ID.
+ * - Refreshed tab (stored ID released on pagehide, no live owner): keep it.
+ */
+function ensureUniqueGameSessionId() {
+  if (_ensureUniquePromise) return _ensureUniquePromise;
+  _ensureUniquePromise = (async () => {
+    cleanupStaleTabLocks();
+    let stored = null;
+    try {
+      stored = sessionStorage.getItem(GAME_SESSION_STORAGE_KEY);
+    } catch (_) {}
+
+    if (!stored) {
+      getGameSessionId();
+      establishTabLock();
+      return _gameSessionId;
+    }
+
+    _gameSessionId = stored;
+    getSessionOpenedAt();
+
+    const lock = readTabLock(stored);
+    const lockFresh = lock && Number.isFinite(lock.ts) && Date.now() - lock.ts < TAB_LOCK_FRESH_MS;
+    if (lockFresh && !lock.released) {
+      // Another live tab is heartbeating this ID right now → duplicate.
+      return mintNewGameSession("duplicate_tab_lock");
+    }
+
+    // Lock released (refresh) or stale (throttled background tab): ask over
+    // BroadcastChannel whether any living tab owns this ID.
+    const owned = await pingForOwner(stored, OWNER_PING_WAIT_MS);
+    if (owned) {
+      return mintNewGameSession("duplicate_tab_ping");
+    }
+    establishTabLock();
+    debugLog("adopted_existing_session");
+    return _gameSessionId;
+  })();
+  return _ensureUniquePromise;
+}
+
 function authHeaders() {
   const headers = { "Content-Type": "application/json" };
   if (typeof MonExAuth !== "undefined" && MonExAuth.authHeaders) {
@@ -162,10 +331,28 @@ function onForeignSessionClaim(payload) {
   markSuperseded("broadcast");
 }
 
+function handleBroadcastMessage(data) {
+  if (data?.type === "gs-owner-ping") {
+    if (!data.gameSessionId || !data.nonce) return;
+    if (_sentPingNonces.has(data.nonce)) return; // our own boot ping
+    if (data.gameSessionId !== _gameSessionId) return;
+    try {
+      _broadcast?.postMessage({
+        type: "gs-owner-pong",
+        gameSessionId: _gameSessionId,
+        nonce: data.nonce,
+      });
+    } catch (_) {}
+    return;
+  }
+  if (data?.type === "gs-owner-pong") return;
+  onForeignSessionClaim(data);
+}
+
 function initCrossTabListeners() {
   if (typeof BroadcastChannel !== "undefined" && !_broadcast) {
     _broadcast = new BroadcastChannel(GAME_SESSION_BROADCAST);
-    _broadcast.addEventListener("message", (event) => onForeignSessionClaim(event.data));
+    _broadcast.addEventListener("message", (event) => handleBroadcastMessage(event.data));
   }
   if (!initCrossTabListeners._storageBound) {
     initCrossTabListeners._storageBound = true;
@@ -175,6 +362,11 @@ function initCrossTabListeners() {
       try {
         onForeignSessionClaim(JSON.parse(event.newValue));
       } catch (_) {}
+    });
+    window.addEventListener("pagehide", () => {
+      // Release the tab lock so a refresh of THIS tab keeps its session ID,
+      // while a duplicate of a still-open tab is forced to mint a new one.
+      writeTabLock(true);
     });
   }
 }
@@ -228,6 +420,7 @@ async function verifyAndApplyStatus() {
 async function claimActiveSession() {
   if (!MonExAuth?.isLoggedIn?.()) return { ok: false, error: "not_logged_in" };
   initCrossTabListeners();
+  await ensureUniqueGameSessionId();
   const res = await fetch(`${getApiBase()}/api/game-session/claim`, {
     method: "POST",
     headers: authHeaders(),
@@ -254,6 +447,7 @@ async function claimActiveSession() {
 }
 
 async function fetchSessionStatus() {
+  await ensureUniqueGameSessionId();
   const gameSessionId = getGameSessionId();
   const url = new URL(`${getApiBase()}/api/game-session/status`);
   url.searchParams.set("gameSessionId", gameSessionId);
@@ -270,6 +464,8 @@ async function fetchSessionStatus() {
 
 async function sendHeartbeat() {
   if (_state === "superseded") return { ok: true, active: false, reason: "superseded" };
+  await ensureUniqueGameSessionId();
+  writeTabLock(false);
   const res = await fetch(`${getApiBase()}/api/game-session/heartbeat`, {
     method: "POST",
     headers: authHeaders(),
@@ -291,6 +487,8 @@ async function sendHeartbeat() {
 
 async function pollSessionStatus() {
   if (!MonExAuth?.isLoggedIn?.()) return;
+  await ensureUniqueGameSessionId();
+  writeTabLock(false);
   if (_state === "superseded") return;
   try {
     const status = await fetchSessionStatus();
@@ -467,6 +665,7 @@ window.MonExGameSession = {
   GAME_SESSION_STORAGE_KEY,
   getGameSessionId,
   getSessionOpenedAt,
+  ensureUniqueGameSessionId,
   claimActiveSession,
   fetchSessionStatus,
   sendHeartbeat,
