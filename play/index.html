@@ -8979,6 +8979,11 @@ const GEAR_ENHANCE_STAT_PER_LEVEL = {
 const HERO_ASCENSION_STAT_BONUS_PCT = 0.05;
 const RARITY_ORDER = ["Common", "Uncommon", "Rare", "Legendary", "Mythic"];
 const ASCEND_SHARD_COST = { Common: 5, Uncommon: 10, Rare: 20, Legendary: 40 };
+const RELEASE_SHARD_REWARD = { Common: 0, Uncommon: 1, Rare: 2, Legendary: 4, Mythic: 0 };
+
+function getReleaseShardReward(rarity) {
+    return RELEASE_SHARD_REWARD[rarity] ?? 0;
+}
 let gearInventory = [];
 let gearInventorySeedVersion = 0;
 let _gearIdSeq = 0;
@@ -14401,8 +14406,15 @@ function showConfirmModal(message, onConfirm, options = {}) {
     overlay.querySelector("#confirm-no").onclick = () => overlay.remove();
 }
 function releaseFromBox(index) {
-    showConfirmModal("Are you sure you want to release this monanimal?", () => {
-        returnAllGearToInventory(box[index]);
+    const mon = box[index];
+    if (!mon) return;
+    const shards = getReleaseShardReward(mon.rarity);
+    const shardLine = shards > 0
+        ? `\n\nYou will receive ${shards} Mon Shard${shards === 1 ? "" : "s"}.`
+        : "";
+    showConfirmModal(`Are you sure you want to release this monanimal?${shardLine}`, () => {
+        returnAllGearToInventory(mon);
+        if (shards > 0) monShards += shards;
         box.splice(index, 1);
         saveData();
         updateUI();
