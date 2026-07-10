@@ -70,10 +70,10 @@ import { claimDailyLoginReward, claimMailboxItem, getDailyLoginStatus } from "./
 
 const API_CODE_VERSION = "fetch-oauth-v1";
 
-async function requireGameplay(request, env) {
+async function requireGameplay(request, env, body = null) {
   const auth = await requireSession(request, env.MONEX_KV);
   if (!auth.ok) return auth;
-  const gs = await requireGameplaySession(request, env.MONEX_KV, auth.session);
+  const gs = await requireGameplaySession(request, env.MONEX_KV, auth.session, body);
   if (!gs.ok) {
     return {
       ok: false,
@@ -631,10 +631,10 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/save" && request.method === "PUT") {
-      const auth = await requireGameplay(request, env);
+      const body = await request.json();
+      const auth = await requireGameplay(request, env, body);
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       await enforceRateLimit(request, env, "save-put", { limit: 120, windowSec: 60 });
-      const body = await request.json();
       const payload = buildSavePayload(body?.save || body, auth.session);
       const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
       try {
@@ -712,10 +712,10 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/sync" && request.method === "POST") {
-      const auth = await requireGameplay(request, env);
+      const body = await request.json();
+      const auth = await requireGameplay(request, env, body);
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       await enforceRateLimit(request, env, "sync", { limit: 60, windowSec: 60 });
-      const body = await request.json();
       const username = auth.session.username;
       const xUserId = auth.session.xUserId;
       const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
@@ -823,10 +823,10 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/mailbox/claim" && request.method === "POST") {
-      const auth = await requireGameplay(request, env);
+      const body = await request.json().catch(() => ({}));
+      const auth = await requireGameplay(request, env, body);
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       await enforceRateLimit(request, env, "mailbox-claim", { limit: 60, windowSec: 60 });
-      const body = await request.json().catch(() => ({}));
       const mailId = body?.mailId || body?.id || "";
       try {
         const result = await claimMailboxItem(env.MONEX_KV, auth.session, mailId);

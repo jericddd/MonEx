@@ -114,10 +114,15 @@ describe("requireGameplaySession", () => {
     assert.equal(auth.error, "game_session_inactive");
   });
 
-  it("accepts the active gameplay session", async () => {
+  it("accepts game session id from JSON body when header is missing", async () => {
     const kv = makeKv();
     await claimGameSession(kv, "user_1", "tab_a");
-    const auth = await requireGameplaySession(makeRequest("tab_a"), kv, { xUserId: "user_1" });
+    const auth = await requireGameplaySession(
+      { headers: { get: () => null } },
+      kv,
+      { xUserId: "user_1" },
+      { gameSessionId: "tab_a" }
+    );
     assert.equal(auth.ok, true);
     assert.equal(auth.gameSessionId, "tab_a");
   });

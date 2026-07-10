@@ -13653,7 +13653,7 @@ async function refreshMonballsFromServer() {
         const res = await fetch(`${base}/api/monballs`, { headers: MonExAuth.authHeaders() });
         if (res.status === 403) {
             const data = await res.json().catch(() => ({}));
-            if (data.error === "game_session_inactive") {
+            if (data.error === "game_session_inactive" || data.error === "game_session_required") {
                 window.MonExGameSession?.handleInactiveFromApi?.();
             }
             return null;

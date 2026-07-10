@@ -1,13 +1,30 @@
 /** Daily login + mailbox API client (homepage + game). */
 
 function mailboxAuthHeaders() {
+  const headers = { "Content-Type": "application/json" };
   if (typeof MonExAuth !== "undefined" && MonExAuth.authHeaders) {
-    return MonExAuth.authHeaders();
+    Object.assign(headers, MonExAuth.authHeaders());
+    return headers;
   }
   const token = localStorage.getItem("monex_session_token");
-  const headers = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
+  try {
+    const id = sessionStorage.getItem("monex_game_session_id");
+    if (id) headers["X-Game-Session-Id"] = id;
+  } catch (_) {}
   return headers;
+}
+
+function mailboxClaimBody(mailId) {
+  const body = { mailId };
+  try {
+    const id = sessionStorage.getItem("monex_game_session_id");
+    if (id) body.gameSessionId = id;
+  } catch (_) {}
+  if (window.MonExGameSession?.getGameSessionId) {
+    body.gameSessionId = window.MonExGameSession.getGameSessionId();
+  }
+  return body;
 }
 
 function mailboxApiBase() {
@@ -45,12 +62,12 @@ async function claimMailboxMail(mailId) {
   const res = await fetch(`${mailboxApiBase()}/api/mailbox/claim`, {
     method: "POST",
     headers: mailboxAuthHeaders(),
-    body: JSON.stringify({ mailId }),
+    body: JSON.stringify(mailboxClaimBody(mailId)),
   });
   const data = await res.json().catch(() => ({}));
-  if (res.status === 403 && data.error === "game_session_inactive") {
+  if (res.status === 403 && (data.error === "game_session_inactive" || data.error === "game_session_required")) {
     window.MonExGameSession?.handleInactiveFromApi?.();
-    throw new Error("game_session_inactive");
+    throw new Error(data.error || "game_session_inactive");
   }
   if (!res.ok) throw new Error(data.error || "mailbox claim failed");
   return data;
