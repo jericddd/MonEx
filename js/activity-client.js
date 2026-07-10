@@ -895,7 +895,7 @@ function getAuthHeaders() {
 
 async function syncWildMons(username, partyCount, boxCount, partyMax = 3, boxMax = 500) {
     const base = getMonexApiBase();
-    if (window.MonExGameSession?.isSuperseded && window.MonExGameSession.isSuperseded()) {
+    if (window.MonExGameSession?.isGameplayAllowed && !window.MonExGameSession.isGameplayAllowed()) {
         throw new Error("game_session_inactive");
     }
     const body = {

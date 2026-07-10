@@ -17,6 +17,19 @@ function readGameSessionId() {
   }
 }
 
+function readSessionOpenedAt() {
+  if (window.MonExGameSession?.getSessionOpenedAt) {
+    return window.MonExGameSession.getSessionOpenedAt();
+  }
+  try {
+    const raw = sessionStorage.getItem("monex_game_session_opened_at");
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  }
+}
+
 function wipeMonexLocalData() {
   const keys = [];
   for (let i = 0; i < localStorage.length; i++) {
@@ -63,6 +76,8 @@ function authHeaders() {
   if (token) headers.Authorization = `Bearer ${token}`;
   const gameSessionId = readGameSessionId();
   if (gameSessionId) headers[GAME_SESSION_HEADER] = gameSessionId;
+  const sessionOpenedAt = readSessionOpenedAt();
+  if (sessionOpenedAt) headers["X-Game-Session-Opened-At"] = String(sessionOpenedAt);
   return headers;
 }
 
@@ -187,7 +202,7 @@ async function ensureUser() {
 
 async function loadCloudSave() {
   const base = getApiBase();
-  if (window.MonExGameSession?.isSuperseded && window.MonExGameSession.isSuperseded()) {
+  if (window.MonExGameSession?.isGameplayAllowed && !window.MonExGameSession.isGameplayAllowed()) {
     throw new Error("game_session_inactive");
   }
   const res = await fetch(`${base}/api/save`, { headers: authHeaders() });
@@ -241,7 +256,9 @@ async function pushCloudSave(payload) {
   const body = { save: payload };
   const gameSessionId = readGameSessionId();
   if (gameSessionId) body.gameSessionId = gameSessionId;
-  if (window.MonExGameSession?.isSuperseded && window.MonExGameSession.isSuperseded()) {
+  const sessionOpenedAt = readSessionOpenedAt();
+  if (sessionOpenedAt) body.sessionOpenedAt = sessionOpenedAt;
+  if (window.MonExGameSession?.isGameplayAllowed && !window.MonExGameSession.isGameplayAllowed()) {
     return { conflict: false, save: null, skipped: "game_session_inactive" };
   }
   const res = await fetch(`${base}/api/save`, {

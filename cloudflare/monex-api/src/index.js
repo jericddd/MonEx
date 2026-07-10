@@ -54,6 +54,8 @@ import {
   releaseGameSession,
   requireGameplaySession,
   getGameSessionIdFromRequest,
+  getSessionOpenedAtFromRequest,
+  normalizeSessionOpenedAt,
 } from "./lib/game-session.js";
 import { backfillPendingForUser } from "./lib/backfill-pending.js";
 import {
@@ -559,7 +561,10 @@ async function handleRequest(request, env) {
       if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
       const body = await request.json().catch(() => ({}));
       const gameSessionId = body?.gameSessionId || getGameSessionIdFromRequest(request);
-      const result = await claimGameSession(env.MONEX_KV, auth.session.xUserId, gameSessionId);
+      const sessionOpenedAt = getSessionOpenedAtFromRequest(request, body);
+      const result = await claimGameSession(env.MONEX_KV, auth.session.xUserId, gameSessionId, {
+        sessionOpenedAt,
+      });
       const status = result.ok ? 200 : 400;
       return json(result, status, request, env);
     }
@@ -569,7 +574,12 @@ async function handleRequest(request, env) {
       if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
       const gameSessionId =
         url.searchParams.get("gameSessionId") || getGameSessionIdFromRequest(request);
-      const result = await getGameSessionStatus(env.MONEX_KV, auth.session.xUserId, gameSessionId);
+      const sessionOpenedAt = normalizeSessionOpenedAt(
+        url.searchParams.get("sessionOpenedAt")
+      ) || getSessionOpenedAtFromRequest(request);
+      const result = await getGameSessionStatus(env.MONEX_KV, auth.session.xUserId, gameSessionId, {
+        sessionOpenedAt,
+      });
       const status = result.ok ? 200 : 400;
       return json(result, status, request, env);
     }
@@ -579,7 +589,10 @@ async function handleRequest(request, env) {
       if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
       const body = await request.json().catch(() => ({}));
       const gameSessionId = body?.gameSessionId || getGameSessionIdFromRequest(request);
-      const result = await heartbeatGameSession(env.MONEX_KV, auth.session.xUserId, gameSessionId);
+      const sessionOpenedAt = getSessionOpenedAtFromRequest(request, body);
+      const result = await heartbeatGameSession(env.MONEX_KV, auth.session.xUserId, gameSessionId, {
+        sessionOpenedAt,
+      });
       const status = result.ok ? 200 : 400;
       return json(result, status, request, env);
     }

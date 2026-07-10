@@ -62,7 +62,7 @@ export function buildCorsHeaders(request, env) {
   const origin = request.headers.get("Origin");
   const headers = {
     "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Admin-Secret, X-Game-Session-Id",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Admin-Secret, X-Game-Session-Id, X-Game-Session-Opened-At",
     Vary: "Origin",
   };
   if (origin && isAllowedOrigin(origin, env)) {

@@ -13562,9 +13562,13 @@ function hideGameSessionModal() {
     document.body.classList.remove("game-session-inactive");
 }
 
+function isGameSessionPlayable() {
+    return !window.MonExGameSession?.isGameplayAllowed || window.MonExGameSession.isGameplayAllowed();
+}
+
 function saveData() {
     if (!currentUser) return;
-    if (window.MonExGameSession?.isSuperseded && window.MonExGameSession.isSuperseded()) return;
+    if (!isGameSessionPlayable()) return;
     const payload = buildSavePayload();
     writeLocalSave(payload);
     if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
@@ -13656,7 +13660,7 @@ function mergeMonsterInventories(newerParty, newerBox, olderParty, olderBox) {
 
 async function refreshMonballsFromServer() {
     if (!currentUser || typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return null;
-    if (window.MonExGameSession?.isSuperseded && window.MonExGameSession.isSuperseded()) return null;
+    if (!isGameSessionPlayable()) return null;
     try {
         const base = typeof getMonexApiBase === "function"
             ? getMonexApiBase()
@@ -13686,7 +13690,7 @@ async function refreshMonballsFromServer() {
 }
 
 async function persistProgress(options = {}) {
-    if (window.MonExGameSession?.isSuperseded && window.MonExGameSession.isSuperseded()) return;
+    if (!isGameSessionPlayable()) return;
     const { flush = true } = options;
     saveData();
     updateHeaderCurrencies();
@@ -14431,7 +14435,7 @@ async function syncXWildMons(silent) {
     const handle = resolveXHandle();
     if (!handle || typeof MonExActivity === "undefined") return 0;
     if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return 0;
-    if (window.MonExGameSession?.isSuperseded && window.MonExGameSession.isSuperseded()) return 0;
+    if (!isGameSessionPlayable()) return 0;
     if (wildSyncInFlight) return wildSyncInFlight;
 
     wildSyncInFlight = (async () => {
@@ -15194,7 +15198,7 @@ function ensureLegendaryBoxRoster() {
 }
 
 function attemptCatch() {
-    if (window.MonExGameSession?.isSuperseded && window.MonExGameSession.isSuperseded()) return;
+    if (!isGameSessionPlayable()) return;
     if (monballs <= 0) {
         alert("No monballs left! Claim Daily Login in Mailbox or earn more from quests.");
         return;
@@ -15410,7 +15414,7 @@ function renderMailbox() {
 
 async function claimMailboxReward(mailId) {
     if (!mailId) return;
-    if (window.MonExGameSession?.isSuperseded && window.MonExGameSession.isSuperseded()) return;
+    if (!isGameSessionPlayable()) return;
     if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
         alert("Login required to claim mail.");
         return;
@@ -16207,13 +16211,13 @@ window.onload = async function() {
             if (window.MonExGameSession?.pollSessionStatus) {
                 MonExGameSession.pollSessionStatus().catch(() => {});
             }
-            if (!window.MonExGameSession?.isSuperseded || !window.MonExGameSession.isSuperseded()) {
+            if (isGameSessionPlayable()) {
                 refreshMonballsFromServer().catch(() => {});
                 syncXWildMons(true).catch(() => {});
             }
             return;
         }
-        if (_state !== "superseded" && window.MonExGameSession?.sendHeartbeat) {
+        if (!window.MonExGameSession?.isSuperseded?.() && window.MonExGameSession?.sendHeartbeat) {
             MonExGameSession.sendHeartbeat().catch(() => {});
         }
         flushSaveToCloud().catch(() => {});
