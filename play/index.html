@@ -6811,6 +6811,7 @@ body.afk-layout .currency-pill .currency-tip {
 @media (min-width: 721px) {
     body.afk-layout {
         background: #1a1028;
+        overflow-x: hidden;
     }
     body.afk-layout .game-shell {
         max-width: none;
@@ -6820,13 +6821,17 @@ body.afk-layout .currency-pill .currency-tip {
         background: transparent;
         position: relative;
         z-index: 1;
+        overflow: visible;
     }
     body.afk-layout .game-container {
-        max-width: var(--game-max-width);
+        max-width: none;
         width: 100%;
-        margin: 0 auto;
+        margin: 0;
         border: none;
         background: transparent;
+        overflow: visible;
+        isolation: auto;
+        box-shadow: none;
     }
     body.afk-layout .game-container-bg {
         position: fixed;
@@ -6838,21 +6843,32 @@ body.afk-layout .currency-pill .currency-tip {
         object-position: center top;
         z-index: 0;
     }
-    body.afk-layout .game-container > .header,
-    body.afk-layout .game-container-stage {
-        position: relative;
-        z-index: 2;
-    }
-    /* Header spans full viewport; trainer left / currencies right */
     body.afk-layout .game-container > .header {
-        width: 100vw;
-        margin-left: calc(50% - 50vw);
+        width: 100%;
+        margin-left: 0;
         box-sizing: border-box;
+        overflow: visible;
+        position: relative;
+        z-index: 30;
     }
     body.afk-layout .game-container > .header .header-inner {
         max-width: none;
+        width: 100%;
         padding-left: calc(var(--game-side-pad) + 16px);
         padding-right: calc(var(--game-side-pad) + 16px);
+    }
+    /* Centered gameplay stage only — header/rails stay viewport-wide */
+    body.afk-layout .game-container-stage {
+        position: relative;
+        z-index: 2;
+        max-width: var(--game-max-width);
+        width: 100%;
+        margin: 0 auto;
+        overflow: visible;
+    }
+    body.afk-layout .game-container-stage .cover-viewport,
+    body.afk-layout .game-container-stage .battle-scene {
+        overflow: hidden;
     }
     /* Side rails + resource chest anchor to viewport edges */
     body.afk-layout .left-rail {
