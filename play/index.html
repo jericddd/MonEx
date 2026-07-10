@@ -7312,6 +7312,7 @@ body.afk-layout .currency-pill .currency-tip {
     </div>
 </div>
 
+<script src="js/patrol-reset.js"></script>
 <script src="js/staging-banner.js"></script>
 <script src="js/monex-config.js"></script>
 <script src="js/escape-html.js"></script>
@@ -13367,7 +13368,7 @@ function calculateDamage(attacker, defender, skill) {
 
 // ==================== STATE MANAGEMENT ====================
 function checkDailyReset() {
-    const today = getDailyResetDateKey();
+    const today = getPatrolDayKey();
     if (lastResetDate !== today) {
         monballs = 10;
         lastResetDate = today;
@@ -13376,20 +13377,20 @@ function checkDailyReset() {
     ensurePatrolDailyReset(today);
 }
 
-function getDailyResetDateKey() {
-    const now = new Date();
-    const utc8 = new Date(now.getTime() + (8 * 60 * 60 * 1000));
-    return utc8.toISOString().split("T")[0];
+function getPatrolDayKey() {
+    return window.MonExPatrolReset?.getPatrolDayKey() || new Date().toISOString().slice(0, 10);
 }
 
 function ensurePatrolDailyReset(todayKey) {
-    const today = todayKey || getDailyResetDateKey();
-    if (patrolScansDay !== today) {
-        patrolScansUsed = 0;
-        patrolScansDay = today;
-        return true;
-    }
-    return false;
+    const api = window.MonExPatrolReset;
+    if (!api) return false;
+    const result = api.applyPatrolDailyReset(patrolScansUsed, patrolScansDay, new Date());
+    const changed = result.changed
+        || result.patrolScansUsed !== patrolScansUsed
+        || result.patrolScansDay !== patrolScansDay;
+    patrolScansUsed = result.patrolScansUsed;
+    patrolScansDay = result.patrolScansDay;
+    return changed;
 }
 
 function getPatrolScansRemaining() {
@@ -13686,16 +13687,24 @@ function mergeSaveSnapshots(local, cloud) {
         bestPos.stage
     );
 
-    const patrolDay = newer.patrolScansDay || older.patrolScansDay || null;
-    merged.patrolScansDay = patrolDay;
-    if (local.patrolScansDay === cloud.patrolScansDay && patrolDay) {
-        merged.patrolScansUsed = Math.max(
-            Number(local.patrolScansUsed) || 0,
-            Number(cloud.patrolScansUsed) || 0
-        );
+    const patrolMerged = window.MonExPatrolReset
+        ? window.MonExPatrolReset.mergePatrolProgress(local, cloud)
+        : null;
+    if (patrolMerged) {
+        merged.patrolScansDay = patrolMerged.patrolScansDay;
+        merged.patrolScansUsed = patrolMerged.patrolScansUsed;
     } else {
-        merged.patrolScansUsed = Number(newer.patrolScansUsed) || 0;
-        merged.patrolScansDay = newer.patrolScansDay || null;
+        const patrolDay = newer.patrolScansDay || older.patrolScansDay || null;
+        merged.patrolScansDay = patrolDay;
+        if (local.patrolScansDay === cloud.patrolScansDay && patrolDay) {
+            merged.patrolScansUsed = Math.max(
+                Number(local.patrolScansUsed) || 0,
+                Number(cloud.patrolScansUsed) || 0
+            );
+        } else {
+            merged.patrolScansUsed = Number(newer.patrolScansUsed) || 0;
+            merged.patrolScansDay = newer.patrolScansDay || null;
+        }
     }
 
     merged.updatedAt = new Date(Math.max(localTs, cloudTs, Date.now())).toISOString();
@@ -15043,7 +15052,7 @@ function ensureLegendaryBoxRoster() {
 
 function attemptCatch() {
     if (monballs <= 0) {
-        alert("No monballs left! (Resets daily at midnight UTC+8)");
+        alert("No monballs left! (Resets daily at 00:00 UTC)");
         return;
     }
     monballs--;
@@ -15563,15 +15572,22 @@ function openPatrolScreen() {
     renderPatrolLobby();
 }
 
+function getPatrolResetLabel() {
+    return window.MonExPatrolReset?.getPatrolResetCountdownLabel()
+        || "Patrol reset: 00:00 UTC";
+}
+
 function renderPatrolLobby() {
     const remaining = getPatrolScansRemaining();
     const depleted = remaining <= 0;
+    const resetLabel = getPatrolResetLabel();
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui cover-art-layer";
     content.innerHTML = `
         <div class="adventure-panel adventure-panel--hub-overlay">
             <h2>PATROL</h2>
             <p class="patrol-lobby-scans${depleted ? " depleted" : ""}">${remaining} / ${PATROL_DAILY_MAX} scans left today</p>
+            <p class="adv-desc" style="font-size:11px;opacity:0.85;">${resetLabel}</p>
             <p class="adv-desc">Scan the Monad office for hostile Monanimals. ${escapeGearHtml(getPatrolGearLevelLabel())}.</p>
             <div class="patrol-scan-zone" onclick="beginPatrolScan()" role="button" tabindex="0" aria-label="Scan Monad office">
                 <span class="patrol-scan-zone-label">${depleted ? "NO SCANS LEFT" : "TAP TO SCAN OFFICE"}</span>
@@ -15731,7 +15747,7 @@ function beginPatrolScan() {
     }
     ensurePatrolDailyReset();
     if (getPatrolScansRemaining() <= 0) {
-        alert("No patrol scans left today. Come back after the daily reset!");
+        alert("No patrol scans left today. Resets at 00:00 UTC.");
         return;
     }
     if (!isStagingTestUser()) patrolScansUsed++;
