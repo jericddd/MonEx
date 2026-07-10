@@ -177,6 +177,10 @@ function getUsername() {
   return readCachedUser()?.username || "";
 }
 
+function getXUserId() {
+  return readCachedUser()?.xUserId || "";
+}
+
 async function ensureUser() {
   if (await enforceServerResetEpoch()) return null;
   const justCaptured = captureSessionFromUrl();
@@ -202,18 +206,14 @@ async function ensureUser() {
 
 async function loadCloudSave() {
   const base = getApiBase();
-  if (window.MonExGameSession?.isGameplayAllowed && !window.MonExGameSession.isGameplayAllowed()) {
-    throw new Error("game_session_inactive");
-  }
   const res = await fetch(`${base}/api/save`, { headers: authHeaders() });
-  if (res.status === 403) {
-    const data = await res.json().catch(() => ({}));
-    if (data.error === "game_session_inactive") {
-      window.MonExGameSession?.handleInactiveFromApi?.();
-      throw new Error("game_session_inactive");
-    }
+  if (res.status === 401) {
+    throw new Error("not_logged_in");
   }
-  if (!res.ok) throw new Error("cloud save load failed");
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "cloud save load failed");
+  }
   return res.json();
 }
 
@@ -344,6 +344,7 @@ window.MonExAuth = {
   fetchMe,
   getDisplayName,
   getUsername,
+  getXUserId,
   loadCloudSave,
   scheduleCloudSave,
   flushCloudSave,

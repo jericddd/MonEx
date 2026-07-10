@@ -6984,6 +6984,10 @@ body.game-session-inactive .game-shell {
     pointer-events: none;
     user-select: none;
 }
+body.cloud-load-blocked .game-shell {
+    pointer-events: none;
+    user-select: none;
+}
 </style>
 </head>
 <body class="afk-layout">
@@ -6993,6 +6997,15 @@ body.game-session-inactive .game-shell {
     <div class="game-session-modal-dialog" role="alertdialog" aria-modal="true" aria-labelledby="game-session-modal-title">
         <p id="game-session-modal-title"><strong>This game session is no longer active.</strong></p>
         <p><strong>A newer tab or device has taken over this account.</strong></p>
+    </div>
+</div>
+
+<div id="cloud-load-error-modal" class="game-session-modal" hidden aria-hidden="true">
+    <div class="game-session-modal-backdrop" aria-hidden="true"></div>
+    <div class="game-session-modal-dialog" role="alertdialog" aria-modal="true" aria-labelledby="cloud-load-error-title">
+        <p id="cloud-load-error-title"><strong>Could not load your saved progress.</strong></p>
+        <p>Your account data is safe on the server. Check your connection and retry — a new profile will not be created automatically.</p>
+        <p><button type="button" onclick="location.reload()" style="margin-top:8px;padding:10px 18px;font-weight:bold;cursor:pointer;">Retry</button></p>
     </div>
 </div>
 
@@ -7902,6 +7915,8 @@ function getSkillIconPath(skill) {
 
 // ==================== STATE ====================
 let currentUser = null;
+let currentXUserId = null;
+let cloudLoadFailed = false;
 let party = [];
 let box = [];
 let boxSortMode = "ascension";
@@ -8750,7 +8765,8 @@ function loadResourceChestTimestamp(loadedData, cloudOnly = false) {
     let fromLocal = null;
     if (!cloudOnly && currentUser) {
         try {
-            const raw = localStorage.getItem("monex_" + currentUser);
+            const key = getSaveStorageKey();
+            const raw = key ? localStorage.getItem(key) : null;
             if (raw) fromLocal = JSON.parse(raw).resourceChestLastCollectAt;
         } catch (_) {}
     }
@@ -13562,7 +13578,90 @@ function hideGameSessionModal() {
     document.body.classList.remove("game-session-inactive");
 }
 
+function setAccountContext(user) {
+    if (!user) return;
+    currentUser = String(user.username || user.name || (typeof MonExAuth !== "undefined" ? MonExAuth.getDisplayName() : "") || "")
+        .replace(/^@/, "")
+        .toLowerCase();
+    currentXUserId = user.xUserId || (typeof MonExAuth !== "undefined" && MonExAuth.getXUserId ? MonExAuth.getXUserId() : null) || null;
+}
+
+function getSaveStorageKey() {
+    if (currentXUserId) return "monex_" + currentXUserId;
+    if (currentUser) return "monex_" + currentUser;
+    return null;
+}
+
+function showCloudLoadErrorModal() {
+    cloudLoadFailed = true;
+    const el = document.getElementById("cloud-load-error-modal");
+    if (el) {
+        el.hidden = false;
+        el.setAttribute("aria-hidden", "false");
+    }
+    document.body.classList.add("cloud-load-blocked");
+}
+
+function hideCloudLoadErrorModal() {
+    cloudLoadFailed = false;
+    const el = document.getElementById("cloud-load-error-modal");
+    if (el) {
+        el.hidden = true;
+        el.setAttribute("aria-hidden", "true");
+    }
+    document.body.classList.remove("cloud-load-blocked");
+}
+
+async function fetchCloudSaveWithRetry() {
+    if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
+        return { status: "not_logged_in" };
+    }
+    const waits = [0, 600, 1500];
+    let lastError = null;
+    for (let i = 0; i < waits.length; i++) {
+        if (waits[i]) await delay(waits[i]);
+        try {
+            const cloud = await Promise.race([
+                MonExAuth.loadCloudSave(),
+                delay(12000).then(() => {
+                    throw new Error("cloud_save_timeout");
+                }),
+            ]);
+            if (!cloud || cloud.ok === false) {
+                throw new Error(cloud?.error || "cloud_save_invalid");
+            }
+            return { status: "ok", cloud };
+        } catch (err) {
+            lastError = err;
+            console.warn("Cloud save load attempt failed:", err);
+        }
+    }
+    return { status: "error", error: lastError };
+}
+
+function initNewPlayerDefaults() {
+    party = [];
+    box = [];
+    monballs = 10;
+    money = 5000;
+    essence = 0;
+    monShards = 0;
+    trainerXp = 0;
+    trainerRewardLevel = 1;
+    questState = defaultQuestState();
+    highestStageCleared = 0;
+    adventureGlobalBest = 0;
+    currentChapter = 1;
+    currentStage = 1;
+    gearInventory = [];
+    gearInventorySeedVersion = 0;
+    lastResetDate = null;
+    resourceChestLastCollectAt = Date.now();
+    resolveXHandle();
+}
+
 function isGameSessionPlayable() {
+    if (cloudLoadFailed) return false;
     return !window.MonExGameSession?.isGameplayAllowed || window.MonExGameSession.isGameplayAllowed();
 }
 
@@ -13594,8 +13693,9 @@ function buildSavePayload() {
 }
 
 function writeLocalSave(payload) {
-    if (!currentUser || !payload) return;
-    localStorage.setItem("monex_" + currentUser, JSON.stringify(payload));
+    const key = getSaveStorageKey();
+    if (!key || !payload) return;
+    localStorage.setItem(key, JSON.stringify(payload));
 }
 
 function flushSaveToCloud() {
@@ -13819,11 +13919,16 @@ function mergeSaveSnapshots(local, cloud) {
 }
 
 function readLocalSaveData() {
-    if (!currentUser) return null;
-    const saved = localStorage.getItem("monex_" + currentUser);
-    if (!saved) return null;
+    const primaryKey = getSaveStorageKey();
+    if (!primaryKey) return null;
     try {
-        return JSON.parse(saved);
+        let raw = localStorage.getItem(primaryKey);
+        if (!raw && currentUser && currentXUserId) {
+            const legacyKey = "monex_" + String(currentUser).replace(/^@/, "").toLowerCase();
+            if (legacyKey !== primaryKey) raw = localStorage.getItem(legacyKey);
+        }
+        if (!raw) return null;
+        return JSON.parse(raw);
     } catch (e) {
         console.error("Corrupt local save — ignoring:", e);
         return null;
@@ -13877,18 +13982,27 @@ function applyLoadedSave(data) {
 
 async function loadData() {
     if (!currentUser) return;
+    hideCloudLoadErrorModal();
     const localData = readLocalSaveData();
     let cloudData = null;
+    let cloudFound = null;
 
     if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
-        try {
-            const cloud = await Promise.race([
-                MonExAuth.loadCloudSave(),
-                delay(8000).then(() => null),
-            ]);
-            if (cloud?.found && cloud.save) cloudData = cloud.save;
+        const cloudResult = await fetchCloudSaveWithRetry();
+        if (cloudResult.status === "ok") {
+            cloudFound = !!cloudResult.cloud.found;
+            if (cloudResult.cloud.found && cloudResult.cloud.save) {
+                cloudData = cloudResult.cloud.save;
+            }
+            if (cloudResult.cloud.user?.xUserId && !currentXUserId) {
+                currentXUserId = cloudResult.cloud.user.xUserId;
+            }
             resolveXHandle();
-        } catch (_) {}
+        } else if (cloudResult.status === "error") {
+            console.error("Cloud save load failed after retries:", cloudResult.error);
+            showCloudLoadErrorModal();
+            return;
+        }
     }
 
     let data = null;
@@ -13901,7 +14015,7 @@ async function loadData() {
     } else if (cloudData) {
         data = cloudData;
         shouldPersistLocal = true;
-    } else {
+    } else if (localData) {
         data = localData;
     }
 
@@ -13913,26 +14027,15 @@ async function loadData() {
         }
         if (shouldPersistLocal) writeLocalSave(data);
         if (shouldSyncCloud) saveData();
-    } else {
-        party = [];
-        box = [];
-        monballs = 10;
-        money = 5000;
-        essence = 0;
-        monShards = 0;
-        trainerXp = 0;
-        trainerRewardLevel = 1;
-        questState = defaultQuestState();
-        highestStageCleared = 0;
-        adventureGlobalBest = 0;
-        currentChapter = 1;
-        currentStage = 1;
-        gearInventory = [];
-        gearInventorySeedVersion = 0;
-        lastResetDate = null;
-        resourceChestLastCollectAt = Date.now();
-        resolveXHandle();
+    } else if (cloudFound === false) {
+        initNewPlayerDefaults();
         saveData();
+    } else if (!MonExAuth?.isLoggedIn?.()) {
+        initNewPlayerDefaults();
+    } else {
+        console.error("No save data available for authenticated account without explicit new-profile signal");
+        showCloudLoadErrorModal();
+        return;
     }
     checkDailyReset();
     startResourceChestTimer();
@@ -15291,8 +15394,10 @@ async function checkLogin() {
             window.location.href = "/";
             return;
         }
-        currentUser = user.username || MonExAuth.getDisplayName();
+        setAccountContext(user);
         resetToMainSceneUI();
+        await loadData();
+        if (cloudLoadFailed) return;
         if (typeof MonExGameSession !== "undefined") {
             MonExGameSession.initCrossTabListeners();
             await MonExGameSession.claimActiveSession();
@@ -15303,7 +15408,6 @@ async function checkLogin() {
             if (MonExGameSession.isSuperseded()) showGameSessionModal();
             else hideGameSessionModal();
         }
-        await loadData();
         await refreshMonballsFromServer();
         await runPostLoginBootstrap();
         showMainScene();
@@ -15311,8 +15415,20 @@ async function checkLogin() {
         console.error("checkLogin failed:", e);
         const cached = readCachedUserFallback();
         if (cached?.username && MonExAuth.isLoggedIn()) {
-            currentUser = cached.username;
+            setAccountContext(cached);
             resetToMainSceneUI();
+            try {
+                await loadData();
+                if (cloudLoadFailed) {
+                    showMainScene();
+                    return;
+                }
+            } catch (inner) {
+                console.error("checkLogin fallback load failed:", inner);
+                showCloudLoadErrorModal();
+                showMainScene();
+                return;
+            }
             if (typeof MonExGameSession !== "undefined") {
                 MonExGameSession.initCrossTabListeners();
                 await MonExGameSession.claimActiveSession();
@@ -15324,10 +15440,9 @@ async function checkLogin() {
                 else hideGameSessionModal();
             }
             try {
-                await loadData();
                 await runPostLoginBootstrap();
             } catch (inner) {
-                console.error("checkLogin fallback load failed:", inner);
+                console.error("checkLogin fallback bootstrap failed:", inner);
             }
             showMainScene();
             return;

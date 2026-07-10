@@ -632,8 +632,8 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/save" && request.method === "GET") {
-      const auth = await requireGameplay(request, env);
-      if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
       const { found, save } = await loadCloudSave(env.MONEX_KV, auth.session.xUserId);
       return json(
         { ok: true, found, save, user: { username: auth.session.username, xUserId: auth.session.xUserId } },
