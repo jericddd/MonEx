@@ -6807,6 +6807,80 @@ body.afk-layout .currency-pill .currency-tip {
     border-color: #f0a050;
 }
 
+/* Desktop full-viewport background — gameplay UI stays centered at --game-max-width */
+@media (min-width: 721px) {
+    body.afk-layout {
+        background: #1a1028;
+    }
+    body.afk-layout .game-shell {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        background: transparent;
+        position: relative;
+        z-index: 1;
+    }
+    body.afk-layout .game-container {
+        max-width: var(--game-max-width);
+        width: 100%;
+        margin: 0 auto;
+        border: none;
+        background: transparent;
+    }
+    body.afk-layout .game-container-bg {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        object-fit: fill;
+        object-position: center top;
+        z-index: 0;
+    }
+    body.afk-layout .game-container > .header,
+    body.afk-layout .game-container-stage {
+        position: relative;
+        z-index: 2;
+    }
+    /* Header spans full viewport; trainer left / currencies right */
+    body.afk-layout .game-container > .header {
+        width: 100vw;
+        margin-left: calc(50% - 50vw);
+        box-sizing: border-box;
+    }
+    body.afk-layout .game-container > .header .header-inner {
+        max-width: none;
+        padding-left: calc(var(--game-side-pad) + 16px);
+        padding-right: calc(var(--game-side-pad) + 16px);
+    }
+    /* Side rails + resource chest anchor to viewport edges */
+    body.afk-layout .left-rail {
+        position: fixed;
+        left: var(--game-side-pad);
+        top: calc(var(--afk-header-offset, 78px) + var(--rail-offset-top));
+        z-index: 25;
+    }
+    body.afk-layout .side-rail {
+        position: fixed;
+        right: var(--game-side-pad);
+        top: calc(var(--afk-header-offset, 78px) + var(--rail-offset-top));
+        z-index: 25;
+    }
+    body.afk-layout .resource-chest-wrap {
+        position: fixed;
+        right: calc(var(--game-side-pad) + 12px);
+        bottom: 12px;
+        z-index: 20;
+    }
+    body.afk-layout .battle-scene.open .battle-back-btn {
+        position: fixed;
+        left: calc(var(--game-side-pad) + 14px);
+        top: calc(var(--afk-header-offset, 78px) + 14px);
+        z-index: 30;
+    }
+}
+
 @media (max-width: 720px) {
     :root {
         --game-side-pad: 16px;
@@ -8063,14 +8137,32 @@ function syncCoverStages() {
     });
 }
 
+function syncDesktopFullscreenLayout() {
+    const root = document.documentElement;
+    if (window.matchMedia("(max-width: 720px)").matches) {
+        root.style.removeProperty("--afk-header-offset");
+        return;
+    }
+    const header = document.querySelector("body.afk-layout .game-container > .header");
+    if (!header) return;
+    root.style.setProperty("--afk-header-offset", `${Math.ceil(header.getBoundingClientRect().height)}px`);
+}
+
 function ensureCoverStagesSync() {
     syncCoverStages();
+    syncDesktopFullscreenLayout();
     if (coverStagesObserver) return;
     const container = document.querySelector(".game-container");
     if (!container) return;
-    coverStagesObserver = new ResizeObserver(() => syncCoverStages());
+    coverStagesObserver = new ResizeObserver(() => {
+        syncCoverStages();
+        syncDesktopFullscreenLayout();
+    });
     coverStagesObserver.observe(container);
-    window.addEventListener("resize", syncCoverStages);
+    window.addEventListener("resize", () => {
+        syncCoverStages();
+        syncDesktopFullscreenLayout();
+    });
 }
 
 function setMainSceneVisible(visible) {
@@ -14102,6 +14194,7 @@ function updateUI() {
     try { renderMainScene(); } catch (e) { console.error("renderMainScene failed:", e); }
     try { renderPartyGrid(); } catch (e) { console.error("renderPartyGrid failed:", e); }
     try { renderBox(); } catch (e) { console.error("renderBox failed:", e); }
+    try { syncDesktopFullscreenLayout(); } catch (_) {}
 }
 
 function renderMonCardInner(mon, index, location) {
