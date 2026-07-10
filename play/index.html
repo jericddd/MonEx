@@ -8588,6 +8588,27 @@ async function persistQuestClaim() {
     }
 }
 
+function grantBattleRewards(reward) {
+    if (!reward) return;
+    applyQuestGrantToResources({
+        gold: reward.gold || 0,
+        essence: reward.essence || 0,
+        monballs: reward.monballs || 0,
+        monShards: reward.shards || reward.monShards || 0,
+        trainerXp: reward.trainerXp || 0,
+    });
+}
+
+async function persistBattleReward() {
+    saveData();
+    updateHeaderCurrencies();
+    if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+        try {
+            await flushSaveToCloud();
+        } catch (_) {}
+    }
+}
+
 function describeQuestChestGrant(grant) {
     if (!grant) return "";
     const parts = [];
@@ -13570,6 +13591,40 @@ function mergeSaveSnapshots(local, cloud) {
     });
     merged.mailbox = [...mailById.values()];
 
+    const gearById = new Map();
+    [...(local.gearInventory || []), ...(cloud.gearInventory || [])].forEach((gear) => {
+        if (gear?.id) gearById.set(gear.id, gear);
+    });
+    merged.gearInventory = [...gearById.values()];
+
+    merged.adventureGlobalBest = Math.max(
+        Number(local.adventureGlobalBest) || 0,
+        Number(cloud.adventureGlobalBest) || 0
+    );
+    const localGlobal = getGlobalAdventureProgress(local.currentChapter, local.currentStage);
+    const cloudGlobal = getGlobalAdventureProgress(cloud.currentChapter, cloud.currentStage);
+    const bestGlobal = Math.max(localGlobal, cloudGlobal, merged.adventureGlobalBest || 0);
+    const bestPos = globalProgressToChapterStage(bestGlobal);
+    merged.currentChapter = bestPos.chapter;
+    merged.currentStage = bestPos.stage;
+    merged.highestStageCleared = Math.max(
+        Number(local.highestStageCleared) || 0,
+        Number(cloud.highestStageCleared) || 0,
+        bestPos.stage
+    );
+
+    const patrolDay = newer.patrolScansDay || older.patrolScansDay || null;
+    merged.patrolScansDay = patrolDay;
+    if (local.patrolScansDay === cloud.patrolScansDay && patrolDay) {
+        merged.patrolScansUsed = Math.max(
+            Number(local.patrolScansUsed) || 0,
+            Number(cloud.patrolScansUsed) || 0
+        );
+    } else {
+        merged.patrolScansUsed = Number(newer.patrolScansUsed) || 0;
+        merged.patrolScansDay = newer.patrolScansDay || null;
+    }
+
     merged.updatedAt = new Date(Math.max(localTs, cloudTs, Date.now())).toISOString();
     return merged;
 }
@@ -15677,15 +15732,13 @@ function endPatrolBattle(win, player) {
     const encounter = activePatrolEncounter || rollPatrolEncounter();
     const reward = rollPatrolRewards(encounter, win);
     if (win) {
-        money += reward.gold;
-        essence += reward.essence;
-        monShards += reward.shards;
-        addTrainerXp(reward.trainerXp);
+        grantBattleRewards(reward);
         bumpQuestProgress("patrol_win", 1);
     }
     restorePartyFullHp();
-    saveData();
     showPatrolBattleResult(win, reward, encounter);
+    if (win) persistBattleReward();
+    else saveData();
 }
 
 function showPatrolBattleResult(win, reward, encounter) {
@@ -16968,10 +17021,7 @@ function endBattle(win, player) {
         } else if (globalP >= 3 && Math.random() < 0.25) {
             reward.shards = 1;
         }
-        money += reward.gold;
-        essence += reward.essence;
-        monShards += reward.shards;
-        addTrainerXp(reward.trainerXp);
+        grantBattleRewards(reward);
         adventureGlobalBest = Math.max(adventureGlobalBest, globalP);
         const best = globalProgressToChapterStage(adventureGlobalBest);
         highestStageCleared = best.stage;
@@ -16984,12 +17034,12 @@ function endBattle(win, player) {
         } else {
             currentStage++;
         }
-        saveAdventureProgress();
     }
 
     restorePartyFullHp();
-    saveData();
     showBattleResult(win, reward);
+    if (win) persistBattleReward();
+    else saveData();
 }
 
 function showBattleResult(win, reward) {
