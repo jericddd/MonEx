@@ -122,3 +122,26 @@ Cron runs every 2 minutes automatically.
 | `GET /api/activity` | X Wild Log |
 | `POST /api/simulate-mention` | Test catch |
 | `POST /api/sync` | Auto Party/Box |
+
+---
+
+## Admin scripts (production KV)
+
+Requires `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+
+| Script | Purpose |
+|--------|---------|
+| `node scripts/grant-monballs.mjs <user> [amount]` | Grant Monballs to catch state + cloud save |
+| `node scripts/backfill-pending-catches.mjs [--dry-run] [user]` | One-time: push stuck X pending catches into cloud saves |
+
+**Backfill pending catches** (run once after deploying the catch sync fix):
+
+```bash
+cd cloudflare/monex-api
+npm run backfill-pending -- --dry-run          # preview all affected users
+npm run backfill-pending -- --dry-run jericddd # preview one user
+npm run backfill-pending                       # apply for all users with pending mons
+npm run backfill-pending -- jericddd           # apply for one user
+```
+
+The script moves `pendingMons` from catch state into each user's cloud save Party/Box (up to 3 party / 500 box slots), aligns in-game Monballs with catch-state balances, merges duplicate `sim_*` catch rows, and clears the pending queue for backfilled users.
