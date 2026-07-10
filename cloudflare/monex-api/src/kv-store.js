@@ -56,15 +56,16 @@ export function markProcessed(state, tweetId) {
 }
 
 export function getUser(state, xUserId, username, startingMonballs) {
+  const cleanUsername = (username || "").toLowerCase().replace("@", "");
   if (!state.users[xUserId]) {
     state.users[xUserId] = {
-      username,
+      username: cleanUsername || username,
       monballs: startingMonballs,
       pendingMons: [],
       updatedAt: new Date().toISOString(),
     };
-  } else if (username && state.users[xUserId].username !== username) {
-    state.users[xUserId].username = username;
+  } else if (cleanUsername && state.users[xUserId].username?.toLowerCase() !== cleanUsername) {
+    state.users[xUserId].username = cleanUsername;
   }
   return state.users[xUserId];
 }
@@ -113,8 +114,74 @@ export function findUserByUsername(state, username) {
   return null;
 }
 
-export function getPendingForUsername(state, username) {
-  const user = findUserByUsername(state, username);
+function findUserKey(state, user) {
+  if (!user) return null;
+  for (const [key, entry] of Object.entries(state.users || {})) {
+    if (entry === user) return key;
+  }
+  return null;
+}
+
+/** Same @handle under a different KV key (e.g. sim_* dev login vs real X author id). */
+function findLegacyUserByUsername(state, username, excludeUserId = null) {
+  const u = (username || "").toLowerCase().replace("@", "");
+  if (!u) return null;
+  for (const [key, user] of Object.entries(state.users || {})) {
+    if (excludeUserId && key === excludeUserId) continue;
+    if (user.username?.toLowerCase() === u) return { key, user };
+  }
+  return null;
+}
+
+/** Resolve catch-state user by OAuth xUserId, merging legacy username-only rows. */
+export function resolveCatchUser(state, xUserId, username, startingMonballs = 10) {
+  const uid = String(xUserId || "");
+  const uname = (username || "").toLowerCase().replace("@", "");
+  if (!uid) {
+    const legacy = findUserByUsername(state, uname);
+    return legacy || null;
+  }
+
+  let user = state.users[uid];
+  const legacyMatch = findLegacyUserByUsername(state, uname, uid);
+  const legacy = legacyMatch?.user || null;
+  const legacyKey = legacyMatch?.key || null;
+
+  if (!user && legacy) {
+    state.users[uid] = {
+      username: uname || legacy.username,
+      monballs: legacy.monballs ?? startingMonballs,
+      pendingMons: [...(legacy.pendingMons || [])],
+      updatedAt: legacy.updatedAt || new Date().toISOString(),
+    };
+    if (legacyKey && legacyKey !== uid) delete state.users[legacyKey];
+    return state.users[uid];
+  }
+
+  if (!user) {
+    state.users[uid] = {
+      username: uname,
+      monballs: startingMonballs,
+      pendingMons: [],
+      updatedAt: new Date().toISOString(),
+    };
+    return state.users[uid];
+  }
+
+  if (uname) user.username = uname;
+
+  if (legacy && legacy !== user && legacyKey && legacyKey !== uid) {
+    if (legacy.pendingMons?.length) {
+      user.pendingMons = [...(user.pendingMons || []), ...legacy.pendingMons];
+    }
+    delete state.users[legacyKey];
+  }
+
+  return user;
+}
+
+export function getPendingForSession(state, xUserId, username, startingMonballs = 10) {
+  const user = resolveCatchUser(state, xUserId, username, startingMonballs);
   if (!user) return { found: false, monballs: null, pendingMons: [] };
   return {
     found: true,
@@ -123,17 +190,23 @@ export function getPendingForUsername(state, username) {
   };
 }
 
-export function syncPendingToSlots(
+export function getPendingForUsername(state, username) {
+  return getPendingForSession(state, null, username);
+}
+
+export function syncPendingForSession(
   state,
+  xUserId,
   username,
   partyCount,
   boxCount,
   partyMax = DEFAULT_PARTY_MAX,
-  boxMax = DEFAULT_BOX_MAX
+  boxMax = DEFAULT_BOX_MAX,
+  startingMonballs = 10
 ) {
-  const user = findUserByUsername(state, username);
+  const user = resolveCatchUser(state, xUserId, username, startingMonballs);
   if (!user || !user.pendingMons?.length) {
-    return { party: [], box: [], remaining: 0 };
+    return { party: [], box: [], remaining: 0, monballs: user?.monballs ?? null };
   }
   const safePartyMax = Math.max(1, Math.min(20, partyMax | 0));
   const safeBoxMax = Math.max(1, Math.min(10_000, boxMax | 0));
@@ -144,7 +217,18 @@ export function syncPendingToSlots(
   const box = pending.splice(0, boxSlots);
   user.pendingMons = pending;
   user.updatedAt = new Date().toISOString();
-  return { party, box, remaining: pending.length };
+  return { party, box, remaining: pending.length, monballs: user.monballs };
+}
+
+export function syncPendingToSlots(
+  state,
+  username,
+  partyCount,
+  boxCount,
+  partyMax = DEFAULT_PARTY_MAX,
+  boxMax = DEFAULT_BOX_MAX
+) {
+  return syncPendingForSession(state, null, username, partyCount, boxCount, partyMax, boxMax);
 }
 
 export async function loadActivityLog(kv) {

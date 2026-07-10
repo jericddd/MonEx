@@ -13953,6 +13953,11 @@ async function syncXWildMons(silent) {
             const data = await MonExActivity.syncWild(handle, party.length, box.length, PARTY_MAX, boxMax);
             const seen = getWildPendingIds();
             let added = 0;
+            let monballsSynced = false;
+            if (typeof data.monballs === "number" && data.monballs !== monballs) {
+                monballs = data.monballs;
+                monballsSynced = true;
+            }
             for (const raw of data.party || []) {
                 if (raw.pendingId && seen.has(raw.pendingId)) continue;
                 const mon = importWildMon(raw);
@@ -13972,12 +13977,12 @@ async function syncXWildMons(silent) {
                 added++;
             }
             if (enforcePartyCap()) added = Math.max(added, 1);
-            if (added > 0) {
+            if (added > 0 || monballsSynced) {
                 saveData();
                 updateUI();
                 renderParty();
                 renderBox();
-                if (!silent) alert("Synced " + added + " mon(s) from X to Party/Box!");
+                if (!silent && added > 0) alert("Synced " + added + " mon(s) from X to Party/Box!");
             }
             if (statusEl) {
                 if (data.remaining > 0) {
