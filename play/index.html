@@ -7850,6 +7850,19 @@ let box = [];
 let boxSortMode = "ascension";
 let boxHouseFilter = null;
 let monballs = 10;
+
+function auditMonballChange(source, delta, balanceAfter, meta = {}) {
+    try {
+        console.info("[monball-audit]", {
+            source,
+            delta,
+            balanceAfter,
+            at: new Date().toISOString(),
+            user: currentUser || null,
+            ...meta,
+        });
+    } catch (_) {}
+}
 let money = 5000;
 let essence = 0;
 let monShards = 0;
@@ -8418,7 +8431,11 @@ function applyQuestGrantToResources(grant) {
     if (!grant) return;
     if (grant.gold) money = Number(money) + Number(grant.gold);
     if (grant.essence) essence = Number(essence) + Number(grant.essence);
-    if (grant.monballs) monballs = Number(monballs) + Number(grant.monballs);
+    if (grant.monballs) {
+        const before = Number(monballs);
+        monballs = before + Number(grant.monballs);
+        auditMonballChange("quest_reward", Number(grant.monballs), monballs);
+    }
     if (grant.monShards) monShards = Number(monShards) + Number(grant.monShards);
     if (grant.trainerXp) addTrainerXp(Number(grant.trainerXp));
 }
@@ -13369,12 +13386,12 @@ function calculateDamage(attacker, defender, skill) {
 // ==================== STATE MANAGEMENT ====================
 function checkDailyReset() {
     const today = getPatrolDayKey();
+    let changed = ensurePatrolDailyReset(today);
     if (lastResetDate !== today) {
-        monballs = 10;
         lastResetDate = today;
-        saveData();
+        changed = true;
     }
-    ensurePatrolDailyReset(today);
+    if (changed) saveData();
 }
 
 function getPatrolDayKey() {
@@ -13573,6 +13590,7 @@ async function refreshMonballsFromServer() {
         if (typeof data.monballs !== "number") return null;
         const serverMonballs = Math.max(0, Math.floor(Number(data.monballs) || 0));
         if (serverMonballs !== monballs) {
+            auditMonballChange("server_refresh", serverMonballs - monballs, serverMonballs, { endpoint: "/api/monballs" });
             monballs = serverMonballs;
             writeLocalSave(buildSavePayload());
             updateHeaderCurrencies();
@@ -14274,7 +14292,40 @@ function importWildMon(raw) {
     return mon;
 }
 
+function applyWildSyncMonsLegacy(data) {
+    const seen = getWildPendingIds();
+    let added = 0;
+    for (const raw of data.party || []) {
+        if (raw.pendingId && seen.has(raw.pendingId)) continue;
+        const mon = importWildMon(raw);
+        if (mon.wildPendingId) seen.add(mon.wildPendingId);
+        if (party.length >= PARTY_MAX || partyHasSpecies(mon.name)) box.push(mon);
+        else party.push(mon);
+        added++;
+    }
+    for (const raw of data.box || []) {
+        if (raw.pendingId && seen.has(raw.pendingId)) continue;
+        const mon = importWildMon(raw);
+        if (mon.wildPendingId) seen.add(mon.wildPendingId);
+        box.push(mon);
+        added++;
+    }
+    if (enforcePartyCap()) added = Math.max(added, 1);
+    return added;
+}
+
 let wildSyncInFlight = null;
+let wildSyncPollTimer = null;
+
+function startWildSyncPolling() {
+    if (wildSyncPollTimer || !currentUser) return;
+    wildSyncPollTimer = setInterval(() => {
+        if (!currentUser || document.visibilityState !== "visible") return;
+        if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return;
+        if (!resolveXHandle()) return;
+        syncXWildMons(true).catch(() => {});
+    }, 45000);
+}
 
 function saveXHandle() {
     const input = document.getElementById("x-handle-input");
@@ -14294,62 +14345,68 @@ function saveXHandle() {
 async function syncXWildMons(silent) {
     const handle = resolveXHandle();
     if (!handle || typeof MonExActivity === "undefined") return 0;
+    if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return 0;
     if (wildSyncInFlight) return wildSyncInFlight;
 
     wildSyncInFlight = (async () => {
         const statusEl = document.getElementById("profile-pending-text");
         try {
             const boxMax = Number.isFinite(STAGING_BETA_BOX_MAX) ? STAGING_BETA_BOX_MAX : 500;
-            const data = await MonExActivity.syncWild(handle, party.length, box.length, PARTY_MAX, boxMax);
-            const seen = getWildPendingIds();
-            let added = 0;
+            let totalAdded = 0;
+            let remaining = 0;
             let monballsSynced = false;
-            if (typeof data.monballs === "number") {
-                const serverMonballs = Math.max(0, Math.floor(Number(data.monballs) || 0));
-                if (serverMonballs !== monballs) {
-                    monballs = serverMonballs;
-                    monballsSynced = true;
-                }
-            }
-            for (const raw of data.party || []) {
-                if (raw.pendingId && seen.has(raw.pendingId)) continue;
-                const mon = importWildMon(raw);
-                if (mon.wildPendingId) seen.add(mon.wildPendingId);
-                if (party.length >= PARTY_MAX || partyHasSpecies(mon.name)) {
-                    box.push(mon);
+
+            for (let attempt = 0; attempt < 25; attempt++) {
+                const data = await MonExActivity.syncWild(handle, party.length, box.length, PARTY_MAX, boxMax);
+                let added = 0;
+
+                if (data.save) {
+                    const beforeCount = party.length + box.length;
+                    applyLoadedSave(data.save);
+                    writeLocalSave(data.save);
+                    added = Math.max(Number(data.added) || 0, party.length + box.length - beforeCount);
                 } else {
-                    party.push(mon);
+                    added = applyWildSyncMonsLegacy(data);
                 }
-                added++;
+
+                if (typeof data.monballs === "number") {
+                    const serverMonballs = Math.max(0, Math.floor(Number(data.monballs) || 0));
+                    if (serverMonballs !== monballs) {
+                        monballs = serverMonballs;
+                        monballsSynced = true;
+                    }
+                }
+
+                totalAdded += added;
+                remaining = Number(data.remaining) || 0;
+                if (!added && !remaining) break;
+                if (!remaining) break;
             }
-            for (const raw of data.box || []) {
-                if (raw.pendingId && seen.has(raw.pendingId)) continue;
-                const mon = importWildMon(raw);
-                if (mon.wildPendingId) seen.add(mon.wildPendingId);
-                box.push(mon);
-                added++;
+
+            if (totalAdded > 0 || monballsSynced) {
+                await persistProgress();
             }
-            if (enforcePartyCap()) added = Math.max(added, 1);
-            if (added > 0 || monballsSynced) {
-                if (monballsSynced) void persistProgress();
-                else saveData();
-                updateUI();
-                renderParty();
-                renderBox();
-                if (!silent && added > 0) alert("Synced " + added + " mon(s) from X to Party/Box!");
+
+            updateUI();
+            renderParty();
+            renderBox();
+
+            if (!silent && totalAdded > 0) {
+                alert("Synced " + totalAdded + " MonAnimal(s) from X to your collection!");
             }
+
             if (statusEl) {
-                if (data.remaining > 0) {
-                    statusEl.textContent = added
-                        ? "Synced " + added + " mon(s). " + data.remaining + " still waiting (Party/Box full)."
-                        : data.remaining + " mon(s) waiting — free a Party or Box slot.";
-                } else if (added > 0) {
-                    statusEl.textContent = "All X catches synced to Party/Box.";
+                if (remaining > 0) {
+                    statusEl.textContent = totalAdded
+                        ? "Synced " + totalAdded + " MonAnimal(s). " + remaining + " still waiting — free Party/Box space."
+                        : remaining + " MonAnimal(s) waiting to sync — open Box or free a Party slot.";
+                } else if (totalAdded > 0) {
+                    statusEl.textContent = "All X catches are in your Party/Box.";
                 } else {
-                    statusEl.textContent = "Linked as @" + handle + " — new X catches appear automatically.";
+                    statusEl.textContent = "Linked as @" + handle + " — new X catches sync automatically.";
                 }
             }
-            return added;
+            return totalAdded;
         } catch (e) {
             if (statusEl) statusEl.textContent = "Could not reach Cloudflare API. Check js/monex-config.js URL.";
             return 0;
@@ -15052,10 +15109,11 @@ function ensureLegendaryBoxRoster() {
 
 function attemptCatch() {
     if (monballs <= 0) {
-        alert("No monballs left! (Resets daily at 00:00 UTC)");
+        alert("No monballs left! Claim Daily Login in Mailbox or earn more from quests.");
         return;
     }
     monballs--;
+    auditMonballChange("in_game_catch", -1, monballs);
 
     const name = MONANIMAL_NAMES[Math.floor(Math.random() * MONANIMAL_NAMES.length)];
     const rarity = getRarityRoll();
@@ -16025,6 +16083,7 @@ window.onload = async function() {
         if (wrap && !wrap.contains(e.target)) closeBoxSortMenu();
     });
     await checkLogin();
+    startWildSyncPolling();
     if (sessionStorage.getItem("monex_open_profile")) {
         sessionStorage.removeItem("monex_open_profile");
         openGameModal("profile");

@@ -143,6 +143,41 @@ describe("backfillPendingForUser", () => {
     assert.equal(result.save.party.length, 1);
     assert.equal(state.users["42"].pendingMons.length, 0);
   });
+
+  it("persists all pending mons into save party/box in one pass", () => {
+    const state = makeState({
+      "42": {
+        username: "trainer",
+        monballs: 10,
+        pendingMons: [
+          { name: "Chog", rarity: "Rare", level: 1, skills: [{ name: "Slash", type: "active", power: 1 }], pendingId: "p_a" },
+          { name: "Mouch", rarity: "Common", level: 1, skills: [{ name: "Slash", type: "active", power: 1 }], pendingId: "p_b" },
+          { name: "Anago", rarity: "Uncommon", level: 1, skills: [{ name: "Slash", type: "active", power: 1 }], pendingId: "p_c" },
+        ],
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+    });
+
+    const save = {
+      party: [{ name: "Chog", rarity: "Legendary", level: 5, skills: [{ name: "Slash", type: "active", power: 1 }], max_hp: 100, current_hp: 100 }],
+      box: [],
+      monballs: 10,
+      xHandle: "trainer",
+    };
+
+    const result = backfillPendingForUser(state, {
+      xUserId: "42",
+      username: "trainer",
+      save,
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.added, 3);
+    assert.equal(result.save.party.length, 3);
+    assert.equal(result.save.box.length, 1);
+    assert.equal(result.remaining, 0);
+    assert.equal(state.users["42"].pendingMons.length, 0);
+  });
 });
 
 describe("applySyncedMonsToSave", () => {

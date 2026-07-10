@@ -121,6 +121,8 @@ export function backfillPendingForUser(
     partyMax = GAME_PARTY_MAX,
     boxMax = GAME_BOX_MAX,
     startingMonballs = 10,
+    partyCount = null,
+    boxCount = null,
   } = {}
 ) {
   const uname = cleanUsername(username);
@@ -132,18 +134,23 @@ export function backfillPendingForUser(
       save,
       addedParty: 0,
       addedBox: 0,
+      added: 0,
       remaining: 0,
       monballs: null,
+      syncedParty: [],
+      syncedBox: [],
     };
   }
 
   const pendingBefore = catchUser.pendingMons?.length || 0;
+  const effectivePartyCount = partyCount ?? save?.party?.length ?? 0;
+  const effectiveBoxCount = boxCount ?? save?.box?.length ?? 0;
   const slots = syncPendingForSession(
     state,
     xUserId,
     uname,
-    save?.party?.length || 0,
-    save?.box?.length || 0,
+    effectivePartyCount,
+    effectiveBoxCount,
     partyMax,
     boxMax,
     startingMonballs
@@ -170,5 +177,7 @@ export function backfillPendingForUser(
     remaining: slots.remaining,
     pendingBefore,
     monballs: mergedMonballs,
+    syncedParty: slots.party,
+    syncedBox: slots.box,
   };
 }

@@ -13,8 +13,13 @@ export function getUser(state, xUserId, username, startingMonballs) {
 }
 
 export function addPendingMons(user, mons) {
+  const batchAt = new Date().toISOString();
   user.pendingMons.push(
-    ...mons.map((m) => ({ ...m, caughtAt: new Date().toISOString() }))
+    ...mons.map((m) => ({
+      ...m,
+      pendingId: m.pendingId || `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      caughtAt: batchAt,
+    }))
   );
-  user.updatedAt = new Date().toISOString();
+  user.updatedAt = batchAt;
 }

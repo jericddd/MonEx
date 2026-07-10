@@ -1,6 +1,7 @@
 import { loadState, saveState, resolveCatchUser } from "../kv-store.js";
 import { loadCloudSave, writeCloudSave } from "./save.js";
 import { clampMonballs, mergeMonballBalances } from "./grant-monballs.js";
+import { appendMonballAudit } from "./monball-audit.js";
 
 /**
  * Authoritative monball count across catch state and cloud save.
@@ -16,12 +17,13 @@ export async function getAuthoritativeMonballs(kv, xUserId, username, startingMo
  * After an X catch session, mirror catch-state balance into cloud save so the
  * game UI and catch log stay aligned.
  */
-export async function syncSaveMonballsAfterCatch(kv, xUserId, username, monballsLeft, startingMonballs = 10) {
+export async function syncSaveMonballsAfterCatch(kv, xUserId, username, monballsLeft, startingMonballs = 10, auditMeta = {}) {
   if (!xUserId) return null;
   const left = clampMonballs(monballsLeft);
   const now = new Date().toISOString();
 
   const { save } = await loadCloudSave(kv, xUserId);
+  const before = clampMonballs(save.monballs ?? 0);
   const nextSave = {
     ...save,
     monballs: left,
@@ -29,6 +31,16 @@ export async function syncSaveMonballsAfterCatch(kv, xUserId, username, monballs
     updatedAt: now,
   };
   await writeCloudSave(kv, xUserId, nextSave, { skipStaleCheck: true });
+  if (before !== left) {
+    await appendMonballAudit(kv, {
+      xUserId,
+      username,
+      source: "x_catch",
+      delta: left - before,
+      balanceAfter: left,
+      meta: { pool: "cloud_save", ...auditMeta },
+    });
+  }
   return left;
 }
 
@@ -47,6 +59,7 @@ export async function reconcileMonballsForCloudSave(kv, session, payload, starti
 
   let merged = resolveMergedMonballs(catchUser, existingSave, catchMonballs);
   const incoming = clampMonballs(payload.monballs ?? 0);
+  const persistedMonballs = existingMonballs;
 
   if (incoming < merged) {
     merged = incoming;
@@ -64,6 +77,22 @@ export async function reconcileMonballsForCloudSave(kv, session, payload, starti
     catchUser.monballs = merged;
     catchUser.updatedAt = now;
     await saveState(kv, state);
+  }
+
+  if (merged !== persistedMonballs) {
+    await appendMonballAudit(kv, {
+      xUserId: session.xUserId,
+      username: session.username,
+      source: "save_reconcile",
+      delta: merged - persistedMonballs,
+      balanceAfter: merged,
+      meta: {
+        pool: "cloud_save",
+        catchMonballs,
+        persistedMonballs,
+        incoming,
+      },
+    });
   }
 
   return payload;

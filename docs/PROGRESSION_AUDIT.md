@@ -36,7 +36,7 @@ Progress flows: **client mutates → `saveData()` (local + debounced cloud) → 
 | **Party/box switches** | `switchPartyMon`, `switchBoxMon`, etc. | `saveData` |
 | **Mailbox claim** | `claimMailboxReward` | server write + `flushSaveToCloud` |
 | **X wild sync** | `syncXWildMons` | server `/api/sync` + `persistProgress` when monballs change |
-| **Daily quest reset** | `checkDailyReset`, `ensureQuestResets` | `saveData` when changed |
+| **Daily quest reset** | `checkDailyReset` (patrol only), `ensureQuestResets` | `saveData` when changed |
 | **Cloud conflict** | `handleCloudSaveConflict` | `mergeSaveSnapshots` + re-save |
 | **Load / login** | `loadData` | merge local+cloud, sync merged to cloud |
 
@@ -106,7 +106,12 @@ Progress flows: **client mutates → `saveData()` (local + debounced cloud) → 
 8. **Patrol daily reset not persisted** — fixed; also used **UTC+8** instead of UTC (reset at 16:00 UTC). Now uses `js/patrol-reset.js` with 00:00 UTC.
    *Fix:* `ensurePatrolDailyReset` returns changed flag; save on load and before scans.
 
-9. **Team arrange drag didn't save party order**  
+9. **`checkDailyReset()` granted 10 MonBalls at UTC midnight**  
+   *Symptom:* Player spends all MonBalls (e.g. 30 → 0) but sees 10 after date rollover or reload.  
+   *Root cause:* Client `checkDailyReset()` set `monballs = 10` whenever `lastResetDate` changed — conflated patrol day rollover with a free MonBall stipend (`STARTING_MONBALLS`).  
+   *Fix:* Daily reset now only updates patrol scan counters and `lastResetDate`; MonBalls change only via legitimate rewards/spends. Misleading “Resets daily at 00:00 UTC” catch alert removed.
+
+10. **Team arrange drag didn't save party order**  
    *Fix:* `saveData()` after reorder.
 
 ### Remaining known limitations
@@ -129,6 +134,7 @@ Progress flows: **client mutates → `saveData()` (local + debounced cloud) → 
 - **`pickNewerSaveScalar` / `mergeMonsterInventories`** — safer client-side conflict merge.
 - **Tests** — `save-reconcile.test.js` in `npm test`; backfill-pending test validates catch-priority.
 - **409 conflict handler** — merges instead of blind overwrite; re-schedules cloud push.
+- **MonBall audit log** — `monball-audit.js` records every server-side balance change (`source`, `delta`, `balanceAfter`, `at`) to KV `monex:monball-audit:{xUserId}` and Workers console. Client logs `[monball-audit]` to browser console on quest grants, in-game catches, and server refresh.
 
 ---
 
@@ -140,7 +146,8 @@ Progress flows: **client mutates → `saveData()` (local + debounced cloud) → 
 - [x] X catch spend respected when catch state newer
 - [x] In-game monball spend respected when save newer
 - [x] Quest `grantedKeys` union prevents duplicate claims
-- [x] `PUT /api/save` rejects stale `updatedAt` (409 → client merge)
+- [x] MonBall balance does not reset to 10 at UTC midnight (`checkDailyReset` patrol-only)
+- [x] MonBall audit trail on server (KV + console) and client (console)
 - [ ] Manual QA: two-browser conflict test (recommended before deploy)
 
 ---
