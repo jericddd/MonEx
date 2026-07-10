@@ -7850,6 +7850,19 @@ let box = [];
 let boxSortMode = "ascension";
 let boxHouseFilter = null;
 let monballs = 10;
+
+function auditMonballChange(source, delta, balanceAfter, meta = {}) {
+    try {
+        console.info("[monball-audit]", {
+            source,
+            delta,
+            balanceAfter,
+            at: new Date().toISOString(),
+            user: currentUser || null,
+            ...meta,
+        });
+    } catch (_) {}
+}
 let money = 5000;
 let essence = 0;
 let monShards = 0;
@@ -8418,7 +8431,11 @@ function applyQuestGrantToResources(grant) {
     if (!grant) return;
     if (grant.gold) money = Number(money) + Number(grant.gold);
     if (grant.essence) essence = Number(essence) + Number(grant.essence);
-    if (grant.monballs) monballs = Number(monballs) + Number(grant.monballs);
+    if (grant.monballs) {
+        const before = Number(monballs);
+        monballs = before + Number(grant.monballs);
+        auditMonballChange("quest_reward", Number(grant.monballs), monballs);
+    }
     if (grant.monShards) monShards = Number(monShards) + Number(grant.monShards);
     if (grant.trainerXp) addTrainerXp(Number(grant.trainerXp));
 }
@@ -13369,12 +13386,12 @@ function calculateDamage(attacker, defender, skill) {
 // ==================== STATE MANAGEMENT ====================
 function checkDailyReset() {
     const today = getPatrolDayKey();
+    let changed = ensurePatrolDailyReset(today);
     if (lastResetDate !== today) {
-        monballs = 10;
         lastResetDate = today;
-        saveData();
+        changed = true;
     }
-    ensurePatrolDailyReset(today);
+    if (changed) saveData();
 }
 
 function getPatrolDayKey() {
@@ -13573,6 +13590,7 @@ async function refreshMonballsFromServer() {
         if (typeof data.monballs !== "number") return null;
         const serverMonballs = Math.max(0, Math.floor(Number(data.monballs) || 0));
         if (serverMonballs !== monballs) {
+            auditMonballChange("server_refresh", serverMonballs - monballs, serverMonballs, { endpoint: "/api/monballs" });
             monballs = serverMonballs;
             writeLocalSave(buildSavePayload());
             updateHeaderCurrencies();
@@ -15091,10 +15109,11 @@ function ensureLegendaryBoxRoster() {
 
 function attemptCatch() {
     if (monballs <= 0) {
-        alert("No monballs left! (Resets daily at 00:00 UTC)");
+        alert("No monballs left! Claim Daily Login in Mailbox or earn more from quests.");
         return;
     }
     monballs--;
+    auditMonballChange("in_game_catch", -1, monballs);
 
     const name = MONANIMAL_NAMES[Math.floor(Math.random() * MONANIMAL_NAMES.length)];
     const rarity = getRarityRoll();

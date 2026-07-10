@@ -1,5 +1,6 @@
 import { loadState, saveState, resolveCatchUser } from "../kv-store.js";
 import { loadCloudSave, writeCloudSave } from "./save.js";
+import { appendMonballAudit } from "./monball-audit.js";
 
 const SAVE_PREFIX = "monex:save:";
 const SESSION_PREFIX = "monex:session:";
@@ -13,15 +14,24 @@ export function clampMonballs(n) {
   return Math.max(0, Math.min(MONBALL_MAX, Math.floor(Number(n) || 0)));
 }
 
-export async function creditCatchMonballs(kv, session, delta, startingMonballs = 10) {
+export async function creditCatchMonballs(kv, session, delta, startingMonballs = 10, auditSource = "credit") {
   const amount = clampMonballs(delta);
   if (!amount || !session?.xUserId) return null;
   const state = await loadState(kv);
   const user = resolveCatchUser(state, session.xUserId, session.username, startingMonballs);
   if (!user) return null;
-  user.monballs = clampMonballs((user.monballs ?? 0) + amount);
+  const before = clampMonballs(user.monballs ?? 0);
+  user.monballs = clampMonballs(before + amount);
   user.updatedAt = new Date().toISOString();
   await saveState(kv, state);
+  await appendMonballAudit(kv, {
+    xUserId: session.xUserId,
+    username: session.username,
+    source: auditSource,
+    delta: amount,
+    balanceAfter: user.monballs,
+    meta: { pool: "catch" },
+  });
   return user.monballs;
 }
 
@@ -40,6 +50,14 @@ export async function alignCatchMonballsToMerged(kv, session, mergedMonballs, st
     user.monballs = target;
     user.updatedAt = new Date().toISOString();
     await saveState(kv, state);
+    await appendMonballAudit(kv, {
+      xUserId: session.xUserId,
+      username: session.username,
+      source: "catch_align",
+      delta: target - current,
+      balanceAfter: target,
+      meta: { pool: "catch" },
+    });
   }
   return target;
 }
@@ -134,6 +152,20 @@ export async function grantMonballs(kv, username, amount, startingMonballs = 10)
     updatedAt: new Date().toISOString(),
   };
   await writeCloudSave(kv, xUserId, nextSave, { skipStaleCheck: true });
+
+  await appendMonballAudit(kv, {
+    xUserId,
+    username: target,
+    source: "admin_grant",
+    delta: grant,
+    balanceAfter: saveAfter,
+    meta: {
+      pool: "cloud_save",
+      catchBefore,
+      catchAfter,
+      saveBefore,
+    },
+  });
 
   return {
     ok: true,

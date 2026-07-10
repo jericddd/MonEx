@@ -46,6 +46,7 @@ import {
 import { loadCloudSave, writeCloudSave, buildSavePayload } from "./lib/save.js";
 import { grantMonballs, alignCatchMonballsToMerged } from "./lib/grant-monballs.js";
 import { resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsAfterCatch, getAuthoritativeMonballs } from "./lib/save-reconcile.js";
+import { appendMonballAudit } from "./lib/monball-audit.js";
 import { backfillPendingForUser } from "./lib/backfill-pending.js";
 import {
   buildCorsHeaders,
@@ -94,7 +95,22 @@ async function handleSimulate(body, env, request) {
   );
   if (result.activity) await appendActivity(env.MONEX_KV, result.activity);
   if (result.activity?.monballsLeft != null && authorId) {
-    await syncSaveMonballsAfterCatch(env.MONEX_KV, authorId, username, result.activity.monballsLeft, starting);
+    await appendMonballAudit(env.MONEX_KV, {
+      xUserId: authorId,
+      username,
+      source: "x_catch_spend",
+      delta: -(result.activity.spend || 0),
+      balanceAfter: result.activity.monballsLeft,
+      meta: { pool: "catch", tweetId },
+    });
+    await syncSaveMonballsAfterCatch(
+      env.MONEX_KV,
+      authorId,
+      username,
+      result.activity.monballsLeft,
+      starting,
+      { spend: result.activity.spend, tweetId }
+    );
   }
   await saveState(env.MONEX_KV, state);
 
@@ -196,13 +212,22 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
 
       const result = processMentionTweet(tweet, bot, state, starting, botUser.id);
       if (result.activity) {
+        await appendMonballAudit(env.MONEX_KV, {
+          xUserId: tweet.authorId,
+          username: tweet.username,
+          source: "x_catch_spend",
+          delta: -(result.activity.spend || 0),
+          balanceAfter: result.activity.monballsLeft,
+          meta: { pool: "catch", tweetId: tweet.id },
+        });
         await appendActivity(env.MONEX_KV, result.activity);
         await syncSaveMonballsAfterCatch(
           env.MONEX_KV,
           tweet.authorId,
           tweet.username,
           result.activity.monballsLeft,
-          starting
+          starting,
+          { spend: result.activity.spend, tweetId: tweet.id }
         );
         status.activities += 1;
       } else if (result.skipReason) {

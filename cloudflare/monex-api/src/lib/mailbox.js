@@ -1,5 +1,6 @@
 import { loadCloudSave, writeCloudSave, buildSavePayload } from "./save.js";
 import { creditCatchMonballs } from "./grant-monballs.js";
+import { appendMonballAudit } from "./monball-audit.js";
 
 export const DAILY_LOGIN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 export const DAILY_LOGIN_REWARD_MONBALLS = 5;
@@ -118,7 +119,15 @@ export async function claimMailboxItem(kv, session, mailId) {
 
   const monballsDelta = monballs - monballsBefore;
   if (monballsDelta > 0) {
-    await creditCatchMonballs(kv, session, monballsDelta);
+    await creditCatchMonballs(kv, session, monballsDelta, 10, "mailbox_claim");
+    await appendMonballAudit(kv, {
+      xUserId: session.xUserId,
+      username: session.username,
+      source: "mailbox_claim",
+      delta: monballsDelta,
+      balanceAfter: monballs,
+      meta: { mailId: id, mailType: item.type, pool: "cloud_save" },
+    });
   }
 
   item.claimedAt = new Date(now).toISOString();
