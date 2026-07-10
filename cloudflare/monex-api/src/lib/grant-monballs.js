@@ -36,12 +36,12 @@ export async function alignCatchMonballsToMerged(kv, session, mergedMonballs, st
   const user = resolveCatchUser(state, session.xUserId, session.username, startingMonballs);
   if (!user) return target;
   const current = clampMonballs(user.monballs ?? 0);
-  if (target > current) {
+  if (current !== target) {
     user.monballs = target;
     user.updatedAt = new Date().toISOString();
     await saveState(kv, state);
   }
-  return Math.max(current, target);
+  return target;
 }
 
 export function findUserIdInState(state, username) {

@@ -8581,11 +8581,7 @@ function grantQuestReward(grant, grantKey) {
 }
 
 async function persistQuestClaim() {
-    if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
-        try {
-            await flushSaveToCloud();
-        } catch (_) {}
-    }
+    await persistProgress();
 }
 
 function grantBattleRewards(reward) {
@@ -8600,13 +8596,7 @@ function grantBattleRewards(reward) {
 }
 
 async function persistBattleReward() {
-    saveData();
-    updateHeaderCurrencies();
-    if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
-        try {
-            await flushSaveToCloud();
-        } catch (_) {}
-    }
+    await persistProgress();
 }
 
 function describeQuestChestGrant(grant) {
@@ -8647,8 +8637,6 @@ function grantTrainerLevelReward(level) {
         monShards += 1;
         extras += " + 1 Shard";
     }
-    saveData();
-    updateUI();
     showHubNotice(`Trainer Level ${level}!<br>+${goldBonus} Gold${extras}`, "LEVEL UP");
 }
 
@@ -8802,13 +8790,11 @@ function collectResourceChest() {
     bumpQuestProgress("resource_collect", 1);
     if (gear) {
         gearInventory.push(gear);
-        saveData();
         setTimeout(() => alert("Bonus gear found: " + gear.name + "!"), 320);
     }
 
     resourceChestLastCollectAt = Date.now();
-    saveData();
-    updateResourceChestWidget();
+    void persistProgress().then(() => updateResourceChestWidget());
 }
 
 function renderResourceChestModal() {
@@ -11271,6 +11257,8 @@ function addTrainerXp(amount) {
                 trainerRewardLevel = lv;
             }
         }
+        void persistProgress();
+        updateUI();
     }
 }
 
@@ -12269,7 +12257,7 @@ async function runArmoryForgeAction(workFn) {
         armoryForgeResult = { ok: false, text: String(err?.message || "Action failed.") };
     }
     armoryForgeBusy = false;
-    saveData();
+    void persistProgress();
     updateUI();
     renderArmoryPane();
     renderInventory();
@@ -12750,8 +12738,7 @@ function confirmHeroAscensionSkill(location, monIndex, optionIndex) {
     delete mon.ascensionSkillFreePick;
     repairAscensionSkillState(mon);
     closeAscensionSkillPicker();
-    saveData();
-    if (typeof flushSaveToCloud === "function") flushSaveToCloud().catch(() => {});
+    void persistProgress();
     updateUI();
     renderArmoryPane();
     alert(`${mon.name} learned ${skill.name}!`);
@@ -13017,7 +13004,7 @@ function ascendMonRarity(index) {
     syncUltimateFromSkills(mon);
     refreshMonDerivedStats(mon);
     mon.current_hp = mon.max_hp;
-    saveData();
+    void persistProgress();
     updateUI();
     alert(mon.name + " ascended to " + next + "! New level cap: " + getLevelCap(mon));
 }
@@ -13400,7 +13387,9 @@ function ensurePatrolDailyReset(todayKey) {
     if (patrolScansDay !== today) {
         patrolScansUsed = 0;
         patrolScansDay = today;
+        return true;
     }
+    return false;
 }
 
 function getPatrolScansRemaining() {
@@ -13524,6 +13513,64 @@ function getSaveTimestamp(data) {
     return Number.isFinite(ts) ? ts : 0;
 }
 
+function pickNewerSaveScalar(local, cloud, field, fallback = 0) {
+    const localTs = getSaveTimestamp(local);
+    const cloudTs = getSaveTimestamp(cloud);
+    if (cloudTs > localTs) return Number(cloud[field]) || fallback;
+    if (localTs > cloudTs) return Number(local[field]) || fallback;
+    return Math.max(Number(local[field]) || fallback, Number(cloud[field]) || fallback);
+}
+
+function monCollectionKey(mon) {
+    if (!mon?.name) return "";
+    return [
+        mon.name,
+        mon.rarity || "",
+        Math.floor(mon.level || 1),
+        mon.ascensionStars || 0,
+    ].join("|");
+}
+
+function countMonFingerprints(list) {
+    const counts = new Map();
+    (list || []).forEach((mon) => {
+        const key = monCollectionKey(mon);
+        if (!key) return;
+        counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    return counts;
+}
+
+function mergeMonsterInventories(newerParty, newerBox, olderParty, olderBox) {
+    const newerAll = [...(newerParty || []), ...(newerBox || [])];
+    const olderAll = [...(olderParty || []), ...(olderBox || [])];
+    const newerCounts = countMonFingerprints(newerAll);
+    const olderCounts = countMonFingerprints(olderAll);
+    const box = [...(newerBox || [])];
+
+    olderCounts.forEach((oldCount, fp) => {
+        const newCount = newerCounts.get(fp) || 0;
+        if (oldCount <= newCount) return;
+        const extras = (olderBox || []).filter((mon) => monCollectionKey(mon) === fp);
+        for (let i = 0; i < oldCount - newCount; i++) {
+            if (extras[i]) box.push(extras[i]);
+        }
+    });
+
+    return { party: [...(newerParty || [])], box };
+}
+
+async function persistProgress(options = {}) {
+    const { flush = true } = options;
+    saveData();
+    updateHeaderCurrencies();
+    if (flush && typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+        try {
+            await flushSaveToCloud();
+        } catch (_) {}
+    }
+}
+
 window.handleCloudSaveConflict = function handleCloudSaveConflict(cloudSave) {
     if (!cloudSave || typeof cloudSave !== "object") return;
     const localData = readLocalSaveData();
@@ -13550,15 +13597,19 @@ function mergeSaveSnapshots(local, cloud) {
     const older = cloudTs >= localTs ? local : cloud;
     const merged = { ...newer };
 
-    merged.money = Math.max(Number(older.money) || 0, Number(newer.money) || 0);
-    merged.essence = Math.max(Number(older.essence) || 0, Number(newer.essence) || 0);
-    merged.monballs = Math.max(Number(older.monballs) || 0, Number(newer.monballs) || 0);
-    merged.monShards = Math.max(Number(older.monShards) || 0, Number(newer.monShards) || 0);
-    merged.trainerXp = Math.max(Number(older.trainerXp) || 0, Number(newer.trainerXp) || 0);
+    merged.money = pickNewerSaveScalar(local, cloud, "money");
+    merged.essence = pickNewerSaveScalar(local, cloud, "essence");
+    merged.monballs = pickNewerSaveScalar(local, cloud, "monballs");
+    merged.monShards = pickNewerSaveScalar(local, cloud, "monShards");
+    merged.trainerXp = pickNewerSaveScalar(local, cloud, "trainerXp");
     merged.trainerRewardLevel = Math.max(
-        Number(older.trainerRewardLevel) || 1,
-        Number(newer.trainerRewardLevel) || 1
+        Number(local.trainerRewardLevel) || 1,
+        Number(cloud.trainerRewardLevel) || 1
     );
+
+    const inv = mergeMonsterInventories(newer.party, newer.box, older.party, older.box);
+    merged.party = inv.party;
+    merged.box = inv.box;
 
     const localQuest = normalizeQuestState(local.questState);
     const cloudQuest = normalizeQuestState(cloud.questState);
@@ -13665,7 +13716,7 @@ function applyLoadedSave(data) {
     loadResourceChestTimestamp(data, false);
     patrolScansUsed = data.patrolScansUsed ?? 0;
     patrolScansDay = data.patrolScansDay || null;
-    ensurePatrolDailyReset();
+    if (ensurePatrolDailyReset()) saveData();
     questState = normalizeQuestState(data.questState);
     ensureQuestResets();
     mailbox = Array.isArray(data.mailbox) ? data.mailbox : [];
@@ -13706,18 +13757,9 @@ async function loadData() {
     let shouldSyncCloud = false;
     let shouldPersistLocal = false;
     if (localData && cloudData) {
-        const localTs = getSaveTimestamp(localData);
-        const cloudTs = getSaveTimestamp(cloudData);
-        if (cloudTs > localTs) {
-            data = cloudData;
-            shouldPersistLocal = true;
-        } else if (localTs > cloudTs) {
-            data = localData;
-            shouldSyncCloud = true;
-        } else {
-            data = cloudData;
-            shouldPersistLocal = true;
-        }
+        data = mergeSaveSnapshots(localData, cloudData);
+        shouldPersistLocal = true;
+        shouldSyncCloud = true;
     } else if (cloudData) {
         data = cloudData;
         shouldPersistLocal = true;
@@ -13995,7 +14037,7 @@ function executeShopPurchase(item, qty) {
     spendCost(totalCost);
     grantShopItem(item, qty);
     bumpQuestProgress("shop_buy", qty);
-    saveData();
+    void persistProgress();
     updateUI();
     if (typeof renderShop === "function") renderShop();
     return true;
@@ -14119,7 +14161,7 @@ function levelUpMonManual(index) {
     levelUpMon(mon);
     mon.current_hp = mon.max_hp; // leveling up fully heals
     bumpQuestProgress("mon_level_up", 1);
-    saveData();
+    void persistProgress();
     updateUI();
 }
 
@@ -14232,9 +14274,9 @@ async function syncXWildMons(silent) {
             let added = 0;
             let monballsSynced = false;
             if (typeof data.monballs === "number") {
-                const merged = Math.max(Number(monballs) || 0, Number(data.monballs) || 0);
-                if (merged !== monballs) {
-                    monballs = merged;
+                const serverMonballs = Math.max(0, Math.floor(Number(data.monballs) || 0));
+                if (serverMonballs !== monballs) {
+                    monballs = serverMonballs;
                     monballsSynced = true;
                 }
             }
@@ -14258,7 +14300,8 @@ async function syncXWildMons(silent) {
             }
             if (enforcePartyCap()) added = Math.max(added, 1);
             if (added > 0 || monballsSynced) {
-                saveData();
+                if (monballsSynced) void persistProgress();
+                else saveData();
                 updateUI();
                 renderParty();
                 renderBox();
@@ -14690,7 +14733,7 @@ function releaseFromBox(index) {
         if (salvage.essence > 0) essence += salvage.essence;
         if (salvage.shards > 0) monShards += salvage.shards;
         box.splice(index, 1);
-        saveData();
+        void persistProgress();
         updateUI();
         renderBox();
     });
@@ -15667,7 +15710,7 @@ function beginPatrolScan() {
         return;
     }
     if (!isStagingTestUser()) patrolScansUsed++;
-    saveData();
+    void persistProgress();
 
     void warmPatrolBattleAssets();
     const encounter = rollPatrolEncounter();
@@ -16055,6 +16098,7 @@ function renderTeamArrangement() {
 
             if (fromIndex !== toIndex) {
                 [party[fromIndex], party[toIndex]] = [party[toIndex], party[fromIndex]];
+                saveData();
                 renderTeamArrangement();
             }
         });

@@ -2,6 +2,7 @@ import {
   resolveCatchUser,
   syncPendingForSession,
 } from "../kv-store.js";
+import { resolveMergedMonballs } from "./save-reconcile.js";
 import { sanitizeMon, validateAndSanitizeSave } from "./save-validate.js";
 
 export const GAME_PARTY_MAX = 3;
@@ -149,10 +150,11 @@ export function backfillPendingForUser(
   );
 
   const applied = applySyncedMonsToSave(save, slots.party, slots.box);
+  const mergedMonballs = resolveMergedMonballs(catchUser, save, slots.monballs);
   const nextSave = validateAndSanitizeSave(
     {
       ...applied.save,
-      monballs: typeof slots.monballs === "number" ? slots.monballs : save?.monballs,
+      monballs: mergedMonballs,
       xHandle: save?.xHandle || uname,
       updatedAt: new Date().toISOString(),
     },
@@ -167,6 +169,6 @@ export function backfillPendingForUser(
     added: applied.addedParty + applied.addedBox,
     remaining: slots.remaining,
     pendingBefore,
-    monballs: slots.monballs,
+    monballs: mergedMonballs,
   };
 }

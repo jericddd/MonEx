@@ -45,6 +45,7 @@ import {
 } from "./lib/auth.js";
 import { loadCloudSave, writeCloudSave, buildSavePayload } from "./lib/save.js";
 import { grantMonballs, clampMonballs, mergeMonballBalances, alignCatchMonballsToMerged } from "./lib/grant-monballs.js";
+import { alignCatchMonballsToSave, resolveMergedMonballs } from "./lib/save-reconcile.js";
 import {
   buildCorsHeaders,
   enforceRateLimit,
@@ -531,7 +532,9 @@ async function handleRequest(request, env) {
       await enforceRateLimit(request, env, "save-put", { limit: 120, windowSec: 60 });
       const body = await request.json();
       const payload = buildSavePayload(body?.save || body, auth.session);
+      const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
       try {
+        await alignCatchMonballsToSave(env.MONEX_KV, auth.session, payload.monballs, starting);
         await writeCloudSave(env.MONEX_KV, auth.session.xUserId, payload);
       } catch (err) {
         if (err?.code === "stale_save") {
@@ -619,7 +622,9 @@ async function handleRequest(request, env) {
       let mergedMonballs = null;
       if (typeof result.monballs === "number" && xUserId) {
         const { save } = await loadCloudSave(env.MONEX_KV, xUserId);
-        mergedMonballs = mergeMonballBalances(result.monballs, save.monballs ?? 0);
+        const state = await loadState(env.MONEX_KV);
+        const catchUser = resolveCatchUser(state, xUserId, username, starting);
+        mergedMonballs = resolveMergedMonballs(catchUser, save, result.monballs);
         await alignCatchMonballsToMerged(env.MONEX_KV, auth.session, mergedMonballs, starting);
         const nextSave = {
           ...save,
