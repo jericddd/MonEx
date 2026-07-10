@@ -20,6 +20,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: cloudflare/monex-api/package-lock.json
+
+      - name: Install API deps
+        working-directory: cloudflare/monex-api
+        run: npm ci
+
+      - name: Run API + client tests
+        working-directory: cloudflare/monex-api
+        run: npm test
+
       - name: Prepare static site
         run: bash scripts/prepare-staging-site.sh
 

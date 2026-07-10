@@ -7381,14 +7381,14 @@ body.cloud-load-blocked .game-shell {
     </div>
 </div>
 
-<script src="js/patrol-reset.js"></script>
-<script src="js/staging-banner.js"></script>
-<script src="js/monex-config.js"></script>
-<script src="js/escape-html.js"></script>
-<script src="js/activity-client.js"></script>
-<script src="js/auth-client.js"></script>
-<script src="js/game-session-client.js"></script>
-<script src="js/mailbox-client.js"></script>
+<script src="js/patrol-reset.js?v=20260710a"></script>
+<script src="js/staging-banner.js?v=20260710a"></script>
+<script src="js/monex-config.js?v=20260710a"></script>
+<script src="js/escape-html.js?v=20260710a"></script>
+<script src="js/activity-client.js?v=20260710a"></script>
+<script src="js/auth-client.js?v=20260710a"></script>
+<script src="js/game-session-client.js?v=20260710a"></script>
+<script src="js/mailbox-client.js?v=20260710a"></script>
 <script>
 // =====================================================
 // MONEX - CLEAN ORGANIZED STRUCTURE
@@ -13715,7 +13715,15 @@ function buildSavePayload() {
     };
 }
 
+function isGameSessionSuperseded() {
+    return !!(window.MonExGameSession?.isSuperseded && window.MonExGameSession.isSuperseded());
+}
+
 function writeLocalSave(payload) {
+    // A superseded tab (a newer tab/device took over) must never touch the
+    // shared per-account localStorage — it would clobber the active tab's
+    // progress with its own stale in-memory state.
+    if (isGameSessionSuperseded()) return;
     const key = getSaveStorageKey();
     if (!key || !payload) return;
     localStorage.setItem(key, JSON.stringify(payload));
@@ -13723,6 +13731,7 @@ function writeLocalSave(payload) {
 
 function flushSaveToCloud() {
     if (!currentUser || typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return;
+    if (isGameSessionSuperseded()) return;
     const payload = buildSavePayload();
     writeLocalSave(payload);
     return MonExAuth.flushCloudSave(payload);
@@ -15555,9 +15564,10 @@ function renderMailbox() {
         const reward = describeMailboxReward(item);
         const safeTitle = typeof escapeHtml === "function" ? escapeHtml(item.title || "Mail") : (item.title || "Mail");
         const safeBody = typeof escapeHtml === "function" ? escapeHtml(item.body || reward) : (item.body || reward);
+        const safeId = typeof escapeHtml === "function" ? escapeHtml(String(item.id)) : String(item.id);
         const btn = claimed
             ? '<button type="button" class="mailbox-claim-btn" disabled>CLAIMED</button>'
-            : `<button type="button" class="mailbox-claim-btn" onclick="claimMailboxReward('${String(item.id).replace(/'/g, "\\'")}')">CLAIM</button>`;
+            : `<button type="button" class="mailbox-claim-btn" data-mail-id="${safeId}" onclick="claimMailboxReward(this.getAttribute('data-mail-id'))">CLAIM</button>`;
         return `<div class="mailbox-item${claimed ? " claimed" : ""}">
             <div>
                 <p class="mailbox-item-title">${safeTitle}</p>

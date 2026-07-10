@@ -19,10 +19,27 @@ export async function loadCloudSave(kv, xUserId, options = {}) {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return { found: false, save: { ...DEFAULT_SAVE } };
+    // A key EXISTS but is unreadable. This is corruption, NOT a new account.
+    // Signal it distinctly so callers (e.g. GET /api/save) can refuse to serve
+    // "new player" defaults, which would let the client overwrite real progress.
+    return { found: false, corrupt: true, save: { ...DEFAULT_SAVE } };
   }
   const save = validateAndSanitizeSave(parsed, { username: parsed?.xHandle || "" }, options);
   return { found: true, save };
+}
+
+/**
+ * Server-authoritative fields must never be taken from a client save PUT.
+ * These are only ever mutated by trusted server endpoints (mailbox claim,
+ * daily-login claim). Copying them from the stored save blocks exploits where
+ * a client injects mailbox rewards or resets the daily-login cooldown by
+ * crafting a save payload.
+ */
+export function preserveServerAuthoritativeFields(payload, existingSave) {
+  const src = existingSave && typeof existingSave === "object" ? existingSave : {};
+  payload.mailbox = Array.isArray(src.mailbox) ? src.mailbox : [];
+  payload.dailyLoginLastClaimAt = src.dailyLoginLastClaimAt ?? null;
+  return payload;
 }
 
 /**

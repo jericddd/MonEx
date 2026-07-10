@@ -27,8 +27,11 @@ ENABLE_AI_REPLY = "0"
 # AI_REPLY_MODEL = "@cf/meta/llama-3.1-8b-instruct"
 # Production: keep global dev login, simulate, and admin reset OFF.
 ENABLE_DEV_AUTH = "0"
-# Staging-only dev login (pages.dev / localhost Origin). Safe to leave on for shared Worker.
-ENABLE_STAGING_DEV_AUTH = "1"
+# Staging-only dev login. MUST stay "0" on the production Worker: the Origin
+# header can be spoofed by non-browser clients and anyone can host a *.pages.dev
+# site, so an Origin-only gate is not a real auth boundary. Enable only on a
+# dedicated staging Worker deployment.
+ENABLE_STAGING_DEV_AUTH = "0"
 ENABLE_SIMULATE = "0"
 ENABLE_ADMIN_RESET = "0"
 # Worker public URL — must match OAuth callback host in X Developer Portal.

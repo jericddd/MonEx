@@ -49,7 +49,7 @@ describe("security helpers", () => {
     const env = { ENABLE_STAGING_DEV_AUTH: "1" };
     const stagingReq = { headers: { get: (k) => (k === "Origin" ? "https://monex-staging.pages.dev" : null) } };
     const liveReq = { headers: { get: (k) => (k === "Origin" ? "https://monexmonad.xyz" : null) } };
-    assert.equal(devAuthAllowed(env), true);
+    assert.equal(devAuthAllowed(env), false); // default-deny without a request
     assert.equal(devAuthAllowed(env, stagingReq), true);
     assert.equal(devAuthAllowed(env, liveReq), false);
     assert.equal(stagingDevAuthEnabled(env), true);

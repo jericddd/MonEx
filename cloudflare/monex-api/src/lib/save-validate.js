@@ -104,7 +104,9 @@ function resolveUpdatedAt(input, now) {
 
 function trimString(value, maxLen = LIMITS.stringMaxLen) {
   if (typeof value !== "string") return "";
-  return value.trim().slice(0, maxLen);
+  // Strip angle brackets so a crafted save can never carry HTML into the DOM
+  // (defense-in-depth for any client render path that misses escapeHtml).
+  return value.replace(/[<>]/g, "").trim().slice(0, maxLen);
 }
 
 function getLevelCap(rarity) {

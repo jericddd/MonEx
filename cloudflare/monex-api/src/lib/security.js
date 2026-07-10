@@ -65,10 +65,11 @@ export function buildCorsHeaders(request, env) {
     "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Admin-Secret, X-Game-Session-Id, X-Game-Session-Opened-At",
     Vary: "Origin",
   };
+  // Only echo the Origin when it is explicitly allowed. Do NOT fall back to
+  // "*": that let any website's JS read API responses in a victim's browser.
+  // Requests with no Origin (same-origin, server-to-server) are unaffected.
   if (origin && isAllowedOrigin(origin, env)) {
     headers["Access-Control-Allow-Origin"] = origin;
-  } else {
-    headers["Access-Control-Allow-Origin"] = "*";
   }
   return headers;
 }

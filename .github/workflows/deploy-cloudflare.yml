@@ -26,6 +26,10 @@ jobs:
         working-directory: cloudflare/monex-api
         run: npm ci
 
+      - name: Run tests (block deploy on failure)
+        working-directory: cloudflare/monex-api
+        run: npm test
+
       - name: Check Cloudflare secrets
         run: |
           if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then
