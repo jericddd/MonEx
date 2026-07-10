@@ -1,4 +1,5 @@
 import { loadCloudSave, writeCloudSave, buildSavePayload } from "./save.js";
+import { creditCatchMonballs } from "./grant-monballs.js";
 
 export const DAILY_LOGIN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 export const DAILY_LOGIN_REWARD_MONBALLS = 5;
@@ -96,7 +97,8 @@ export async function claimMailboxItem(kv, session, mailId) {
 
   const item = { ...mailbox[idx] };
   const now = Date.now();
-  let monballs = save.monballs || 0;
+  const monballsBefore = save.monballs || 0;
+  let monballs = monballsBefore;
   let money = save.money || 0;
   let essence = save.essence || 0;
   let monShards = save.monShards || 0;
@@ -112,6 +114,11 @@ export async function claimMailboxItem(kv, session, mailId) {
     if (item.grant.trainerXp) trainerXp += item.grant.trainerXp;
   } else {
     return { ok: false, error: "unsupported_reward" };
+  }
+
+  const monballsDelta = monballs - monballsBefore;
+  if (monballsDelta > 0) {
+    await creditCatchMonballs(kv, session, monballsDelta);
   }
 
   item.claimedAt = new Date(now).toISOString();

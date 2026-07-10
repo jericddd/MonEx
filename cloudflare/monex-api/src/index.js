@@ -44,7 +44,7 @@ import {
   getBearerToken,
 } from "./lib/auth.js";
 import { loadCloudSave, writeCloudSave, buildSavePayload } from "./lib/save.js";
-import { grantMonballs, clampMonballs } from "./lib/grant-monballs.js";
+import { grantMonballs, clampMonballs, mergeMonballBalances, alignCatchMonballsToMerged } from "./lib/grant-monballs.js";
 import {
   buildCorsHeaders,
   enforceRateLimit,
@@ -616,16 +616,20 @@ async function handleRequest(request, env) {
       });
 
       let cloudMonballs = null;
+      let mergedMonballs = null;
       if (typeof result.monballs === "number" && xUserId) {
         const { save } = await loadCloudSave(env.MONEX_KV, xUserId);
-        cloudMonballs = clampMonballs(result.monballs);
+        mergedMonballs = mergeMonballBalances(result.monballs, save.monballs ?? 0);
+        await alignCatchMonballsToMerged(env.MONEX_KV, auth.session, mergedMonballs, starting);
         const nextSave = {
           ...save,
-          monballs: cloudMonballs,
+          monballs: mergedMonballs,
           xHandle: save.xHandle || username,
           updatedAt: new Date().toISOString(),
         };
         await writeCloudSave(env.MONEX_KV, xUserId, nextSave, { skipStaleCheck: true });
+        cloudMonballs = mergedMonballs;
+        result.monballs = mergedMonballs;
       }
 
       return json(
