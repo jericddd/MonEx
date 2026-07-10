@@ -133,8 +133,10 @@ Requires `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (GitHub Actions secr
 |-----------------|---------|
 | **Actions → Grant Monballs** | Grant Monballs to catch state + cloud save |
 | **Actions → Backfill pending catches** | Push stuck X pending catches into cloud saves |
+| **Actions → Recover activity catches** | Rebuild mons from X Wild Log when pending queue is empty |
 | `node scripts/grant-monballs.mjs <user> [amount]` | Same as Grant Monballs workflow (local) |
 | `node scripts/backfill-pending-catches.mjs [--dry-run] [user]` | Same as Backfill workflow (local) |
+| `node scripts/recover-activity-catches.mjs [--dry-run] <user>` | Same as Recover workflow (local) |
 
 **Backfill pending catches** (GitHub — recommended):
 
@@ -155,3 +157,12 @@ npm run backfill-pending -- jericddd           # apply for one user
 ```
 
 The script moves `pendingMons` from catch state into each user's cloud save Party/Box (up to 3 party / 500 box slots), aligns in-game Monballs with catch-state balances, merges duplicate `sim_*` catch rows, and clears the pending queue for backfilled users.
+
+**Recover activity catches** (when backfill finds 0 pending but X Wild Log shows catches):
+
+1. Repo → **Actions** → **Recover activity catches** → **Run workflow**
+2. **username:** exact handle from X Wild Log (e.g. `Lucci_Crypto`)
+3. Preview with **Preview only** on, **confirm** = `PREVIEW`
+4. Apply with **Preview only** off, **confirm** = `RECOVER`
+
+Rebuilds mons from activity log entries into cloud save Party/Box and sets Monballs from the latest log entry. Skills are regenerated (species/rarity match the log; RNG skills may differ slightly).
