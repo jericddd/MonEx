@@ -806,7 +806,7 @@ async function refreshDailyLoginPanel() {
     try {
         const s = await MonExMailbox.fetchDailyLoginStatus();
         if (s.ready) {
-            textEl.textContent = "Tap to claim 1 Monball!";
+            textEl.textContent = "Tap to claim 5 Monballs!";
             statusEl.textContent = s.unclaimed
                 ? `${s.unclaimed} reward${s.unclaimed === 1 ? "" : "s"} in Mailbox`
                 : "Reward goes to your Mailbox";
@@ -835,7 +835,7 @@ async function handleDailyLoginClick() {
             refreshDailyLoginPanel();
             return;
         }
-        showCustomModal("1 Monball sent to your Mailbox! Open the game and tap Mailbox to collect.");
+        showCustomModal("5 Monballs sent to your Mailbox! Open the game and tap Mailbox to collect.");
         refreshDailyLoginPanel();
     } catch (e) {
         showCustomModal(e.message || "Claim failed");
