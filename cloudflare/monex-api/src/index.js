@@ -45,7 +45,7 @@ import {
 } from "./lib/auth.js";
 import { loadCloudSave, writeCloudSave, buildSavePayload } from "./lib/save.js";
 import { grantMonballs, clampMonballs, mergeMonballBalances, alignCatchMonballsToMerged } from "./lib/grant-monballs.js";
-import { alignCatchMonballsToSave, resolveMergedMonballs } from "./lib/save-reconcile.js";
+import { alignCatchMonballsToSave, resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsAfterCatch, getAuthoritativeMonballs } from "./lib/save-reconcile.js";
 import {
   buildCorsHeaders,
   enforceRateLimit,
@@ -92,6 +92,9 @@ async function handleSimulate(body, env, request) {
     replyToBot ? "bot" : null
   );
   if (result.activity) await appendActivity(env.MONEX_KV, result.activity);
+  if (result.activity?.monballsLeft != null && authorId) {
+    await syncSaveMonballsAfterCatch(env.MONEX_KV, authorId, username, result.activity.monballsLeft, starting);
+  }
   await saveState(env.MONEX_KV, state);
 
   return json(
@@ -193,6 +196,13 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       const result = processMentionTweet(tweet, bot, state, starting, botUser.id);
       if (result.activity) {
         await appendActivity(env.MONEX_KV, result.activity);
+        await syncSaveMonballsAfterCatch(
+          env.MONEX_KV,
+          tweet.authorId,
+          tweet.username,
+          result.activity.monballsLeft,
+          starting
+        );
         status.activities += 1;
       } else if (result.skipReason) {
         status.skipped.push({ id: tweet.id, user: tweet.username, reason: result.skipReason });
@@ -534,7 +544,7 @@ async function handleRequest(request, env) {
       const payload = buildSavePayload(body?.save || body, auth.session);
       const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
       try {
-        await alignCatchMonballsToSave(env.MONEX_KV, auth.session, payload.monballs, starting);
+        await reconcileMonballsForCloudSave(env.MONEX_KV, auth.session, payload, starting);
         await writeCloudSave(env.MONEX_KV, auth.session.xUserId, payload);
       } catch (err) {
         if (err?.code === "stale_save") {
@@ -560,6 +570,24 @@ async function handleRequest(request, env) {
       const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
       const result = await listActivities(env.MONEX_KV, { limit, page, username, successOnly: true });
       return json({ ok: true, username, ...result }, 200, request, env);
+    }
+
+    if (path === "/api/monballs" && request.method === "GET") {
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
+      const monballs = await getAuthoritativeMonballs(
+        env.MONEX_KV,
+        auth.session.xUserId,
+        auth.session.username,
+        starting
+      );
+      return json(
+        { ok: true, monballs, username: auth.session.username },
+        200,
+        request,
+        env
+      );
     }
 
     if (path === "/api/pending" && request.method === "GET") {

@@ -1,6 +1,20 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { resolveMergedMonballs } from "./save-reconcile.js";
+import {
+  resolveMergedMonballs,
+  reconcileMonballsForCloudSave,
+} from "./save-reconcile.js";
+
+function makeKv(store = {}) {
+  return {
+    async get(key) {
+      return store[key] ?? null;
+    },
+    async put(key, value) {
+      store[key] = value;
+    },
+  };
+}
 
 describe("resolveMergedMonballs", () => {
   it("prefers catch monballs when catch state is newer (X spend)", () => {
@@ -42,5 +56,67 @@ describe("resolveMergedMonballs", () => {
   it("falls back to max when timestamps are missing", () => {
     const merged = resolveMergedMonballs({}, { monballs: 4 }, 7);
     assert.equal(merged, 7);
+  });
+});
+
+describe("reconcileMonballsForCloudSave", () => {
+  it("does not resurrect spent monballs from stale client save", async () => {
+    const kv = makeKv({
+      "monex:state": JSON.stringify({
+        processedTweetIds: [],
+        users: {
+          u1: {
+            username: "trainer",
+            monballs: 0,
+            pendingMons: [],
+            updatedAt: new Date(3000).toISOString(),
+          },
+        },
+      }),
+      "monex:save:u1": JSON.stringify({
+        monballs: 0,
+        updatedAt: new Date(3000).toISOString(),
+      }),
+    });
+
+    const payload = {
+      monballs: 20,
+      updatedAt: new Date(5000).toISOString(),
+      party: [],
+      box: [],
+    };
+
+    const reconciled = await reconcileMonballsForCloudSave(kv, { xUserId: "u1", username: "trainer" }, payload, 10);
+    assert.equal(reconciled.monballs, 0);
+  });
+
+  it("allows client quest grant when server pools are not depleted", async () => {
+    const kv = makeKv({
+      "monex:state": JSON.stringify({
+        processedTweetIds: [],
+        users: {
+          u1: {
+            username: "trainer",
+            monballs: 10,
+            pendingMons: [],
+            updatedAt: new Date(1000).toISOString(),
+          },
+        },
+      }),
+      "monex:save:u1": JSON.stringify({
+        monballs: 10,
+        updatedAt: new Date(1000).toISOString(),
+      }),
+    });
+
+    const payload = {
+      monballs: 12,
+      updatedAt: new Date(2000).toISOString(),
+      party: [],
+      box: [],
+    };
+
+    const reconciled = await reconcileMonballsForCloudSave(kv, { xUserId: "u1", username: "trainer" }, payload, 10);
+    assert.equal(reconciled.monballs, 12);
   });
 });

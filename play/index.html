@@ -13560,6 +13560,28 @@ function mergeMonsterInventories(newerParty, newerBox, olderParty, olderBox) {
     return { party: [...(newerParty || [])], box };
 }
 
+async function refreshMonballsFromServer() {
+    if (!currentUser || typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return null;
+    try {
+        const base = typeof getMonexApiBase === "function"
+            ? getMonexApiBase()
+            : (window.MONEX_API || "https://monex-api.0xjericd.workers.dev").replace(/\/$/, "");
+        const res = await fetch(`${base}/api/monballs`, { headers: MonExAuth.authHeaders() });
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (typeof data.monballs !== "number") return null;
+        const serverMonballs = Math.max(0, Math.floor(Number(data.monballs) || 0));
+        if (serverMonballs !== monballs) {
+            monballs = serverMonballs;
+            writeLocalSave(buildSavePayload());
+            updateHeaderCurrencies();
+        }
+        return serverMonballs;
+    } catch (_) {
+        return null;
+    }
+}
+
 async function persistProgress(options = {}) {
     const { flush = true } = options;
     saveData();
@@ -15079,6 +15101,7 @@ async function runPostLoginBootstrap() {
         alert("Your adventure battle was abandoned. It counts as a defeat — your team was restored to full HP.");
     }
     resolveXHandle();
+    try { await refreshMonballsFromServer(); } catch (_) {}
     try { await syncXWildMons(true); } catch (_) {}
     updateUI();
 }
@@ -15113,6 +15136,7 @@ async function checkLogin() {
         currentUser = user.username || MonExAuth.getDisplayName();
         resetToMainSceneUI();
         await loadData();
+        await refreshMonballsFromServer();
         await runPostLoginBootstrap();
         showMainScene();
     } catch (e) {
@@ -15233,6 +15257,7 @@ async function claimMailboxReward(mailId) {
         renderMailbox();
         updateHeaderCurrencies();
         updateUI();
+        await refreshMonballsFromServer();
         if (result.save && typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
             try {
                 await flushSaveToCloud();
@@ -15996,6 +16021,7 @@ window.onload = async function() {
     document.addEventListener("visibilitychange", () => {
         if (!currentUser) return;
         if (document.visibilityState === "visible") {
+            refreshMonballsFromServer().catch(() => {});
             syncXWildMons(true).catch(() => {});
             return;
         }
