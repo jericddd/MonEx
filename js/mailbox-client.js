@@ -39,12 +39,19 @@ async function claimDailyLogin() {
 }
 
 async function claimMailboxMail(mailId) {
+  if (window.MonExGameSession?.ensureGameplayApiAllowed && !window.MonExGameSession.ensureGameplayApiAllowed()) {
+    throw new Error("game_session_inactive");
+  }
   const res = await fetch(`${mailboxApiBase()}/api/mailbox/claim`, {
     method: "POST",
     headers: mailboxAuthHeaders(),
     body: JSON.stringify({ mailId }),
   });
   const data = await res.json().catch(() => ({}));
+  if (res.status === 403 && data.error === "game_session_inactive") {
+    window.MonExGameSession?.handleInactiveFromApi?.();
+    throw new Error("game_session_inactive");
+  }
   if (!res.ok) throw new Error(data.error || "mailbox claim failed");
   return data;
 }
