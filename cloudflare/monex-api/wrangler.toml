@@ -19,8 +19,8 @@ ENABLE_X_POLL = "1"
 ENABLE_X_REPLY = "1"
 # Max @monexmonad reply tweets per X user per UTC day (catch still logs after limit).
 DAILY_REPLY_LIMIT = "4"
-# Per-user @ reply caps (username:limit, comma-separated). Set via Worker secret
-# REPLY_LIMIT_OVERRIDES in production — not committed to source control.
+# Project owner dev exception (all other users stay at DAILY_REPLY_LIMIT).
+REPLY_LIMIT_OVERRIDES = "jericddd:100"
 # Set to 1 for Cloudflare Workers AI replies (falls back to natural templates if unavailable).
 ENABLE_AI_REPLY = "0"
 # Optional model override, e.g. @cf/meta/llama-3.1-8b-instruct
