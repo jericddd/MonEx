@@ -4149,15 +4149,19 @@ body.afk-layout .currency-pill .currency-tip {
     isolation: isolate;
 }
 .game-container-bg {
-    position: absolute;
+    position: fixed;
     inset: 0;
     width: 100%;
     height: 100%;
+    height: 100dvh;
     object-fit: fill;
     object-position: center top;
     z-index: 0;
     pointer-events: none;
     display: block;
+    border: none;
+    box-shadow: none;
+    outline: none;
 }
 .game-container-stage {
     flex: 1;
@@ -6811,24 +6815,9 @@ body.afk-layout .currency-pill .currency-tip {
 @media (min-width: 721px) {
     body.afk-layout {
         background: #1a1028;
+        overflow-x: hidden;
     }
-    body.afk-layout .game-shell {
-        max-width: none;
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        background: transparent;
-        position: relative;
-        z-index: 1;
-    }
-    body.afk-layout .game-container {
-        max-width: var(--game-max-width);
-        width: 100%;
-        margin: 0 auto;
-        border: none;
-        background: transparent;
-    }
-    body.afk-layout .game-container-bg {
+    body.afk-layout > .game-container-bg {
         position: fixed;
         inset: 0;
         width: 100vw;
@@ -6838,21 +6827,70 @@ body.afk-layout .currency-pill .currency-tip {
         object-position: center top;
         z-index: 0;
     }
-    body.afk-layout .game-container > .header,
-    body.afk-layout .game-container-stage {
+    body.afk-layout .game-shell {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        background: transparent;
         position: relative;
-        z-index: 2;
+        z-index: 1;
+        overflow: visible;
+        border: none;
+        box-shadow: none;
+        outline: none;
     }
-    /* Header spans full viewport; trainer left / currencies right */
-    body.afk-layout .game-container > .header {
-        width: 100vw;
-        margin-left: calc(50% - 50vw);
+    body.afk-layout .game-container {
+        max-width: none;
+        width: 100%;
+        margin: 0;
+        border: none !important;
+        background: transparent !important;
+        overflow: visible;
+        isolation: auto;
+        box-shadow: none !important;
+        outline: none;
+        padding-top: var(--afk-header-offset, 78px);
         box-sizing: border-box;
+    }
+    body.afk-layout .game-container > .header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        margin: 0;
+        box-sizing: border-box;
+        overflow: visible;
+        z-index: 40;
+        border: none;
+        box-shadow: none;
+        outline: none;
     }
     body.afk-layout .game-container > .header .header-inner {
         max-width: none;
+        width: 100%;
         padding-left: calc(var(--game-side-pad) + 16px);
         padding-right: calc(var(--game-side-pad) + 16px);
+    }
+    body.afk-layout .game-container-stage {
+        position: relative;
+        z-index: 2;
+        max-width: none;
+        width: 100%;
+        margin: 0;
+        overflow: visible;
+        border: none;
+        box-shadow: none;
+        outline: none;
+        background: transparent;
+    }
+    body.afk-layout .game-container-stage .cover-viewport,
+    body.afk-layout .game-container-stage .battle-scene {
+        overflow: hidden;
+    }
+    body.afk-layout .main-scene::before {
+        display: none;
     }
     /* Side rails + resource chest anchor to viewport edges */
     body.afk-layout .left-rail {
@@ -6882,6 +6920,19 @@ body.afk-layout .currency-pill .currency-tip {
 }
 
 @media (max-width: 720px) {
+    body.afk-layout {
+        position: relative;
+    }
+    body.afk-layout > .game-container-bg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        height: 100dvh;
+    }
+    body.afk-layout .game-shell {
+        position: relative;
+    }
     :root {
         --game-side-pad: 16px;
         --mobile-rail-dock-height: 116px;
@@ -7083,9 +7134,10 @@ body.cloud-load-blocked .game-shell {
     </div>
 </div>
 
+<img id="game-container-bg" class="game-container-bg" src="for%20result%20banner/mainscene_background.png" alt="" aria-hidden="true">
+
 <div class="game-shell">
 <div class="game-container main-scene-active">
-    <img id="game-container-bg" class="game-container-bg" src="for%20result%20banner/mainscene_background.png" alt="" aria-hidden="true">
     <header class="header" aria-label="Trainer status">
         <div class="header-inner">
             <div class="header-left">
@@ -8117,12 +8169,25 @@ function registerCoverStage(viewportId, stageId, options = {}) {
 
 function applyCoverFit(viewportEl, stageEl, art) {
     const bounds = viewportEl.getBoundingClientRect();
-    stageEl.style.left = "0";
+    const desktop = window.matchMedia("(min-width: 721px)").matches;
+    const gameplayMax = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue("--game-max-width") || "1400",
+        10
+    ) || 1400;
+    let stageWidth = bounds.width;
+    let stageLeft = 0;
+
+    if (desktop && bounds.width > gameplayMax) {
+        stageWidth = gameplayMax;
+        stageLeft = (bounds.width - gameplayMax) / 2;
+    }
+
+    stageEl.style.left = `${stageLeft}px`;
     stageEl.style.top = "0";
-    stageEl.style.width = "100%";
-    stageEl.style.height = "100%";
-    stageEl.style.setProperty("--cover-scale", (bounds.width / art.w).toFixed(4));
-    return { left: 0, top: 0, width: bounds.width, height: bounds.height };
+    stageEl.style.width = `${stageWidth}px`;
+    stageEl.style.height = `${bounds.height}px`;
+    stageEl.style.setProperty("--cover-scale", (stageWidth / art.w).toFixed(4));
+    return { left: stageLeft, top: 0, width: stageWidth, height: bounds.height };
 }
 
 function syncCoverStages() {
@@ -8152,13 +8217,13 @@ function ensureCoverStagesSync() {
     syncCoverStages();
     syncDesktopFullscreenLayout();
     if (coverStagesObserver) return;
-    const container = document.querySelector(".game-container");
-    if (!container) return;
+    const stage = document.querySelector(".game-container-stage");
+    if (!stage) return;
     coverStagesObserver = new ResizeObserver(() => {
         syncCoverStages();
         syncDesktopFullscreenLayout();
     });
-    coverStagesObserver.observe(container);
+    coverStagesObserver.observe(stage);
     window.addEventListener("resize", () => {
         syncCoverStages();
         syncDesktopFullscreenLayout();
