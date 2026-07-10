@@ -3,6 +3,24 @@ import { loadCloudSave, writeCloudSave, buildSavePayload } from "./save.js";
 export const DAILY_LOGIN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 export const DAILY_LOGIN_REWARD_MONBALLS = 5;
 
+const claimLocks = globalThis.__monexDailyLoginLocks || (globalThis.__monexDailyLoginLocks = new Map());
+
+async function withDailyLoginClaimLock(xUserId, fn) {
+  const key = String(xUserId || "");
+  while (claimLocks.get(key)) await claimLocks.get(key);
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  claimLocks.set(key, gate);
+  try {
+    return await fn();
+  } finally {
+    claimLocks.delete(key);
+    release();
+  }
+}
+
 function makeMailId() {
   return `mail_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -18,41 +36,53 @@ export function getDailyLoginStatus(save, now = Date.now()) {
 }
 
 export async function claimDailyLoginReward(kv, session) {
-  const { save } = await loadCloudSave(kv, session.xUserId);
-  const now = Date.now();
-  const status = getDailyLoginStatus(save, now);
-  if (!status.ready) {
-    return { ok: false, error: "cooldown", nextClaimAt: status.nextClaimAt };
-  }
+  return withDailyLoginClaimLock(session.xUserId, async () => {
+    const { save } = await loadCloudSave(kv, session.xUserId);
+    const now = Date.now();
+    const status = getDailyLoginStatus(save, now);
+    if (!status.ready) {
+      return { ok: false, error: "cooldown", nextClaimAt: status.nextClaimAt };
+    }
 
-  const item = {
-    id: makeMailId(),
-    type: "monballs",
-    amount: DAILY_LOGIN_REWARD_MONBALLS,
-    title: "Daily Login Reward",
-    body: `${DAILY_LOGIN_REWARD_MONBALLS} Monballs — open Mailbox in game to claim.`,
-    createdAt: new Date(now).toISOString(),
-  };
+    const monballsBefore = save.monballs ?? 0;
+    const item = {
+      id: makeMailId(),
+      type: "monballs",
+      amount: DAILY_LOGIN_REWARD_MONBALLS,
+      title: "Daily Login Reward",
+      body: `${DAILY_LOGIN_REWARD_MONBALLS} Monballs — open Mailbox in game to claim.`,
+      createdAt: new Date(now).toISOString(),
+    };
 
-  const nextSave = buildSavePayload(
-    {
-      ...save,
-      mailbox: [item, ...(save.mailbox || [])],
-      dailyLoginLastClaimAt: new Date(now).toISOString(),
-      updatedAt: new Date(now).toISOString(),
-    },
-    session,
-    { now }
-  );
+    const nextSave = buildSavePayload(
+      {
+        ...save,
+        monballs: monballsBefore,
+        mailbox: [item, ...(save.mailbox || [])],
+        dailyLoginLastClaimAt: new Date(now).toISOString(),
+        updatedAt: new Date(now).toISOString(),
+      },
+      session,
+      { now }
+    );
 
-  await writeCloudSave(kv, session.xUserId, nextSave, { skipStaleCheck: true });
+    const delivered = (nextSave.mailbox || []).some(
+      (mail) => mail.id === item.id && !mail.claimedAt && mail.type === "monballs"
+    );
+    if (!delivered || nextSave.monballs !== monballsBefore) {
+      return { ok: false, error: "mailbox_delivery_failed" };
+    }
 
-  return {
-    ok: true,
-    item,
-    nextClaimAt: new Date(now + DAILY_LOGIN_COOLDOWN_MS).toISOString(),
-    unclaimed: (nextSave.mailbox || []).filter((m) => !m.claimedAt).length,
-  };
+    await writeCloudSave(kv, session.xUserId, nextSave, { skipStaleCheck: true });
+
+    return {
+      ok: true,
+      delivery: "mailbox",
+      item,
+      nextClaimAt: new Date(now + DAILY_LOGIN_COOLDOWN_MS).toISOString(),
+      unclaimed: (nextSave.mailbox || []).filter((m) => !m.claimedAt).length,
+    };
+  });
 }
 
 export async function claimMailboxItem(kv, session, mailId) {

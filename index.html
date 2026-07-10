@@ -824,6 +824,9 @@ async function handleDailyLoginClick() {
         showCustomModal("Please login with X first");
         return;
     }
+    const box = document.getElementById("daily-login-box");
+    if (box?.dataset.claiming === "1") return;
+    if (box) box.dataset.claiming = "1";
     try {
         const result = await MonExMailbox.claimDailyLogin();
         if (!result.ok) {
@@ -835,10 +838,17 @@ async function handleDailyLoginClick() {
             refreshDailyLoginPanel();
             return;
         }
+        if (!result.item || result.item.type !== "monballs" || result.delivery !== "mailbox") {
+            showCustomModal("Daily reward was not delivered to Mailbox. Please try again.");
+            refreshDailyLoginPanel();
+            return;
+        }
         showCustomModal("5 Monballs sent to your Mailbox! Open the game and tap Mailbox to collect.");
         refreshDailyLoginPanel();
     } catch (e) {
         showCustomModal(e.message || "Claim failed");
+    } finally {
+        if (box) delete box.dataset.claiming;
     }
 }
 
