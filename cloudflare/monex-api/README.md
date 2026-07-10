@@ -134,6 +134,8 @@ Requires `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (GitHub Actions secr
 | **Actions → Grant Monballs** | Grant Monballs to catch state + cloud save |
 | **Actions → Backfill pending catches** | Push stuck X pending catches into cloud saves |
 | **Actions → Recover activity catches** | Rebuild mons from X Wild Log when pending queue is empty |
+| **Actions → Backfill quest rewards** | Deliver missing quest rewards via Mailbox |
+| **Actions → Send mailbox reward** | Send custom Gold / KB's Onion / Monball mail to one or all users |
 | `node scripts/grant-monballs.mjs <user> [amount]` | Same as Grant Monballs workflow (local) |
 | `node scripts/backfill-pending-catches.mjs [--dry-run] [user]` | Same as Backfill workflow (local) |
 | `node scripts/recover-activity-catches.mjs [--dry-run] <user>` | Same as Recover workflow (local) |
@@ -180,4 +182,21 @@ Delivers missing rewards as a bundled **Quest Reward Recovery** mail item (claim
 npm run backfill-quest-rewards -- --dry-run
 npm run backfill-quest-rewards -- --dry-run jericddd
 npm run backfill-quest-rewards -- jericddd
+```
+
+**Send mailbox reward** (custom compensation or event mail):
+
+1. Repo → **Actions** → **Send mailbox reward** → **Run workflow**
+2. **title:** mail subject shown in-game (e.g. `Sorry for the mailbox bug`)
+3. **resource:** `gold`, `kbs_onion`, or `monball`
+4. **quantity:** amount granted when the user claims the mail in Mailbox
+5. **username:** leave empty for all users, or set one handle (without `@`)
+6. Preview with **Preview only** on, **confirm** = `PREVIEW`
+7. Apply with **Preview only** off, **confirm** = `SEND`
+
+Users must open **Mailbox** in-game and tap **Claim** to receive the resources. Local equivalent:
+
+```bash
+npm run send-mailbox-reward -- --title "Compensation" --resource monball --quantity 5 --dry-run messedupmental
+npm run send-mailbox-reward -- --title "Compensation" --resource monball --quantity 5 messedupmental
 ```
