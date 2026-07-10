@@ -18,6 +18,9 @@ import {
   collectPendingUsers,
   pickCanonicalCatchUserId,
   backfillPendingForUser,
+  cleanUsername,
+  listPendingUsernames,
+  usernameMatchesFilter,
 } from "../src/lib/backfill-pending.js";
 import { resolveCatchUser } from "../src/kv-store.js";
 
@@ -94,39 +97,44 @@ async function listKeys(prefix) {
   return keys;
 }
 
-function normalizeUsername(username) {
-  return String(username || "").toLowerCase().replace(/^@/, "").trim();
-}
-
 function parseArgs(argv) {
   const args = argv.slice(2);
   const dryRun = args.includes("--dry-run");
-  const username = normalizeUsername(args.find((a) => !a.startsWith("--")) || "");
+  const username = cleanUsername(args.find((a) => !a.startsWith("--")) || "");
   return { dryRun, username };
 }
 
 async function buildSaveIndex() {
-  const index = new Map();
+  const exact = new Map();
+  const byLower = new Map();
   const keys = await listKeys(SAVE_PREFIX);
   for (const key of keys) {
     const raw = await getValue(key);
     if (!raw) continue;
     try {
       const save = JSON.parse(raw);
-      const handle = normalizeUsername(save?.xHandle);
+      const handle = cleanUsername(save?.xHandle);
       const xUserId = key.slice(SAVE_PREFIX.length);
       if (!handle) continue;
-      if (!index.has(handle)) index.set(handle, []);
-      index.get(handle).push({ xUserId, save });
+      const entry = { xUserId, save, handle };
+      if (!exact.has(handle)) exact.set(handle, []);
+      exact.get(handle).push(entry);
+      const lower = handle.toLowerCase();
+      if (!byLower.has(lower)) byLower.set(lower, []);
+      byLower.get(lower).push(entry);
     } catch {
       /* skip */
     }
   }
-  return index;
+  return { exact, byLower };
 }
 
 function pickCloudSaveTarget(username, catchUserId, saveIndex) {
-  const candidates = saveIndex.get(username) || [];
+  const handle = cleanUsername(username);
+  let candidates = saveIndex.exact.get(handle) || [];
+  if (!candidates.length) {
+    candidates = saveIndex.byLower.get(handle.toLowerCase()) || [];
+  }
   if (!candidates.length) return null;
 
   const exact = candidates.find((c) => c.xUserId === catchUserId);
@@ -151,7 +159,7 @@ async function main() {
   const results = [];
 
   for (const [username, entries] of groups) {
-    if (onlyUsername && username !== onlyUsername) continue;
+    if (!usernameMatchesFilter(username, onlyUsername)) continue;
 
     const catchUserId = pickCanonicalCatchUserId(entries);
     const pendingTotal = entries.reduce((sum, e) => sum + (e.pendingCount || 0), 0);
@@ -225,6 +233,15 @@ async function main() {
     totalMonsAdded: results.reduce((sum, r) => sum + (r.added || 0), 0),
     results,
   };
+
+  if (onlyUsername && results.length === 0) {
+    const pendingUsernames = listPendingUsernames(loadedState);
+    summary.hint = {
+      message:
+        "No pending user matched this filter (usernames are case-sensitive — use exact spelling from X Wild Log).",
+      pendingUsernames,
+    };
+  }
 
   console.log(JSON.stringify(summary, null, 2));
 }

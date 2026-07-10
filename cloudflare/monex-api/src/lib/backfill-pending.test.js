@@ -5,6 +5,8 @@ import {
   pickCanonicalCatchUserId,
   applySyncedMonsToSave,
   backfillPendingForUser,
+  usernameMatchesFilter,
+  listPendingUsernames,
 } from "./backfill-pending.js";
 
 function makeState(users = {}) {
@@ -31,6 +33,41 @@ describe("collectPendingUsers", () => {
     const groups = collectPendingUsers(state);
     assert.equal(groups.size, 1);
     assert.equal(groups.get("alpha").length, 2);
+  });
+
+  it("preserves username casing as separate groups", () => {
+    const state = makeState({
+      "1": {
+        username: "Lucci_Crypto",
+        pendingMons: [{ name: "Shramp", pendingId: "p1" }],
+      },
+      "2": {
+        username: "lucci_crypto",
+        pendingMons: [{ name: "Mouch", pendingId: "p2" }],
+      },
+    });
+
+    const groups = collectPendingUsers(state);
+    assert.equal(groups.size, 2);
+    assert.equal(groups.get("Lucci_Crypto").length, 1);
+    assert.equal(groups.get("lucci_crypto").length, 1);
+  });
+});
+
+describe("usernameMatchesFilter", () => {
+  it("matches exact case only", () => {
+    assert.equal(usernameMatchesFilter("Lucci_Crypto", "Lucci_Crypto"), true);
+    assert.equal(usernameMatchesFilter("Lucci_Crypto", "lucci_crypto"), false);
+    assert.equal(usernameMatchesFilter("Lucci_Crypto", ""), true);
+  });
+});
+
+describe("listPendingUsernames", () => {
+  it("lists exact pending usernames", () => {
+    const state = makeState({
+      "1": { username: "Lucci_Crypto", pendingMons: [{ pendingId: "p1" }] },
+    });
+    assert.deepEqual(listPendingUsernames(state), ["Lucci_Crypto"]);
   });
 });
 
