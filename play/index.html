@@ -5491,7 +5491,7 @@ body.afk-layout .currency-pill .currency-tip {
         inset 0 0 0 4px #f4a442,
         0 8px 32px rgba(0, 0, 0, 0.65);
 }
-.game-container.adventure-hub-mode .game-container-bg {
+body.afk-layout:has(.game-container.adventure-hub-mode) > .game-container-bg {
     object-fit: fill;
     object-position: center center;
 }
@@ -5615,7 +5615,7 @@ body.afk-layout .currency-pill .currency-tip {
     background: rgba(8, 12, 28, 0.52);
     backdrop-filter: blur(1px);
 }
-.game-container.patrol-scan-active .game-container-bg {
+body.afk-layout:has(.game-container.patrol-scan-active) > .game-container-bg {
     filter: brightness(0.62) saturate(1.1) hue-rotate(-8deg);
 }
 .patrol-scan-hud {
@@ -5778,7 +5778,7 @@ body.afk-layout .currency-pill .currency-tip {
     box-shadow: none;
     background: transparent;
 }
-.game-container.adventure-mode .game-container-bg {
+body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     object-fit: fill;
     object-position: center center;
 }
@@ -6832,10 +6832,10 @@ body.afk-layout .currency-pill .currency-tip {
         margin: 0;
         padding: 0;
         width: 100%;
-        background: transparent;
+        background: transparent !important;
         position: relative;
         z-index: 1;
-        overflow: visible;
+        overflow: visible !important;
         border: none;
         box-shadow: none;
         outline: none;
@@ -6846,8 +6846,8 @@ body.afk-layout .currency-pill .currency-tip {
         margin: 0;
         border: none !important;
         background: transparent !important;
-        overflow: visible;
-        isolation: auto;
+        overflow: visible !important;
+        isolation: unset !important;
         box-shadow: none !important;
         outline: none;
         padding-top: var(--afk-header-offset, 78px);
@@ -6879,17 +6879,33 @@ body.afk-layout .currency-pill .currency-tip {
         max-width: none;
         width: 100%;
         margin: 0;
-        overflow: visible;
+        overflow: visible !important;
         border: none;
         box-shadow: none;
         outline: none;
         background: transparent;
     }
     body.afk-layout .game-container-stage .cover-viewport,
+    body.afk-layout .game-container-stage .cover-art-stage,
+    body.afk-layout .game-container-stage .main-scene-viewport,
+    body.afk-layout .game-container-stage .main-scene {
+        overflow: visible !important;
+        border: none;
+        box-shadow: none;
+        outline: none;
+        background: transparent;
+        clip-path: none;
+    }
     body.afk-layout .game-container-stage .battle-scene {
+        overflow: visible;
+    }
+    body.afk-layout .game-container-stage .battle-scene.open {
         overflow: hidden;
     }
     body.afk-layout .main-scene::before {
+        display: none;
+    }
+    body.afk-layout .scene-battle-dock-shade {
         display: none;
     }
     /* Side rails + resource chest anchor to viewport edges */
@@ -8180,9 +8196,13 @@ function applyCoverFit(viewportEl, stageEl, art) {
     if (desktop && bounds.width > gameplayMax) {
         stageWidth = gameplayMax;
         stageLeft = (bounds.width - gameplayMax) / 2;
+        stageEl.style.left = "50%";
+        stageEl.style.transform = "translateX(-50%)";
+    } else {
+        stageEl.style.left = "0";
+        stageEl.style.transform = "";
     }
 
-    stageEl.style.left = `${stageLeft}px`;
     stageEl.style.top = "0";
     stageEl.style.width = `${stageWidth}px`;
     stageEl.style.height = `${bounds.height}px`;
