@@ -3,15 +3,16 @@
 const GAME_SESSION_STORAGE_KEY = "monex_game_session_id";
 const GAME_SESSION_HEADER = "X-Game-Session-Id";
 const GAME_SESSION_BROADCAST = "monex-game-session";
-const STATUS_POLL_VISIBLE_MS = 2000;
-const STATUS_POLL_HIDDEN_MS = 8000;
-const HEARTBEAT_MS = 12000;
+const STATUS_POLL_VISIBLE_MS = 1500;
+const STATUS_POLL_HIDDEN_MS = 4000;
+const HEARTBEAT_MS = 10000;
 
+/** @type {"pending" | "active" | "superseded"} */
+let _state = "pending";
 let _gameSessionId = null;
-let _active = false;
 let _statusTimer = null;
 let _heartbeatTimer = null;
-let _onInactive = null;
+let _onSuperseded = null;
 let _onActive = null;
 let _guardRunning = false;
 let _broadcast = null;
@@ -74,12 +75,12 @@ function localSignalKey(username) {
   return user ? `monex_gs_active_${user}` : "monex_gs_active";
 }
 
-function publishSessionClaim(username, gameSessionId, tookOver = false) {
+function publishSessionTakeover(username, gameSessionId) {
   const payload = {
     type: "claimed",
     gameSessionId,
     username: String(username || getUsername() || "").toLowerCase().replace(/^@/, ""),
-    tookOver: !!tookOver,
+    tookOver: true,
     at: Date.now(),
   };
   try {
@@ -91,12 +92,12 @@ function publishSessionClaim(username, gameSessionId, tookOver = false) {
 }
 
 function onForeignSessionClaim(payload) {
-  if (!payload || payload.type !== "claimed") return;
+  if (!payload || payload.type !== "claimed" || !payload.tookOver) return;
   const mine = getGameSessionId();
   if (!mine || payload.gameSessionId === mine) return;
   const user = String(getUsername() || "").toLowerCase().replace(/^@/, "");
   if (payload.username && user && payload.username !== user) return;
-  markInactive("superseded");
+  markSuperseded("broadcast");
 }
 
 function initCrossTabListeners() {
@@ -117,24 +118,34 @@ function initCrossTabListeners() {
 }
 
 function markActive() {
-  const wasActive = _active;
-  _active = true;
-  if (!wasActive && typeof _onActive === "function") _onActive();
+  if (_state === "active") return;
+  _state = "active";
+  if (typeof _onActive === "function") _onActive();
 }
 
-function markInactive(reason) {
-  _active = false;
-  if (typeof _onInactive === "function") _onInactive();
-  if (reason) {
-    try {
-      console.info("[game-session] inactive:", reason, getGameSessionId());
-    } catch (_) {}
+function markSuperseded(reason) {
+  if (_state === "superseded") return;
+  _state = "superseded";
+  if (typeof _onSuperseded === "function") _onSuperseded();
+  try {
+    console.info("[game-session] superseded:", reason, getGameSessionId());
+  } catch (_) {}
+}
+
+function applyServerStatus(status) {
+  if (!status?.ok) return null;
+  if (status.active) {
+    if (_state !== "active") {
+      _state = "active";
+      if (typeof _onActive === "function") _onActive();
+    }
+    return "active";
   }
-}
-
-function setActiveState(active, reason) {
-  if (active) markActive();
-  else markInactive(reason);
+  if (status.reason === "superseded") {
+    markSuperseded("server");
+    return "superseded";
+  }
+  return status.reason || "inactive";
 }
 
 async function claimActiveSession() {
@@ -147,15 +158,10 @@ async function claimActiveSession() {
     body: JSON.stringify({ gameSessionId }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.ok === false) {
-    markInactive("claim_failed");
-    return data;
-  }
+  if (!res.ok || data.ok === false) return data;
   if (data.active) {
     markActive();
-    if (data.tookOver) publishSessionClaim(getUsername(), gameSessionId, true);
-  } else {
-    markInactive("claim_rejected");
+    if (data.tookOver) publishSessionTakeover(getUsername(), gameSessionId);
   }
   return data;
 }
@@ -166,13 +172,12 @@ async function fetchSessionStatus() {
   url.searchParams.set("gameSessionId", gameSessionId);
   const res = await fetch(url.toString(), { headers: authHeaders() });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    return { ok: false, error: data.error || "status_failed", httpStatus: res.status };
-  }
+  if (!res.ok) return { ok: false, error: data.error || "status_failed", httpStatus: res.status };
   return data;
 }
 
 async function sendHeartbeat() {
+  if (_state === "superseded") return { ok: true, active: false, reason: "superseded" };
   const gameSessionId = getGameSessionId();
   const res = await fetch(`${getApiBase()}/api/game-session/heartbeat`, {
     method: "POST",
@@ -181,51 +186,44 @@ async function sendHeartbeat() {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) return { ok: false, error: data.error || "heartbeat_failed" };
-  if (data.active) {
-    markActive();
-    return data;
-  }
-  if (data.reason === "superseded") {
-    markInactive("superseded");
-    return data;
-  }
-  if (data.tookOver) {
-    markActive();
-    publishSessionClaim(getUsername(), gameSessionId, true);
-    return data;
-  }
-  markInactive(data.reason || "heartbeat_inactive");
+  applyServerStatus(data);
+  if (data.tookOver) publishSessionTakeover(getUsername(), gameSessionId);
   return data;
 }
 
 async function pollSessionStatus() {
   if (!MonExAuth?.isLoggedIn?.()) return;
+  if (_state === "superseded") return;
   try {
-    const status = await fetchSessionStatus();
+    let status = await fetchSessionStatus();
     if (!status.ok) return;
 
     if (status.active) {
-      markActive();
+      if (_state !== "active") {
+        _state = "active";
+        if (typeof _onActive === "function") _onActive();
+      }
       return;
     }
 
     if (status.reason === "superseded") {
-      markInactive("superseded");
+      markSuperseded("poll");
       return;
     }
 
     if (status.canReclaim || status.reason === "unclaimed" || status.reason === "stale_other") {
       const claimed = await claimActiveSession();
       if (claimed?.active) return;
-      const again = await fetchSessionStatus();
-      if (again.ok && again.active) markActive();
-      else if (again.ok && again.reason === "superseded") markInactive("superseded");
-      return;
+      status = await fetchSessionStatus();
+      if (status.ok && status.active) {
+        _state = "active";
+        if (typeof _onActive === "function") _onActive();
+      } else if (status.ok && status.reason === "superseded") {
+        markSuperseded("poll_after_claim");
+      }
     }
-
-    markInactive(status.reason || "inactive");
   } catch (_) {
-    /* keep current state on transient network errors */
+    /* keep state on transient network errors */
   }
 }
 
@@ -238,44 +236,29 @@ function scheduleStatusPoll() {
 }
 
 function startSessionGuard(options = {}) {
-  if (_guardRunning) {
-    _onInactive = options.onInactive || _onInactive;
-    _onActive = options.onActive || _onActive;
-    return;
-  }
-  _guardRunning = true;
-  _onInactive = options.onInactive || null;
+  _onSuperseded = options.onSuperseded || options.onInactive || null;
   _onActive = options.onActive || null;
   initCrossTabListeners();
   getGameSessionId();
 
-  const runHeartbeat = () => {
-    if (_active) sendHeartbeat().catch(() => {});
-  };
+  if (!_guardRunning) {
+    _guardRunning = true;
+    const runHeartbeat = () => {
+      if (_state !== "superseded") sendHeartbeat().catch(() => {});
+    };
+    _heartbeatTimer = setInterval(runHeartbeat, HEARTBEAT_MS);
 
-  pollSessionStatus().catch(() => {});
+    document.addEventListener("visibilitychange", () => {
+      scheduleStatusPoll();
+      if (document.visibilityState === "visible") {
+        pollSessionStatus().catch(() => {});
+        if (_state !== "superseded") sendHeartbeat().catch(() => {});
+      }
+    });
+  }
+
   scheduleStatusPoll();
-  _heartbeatTimer = setInterval(runHeartbeat, HEARTBEAT_MS);
-
-  document.addEventListener("visibilitychange", () => {
-    scheduleStatusPoll();
-    if (document.visibilityState === "visible") {
-      pollSessionStatus().catch(() => {});
-      if (_active) sendHeartbeat().catch(() => {});
-    }
-  });
-
-  window.addEventListener("pagehide", () => {
-    if (!_active) return;
-    const gameSessionId = getGameSessionId();
-    fetch(`${getApiBase()}/api/game-session/release`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify({ gameSessionId }),
-      keepalive: true,
-    }).catch(() => {});
-    _active = false;
-  });
+  pollSessionStatus().catch(() => {});
 }
 
 function stopSessionGuard() {
@@ -297,25 +280,42 @@ async function releaseSession() {
     });
   } catch (_) {}
   stopSessionGuard();
-  markInactive("released");
+  _state = "pending";
 }
 
 function isActive() {
-  return _active;
+  return _state === "active";
+}
+
+function isSuperseded() {
+  return _state === "superseded";
 }
 
 function hasGameSessionId() {
   return !!getGameSessionId();
 }
 
-function handleInactiveFromApi() {
-  markInactive("api_rejected");
-  pollSessionStatus().catch(() => {});
+async function handleInactiveFromApi() {
+  const status = await fetchSessionStatus().catch(() => null);
+  if (status?.ok && status.active) {
+    _state = "active";
+    if (typeof _onActive === "function") _onActive();
+    return;
+  }
+  if (status?.ok && status.reason === "superseded") {
+    markSuperseded("api");
+    return;
+  }
+  if (status?.ok && status.canReclaim) {
+    const claimed = await claimActiveSession();
+    if (claimed?.active) return;
+  }
+  if (status?.ok && status.reason === "superseded") markSuperseded("api");
 }
 
-/** True when this tab may call gameplay APIs (has session id and is active). */
+/** Block gameplay only when this tab is confirmed superseded. */
 function ensureGameplayApiAllowed() {
-  return _active && hasGameSessionId();
+  return _state !== "superseded";
 }
 
 function gameplayRequestExtras() {
@@ -335,9 +335,11 @@ window.MonExGameSession = {
   stopSessionGuard,
   releaseSession,
   isActive,
+  isSuperseded,
   hasGameSessionId,
   handleInactiveFromApi,
   ensureGameplayApiAllowed,
   gameplayRequestExtras,
   authHeaders,
+  initCrossTabListeners,
 };

@@ -8,19 +8,14 @@ function mailboxAuthHeaders() {
   }
   const token = localStorage.getItem("monex_session_token");
   if (token) headers.Authorization = `Bearer ${token}`;
-  try {
-    const id = sessionStorage.getItem("monex_game_session_id");
-    if (id) headers["X-Game-Session-Id"] = id;
-  } catch (_) {}
+  if (window.MonExGameSession?.getGameSessionId) {
+    headers["X-Game-Session-Id"] = window.MonExGameSession.getGameSessionId();
+  }
   return headers;
 }
 
 function mailboxClaimBody(mailId) {
   const body = { mailId };
-  try {
-    const id = sessionStorage.getItem("monex_game_session_id");
-    if (id) body.gameSessionId = id;
-  } catch (_) {}
   if (window.MonExGameSession?.getGameSessionId) {
     body.gameSessionId = window.MonExGameSession.getGameSessionId();
   }
@@ -56,7 +51,7 @@ async function claimDailyLogin() {
 }
 
 async function claimMailboxMail(mailId) {
-  if (window.MonExGameSession?.ensureGameplayApiAllowed && !window.MonExGameSession.ensureGameplayApiAllowed()) {
+  if (window.MonExGameSession?.isSuperseded && window.MonExGameSession.isSuperseded()) {
     throw new Error("game_session_inactive");
   }
   const res = await fetch(`${mailboxApiBase()}/api/mailbox/claim`, {

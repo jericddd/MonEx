@@ -106,6 +106,20 @@ describe("requireGameplaySession", () => {
     assert.equal(auth.error, "game_session_required");
   });
 
+  it("auto-claims unclaimed sessions on gameplay requests", async () => {
+    const kv = makeKv();
+    const auth = await requireGameplaySession(
+      { headers: { get: () => null } },
+      kv,
+      { xUserId: "user_1" },
+      { gameSessionId: "tab_a" }
+    );
+    assert.equal(auth.ok, true);
+    assert.equal(auth.gameSessionId, "tab_a");
+    const status = await getGameSessionStatus(kv, "user_1", "tab_a");
+    assert.equal(status.active, true);
+  });
+
   it("rejects inactive gameplay sessions", async () => {
     const kv = makeKv();
     await claimGameSession(kv, "user_1", "tab_b");

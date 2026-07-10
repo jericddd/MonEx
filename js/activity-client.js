@@ -895,7 +895,7 @@ function getAuthHeaders() {
 
 async function syncWildMons(username, partyCount, boxCount, partyMax = 3, boxMax = 500) {
     const base = getMonexApiBase();
-    if (window.MonExGameSession?.ensureGameplayApiAllowed && !window.MonExGameSession.ensureGameplayApiAllowed()) {
+    if (window.MonExGameSession?.isSuperseded && window.MonExGameSession.isSuperseded()) {
         throw new Error("game_session_inactive");
     }
     const body = {
@@ -905,10 +905,6 @@ async function syncWildMons(username, partyCount, boxCount, partyMax = 3, boxMax
         boxMax: boxMax || 500,
     };
     if (username) body.username = username.replace("@", "");
-    try {
-        const id = sessionStorage.getItem("monex_game_session_id");
-        if (id) body.gameSessionId = id;
-    } catch (_) {}
     if (window.MonExGameSession?.getGameSessionId) {
         body.gameSessionId = window.MonExGameSession.getGameSessionId();
     }
