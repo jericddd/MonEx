@@ -88,12 +88,21 @@ describe("daily login mailbox delivery", () => {
         ],
         updatedAt: new Date(0).toISOString(),
       }),
+      "monex:state": JSON.stringify({
+        processedTweetIds: [],
+        users: {
+          user_1: { username: "trainer", monballs: 1, pendingMons: [] },
+        },
+      }),
     });
 
     const result = await claimMailboxItem(kv, session, "mail_test");
     assert.equal(result.ok, true);
     assert.equal(result.save.monballs, 10 + DAILY_LOGIN_REWARD_MONBALLS);
     assert.ok(result.save.mailbox[0].claimedAt);
+
+    const catchState = JSON.parse(kv.dump("monex:state"));
+    assert.equal(catchState.users.user_1.monballs, 1 + DAILY_LOGIN_REWARD_MONBALLS);
   });
 });
 

@@ -14231,9 +14231,12 @@ async function syncXWildMons(silent) {
             const seen = getWildPendingIds();
             let added = 0;
             let monballsSynced = false;
-            if (typeof data.monballs === "number" && data.monballs !== monballs) {
-                monballs = data.monballs;
-                monballsSynced = true;
+            if (typeof data.monballs === "number") {
+                const merged = Math.max(Number(monballs) || 0, Number(data.monballs) || 0);
+                if (merged !== monballs) {
+                    monballs = merged;
+                    monballsSynced = true;
+                }
             }
             for (const raw of data.party || []) {
                 if (raw.pendingId && seen.has(raw.pendingId)) continue;
@@ -15187,6 +15190,11 @@ async function claimMailboxReward(mailId) {
         renderMailbox();
         updateHeaderCurrencies();
         updateUI();
+        if (result.save && typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+            try {
+                await flushSaveToCloud();
+            } catch (_) {}
+        }
     } catch (e) {
         alert(e.message || "Could not claim mail.");
     }

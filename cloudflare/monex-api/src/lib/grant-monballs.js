@@ -1,4 +1,4 @@
-import { loadState, saveState } from "../kv-store.js";
+import { loadState, saveState, resolveCatchUser } from "../kv-store.js";
 import { loadCloudSave, writeCloudSave } from "./save.js";
 
 const SAVE_PREFIX = "monex:save:";
@@ -11,6 +11,37 @@ export function normalizeUsername(username) {
 
 export function clampMonballs(n) {
   return Math.max(0, Math.min(MONBALL_MAX, Math.floor(Number(n) || 0)));
+}
+
+export async function creditCatchMonballs(kv, session, delta, startingMonballs = 10) {
+  const amount = clampMonballs(delta);
+  if (!amount || !session?.xUserId) return null;
+  const state = await loadState(kv);
+  const user = resolveCatchUser(state, session.xUserId, session.username, startingMonballs);
+  if (!user) return null;
+  user.monballs = clampMonballs((user.monballs ?? 0) + amount);
+  user.updatedAt = new Date().toISOString();
+  await saveState(kv, state);
+  return user.monballs;
+}
+
+export function mergeMonballBalances(catchMonballs, saveMonballs) {
+  return clampMonballs(Math.max(clampMonballs(catchMonballs), clampMonballs(saveMonballs)));
+}
+
+export async function alignCatchMonballsToMerged(kv, session, mergedMonballs, startingMonballs = 10) {
+  const target = clampMonballs(mergedMonballs);
+  if (!session?.xUserId) return target;
+  const state = await loadState(kv);
+  const user = resolveCatchUser(state, session.xUserId, session.username, startingMonballs);
+  if (!user) return target;
+  const current = clampMonballs(user.monballs ?? 0);
+  if (target > current) {
+    user.monballs = target;
+    user.updatedAt = new Date().toISOString();
+    await saveState(kv, state);
+  }
+  return Math.max(current, target);
 }
 
 export function findUserIdInState(state, username) {
