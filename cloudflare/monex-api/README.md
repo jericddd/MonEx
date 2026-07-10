@@ -166,3 +166,18 @@ The script moves `pendingMons` from catch state into each user's cloud save Part
 4. Apply with **Preview only** off, **confirm** = `RECOVER`
 
 Rebuilds mons from activity log entries into cloud save Party/Box and sets Monballs from the latest log entry. Skills are regenerated (species/rarity match the log; RNG skills may differ slightly).
+
+**Backfill quest rewards** (when users claimed daily/weekly/campaign quests or milestone chests but did not receive resources):
+
+1. Repo → **Actions** → **Backfill quest rewards** → **Run workflow**
+2. Leave **username** empty to scan all cloud saves, or set one handle to target a single user
+3. Preview with **Preview only** on, **confirm** = `PREVIEW`
+4. Apply with **Preview only** off, **confirm** = `BACKFILL`
+
+Delivers missing rewards as a bundled **Quest Reward Recovery** mail item (claim in-game Mailbox). Marks `questState.grantedKeys` so rewards are not duplicated. Local equivalent:
+
+```bash
+npm run backfill-quest-rewards -- --dry-run
+npm run backfill-quest-rewards -- --dry-run jericddd
+npm run backfill-quest-rewards -- jericddd
+```

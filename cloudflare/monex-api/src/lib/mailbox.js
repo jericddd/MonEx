@@ -97,9 +97,19 @@ export async function claimMailboxItem(kv, session, mailId) {
   const item = { ...mailbox[idx] };
   const now = Date.now();
   let monballs = save.monballs || 0;
+  let money = save.money || 0;
+  let essence = save.essence || 0;
+  let monShards = save.monShards || 0;
+  let trainerXp = save.trainerXp || 0;
 
   if (item.type === "monballs") {
     monballs += item.amount || 1;
+  } else if (item.type === "resources" && item.grant && typeof item.grant === "object") {
+    if (item.grant.gold) money += item.grant.gold;
+    if (item.grant.essence) essence += item.grant.essence;
+    if (item.grant.monballs) monballs += item.grant.monballs;
+    if (item.grant.monShards) monShards += item.grant.monShards;
+    if (item.grant.trainerXp) trainerXp += item.grant.trainerXp;
   } else {
     return { ok: false, error: "unsupported_reward" };
   }
@@ -111,6 +121,10 @@ export async function claimMailboxItem(kv, session, mailId) {
     {
       ...save,
       monballs,
+      money,
+      essence,
+      monShards,
+      trainerXp,
       mailbox,
       updatedAt: new Date(now).toISOString(),
     },
