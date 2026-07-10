@@ -127,14 +127,23 @@ Cron runs every 2 minutes automatically.
 
 ## Admin scripts (production KV)
 
-Requires `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+Requires `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (GitHub Actions secrets for the workflows below).
 
-| Script | Purpose |
-|--------|---------|
-| `node scripts/grant-monballs.mjs <user> [amount]` | Grant Monballs to catch state + cloud save |
-| `node scripts/backfill-pending-catches.mjs [--dry-run] [user]` | One-time: push stuck X pending catches into cloud saves |
+| Script / Action | Purpose |
+|-----------------|---------|
+| **Actions → Grant Monballs** | Grant Monballs to catch state + cloud save |
+| **Actions → Backfill pending catches** | Push stuck X pending catches into cloud saves |
+| `node scripts/grant-monballs.mjs <user> [amount]` | Same as Grant Monballs workflow (local) |
+| `node scripts/backfill-pending-catches.mjs [--dry-run] [user]` | Same as Backfill workflow (local) |
 
-**Backfill pending catches** (run once after deploying the catch sync fix):
+**Backfill pending catches** (GitHub — recommended):
+
+1. Repo → **Actions** → **Backfill pending catches** → **Run workflow**
+2. Leave **Preview only** checked, set **confirm** to `PREVIEW`, run (optional: set username for one user)
+3. Review the JSON log in the job output
+4. Uncheck **Preview only**, set **confirm** to `BACKFILL`, run again to apply
+
+Local CLI (optional):
 
 ```bash
 cd cloudflare/monex-api
