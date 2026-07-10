@@ -51,7 +51,7 @@ async function claimDailyLogin() {
 }
 
 async function claimMailboxMail(mailId) {
-  if (window.MonExGameSession?.isSuperseded && window.MonExGameSession.isSuperseded()) {
+  if (window.MonExGameSession?.isGameplayAllowed && !window.MonExGameSession.isGameplayAllowed()) {
     throw new Error("game_session_inactive");
   }
   const res = await fetch(`${mailboxApiBase()}/api/mailbox/claim`, {

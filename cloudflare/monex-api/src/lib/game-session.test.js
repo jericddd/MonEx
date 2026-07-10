@@ -25,11 +25,12 @@ function makeKv() {
   };
 }
 
-function makeRequest(gameSessionId) {
+function makeRequest(gameSessionId, sessionOpenedAt = null) {
   return {
     headers: {
       get(name) {
         if (name === "X-Game-Session-Id") return gameSessionId;
+        if (name === "X-Game-Session-Opened-At") return sessionOpenedAt != null ? String(sessionOpenedAt) : null;
         return null;
       },
     },
@@ -39,29 +40,40 @@ function makeRequest(gameSessionId) {
 describe("claimGameSession", () => {
   it("registers the first session as active", async () => {
     const kv = makeKv();
-    const result = await claimGameSession(kv, "user_1", "tab_a");
+    const result = await claimGameSession(kv, "user_1", "tab_a", { sessionOpenedAt: 1000 });
     assert.equal(result.active, true);
     assert.equal(result.gameSessionId, "tab_a");
   });
 
   it("transfers active ownership to a newer session id", async () => {
     const kv = makeKv();
-    await claimGameSession(kv, "user_1", "tab_a");
-    const result = await claimGameSession(kv, "user_1", "tab_b");
+    await claimGameSession(kv, "user_1", "tab_a", { sessionOpenedAt: 1000 });
+    const result = await claimGameSession(kv, "user_1", "tab_b", { sessionOpenedAt: 2000 });
     assert.equal(result.tookOver, true);
-    const statusA = await getGameSessionStatus(kv, "user_1", "tab_a");
+    const statusA = await getGameSessionStatus(kv, "user_1", "tab_a", { sessionOpenedAt: 1000 });
     assert.equal(statusA.active, false);
     assert.equal(statusA.reason, "superseded");
-    const statusB = await getGameSessionStatus(kv, "user_1", "tab_b");
+    const statusB = await getGameSessionStatus(kv, "user_1", "tab_b", { sessionOpenedAt: 2000 });
+    assert.equal(statusB.active, true);
+  });
+
+  it("rejects stale claim responses from older tabs", async () => {
+    const kv = makeKv();
+    await claimGameSession(kv, "user_1", "tab_a", { sessionOpenedAt: 1000 });
+    await claimGameSession(kv, "user_1", "tab_b", { sessionOpenedAt: 2000 });
+    const lateClaim = await claimGameSession(kv, "user_1", "tab_a", { sessionOpenedAt: 1000 });
+    assert.equal(lateClaim.active, false);
+    assert.equal(lateClaim.reason, "superseded");
+    const statusB = await getGameSessionStatus(kv, "user_1", "tab_b", { sessionOpenedAt: 2000 });
     assert.equal(statusB.active, true);
   });
 
   it("refreshes the same tab without displacing itself", async () => {
     const kv = makeKv();
-    await claimGameSession(kv, "user_1", "tab_a");
-    const refreshed = await claimGameSession(kv, "user_1", "tab_a");
+    await claimGameSession(kv, "user_1", "tab_a", { sessionOpenedAt: 1000 });
+    const refreshed = await claimGameSession(kv, "user_1", "tab_a", { sessionOpenedAt: 1000 });
     assert.equal(refreshed.refreshed, true);
-    const status = await getGameSessionStatus(kv, "user_1", "tab_a");
+    const status = await getGameSessionStatus(kv, "user_1", "tab_a", { sessionOpenedAt: 1000 });
     assert.equal(status.active, true);
   });
 });
@@ -69,16 +81,16 @@ describe("claimGameSession", () => {
 describe("heartbeatGameSession", () => {
   it("keeps the active session alive", async () => {
     const kv = makeKv();
-    await claimGameSession(kv, "user_1", "tab_a");
-    const beat = await heartbeatGameSession(kv, "user_1", "tab_a");
+    await claimGameSession(kv, "user_1", "tab_a", { sessionOpenedAt: 1000 });
+    const beat = await heartbeatGameSession(kv, "user_1", "tab_a", { sessionOpenedAt: 1000 });
     assert.equal(beat.active, true);
   });
 
   it("reports superseded for inactive tabs", async () => {
     const kv = makeKv();
-    await claimGameSession(kv, "user_1", "tab_a");
-    await claimGameSession(kv, "user_1", "tab_b");
-    const beat = await heartbeatGameSession(kv, "user_1", "tab_a");
+    await claimGameSession(kv, "user_1", "tab_a", { sessionOpenedAt: 1000 });
+    await claimGameSession(kv, "user_1", "tab_b", { sessionOpenedAt: 2000 });
+    const beat = await heartbeatGameSession(kv, "user_1", "tab_a", { sessionOpenedAt: 1000 });
     assert.equal(beat.active, false);
     assert.equal(beat.reason, "superseded");
   });
@@ -88,9 +100,9 @@ describe("heartbeatGameSession", () => {
     const staleAt = new Date(Date.now() - GAME_SESSION_STALE_MS - 1000).toISOString();
     await kv.put(
       "monex:active-game-session:user_1",
-      JSON.stringify({ gameSessionId: "tab_a", claimedAt: staleAt, lastSeenAt: staleAt })
+      JSON.stringify({ gameSessionId: "tab_a", claimedAt: staleAt, lastSeenAt: staleAt, openedAt: 1000 })
     );
-    const beat = await heartbeatGameSession(kv, "user_1", "tab_b");
+    const beat = await heartbeatGameSession(kv, "user_1", "tab_b", { sessionOpenedAt: 2000 });
     assert.equal(beat.active, true);
     assert.equal(beat.tookOver, true);
   });
@@ -112,30 +124,49 @@ describe("requireGameplaySession", () => {
       { headers: { get: () => null } },
       kv,
       { xUserId: "user_1" },
-      { gameSessionId: "tab_a" }
+      { gameSessionId: "tab_a", sessionOpenedAt: 1000 }
     );
     assert.equal(auth.ok, true);
     assert.equal(auth.gameSessionId, "tab_a");
-    const status = await getGameSessionStatus(kv, "user_1", "tab_a");
+    const status = await getGameSessionStatus(kv, "user_1", "tab_a", { sessionOpenedAt: 1000 });
     assert.equal(status.active, true);
   });
 
   it("rejects inactive gameplay sessions", async () => {
     const kv = makeKv();
-    await claimGameSession(kv, "user_1", "tab_b");
-    const auth = await requireGameplaySession(makeRequest("tab_a"), kv, { xUserId: "user_1" });
+    await claimGameSession(kv, "user_1", "tab_b", { sessionOpenedAt: 2000 });
+    const auth = await requireGameplaySession(
+      makeRequest("tab_a", 1000),
+      kv,
+      { xUserId: "user_1" }
+    );
     assert.equal(auth.ok, false);
     assert.equal(auth.error, "game_session_inactive");
+    assert.equal(auth.reason, "superseded");
+  });
+
+  it("does not auto-reclaim superseded sessions on gameplay requests", async () => {
+    const kv = makeKv();
+    await claimGameSession(kv, "user_1", "tab_b", { sessionOpenedAt: 2000 });
+    const auth = await requireGameplaySession(
+      makeRequest("tab_a", 1000),
+      kv,
+      { xUserId: "user_1" },
+      { gameSessionId: "tab_a", sessionOpenedAt: 1000 }
+    );
+    assert.equal(auth.ok, false);
+    const status = await getGameSessionStatus(kv, "user_1", "tab_b", { sessionOpenedAt: 2000 });
+    assert.equal(status.active, true);
   });
 
   it("accepts game session id from JSON body when header is missing", async () => {
     const kv = makeKv();
-    await claimGameSession(kv, "user_1", "tab_a");
+    await claimGameSession(kv, "user_1", "tab_a", { sessionOpenedAt: 1000 });
     const auth = await requireGameplaySession(
       { headers: { get: () => null } },
       kv,
       { xUserId: "user_1" },
-      { gameSessionId: "tab_a" }
+      { gameSessionId: "tab_a", sessionOpenedAt: 1000 }
     );
     assert.equal(auth.ok, true);
     assert.equal(auth.gameSessionId, "tab_a");
@@ -145,10 +176,10 @@ describe("requireGameplaySession", () => {
 describe("releaseGameSession", () => {
   it("clears active session only for the owning tab", async () => {
     const kv = makeKv();
-    await claimGameSession(kv, "user_1", "tab_a");
+    await claimGameSession(kv, "user_1", "tab_a", { sessionOpenedAt: 1000 });
     const released = await releaseGameSession(kv, "user_1", "tab_a");
     assert.equal(released.released, true);
-    const status = await getGameSessionStatus(kv, "user_1", "tab_a");
+    const status = await getGameSessionStatus(kv, "user_1", "tab_a", { sessionOpenedAt: 1000 });
     assert.equal(status.active, false);
     assert.equal(status.reason, "unclaimed");
   });

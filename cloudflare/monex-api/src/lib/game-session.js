@@ -1,6 +1,7 @@
 /** Authoritative single active in-game session per authenticated user. */
 
 export const GAME_SESSION_HEADER = "X-Game-Session-Id";
+export const GAME_SESSION_OPENED_AT_HEADER = "X-Game-Session-Opened-At";
 export const GAME_SESSION_STALE_MS = 45_000;
 export const GAME_SESSION_TTL_SEC = 60 * 60 * 24 * 30;
 
@@ -8,6 +9,19 @@ const ACTIVE_PREFIX = "monex:active-game-session:";
 
 export function activeGameSessionKey(xUserId) {
   return `${ACTIVE_PREFIX}${String(xUserId || "")}`;
+}
+
+export function normalizeSessionOpenedAt(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
+export function sessionOpenedAtFromRecord(record) {
+  if (!record) return 0;
+  const opened = normalizeSessionOpenedAt(record.openedAt);
+  if (opened) return opened;
+  const claimed = Date.parse(record.claimedAt || "");
+  return Number.isFinite(claimed) ? claimed : 0;
 }
 
 export function getGameSessionIdFromRequest(request, body = null) {
@@ -22,6 +36,14 @@ export function getGameSessionIdFromRequest(request, body = null) {
   if (headerId) return String(headerId).trim();
   if (bodyId) return String(bodyId).trim();
   return null;
+}
+
+export function getSessionOpenedAtFromRequest(request, body = null) {
+  const headerAt = request?.headers?.get(GAME_SESSION_OPENED_AT_HEADER);
+  const bodyAt = body?.sessionOpenedAt;
+  const fromHeader = normalizeSessionOpenedAt(headerAt);
+  const fromBody = normalizeSessionOpenedAt(bodyAt);
+  return Math.max(fromHeader, fromBody);
 }
 
 export async function loadActiveGameSession(kv, xUserId) {
@@ -60,58 +82,100 @@ export async function writeActiveGameSession(kv, xUserId, record) {
   return record;
 }
 
-/**
- * Claim or refresh the active in-game session. A different gameSessionId always wins.
- */
-export async function claimGameSession(kv, xUserId, gameSessionId) {
-  const id = String(gameSessionId || "").trim();
-  if (!xUserId || !id) {
-    return { ok: false, error: "game_session_id_required" };
-  }
-
-  const active = await loadActiveGameSession(kv, xUserId);
-  const now = nowIso();
-  if (active?.gameSessionId === id) {
-    const refreshed = { ...active, gameSessionId: id, lastSeenAt: now };
-    await writeActiveGameSession(kv, xUserId, refreshed);
-    return { ok: true, active: true, refreshed: true, gameSessionId: id, lastSeenAt: now };
-  }
-
-  const record = { gameSessionId: id, claimedAt: now, lastSeenAt: now };
-  await writeActiveGameSession(kv, xUserId, record);
-  return { ok: true, active: true, tookOver: true, gameSessionId: id, claimedAt: now, lastSeenAt: now };
-}
-
-export async function heartbeatGameSession(kv, xUserId, gameSessionId) {
-  const id = String(gameSessionId || "").trim();
-  if (!xUserId || !id) {
-    return { ok: false, error: "game_session_id_required" };
-  }
-
-  const active = await loadActiveGameSession(kv, xUserId);
-  if (!active) {
-    return claimGameSession(kv, xUserId, id);
-  }
-  if (active.gameSessionId === id) {
-    const now = nowIso();
-    const refreshed = { ...active, lastSeenAt: now };
-    await writeActiveGameSession(kv, xUserId, refreshed);
-    return { ok: true, active: true, gameSessionId: id, lastSeenAt: now };
-  }
-  if (isGameSessionStale(active)) {
-    return claimGameSession(kv, xUserId, id);
-  }
+function supersededByActive(active) {
   return {
     ok: true,
     active: false,
     reason: "superseded",
     activeGameSessionId: active.gameSessionId,
     lastSeenAt: active.lastSeenAt,
+    openedAt: sessionOpenedAtFromRecord(active),
   };
 }
 
-export async function getGameSessionStatus(kv, xUserId, gameSessionId) {
+/**
+ * Claim or refresh the active in-game session.
+ * A newer tab (higher sessionOpenedAt) displaces a live session; stale responses cannot steal.
+ */
+export async function claimGameSession(kv, xUserId, gameSessionId, options = {}) {
   const id = String(gameSessionId || "").trim();
+  const openedAt = normalizeSessionOpenedAt(options.sessionOpenedAt) || Date.now();
+  if (!xUserId || !id) {
+    return { ok: false, error: "game_session_id_required" };
+  }
+
+  const active = await loadActiveGameSession(kv, xUserId);
+  const now = nowIso();
+
+  if (active?.gameSessionId === id) {
+    const refreshed = {
+      ...active,
+      gameSessionId: id,
+      lastSeenAt: now,
+      openedAt: sessionOpenedAtFromRecord(active) || openedAt,
+    };
+    await writeActiveGameSession(kv, xUserId, refreshed);
+    return {
+      ok: true,
+      active: true,
+      refreshed: true,
+      gameSessionId: id,
+      lastSeenAt: now,
+      openedAt: refreshed.openedAt,
+    };
+  }
+
+  if (active && !isGameSessionStale(active)) {
+    const activeOpenedAt = sessionOpenedAtFromRecord(active);
+    if (openedAt <= activeOpenedAt) {
+      return supersededByActive(active);
+    }
+  }
+
+  const record = {
+    gameSessionId: id,
+    claimedAt: now,
+    lastSeenAt: now,
+    openedAt,
+  };
+  await writeActiveGameSession(kv, xUserId, record);
+  return {
+    ok: true,
+    active: true,
+    tookOver: !!active,
+    gameSessionId: id,
+    claimedAt: now,
+    lastSeenAt: now,
+    openedAt,
+  };
+}
+
+export async function heartbeatGameSession(kv, xUserId, gameSessionId, options = {}) {
+  const id = String(gameSessionId || "").trim();
+  const openedAt = normalizeSessionOpenedAt(options.sessionOpenedAt) || Date.now();
+  if (!xUserId || !id) {
+    return { ok: false, error: "game_session_id_required" };
+  }
+
+  const active = await loadActiveGameSession(kv, xUserId);
+  if (!active) {
+    return claimGameSession(kv, xUserId, id, { sessionOpenedAt: openedAt });
+  }
+  if (active.gameSessionId === id) {
+    const now = nowIso();
+    const refreshed = { ...active, lastSeenAt: now };
+    await writeActiveGameSession(kv, xUserId, refreshed);
+    return { ok: true, active: true, gameSessionId: id, lastSeenAt: now, openedAt: sessionOpenedAtFromRecord(refreshed) };
+  }
+  if (isGameSessionStale(active)) {
+    return claimGameSession(kv, xUserId, id, { sessionOpenedAt: openedAt });
+  }
+  return supersededByActive(active);
+}
+
+export async function getGameSessionStatus(kv, xUserId, gameSessionId, options = {}) {
+  const id = String(gameSessionId || "").trim();
+  const openedAt = normalizeSessionOpenedAt(options.sessionOpenedAt);
   if (!xUserId || !id) {
     return { ok: false, error: "game_session_id_required" };
   }
@@ -127,6 +191,7 @@ export async function getGameSessionStatus(kv, xUserId, gameSessionId) {
       gameSessionId: id,
       lastSeenAt: active.lastSeenAt,
       claimedAt: active.claimedAt,
+      openedAt: sessionOpenedAtFromRecord(active),
     };
   }
   if (isGameSessionStale(active)) {
@@ -137,15 +202,12 @@ export async function getGameSessionStatus(kv, xUserId, gameSessionId) {
       canReclaim: true,
       activeGameSessionId: active.gameSessionId,
       lastSeenAt: active.lastSeenAt,
+      openedAt: sessionOpenedAtFromRecord(active),
     };
   }
   return {
-    ok: true,
-    active: false,
-    reason: "superseded",
+    ...supersededByActive(active),
     canReclaim: false,
-    activeGameSessionId: active.gameSessionId,
-    lastSeenAt: active.lastSeenAt,
   };
 }
 
@@ -166,14 +228,19 @@ export async function requireGameplaySession(request, kv, session, body = null) 
     return { ok: false, status: 403, error: "game_session_required" };
   }
 
-  let status = await getGameSessionStatus(kv, session.xUserId, gameSessionId);
+  const sessionOpenedAt = getSessionOpenedAtFromRequest(request, body);
+  const statusOpts = sessionOpenedAt ? { sessionOpenedAt } : {};
+  let status = await getGameSessionStatus(kv, session.xUserId, gameSessionId, statusOpts);
   if (!status.ok) {
     return { ok: false, status: 400, error: status.error || "game_session_invalid" };
   }
 
-  if (!status.active && status.canReclaim) {
-    await claimGameSession(kv, session.xUserId, gameSessionId);
-    status = await getGameSessionStatus(kv, session.xUserId, gameSessionId);
+  // Only auto-claim when no session record exists. Never reclaim stale/superseded via gameplay.
+  if (!status.active && status.reason === "unclaimed") {
+    await claimGameSession(kv, session.xUserId, gameSessionId, {
+      sessionOpenedAt: sessionOpenedAt || Date.now(),
+    });
+    status = await getGameSessionStatus(kv, session.xUserId, gameSessionId, statusOpts);
   }
 
   if (!status.active) {
