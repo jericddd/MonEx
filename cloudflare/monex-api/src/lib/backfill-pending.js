@@ -7,8 +7,9 @@ import { sanitizeMon, validateAndSanitizeSave } from "./save-validate.js";
 export const GAME_PARTY_MAX = 3;
 export const GAME_BOX_MAX = 500;
 
-function normalizeUsername(username) {
-  return String(username || "").toLowerCase().replace(/^@/, "").trim();
+/** Strip @ only — preserve X handle casing (e.g. Lucci_Crypto). */
+export function cleanUsername(username) {
+  return String(username || "").replace(/^@/, "").trim();
 }
 
 export function collectPendingUsers(state) {
@@ -16,12 +17,21 @@ export function collectPendingUsers(state) {
   for (const [key, user] of Object.entries(state?.users || {})) {
     const pending = user?.pendingMons || [];
     if (!pending.length) continue;
-    const username = normalizeUsername(user?.username);
+    const username = cleanUsername(user?.username);
     if (!username) continue;
     if (!groups.has(username)) groups.set(username, []);
     groups.get(username).push({ key, user, pendingCount: pending.length });
   }
   return groups;
+}
+
+export function listPendingUsernames(state) {
+  return [...collectPendingUsers(state).keys()].sort();
+}
+
+export function usernameMatchesFilter(stored, filter) {
+  if (!filter) return true;
+  return cleanUsername(stored) === cleanUsername(filter);
 }
 
 /** Prefer real X author id over sim_* dev keys when the same @handle has duplicates. */
@@ -112,7 +122,7 @@ export function backfillPendingForUser(
     startingMonballs = 10,
   } = {}
 ) {
-  const uname = normalizeUsername(username);
+  const uname = cleanUsername(username);
   const catchUser = resolveCatchUser(state, xUserId, uname, startingMonballs);
   if (!catchUser) {
     return {

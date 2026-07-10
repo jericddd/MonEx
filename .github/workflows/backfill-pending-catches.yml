@@ -9,7 +9,7 @@ on:
         type: boolean
         default: true
       username:
-        description: "X username without @ (leave empty for all users with pending mons)"
+        description: "X username without @ — case-sensitive, match X Wild Log spelling (e.g. Lucci_Crypto)"
         required: false
         default: ""
       confirm:

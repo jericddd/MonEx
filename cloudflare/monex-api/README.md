@@ -139,9 +139,10 @@ Requires `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (GitHub Actions secr
 **Backfill pending catches** (GitHub — recommended):
 
 1. Repo → **Actions** → **Backfill pending catches** → **Run workflow**
-2. Leave **Preview only** checked, set **confirm** to `PREVIEW`, run (optional: set username for one user)
-3. Review the JSON log in the job output
-4. Uncheck **Preview only**, set **confirm** to `BACKFILL`, run again to apply
+2. Leave **Preview only** checked, set **confirm** to `PREVIEW`
+3. Leave **username** empty for all users, or enter the exact handle from the X Wild Log (case-sensitive, e.g. `Lucci_Crypto`)
+4. Review the JSON log in the job output (`hint.pendingUsernames` lists exact spellings if filter misses)
+5. Uncheck **Preview only**, set **confirm** to `BACKFILL`, run again to apply
 
 Local CLI (optional):
 
