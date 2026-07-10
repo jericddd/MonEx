@@ -30,7 +30,7 @@ risking new data loss, and documents the rest with implementation plans.
 |---|---|---|---|
 | P0 Critical | 6 | 4 | 2 (architectural) |
 | P1 High | ~22 | 11 | ~11 (mostly architectural/concurrency) |
-| P2 Low | ~30 | fixed (code) | deferred: #4, #7, #8–10, #14, #16–17, #18, #23–24, #30–31 |
+| P2 Low | ~30 | fixed (code) | deferred: #4, #7, #8–10, #14, #16–17, #18, #23–24, #30–31; #32 owner override kept in wrangler.toml |
 
 ---
 
