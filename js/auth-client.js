@@ -11,15 +11,7 @@ function readGameSessionId() {
     return window.MonExGameSession.getGameSessionId();
   }
   try {
-    let id = sessionStorage.getItem(GAME_SESSION_STORAGE_KEY);
-    if (!id) {
-      id =
-        typeof crypto !== "undefined" && crypto.randomUUID
-          ? crypto.randomUUID()
-          : `gs_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-      sessionStorage.setItem(GAME_SESSION_STORAGE_KEY, id);
-    }
-    return id;
+    return sessionStorage.getItem(GAME_SESSION_STORAGE_KEY) || null;
   } catch {
     return null;
   }
@@ -195,7 +187,7 @@ async function ensureUser() {
 
 async function loadCloudSave() {
   const base = getApiBase();
-  if (window.MonExGameSession?.ensureGameplayApiAllowed && !window.MonExGameSession.ensureGameplayApiAllowed()) {
+  if (window.MonExGameSession?.isSuperseded && window.MonExGameSession.isSuperseded()) {
     throw new Error("game_session_inactive");
   }
   const res = await fetch(`${base}/api/save`, { headers: authHeaders() });
@@ -249,7 +241,7 @@ async function pushCloudSave(payload) {
   const body = { save: payload };
   const gameSessionId = readGameSessionId();
   if (gameSessionId) body.gameSessionId = gameSessionId;
-  if (window.MonExGameSession?.ensureGameplayApiAllowed && !window.MonExGameSession.ensureGameplayApiAllowed()) {
+  if (window.MonExGameSession?.isSuperseded && window.MonExGameSession.isSuperseded()) {
     return { conflict: false, save: null, skipped: "game_session_inactive" };
   }
   const res = await fetch(`${base}/api/save`, {

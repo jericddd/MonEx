@@ -11,9 +11,16 @@ export function activeGameSessionKey(xUserId) {
 }
 
 export function getGameSessionIdFromRequest(request, body = null) {
-  const raw = request?.headers?.get(GAME_SESSION_HEADER);
-  if (raw) return String(raw).trim();
-  if (body?.gameSessionId) return String(body.gameSessionId).trim();
+  const headerId = request?.headers?.get(GAME_SESSION_HEADER);
+  const bodyId = body?.gameSessionId;
+  if (headerId && bodyId) {
+    const h = String(headerId).trim();
+    const b = String(bodyId).trim();
+    if (h && b && h !== b) return b;
+    return h || b;
+  }
+  if (headerId) return String(headerId).trim();
+  if (bodyId) return String(bodyId).trim();
   return null;
 }
 
@@ -158,10 +165,17 @@ export async function requireGameplaySession(request, kv, session, body = null) 
   if (!gameSessionId) {
     return { ok: false, status: 403, error: "game_session_required" };
   }
-  const status = await getGameSessionStatus(kv, session.xUserId, gameSessionId);
+
+  let status = await getGameSessionStatus(kv, session.xUserId, gameSessionId);
   if (!status.ok) {
     return { ok: false, status: 400, error: status.error || "game_session_invalid" };
   }
+
+  if (!status.active && status.canReclaim) {
+    await claimGameSession(kv, session.xUserId, gameSessionId);
+    status = await getGameSessionStatus(kv, session.xUserId, gameSessionId);
+  }
+
   if (!status.active) {
     return {
       ok: false,
