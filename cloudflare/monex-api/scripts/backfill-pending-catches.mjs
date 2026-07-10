@@ -100,8 +100,9 @@ async function listKeys(prefix) {
 function parseArgs(argv) {
   const args = argv.slice(2);
   const dryRun = args.includes("--dry-run");
+  const allUsers = args.includes("--all-users");
   const username = cleanUsername(args.find((a) => !a.startsWith("--")) || "");
-  return { dryRun, username };
+  return { dryRun, allUsers, username };
 }
 
 async function buildSaveIndex() {
@@ -146,7 +147,11 @@ function pickCloudSaveTarget(username, catchUserId, saveIndex) {
 
 async function main() {
   requireEnv();
-  const { dryRun, username: onlyUsername } = parseArgs(process.argv);
+  const { dryRun, allUsers, username: onlyUsername } = parseArgs(process.argv);
+  if (!onlyUsername && !allUsers) {
+    console.error("Refusing bulk backfill: pass a username or --all-users");
+    process.exit(1);
+  }
   const startingMonballs = parseInt(process.env.STARTING_MONBALLS || "10", 10) || 10;
 
   const stateRaw = await getValue(STATE_KEY);

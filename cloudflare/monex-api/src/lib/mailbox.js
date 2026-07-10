@@ -1,6 +1,7 @@
 import { loadCloudSave, writeCloudSave, buildSavePayload } from "./save.js";
 import { creditCatchMonballs } from "./grant-monballs.js";
 import { appendMonballAudit } from "./monball-audit.js";
+import { mailboxHasCapacity } from "./save-validate.js";
 
 export const DAILY_LOGIN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 export const DAILY_LOGIN_REWARD_MONBALLS = 5;
@@ -44,6 +45,9 @@ export async function claimDailyLoginReward(kv, session) {
     const status = getDailyLoginStatus(save, now);
     if (!status.ready) {
       return { ok: false, error: "cooldown", nextClaimAt: status.nextClaimAt };
+    }
+    if (!mailboxHasCapacity(save.mailbox)) {
+      return { ok: false, error: "mailbox_full" };
     }
 
     const monballsBefore = save.monballs ?? 0;

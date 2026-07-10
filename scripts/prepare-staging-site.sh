@@ -17,6 +17,7 @@ tar \
   --exclude='./staging-dist' \
   --exclude='./node_modules' \
   --exclude='./scripts' \
+  --exclude='./monanimal-game-phaser3' \
   --exclude='./CNAME' \
   -cf - . | (cd "$OUT" && tar -xf -)
 

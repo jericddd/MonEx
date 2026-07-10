@@ -9,9 +9,13 @@ on:
         type: boolean
         default: true
       username:
-        description: "X username without @ — case-sensitive, match X Wild Log spelling (e.g. Lucci_Crypto)"
+        description: "X username without @ — case-sensitive (required unless all_users is checked)"
         required: false
         default: ""
+      all_users:
+        description: "Process every pending user group (requires explicit opt-in)"
+        type: boolean
+        default: false
       confirm:
         description: "Type PREVIEW to dry-run, or BACKFILL to apply"
         required: true
@@ -68,9 +72,12 @@ jobs:
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             ARGS+=(--dry-run)
           fi
-          USER="${{ inputs.username }}"
-          if [ -n "${USER}" ]; then
-            node scripts/backfill-pending-catches.mjs "${ARGS[@]}" "${USER}"
+          if [ "${{ inputs.all_users }}" = "true" ]; then
+            ARGS+=(--all-users)
+          elif [ -n "${{ inputs.username }}" ]; then
+            ARGS+=("${{ inputs.username }}")
           else
-            node scripts/backfill-pending-catches.mjs "${ARGS[@]}"
+            echo "::error::Provide username or enable all_users"
+            exit 1
           fi
+          node scripts/backfill-pending-catches.mjs "${ARGS[@]}"

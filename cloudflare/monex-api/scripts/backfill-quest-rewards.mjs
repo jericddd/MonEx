@@ -91,14 +91,19 @@ async function listKeys(prefix) {
 function parseArgs(argv) {
   const args = argv.slice(2);
   const dryRun = args.includes("--dry-run");
+  const allUsers = args.includes("--all-users");
   const usernameArg = args.find((a) => !a.startsWith("--")) || "";
   const username = cleanUsername(usernameArg);
-  return { dryRun, username };
+  return { dryRun, allUsers, username };
 }
 
 async function main() {
   requireEnv();
-  const { dryRun, username } = parseArgs(process.argv);
+  const { dryRun, allUsers, username } = parseArgs(process.argv);
+  if (!username && !allUsers) {
+    console.error("Refusing bulk backfill: pass a username or --all-users");
+    process.exit(1);
+  }
   const keys = await listKeys(SAVE_PREFIX);
   const results = [];
   let scanned = 0;

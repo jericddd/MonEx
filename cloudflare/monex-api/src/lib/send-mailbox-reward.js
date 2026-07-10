@@ -1,4 +1,5 @@
 import { buildSavePayload } from "./save.js";
+import { mailboxHasCapacity } from "./save-validate.js";
 
 const RESOURCE_ALIASES = {
   gold: "gold",
@@ -68,6 +69,9 @@ export function sendMailboxRewardToSave(save, options = {}) {
   });
   if (!item) {
     return { changed: false, save, item: null, error: "invalid_mail_reward" };
+  }
+  if (!mailboxHasCapacity(save?.mailbox)) {
+    return { changed: false, save, item: null, error: "mailbox_full" };
   }
 
   const nextSave = buildSavePayload(

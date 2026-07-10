@@ -64,6 +64,7 @@ import {
   sanitizeReturnTo,
   simulateAllowed,
   timingSafeEqual,
+  parseBoundedInt,
 } from "./lib/security.js";
 import { buildMentionReplyText } from "./lib/mention-reply.js";
 import { buildDailyLimitNoticeReply, getReplySeed } from "./lib/natural-reply.js";
@@ -243,11 +244,15 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
         continue;
       }
 
-      // Reserve tweet id before catch logic so concurrent polls cannot double-process.
-      markProcessed(state, tweet.id);
-      await saveState(env.MONEX_KV, state);
+      let result;
+      try {
+        result = processMentionTweet(tweet, bot, state, starting, botUser.id);
+      } catch (err) {
+        status.errors = status.errors || [];
+        status.errors.push({ id: tweet.id, error: err.message || String(err) });
+        break;
+      }
 
-      const result = processMentionTweet(tweet, bot, state, starting, botUser.id);
       if (result.activity) {
         await appendMonballAudit(env.MONEX_KV, {
           xUserId: tweet.authorId,
@@ -270,6 +275,9 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       } else if (result.skipReason) {
         status.skipped.push({ id: tweet.id, user: tweet.username, reason: result.skipReason });
       }
+
+      markProcessed(state, tweet.id);
+      await saveState(env.MONEX_KV, state);
 
       if (env.ENABLE_X_REPLY === "1") {
         const dailyLimit = getDailyReplyLimitForUser(tweet.username, env);
@@ -345,7 +353,11 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       status.processed += 1;
     }
 
-    if (meta?.newest_id && tweets.length > 0) {
+    const pollHadErrors = Array.isArray(status.errors) && status.errors.length > 0;
+    if (!pollHadErrors && meta?.newest_id && tweets.length > 0) {
+      await setPollSinceId(env.MONEX_KV, meta.newest_id);
+      status.newSinceId = meta.newest_id;
+    } else if (!pollHadErrors && meta?.newest_id && status.processed === 0 && status.skipped.length > 0) {
       await setPollSinceId(env.MONEX_KV, meta.newest_id);
       status.newSinceId = meta.newest_id;
     }
@@ -377,6 +389,14 @@ function xKeyDiagnostics(env) {
   };
 }
 
+function isAdminDiagnosticsRequest(request, env) {
+  if (env.ENABLE_ADMIN_RESET !== "1") return false;
+  const adminSecret = env.ADMIN_RESET_SECRET;
+  if (!adminSecret) return false;
+  const provided = request.headers.get("X-Admin-Secret") || "";
+  return timingSafeEqual(provided, adminSecret);
+}
+
 async function handleRequest(request, env) {
   const cors = buildCorsHeaders(request, env);
   if (request.method === "OPTIONS") {
@@ -389,19 +409,25 @@ async function handleRequest(request, env) {
   try {
     if (path === "/api/health") {
       const resetEpoch = await getResetEpoch(env.MONEX_KV);
+      const publicHealth = {
+        ok: true,
+        service: "monex-cloudflare",
+        xOAuth: oauthConfigured(env),
+        resetEpoch,
+      };
+      if (!isAdminDiagnosticsRequest(request, env)) {
+        return json(publicHealth, 200, request, env);
+      }
       return json(
         {
-          ok: true,
-          service: "monex-cloudflare",
+          ...publicHealth,
           xPoll: env.ENABLE_X_POLL === "1",
           xKeys: xKeysConfigured(env),
-          xOAuth: oauthConfigured(env),
           devAuth: devAuthAllowed(env, request),
           stagingDevAuth: stagingDevAuthEnabled(env),
           bot: env.BOT_USERNAME || "monexmonad",
           codeVersion: API_CODE_VERSION,
           keyCheck: xKeyDiagnostics(env),
-          resetEpoch,
           startingMonballs: parseInt(env.STARTING_MONBALLS || "10", 10),
           xReply: env.ENABLE_X_REPLY === "1",
           aiReply: env.ENABLE_AI_REPLY === "1",
@@ -413,6 +439,9 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/poll-status" && request.method === "GET") {
+      if (!isAdminDiagnosticsRequest(request, env)) {
+        return json({ ok: true }, 200, request, env);
+      }
       const sinceId = await getPollSinceId(env.MONEX_KV);
       let last = await getPollStatus(env.MONEX_KV);
       const refresh = url.searchParams.get("refresh") === "1";
@@ -586,6 +615,7 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/game-session/claim" && request.method === "POST") {
+      await enforceRateLimit(request, env, "game-session-claim", { limit: 30, windowSec: 60 });
       const auth = await requireSession(request, env.MONEX_KV);
       if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
       const body = await request.json().catch(() => ({}));
@@ -599,6 +629,7 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/game-session/status" && request.method === "GET") {
+      await enforceRateLimit(request, env, "game-session-status", { limit: 120, windowSec: 60 });
       const auth = await requireSession(request, env.MONEX_KV);
       if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
       const gameSessionId =
@@ -614,6 +645,7 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/game-session/heartbeat" && request.method === "POST") {
+      await enforceRateLimit(request, env, "game-session-heartbeat", { limit: 180, windowSec: 60 });
       const auth = await requireSession(request, env.MONEX_KV);
       if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
       const body = await request.json().catch(() => ({}));
@@ -627,6 +659,7 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/game-session/release" && request.method === "POST") {
+      await enforceRateLimit(request, env, "game-session-release", { limit: 60, windowSec: 60 });
       const auth = await requireSession(request, env.MONEX_KV);
       if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
       const body = await request.json().catch(() => ({}));
@@ -745,8 +778,9 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/activity" && request.method === "GET") {
-      const limit = Math.min(50, parseInt(url.searchParams.get("limit") || "50", 10));
-      const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+      await enforceRateLimit(request, env, "activity-feed", { limit: 120, windowSec: 60 });
+      const limit = parseBoundedInt(url.searchParams.get("limit"), { fallback: 50, min: 1, max: 50 });
+      const page = parseBoundedInt(url.searchParams.get("page"), { fallback: 1, min: 1, max: 9999 });
       const result = await listActivities(env.MONEX_KV, { limit, page, successOnly: true });
       return json({ ok: true, ...result }, 200, request, env);
     }
@@ -755,8 +789,8 @@ async function handleRequest(request, env) {
       const auth = await requireGameplay(request, env);
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       const username = auth.session.username;
-      const limit = Math.min(50, parseInt(url.searchParams.get("limit") || "30", 10));
-      const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+      const limit = parseBoundedInt(url.searchParams.get("limit"), { fallback: 30, min: 1, max: 50 });
+      const page = parseBoundedInt(url.searchParams.get("page"), { fallback: 1, min: 1, max: 9999 });
       const result = await listActivities(env.MONEX_KV, { limit, page, username, successOnly: true });
       return json({ ok: true, username, ...result }, 200, request, env);
     }
@@ -790,7 +824,6 @@ async function handleRequest(request, env) {
         auth.session.username,
         starting
       );
-      await saveState(env.MONEX_KV, state);
       return json(
         {
           ok: true,
@@ -935,6 +968,7 @@ async function handleRequest(request, env) {
     }
 
     if (path === "/api/catch-card-preview" && request.method === "GET") {
+      await enforceRateLimit(request, env, "catch-card-preview", { limit: 30, windowSec: 60 });
       const url = new URL(request.url);
       const monName = url.searchParams.get("mon") || "Chog";
       const rarity = url.searchParams.get("rarity") || "Rare";

@@ -125,6 +125,9 @@ async function bumpResetEpoch() {
 }
 
 async function main() {
+  if (process.env.CONFIRM !== "RESET" && process.env.GITHUB_ACTIONS !== "true") {
+    throw new Error("Refusing to run: set CONFIRM=RESET to wipe production KV (or run via GitHub Actions).");
+  }
   requireEnv();
   console.log(`Resetting KV namespace ${NAMESPACE_ID}...`);
 
