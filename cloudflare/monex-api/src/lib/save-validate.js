@@ -423,14 +423,29 @@ function sanitizeQuestState(raw) {
       }));
   });
   const grantedKeys = Array.isArray(raw.grantedKeys)
-    ? raw.grantedKeys.map((k) => trimString(k, 48)).filter(Boolean).slice(0, 80)
+    ? raw.grantedKeys.map((k) => trimString(k, 48)).filter(Boolean).slice(0, 120)
+    : [];
+  const milestoneFilter = (n) => [20, 40, 60, 80, 100].includes(n);
+  const legacyPoints = clampInt(raw.points ?? 0, 0, 100);
+  const dailyPoints = raw.dailyPoints != null
+    ? clampInt(raw.dailyPoints ?? 0, 0, 100)
+    : legacyPoints;
+  const weeklyPoints = clampInt(raw.weeklyPoints ?? 0, 0, 100);
+  const legacyChests = Array.isArray(raw.claimedChests)
+    ? raw.claimedChests.map((n) => clampInt(n, 0, 100)).filter(milestoneFilter).slice(0, 5)
+    : [];
+  const dailyClaimedChests = Array.isArray(raw.dailyClaimedChests)
+    ? raw.dailyClaimedChests.map((n) => clampInt(n, 0, 100)).filter(milestoneFilter).slice(0, 5)
+    : legacyChests;
+  const weeklyClaimedChests = Array.isArray(raw.weeklyClaimedChests)
+    ? raw.weeklyClaimedChests.map((n) => clampInt(n, 0, 100)).filter(milestoneFilter).slice(0, 5)
     : [];
   return {
     tab: tabs.includes(raw.tab) ? raw.tab : "dailies",
-    points: clampInt(raw.points ?? 0, 0, 100),
-    claimedChests: Array.isArray(raw.claimedChests)
-      ? raw.claimedChests.map((n) => clampInt(n, 0, 100)).filter((n) => [20, 40, 60, 80, 100].includes(n)).slice(0, 5)
-      : [],
+    dailyPoints,
+    weeklyPoints,
+    dailyClaimedChests,
+    weeklyClaimedChests,
     grantedKeys,
     dailyResetKey: typeof raw.dailyResetKey === "string" ? trimString(raw.dailyResetKey, 16) : null,
     weeklyResetKey: typeof raw.weeklyResetKey === "string" ? trimString(raw.weeklyResetKey, 16) : null,

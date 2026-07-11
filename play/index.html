@@ -8528,15 +8528,31 @@ const SHOP_ITEMS = [
     { id: "shards3",        category: "mats",    name: "Shard Pack",       iconKey: "shards",   desc: "3 Mon Shards.",                cost: { gold: 1800, essence: 15 }, grant: { monShards: 3 } },
 ];
 
-const QUEST_MILESTONES = [20, 40, 60, 80, 100];
-const QUEST_MAX_POINTS = 100;
-const QUEST_CHEST_REWARDS = {
-    20:  { label: "150 Gold", grant: { gold: 150 } },
-    40:  { label: "20 KB's Onion", grant: { essence: 20 } },
-    60:  { label: "2 Monballs + 30 Trainer XP", grant: { monballs: 2, trainerXp: 30 } },
-    80:  { label: "3 Shards", grant: { monShards: 3 } },
-    100: { label: "400 Gold + 40 Onion + 75 Trainer XP", grant: { gold: 400, essence: 40, trainerXp: 75 } },
+const DAILY_QUEST_MILESTONES = [20, 40, 60, 80, 100];
+const WEEKLY_QUEST_MILESTONES = [20, 40, 60, 80, 100];
+const DAILY_QUEST_MAX_POINTS = 100;
+const WEEKLY_QUEST_MAX_POINTS = 100;
+
+const DAILY_QUEST_CHEST_REWARDS = {
+    20:  { label: "100 Gold", grant: { gold: 100 } },
+    40:  { label: "15 KB's Onion", grant: { essence: 15 } },
+    60:  { label: "1 Monball + 20 Trainer XP", grant: { monballs: 1, trainerXp: 20 } },
+    80:  { label: "2 Shards", grant: { monShards: 2 } },
+    100: { label: "250 Gold + 25 Onion + 50 Trainer XP", grant: { gold: 250, essence: 25, trainerXp: 50 } },
 };
+
+const WEEKLY_QUEST_CHEST_REWARDS = {
+    20:  { label: "300 Gold", grant: { gold: 300 } },
+    40:  { label: "40 KB's Onion", grant: { essence: 40 } },
+    60:  { label: "4 Monballs + 60 Trainer XP", grant: { monballs: 4, trainerXp: 60 } },
+    80:  { label: "6 Shards", grant: { monShards: 6 } },
+    100: { label: "600 Gold + 60 Onion + 120 Trainer XP + 2 Monballs", grant: { gold: 600, essence: 60, trainerXp: 120, monballs: 2 } },
+};
+
+/** @deprecated Legacy alias — daily milestones only */
+const QUEST_MILESTONES = DAILY_QUEST_MILESTONES;
+const QUEST_MAX_POINTS = DAILY_QUEST_MAX_POINTS;
+const QUEST_CHEST_REWARDS = DAILY_QUEST_CHEST_REWARDS;
 
 const QUEST_TASK_DEFS = {
     dailies: [
@@ -8592,8 +8608,10 @@ function defaultQuestState() {
     const now = new Date();
     return {
         tab: "dailies",
-        points: 0,
-        claimedChests: [],
+        dailyPoints: 0,
+        weeklyPoints: 0,
+        dailyClaimedChests: [],
+        weeklyClaimedChests: [],
         grantedKeys: [],
         dailyResetKey: getUtcDateKey(now),
         weeklyResetKey: getUtcWeekKey(now),
@@ -8629,6 +8647,47 @@ function scheduleDailyResetTimer() {
     }, ms);
 }
 
+function getQuestMilestonesForTrack(track) {
+    return track === "weeklies" ? WEEKLY_QUEST_MILESTONES : DAILY_QUEST_MILESTONES;
+}
+
+function getQuestMaxPointsForTrack(track) {
+    return track === "weeklies" ? WEEKLY_QUEST_MAX_POINTS : DAILY_QUEST_MAX_POINTS;
+}
+
+function getQuestChestRewardsForTrack(track) {
+    return track === "weeklies" ? WEEKLY_QUEST_CHEST_REWARDS : DAILY_QUEST_CHEST_REWARDS;
+}
+
+function getQuestPointsForTrack(track) {
+    return track === "weeklies"
+        ? Math.max(0, Number(questState.weeklyPoints) || 0)
+        : Math.max(0, Number(questState.dailyPoints) || 0);
+}
+
+function setQuestPointsForTrack(track, value) {
+    const max = getQuestMaxPointsForTrack(track);
+    const next = Math.max(0, Math.min(max, Math.floor(Number(value) || 0)));
+    if (track === "weeklies") questState.weeklyPoints = next;
+    else questState.dailyPoints = next;
+}
+
+function getQuestClaimedChestsForTrack(track) {
+    const list = track === "weeklies" ? questState.weeklyClaimedChests : questState.dailyClaimedChests;
+    return Array.isArray(list) ? list : [];
+}
+
+function getActiveQuestMilestoneTrack() {
+    return questState.tab === "weeklies" ? "weeklies" : questState.tab === "dailies" ? "dailies" : null;
+}
+
+function normalizeClaimedChests(list, track) {
+    const allowed = getQuestMilestonesForTrack(track);
+    return (Array.isArray(list) ? list : [])
+        .map((n) => Number(n))
+        .filter((n) => allowed.includes(n));
+}
+
 function normalizeQuestState(loaded) {
     const base = defaultQuestState();
     if (!loaded || typeof loaded !== "object") return base;
@@ -8645,14 +8704,28 @@ function normalizeQuestState(loaded) {
             };
         });
     });
+
+    const legacyPoints = Math.max(0, Math.floor(Number(loaded.points) || 0));
+    const legacyChests = normalizeClaimedChests(loaded.claimedChests, "dailies");
+    const dailyPoints = loaded.dailyPoints != null
+        ? Math.max(0, Math.min(DAILY_QUEST_MAX_POINTS, Math.floor(Number(loaded.dailyPoints) || 0)))
+        : legacyPoints;
+    const weeklyPoints = Math.max(0, Math.min(WEEKLY_QUEST_MAX_POINTS, Math.floor(Number(loaded.weeklyPoints) || 0)));
+    const dailyClaimedChests = Array.isArray(loaded.dailyClaimedChests)
+        ? normalizeClaimedChests(loaded.dailyClaimedChests, "dailies")
+        : legacyChests;
+    const weeklyClaimedChests = Array.isArray(loaded.weeklyClaimedChests)
+        ? normalizeClaimedChests(loaded.weeklyClaimedChests, "weeklies")
+        : [];
+
     return {
         tab: ["dailies", "weeklies", "campaign"].includes(loaded.tab) ? loaded.tab : "dailies",
-        points: Math.max(0, Math.min(QUEST_MAX_POINTS, Math.floor(Number(loaded.points) || 0))),
-        claimedChests: Array.isArray(loaded.claimedChests)
-            ? loaded.claimedChests.map(n => Number(n)).filter(n => QUEST_MILESTONES.includes(n))
-            : [],
+        dailyPoints,
+        weeklyPoints,
+        dailyClaimedChests,
+        weeklyClaimedChests,
         grantedKeys: Array.isArray(loaded.grantedKeys)
-            ? loaded.grantedKeys.map(k => String(k)).filter(Boolean).slice(0, 80)
+            ? loaded.grantedKeys.map(k => String(k)).filter(Boolean).slice(0, 120)
             : [],
         dailyResetKey: typeof loaded.dailyResetKey === "string" ? loaded.dailyResetKey : base.dailyResetKey,
         weeklyResetKey: typeof loaded.weeklyResetKey === "string" ? loaded.weeklyResetKey : base.weeklyResetKey,
@@ -8666,7 +8739,9 @@ function filterQuestGrantedKeys(keys, opts = {}) {
     return list.filter((key) => {
         if (opts.clearDailies && key.startsWith("task:dailies:")) return false;
         if (opts.clearWeeklies && key.startsWith("task:weeklies:")) return false;
-        if (opts.clearChests && key.startsWith("chest:")) return false;
+        if (opts.clearDailyChests && (key.startsWith("chest:dailies:") || /^chest:\d+$/.test(key))) return false;
+        if (opts.clearWeeklyChests && key.startsWith("chest:weeklies:")) return false;
+        if (opts.clearChests && (key.startsWith("chest:dailies:") || key.startsWith("chest:weeklies:") || /^chest:\d+$/.test(key))) return false;
         return true;
     });
 }
@@ -8675,8 +8750,8 @@ function questGrantKey(tab, taskId) {
     return `task:${tab}:${taskId}`;
 }
 
-function questChestGrantKey(milestone) {
-    return `chest:${milestone}`;
+function questChestGrantKey(track, milestone) {
+    return `chest:${track}:${milestone}`;
 }
 
 function buildQuestGrantFromDef(def) {
@@ -8749,15 +8824,20 @@ function reconcileUngrantedQuestRewards(options = {}) {
         });
     });
 
-    QUEST_MILESTONES.forEach(ms => {
-        const key = questChestGrantKey(ms);
-        if (!questState.claimedChests.includes(ms) || granted.has(key)) return;
-        const chest = QUEST_CHEST_REWARDS[ms];
-        if (!chest?.grant) return;
-        applyQuestGrantToResources(chest.grant);
-        questState.grantedKeys.push(key);
-        granted.add(key);
-        changed = true;
+    ["dailies", "weeklies"].forEach(track => {
+        const milestones = getQuestMilestonesForTrack(track);
+        const rewards = getQuestChestRewardsForTrack(track);
+        const claimed = getQuestClaimedChestsForTrack(track);
+        milestones.forEach(ms => {
+            const key = questChestGrantKey(track, ms);
+            if (!claimed.includes(ms) || granted.has(key)) return;
+            const chest = rewards[ms];
+            if (!chest?.grant) return;
+            applyQuestGrantToResources(chest.grant);
+            questState.grantedKeys.push(key);
+            granted.add(key);
+            changed = true;
+        });
     });
 
     if (changed) {
@@ -8776,8 +8856,10 @@ function ensureQuestResets() {
 
     if (questState.weeklyResetKey !== weekKey) {
         questState.weeklyResetKey = weekKey;
-        questState.points = 0;
-        questState.claimedChests = [];
+        questState.dailyPoints = 0;
+        questState.weeklyPoints = 0;
+        questState.dailyClaimedChests = [];
+        questState.weeklyClaimedChests = [];
         questState.grantedKeys = filterQuestGrantedKeys(questState.grantedKeys, {
             clearDailies: true,
             clearWeeklies: true,
@@ -8789,11 +8871,11 @@ function ensureQuestResets() {
         changed = true;
     } else if (questState.dailyResetKey !== dayKey) {
         questState.dailyResetKey = dayKey;
-        questState.points = 0;
-        questState.claimedChests = [];
+        questState.dailyPoints = 0;
+        questState.dailyClaimedChests = [];
         questState.grantedKeys = filterQuestGrantedKeys(questState.grantedKeys, {
             clearDailies: true,
-            clearChests: true,
+            clearDailyChests: true,
         });
         questState.tasks.dailies = createQuestTasksFromDefs("dailies");
         changed = true;
@@ -8916,18 +8998,19 @@ function describeQuestChestGrant(grant) {
     return parts.join(" ");
 }
 
-function renderQuestChestHoverTip(milestone) {
-    const chest = QUEST_CHEST_REWARDS[milestone];
+function renderQuestChestHoverTip(milestone, track) {
+    const chest = getQuestChestRewardsForTrack(track)[milestone];
     if (!chest) return "";
-    const claimed = questState.claimedChests.includes(milestone);
-    const unlocked = questState.points >= milestone;
+    const claimed = getQuestClaimedChestsForTrack(track).includes(milestone);
+    const unlocked = getQuestPointsForTrack(track) >= milestone;
+    const trackLabel = track === "weeklies" ? "Weekly" : "Daily";
     const status = claimed
         ? "Already claimed"
         : unlocked
             ? "Ready — tap gift to claim"
-            : `Reach ${milestone} quest points`;
+            : `Reach ${milestone} ${trackLabel.toLowerCase()} quest points`;
     const rewards = describeQuestChestGrant(chest.grant) || chest.label;
-    return renderHoverTip(`${milestone} PTS CHEST`, `${rewards}<br><span style="opacity:0.85;font-size:11px;">${status}</span>`);
+    return renderHoverTip(`${trackLabel} ${milestone} PTS`, `${rewards}<br><span style="opacity:0.85;font-size:11px;">${status}</span>`);
 }
 
 function grantTrainerLevelReward(level) {
@@ -9220,20 +9303,30 @@ function advanceQuestTask(taskId) {
     const grant = buildQuestGrantFromDef(def);
     if (!grant || !grantQuestReward(grant, grantKey)) return;
     task.claimed = true;
-    questState.points = Math.min(QUEST_MAX_POINTS, questState.points + def.points);
+    const track = tab === "weeklies" ? "weeklies" : "dailies";
+    const nextPoints = getQuestPointsForTrack(track) + def.points;
+    setQuestPointsForTrack(track, nextPoints);
     saveData();
     renderDailyQuest();
     persistQuestClaim();
 }
 
 function claimQuestChest(milestone) {
-    if (questState.points < milestone || questState.claimedChests.includes(milestone)) return;
-    const chest = QUEST_CHEST_REWARDS[milestone];
+    const track = getActiveQuestMilestoneTrack();
+    if (!track) return;
+    const points = getQuestPointsForTrack(track);
+    const claimed = getQuestClaimedChestsForTrack(track);
+    if (points < milestone || claimed.includes(milestone)) return;
+    const chest = getQuestChestRewardsForTrack(track)[milestone];
     if (!chest) return;
-    const grantKey = questChestGrantKey(milestone);
+    const grantKey = questChestGrantKey(track, milestone);
     if (questState.grantedKeys?.includes(grantKey)) return;
     if (!grantQuestReward(chest.grant, grantKey)) return;
-    questState.claimedChests.push(milestone);
+    if (track === "weeklies") {
+        questState.weeklyClaimedChests = [...claimed, milestone];
+    } else {
+        questState.dailyClaimedChests = [...claimed, milestone];
+    }
     saveData();
     renderDailyQuest();
     persistQuestClaim();
@@ -9281,18 +9374,23 @@ function renderDailyQuest() {
     if (title) title.textContent = tab === "dailies" ? "DAILY QUESTS" : "QUESTS";
 
     const showMilestones = tab === "dailies" || tab === "weeklies";
-    const fillPct = Math.min(100, (questState.points / QUEST_MAX_POINTS) * 100);
-    const chestsHtml = QUEST_MILESTONES.map(ms => {
-        const claimed = questState.claimedChests.includes(ms);
-        const unlocked = questState.points >= ms;
+    const milestoneTrack = tab === "weeklies" ? "weeklies" : "dailies";
+    const trackPoints = getQuestPointsForTrack(milestoneTrack);
+    const trackMax = getQuestMaxPointsForTrack(milestoneTrack);
+    const trackMilestones = getQuestMilestonesForTrack(milestoneTrack);
+    const trackClaimed = getQuestClaimedChestsForTrack(milestoneTrack);
+    const fillPct = Math.min(100, (trackPoints / trackMax) * 100);
+    const chestsHtml = trackMilestones.map(ms => {
+        const claimed = trackClaimed.includes(ms);
+        const unlocked = trackPoints >= ms;
         const canClaim = unlocked && !claimed;
         return `
             <div class="quest-chest has-hover-tip" data-ms="${ms}">
                 <button type="button" class="quest-chest-btn${claimed ? " claimed" : ""}"
-                    aria-label="${QUEST_CHEST_REWARDS[ms]?.label || "Milestone reward"}"
+                    aria-label="${getQuestChestRewardsForTrack(milestoneTrack)[ms]?.label || "Milestone reward"}"
                     onclick="claimQuestChest(${ms})"
                     ${canClaim ? "" : "disabled"}>🎁</button>
-                ${renderQuestChestHoverTip(ms)}
+                ${renderQuestChestHoverTip(ms, milestoneTrack)}
                 <span class="quest-chest-ms">${ms}</span>
             </div>`;
     }).join("");
@@ -9302,7 +9400,7 @@ function renderDailyQuest() {
             <div class="quest-milestone-row">
                 <div class="quest-points-badge">
                     <div class="quest-points-icon">⭐</div>
-                    <div class="quest-points-val">${questState.points}</div>
+                    <div class="quest-points-val">${trackPoints}</div>
                 </div>
                 <div class="quest-milestone-track-wrap">
                     <div class="quest-chests">${chestsHtml}</div>
@@ -9311,6 +9409,9 @@ function renderDailyQuest() {
                     </div>
                 </div>
             </div>
+            <p class="quest-milestone-caption" style="text-align:center;font-size:11px;opacity:0.8;margin:6px 0 0;">
+                ${tab === "weeklies" ? "Weekly milestone track" : "Daily milestone track"} · resets ${tab === "weeklies" ? "weekly" : "daily"} 00:00 UTC+8
+            </p>
         </div>` : "";
 
     const tasks = questState.tasks[tab] || [];
@@ -14108,10 +14209,14 @@ function mergeSaveSnapshots(local, cloud) {
     questMerged.grantedKeys = [
         ...new Set([...(localQuest.grantedKeys || []), ...(cloudQuest.grantedKeys || [])]),
     ];
-    questMerged.points = Math.max(localQuest.points || 0, cloudQuest.points || 0);
-    questMerged.claimedChests = [
-        ...new Set([...(localQuest.claimedChests || []), ...(cloudQuest.claimedChests || [])]),
-    ].filter(ms => QUEST_MILESTONES.includes(ms)).sort((a, b) => a - b);
+    questMerged.dailyPoints = Math.max(localQuest.dailyPoints || 0, cloudQuest.dailyPoints || 0);
+    questMerged.weeklyPoints = Math.max(localQuest.weeklyPoints || 0, cloudQuest.weeklyPoints || 0);
+    questMerged.dailyClaimedChests = [
+        ...new Set([...(localQuest.dailyClaimedChests || []), ...(cloudQuest.dailyClaimedChests || [])]),
+    ].filter(ms => DAILY_QUEST_MILESTONES.includes(ms)).sort((a, b) => a - b);
+    questMerged.weeklyClaimedChests = [
+        ...new Set([...(localQuest.weeklyClaimedChests || []), ...(cloudQuest.weeklyClaimedChests || [])]),
+    ].filter(ms => WEEKLY_QUEST_MILESTONES.includes(ms)).sort((a, b) => a - b);
     ["dailies", "weeklies", "campaign"].forEach(tab => {
         questMerged.tasks[tab] = (questMerged.tasks[tab] || []).map(task => {
             const localTask = (localQuest.tasks[tab] || []).find(t => t.id === task.id);

@@ -1,14 +1,29 @@
 /** Quest reward definitions and helpers (mirrors play/index.html). */
 
-export const QUEST_MILESTONES = [20, 40, 60, 80, 100];
+export const DAILY_QUEST_MILESTONES = [20, 40, 60, 80, 100];
+export const WEEKLY_QUEST_MILESTONES = [20, 40, 60, 80, 100];
 
-export const QUEST_CHEST_REWARDS = {
-  20: { label: "150 Gold", grant: { gold: 150 } },
-  40: { label: "20 KB's Onion", grant: { essence: 20 } },
-  60: { label: "2 Monballs + 30 Trainer XP", grant: { monballs: 2, trainerXp: 30 } },
-  80: { label: "3 Shards", grant: { monShards: 3 } },
-  100: { label: "400 Gold + 40 Onion + 75 Trainer XP", grant: { gold: 400, essence: 40, trainerXp: 75 } },
+export const DAILY_QUEST_CHEST_REWARDS = {
+  20: { label: "100 Gold", grant: { gold: 100 } },
+  40: { label: "15 KB's Onion", grant: { essence: 15 } },
+  60: { label: "1 Monball + 20 Trainer XP", grant: { monballs: 1, trainerXp: 20 } },
+  80: { label: "2 Shards", grant: { monShards: 2 } },
+  100: { label: "250 Gold + 25 Onion + 50 Trainer XP", grant: { gold: 250, essence: 25, trainerXp: 50 } },
 };
+
+export const WEEKLY_QUEST_CHEST_REWARDS = {
+  20: { label: "300 Gold", grant: { gold: 300 } },
+  40: { label: "40 KB's Onion", grant: { essence: 40 } },
+  60: { label: "4 Monballs + 60 Trainer XP", grant: { monballs: 4, trainerXp: 60 } },
+  80: { label: "6 Shards", grant: { monShards: 6 } },
+  100: { label: "600 Gold + 60 Onion + 120 Trainer XP + 2 Monballs", grant: { gold: 600, essence: 60, trainerXp: 120, monballs: 2 } },
+};
+
+/** @deprecated Use DAILY_QUEST_MILESTONES */
+export const QUEST_MILESTONES = DAILY_QUEST_MILESTONES;
+
+/** @deprecated Use DAILY_QUEST_CHEST_REWARDS */
+export const QUEST_CHEST_REWARDS = DAILY_QUEST_CHEST_REWARDS;
 
 export const QUEST_TASK_DEFS = {
   dailies: [
@@ -39,8 +54,14 @@ export function questGrantKey(tab, taskId) {
   return `task:${tab}:${taskId}`;
 }
 
-export function questChestGrantKey(milestone) {
-  return `chest:${milestone}`;
+export function questChestGrantKey(track, milestone) {
+  return `chest:${track}:${milestone}`;
+}
+
+function normalizeClaimedChests(list, allowed) {
+  return (Array.isArray(list) ? list : [])
+    .map((n) => Number(n))
+    .filter((n) => allowed.includes(n));
 }
 
 export function buildGrantFromTaskDef(def) {
@@ -104,11 +125,27 @@ export function findUngrantedQuestRewards(questState) {
     }
   }
 
-  const claimedChests = Array.isArray(questState.claimedChests) ? questState.claimedChests : [];
-  for (const ms of QUEST_MILESTONES) {
-    const key = questChestGrantKey(ms);
-    if (!claimedChests.includes(ms) || granted.has(key)) continue;
-    grants = mergeGrants(grants, QUEST_CHEST_REWARDS[ms]?.grant);
+  const dailyClaimed = normalizeClaimedChests(
+    questState.dailyClaimedChests ?? questState.claimedChests,
+    DAILY_QUEST_MILESTONES
+  );
+  for (const ms of DAILY_QUEST_MILESTONES) {
+    const key = questChestGrantKey("dailies", ms);
+    const legacyKey = `chest:${ms}`;
+    if (!dailyClaimed.includes(ms)) continue;
+    if (granted.has(key) || granted.has(legacyKey)) continue;
+    grants = mergeGrants(grants, DAILY_QUEST_CHEST_REWARDS[ms]?.grant);
+    keys.push(key);
+  }
+
+  const weeklyClaimed = normalizeClaimedChests(
+    questState.weeklyClaimedChests,
+    WEEKLY_QUEST_MILESTONES
+  );
+  for (const ms of WEEKLY_QUEST_MILESTONES) {
+    const key = questChestGrantKey("weeklies", ms);
+    if (!weeklyClaimed.includes(ms) || granted.has(key)) continue;
+    grants = mergeGrants(grants, WEEKLY_QUEST_CHEST_REWARDS[ms]?.grant);
     keys.push(key);
   }
 

@@ -4,6 +4,8 @@ import {
   findUngrantedQuestRewards,
   questGrantKey,
   questChestGrantKey,
+  DAILY_QUEST_CHEST_REWARDS,
+  WEEKLY_QUEST_CHEST_REWARDS,
 } from "./quest-rewards.js";
 import { backfillQuestRewardsForSave } from "./backfill-quest-rewards.js";
 import { claimMailboxItem } from "./mailbox.js";
@@ -16,22 +18,46 @@ describe("findUngrantedQuestRewards", () => {
         weeklies: [],
         campaign: [],
       },
-      claimedChests: [],
+      dailyClaimedChests: [],
+      weeklyClaimedChests: [],
       grantedKeys: [],
     });
     assert.equal(grants.gold, 100);
     assert.deepEqual(keys, [questGrantKey("dailies", "d1")]);
   });
 
-  it("detects claimed milestone chest without granted key", () => {
+  it("detects claimed daily milestone chest without granted key", () => {
     const { grants, keys } = findUngrantedQuestRewards({
       tasks: { dailies: [], weeklies: [], campaign: [] },
-      claimedChests: [60],
+      dailyClaimedChests: [60],
+      weeklyClaimedChests: [],
       grantedKeys: [],
     });
-    assert.equal(grants.monballs, 2);
-    assert.equal(grants.trainerXp, 30);
-    assert.deepEqual(keys, [questChestGrantKey(60)]);
+    assert.equal(grants.monballs, DAILY_QUEST_CHEST_REWARDS[60].grant.monballs);
+    assert.equal(grants.trainerXp, DAILY_QUEST_CHEST_REWARDS[60].grant.trainerXp);
+    assert.deepEqual(keys, [questChestGrantKey("dailies", 60)]);
+  });
+
+  it("detects claimed weekly milestone chest without granted key", () => {
+    const { grants, keys } = findUngrantedQuestRewards({
+      tasks: { dailies: [], weeklies: [], campaign: [] },
+      dailyClaimedChests: [],
+      weeklyClaimedChests: [60],
+      grantedKeys: [],
+    });
+    assert.equal(grants.monballs, WEEKLY_QUEST_CHEST_REWARDS[60].grant.monballs);
+    assert.equal(grants.trainerXp, WEEKLY_QUEST_CHEST_REWARDS[60].grant.trainerXp);
+    assert.deepEqual(keys, [questChestGrantKey("weeklies", 60)]);
+  });
+
+  it("migrates legacy claimedChests to daily track", () => {
+    const { grants, keys } = findUngrantedQuestRewards({
+      tasks: { dailies: [], weeklies: [], campaign: [] },
+      claimedChests: [20],
+      grantedKeys: [],
+    });
+    assert.equal(grants.gold, DAILY_QUEST_CHEST_REWARDS[20].grant.gold);
+    assert.deepEqual(keys, [questChestGrantKey("dailies", 20)]);
   });
 
   it("ignores already granted keys", () => {
@@ -41,8 +67,9 @@ describe("findUngrantedQuestRewards", () => {
         weeklies: [],
         campaign: [],
       },
-      claimedChests: [20],
-      grantedKeys: [questGrantKey("dailies", "d1"), questChestGrantKey(20)],
+      dailyClaimedChests: [20],
+      weeklyClaimedChests: [],
+      grantedKeys: [questGrantKey("dailies", "d1"), questChestGrantKey("dailies", 20)],
     });
     assert.equal(grants, null);
     assert.equal(keys.length, 0);
@@ -63,7 +90,8 @@ describe("backfillQuestRewardsForSave", () => {
           weeklies: [],
           campaign: [],
         },
-        claimedChests: [],
+        dailyClaimedChests: [],
+        weeklyClaimedChests: [],
         grantedKeys: [],
       },
       updatedAt: new Date(0).toISOString(),
