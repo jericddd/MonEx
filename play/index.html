@@ -7523,7 +7523,8 @@ body.cloud-load-blocked .game-shell {
     </div>
 </div>
 
-<script src="js/patrol-reset.js?v=20260710a"></script>
+<script src="js/daily-reset.js?v=20260711b"></script>
+<script src="js/patrol-reset.js?v=20260711b"></script>
 <script src="js/staging-banner.js?v=20260710a"></script>
 <script src="js/monex-config.js?v=20260710a"></script>
 <script src="js/escape-html.js?v=20260710a"></script>
@@ -8571,10 +8572,12 @@ function createQuestTasksFromDefs(tab) {
 }
 
 function getUtcDateKey(d = new Date()) {
+    if (window.MonExDailyReset?.getDailyDayKey) return window.MonExDailyReset.getDailyDayKey(d);
     return d.toISOString().slice(0, 10);
 }
 
 function getUtcWeekKey(d = new Date()) {
+    if (window.MonExDailyReset?.getDailyWeekKey) return window.MonExDailyReset.getDailyWeekKey(d);
     const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
     const dayNum = date.getUTCDay() || 7;
     date.setUTCDate(date.getUTCDate() + 4 - dayNum);
@@ -8605,6 +8608,26 @@ function defaultQuestState() {
 let questState = defaultQuestState();
 let mailbox = [];
 let dailyLoginLastClaimAt = null;
+let dailyResetTimer = null;
+
+function onDailyResetBoundary() {
+    const questModalOpen = document.getElementById("modal-daily-quest")?.classList.contains("open");
+    const beforeKey = questState.dailyResetKey;
+    checkDailyReset();
+    if (questModalOpen) renderDailyQuest();
+    if (beforeKey !== questState.dailyResetKey) updateUI();
+}
+
+function scheduleDailyResetTimer() {
+    const api = window.MonExDailyReset;
+    if (!api?.msUntilNextDailyReset) return;
+    if (dailyResetTimer) clearTimeout(dailyResetTimer);
+    const ms = Math.min(api.msUntilNextDailyReset() + 250, 2147483647);
+    dailyResetTimer = setTimeout(() => {
+        onDailyResetBoundary();
+        scheduleDailyResetTimer();
+    }, ms);
+}
 
 function normalizeQuestState(loaded) {
     const base = defaultQuestState();
@@ -8766,7 +8789,12 @@ function ensureQuestResets() {
         changed = true;
     } else if (questState.dailyResetKey !== dayKey) {
         questState.dailyResetKey = dayKey;
-        questState.grantedKeys = filterQuestGrantedKeys(questState.grantedKeys, { clearDailies: true });
+        questState.points = 0;
+        questState.claimedChests = [];
+        questState.grantedKeys = filterQuestGrantedKeys(questState.grantedKeys, {
+            clearDailies: true,
+            clearChests: true,
+        });
         questState.tasks.dailies = createQuestTasksFromDefs("dailies");
         changed = true;
     }
@@ -8817,6 +8845,9 @@ function bumpQuestProgress(track, amount = 1, opts = {}) {
 }
 
 function getQuestRefreshLabel() {
+    if (window.MonExDailyReset?.getDailyResetCountdownLabel) {
+        return `Daily Quest ${window.MonExDailyReset.getDailyResetCountdownLabel()}`;
+    }
     const now = new Date();
     const next = new Date(now);
     next.setUTCHours(24, 0, 0, 0);
@@ -8827,16 +8858,22 @@ function getQuestRefreshLabel() {
 }
 
 function getWeeklyQuestRefreshLabel() {
+    const api = window.MonExDailyReset;
+    if (!api?.getDailyWeekKey || !api?.getNextDailyResetAt) {
+        return "Weekly Quest Refresh: 00:00 UTC+8";
+    }
     const now = new Date();
-    const next = new Date(now);
-    const day = next.getUTCDay() || 7;
-    next.setUTCDate(next.getUTCDate() + (8 - day));
-    next.setUTCHours(0, 0, 0, 0);
-    const ms = Math.max(0, next - now);
+    const currentWeek = getUtcWeekKey(now);
+    let cursor = api.getNextDailyResetAt(now);
+    let guard = 0;
+    while (getUtcWeekKey(cursor) === currentWeek && guard++ < 10) {
+        cursor = api.getNextDailyResetAt(new Date(cursor.getTime() + 1000));
+    }
+    const ms = Math.max(0, cursor - now);
     const d = Math.floor(ms / 86400000);
     const h = Math.floor((ms % 86400000) / 3600000);
     const m = Math.floor((ms % 3600000) / 60000);
-    return `Weekly Quest Refresh: ${d} Days ${h} Hours ${m} Min`;
+    return `Weekly Quest Refresh: ${d} Days ${h} Hours ${m} Min (00:00 UTC+8)`;
 }
 
 function grantQuestReward(grant, grantKey) {
@@ -13641,6 +13678,9 @@ function checkDailyReset() {
         lastResetDate = today;
         changed = true;
     }
+    const questBefore = questState.dailyResetKey;
+    ensureQuestResets();
+    if (questState.dailyResetKey !== questBefore) changed = true;
     if (changed) saveData();
 }
 
@@ -14273,6 +14313,13 @@ async function loadData() {
     }
     checkDailyReset();
     startResourceChestTimer();
+    scheduleDailyResetTimer();
+    if (!window.__monexDailyResetVisibilityBound) {
+        window.__monexDailyResetVisibilityBound = true;
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") onDailyResetBoundary();
+        });
+    }
     reconcileUngrantedQuestRewards({ silent: true });
     updateUI();
 }
@@ -16073,7 +16120,7 @@ function openPatrolScreen() {
 
 function getPatrolResetLabel() {
     return window.MonExPatrolReset?.getPatrolResetCountdownLabel()
-        || "Patrol reset: 00:00 UTC";
+        || "Patrol reset: 00:00 UTC+8";
 }
 
 function renderPatrolLobby() {
@@ -16246,7 +16293,7 @@ function beginPatrolScan() {
     }
     ensurePatrolDailyReset();
     if (getPatrolScansRemaining() <= 0) {
-        alert("No patrol scans left today. Resets at 00:00 UTC.");
+        alert("No patrol scans left today. Resets at 00:00 UTC+8.");
         return;
     }
     if (!isStagingTestUser()) patrolScansUsed++;

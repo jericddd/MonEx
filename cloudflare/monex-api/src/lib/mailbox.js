@@ -3,7 +3,11 @@ import { creditCatchMonballs } from "./grant-monballs.js";
 import { appendMonballAudit } from "./monball-audit.js";
 import { mailboxHasCapacity } from "./save-validate.js";
 
-export const DAILY_LOGIN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+import {
+  isDailyLoginReady,
+  getDailyLoginNextClaimAt,
+} from "./daily-reset.js";
+
 export const DAILY_LOGIN_REWARD_MONBALLS = 5;
 
 const claimLocks = globalThis.__monexDailyLoginLocks || (globalThis.__monexDailyLoginLocks = new Map());
@@ -29,11 +33,8 @@ function makeMailId() {
 }
 
 export function getDailyLoginStatus(save, now = Date.now()) {
-  const last = save?.dailyLoginLastClaimAt ? Date.parse(save.dailyLoginLastClaimAt) : 0;
-  const ready = !Number.isFinite(last) || now - last >= DAILY_LOGIN_COOLDOWN_MS;
-  const nextClaimAt = ready
-    ? null
-    : new Date(last + DAILY_LOGIN_COOLDOWN_MS).toISOString();
+  const ready = isDailyLoginReady(save, now);
+  const nextClaimAt = ready ? null : getDailyLoginNextClaimAt(now);
   const unclaimed = (save?.mailbox || []).filter((m) => !m.claimedAt).length;
   return { ready, nextClaimAt, unclaimed };
 }
@@ -85,7 +86,7 @@ export async function claimDailyLoginReward(kv, session) {
       ok: true,
       delivery: "mailbox",
       item,
-      nextClaimAt: new Date(now + DAILY_LOGIN_COOLDOWN_MS).toISOString(),
+      nextClaimAt: getDailyLoginNextClaimAt(now),
       unclaimed: (nextSave.mailbox || []).filter((m) => !m.claimedAt).length,
     };
   });
