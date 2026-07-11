@@ -164,7 +164,7 @@ The script moves `pendingMons` from catch state into each user's cloud save Part
 
 1. Repo → **Actions** → **Recover activity catches** → **Run workflow**
 2. **username:** exact handle from X Wild Log (e.g. `Lucci_Crypto`)
-3. **spend (optional):** e.g. `18` to recover only that Catch 18 session — leave empty to recover all sessions for the user
+3. **spend (optional):** e.g. `18` to recover only that catch size — or enable **latest only** for the newest Wild Log row
 4. Preview with **Preview only** on, **confirm** = `PREVIEW`
 5. Apply with **Preview only** off, **confirm** = `RECOVER`
 

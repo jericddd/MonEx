@@ -4,6 +4,7 @@
  * Usage:
  *   node scripts/recover-activity-catches.mjs Lucci_Crypto
  *   node scripts/recover-activity-catches.mjs --dry-run Lucci_Crypto
+ *   node scripts/recover-activity-catches.mjs --dry-run --latest Lucci_Crypto
  *   node scripts/recover-activity-catches.mjs --dry-run --spend 18 Lucci_Crypto
  *   node scripts/recover-activity-catches.mjs --activity-id act_xxx Lucci_Crypto
  *
@@ -94,6 +95,7 @@ async function listKeys(prefix) {
 function parseArgs(argv) {
   const args = argv.slice(2);
   const dryRun = args.includes("--dry-run");
+  const latestOnly = args.includes("--latest");
   let spend = null;
   let activityId = null;
   const positional = [];
@@ -111,7 +113,7 @@ function parseArgs(argv) {
     if (!arg.startsWith("--")) positional.push(arg);
   }
   const username = cleanUsername(positional[0] || "");
-  return { dryRun, username, spend, activityId };
+  return { dryRun, username, spend, activityId, latestOnly };
 }
 
 async function buildSaveIndex() {
@@ -169,15 +171,19 @@ function getCatchMonballs(state, xUserId, username, startingMonballs) {
 
 async function main() {
   requireEnv();
-  const { dryRun, username, spend, activityId } = parseArgs(process.argv);
+  const { dryRun, username, spend, activityId, latestOnly } = parseArgs(process.argv);
   if (!username) {
     console.error(
-      "Usage: node scripts/recover-activity-catches.mjs [--dry-run] [--spend N] [--activity-id ID] <x_username>"
+      "Usage: node scripts/recover-activity-catches.mjs [--dry-run] [--latest] [--spend N] [--activity-id ID] <x_username>"
     );
     process.exit(1);
   }
 
-  const recoveryFilter = { spend: Number.isFinite(spend) && spend > 0 ? spend : null, activityId };
+  const recoveryFilter = {
+    spend: Number.isFinite(spend) && spend > 0 ? spend : null,
+    activityId,
+    latestOnly,
+  };
 
   const startingMonballs = parseInt(process.env.STARTING_MONBALLS || "10", 10) || 10;
   const activityRaw = await getValue(ACTIVITY_KEY);
@@ -242,6 +248,7 @@ async function main() {
         saveUserId: cloud.xUserId,
         spendFilter: recoveryFilter.spend,
         activityIdFilter: recoveryFilter.activityId,
+        latestOnly: recoveryFilter.latestOnly,
         activityMatches: result.activityMatches,
         recoverableCount: result.recoverableCount,
         addedCount: result.added.length,

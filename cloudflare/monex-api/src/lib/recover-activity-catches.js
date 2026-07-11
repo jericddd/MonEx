@@ -19,7 +19,7 @@ export function filterActivityEntries(entries, username, options = {}) {
   const rows = Array.isArray(entries) ? entries : [];
   const spendFilter = options.spend != null ? Number(options.spend) : null;
   const activityId = options.activityId ? String(options.activityId).trim() : "";
-  return rows
+  const matched = rows
     .filter((entry) => entry?.status === "success")
     .filter((entry) => usernameMatchesActivity(entry.xUsername, username, options))
     .filter((entry) => {
@@ -32,6 +32,10 @@ export function filterActivityEntries(entries, username, options = {}) {
       return true;
     })
     .sort((a, b) => Date.parse(a.at || "") - Date.parse(b.at || ""));
+  if (options.latestOnly && matched.length > 0) {
+    return [matched[matched.length - 1]];
+  }
+  return matched;
 }
 
 export function extractRecoverableMons(activityEntries) {
@@ -152,11 +156,13 @@ export function recoverActivityCatchesForUser({
   caseSensitive = true,
   spend = null,
   activityId = null,
+  latestOnly = false,
 }) {
   const matched = filterActivityEntries(activityEntries, username, {
     caseSensitive,
     spend,
     activityId,
+    latestOnly,
   });
   const recoverable = extractRecoverableMons(matched);
   const applied = applyRecoveredMonsToSave(save, recoverable);
