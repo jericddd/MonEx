@@ -138,7 +138,7 @@ Requires `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (GitHub Actions secr
 | **Actions → Send mailbox reward** | Send custom Gold / KB's Onion / Monball mail to one or all users |
 | `node scripts/grant-monballs.mjs <user> [amount]` | Same as Grant Monballs workflow (local) |
 | `node scripts/backfill-pending-catches.mjs [--dry-run] [user]` | Same as Backfill workflow (local) |
-| `node scripts/recover-activity-catches.mjs [--dry-run] <user>` | Same as Recover workflow (local) |
+| `node scripts/recover-activity-catches.mjs [--dry-run] [--spend N] <user>` | Same as Recover workflow (local) |
 
 **Backfill pending catches** (GitHub — recommended):
 
@@ -164,8 +164,9 @@ The script moves `pendingMons` from catch state into each user's cloud save Part
 
 1. Repo → **Actions** → **Recover activity catches** → **Run workflow**
 2. **username:** exact handle from X Wild Log (e.g. `Lucci_Crypto`)
-3. Preview with **Preview only** on, **confirm** = `PREVIEW`
-4. Apply with **Preview only** off, **confirm** = `RECOVER`
+3. **spend (optional):** e.g. `18` to recover only that Catch 18 session — leave empty to recover all sessions for the user
+4. Preview with **Preview only** on, **confirm** = `PREVIEW`
+5. Apply with **Preview only** off, **confirm** = `RECOVER`
 
 Rebuilds mons from activity log entries into cloud save Party/Box and sets Monballs from the latest log entry. Skills are regenerated (species/rarity match the log; RNG skills may differ slightly).
 

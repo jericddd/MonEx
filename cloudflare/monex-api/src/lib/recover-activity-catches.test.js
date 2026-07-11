@@ -47,6 +47,30 @@ describe("filterActivityEntries", () => {
     const rows = filterActivityEntries(sampleActivities, "Lucci_Crypto");
     assert.equal(rows.length, 2);
   });
+
+  it("filters by spend when recovering a single catch session", () => {
+    const entries = [
+      ...sampleActivities,
+      {
+        id: "act_18",
+        xUsername: "Lucci_Crypto",
+        spend: 18,
+        caughtCount: 18,
+        monballsLeft: 0,
+        status: "success",
+        at: "2026-07-10T13:00:00.000Z",
+        mons: Array.from({ length: 18 }, (_, i) => ({
+          name: i % 2 === 0 ? "Chog" : "Mouch",
+          rarity: "Common",
+          skills: "★Slash",
+        })),
+      },
+    ];
+    const rows = filterActivityEntries(entries, "Lucci_Crypto", { spend: 18 });
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].spend, 18);
+    assert.equal(rows[0].mons.length, 18);
+  });
 });
 
 describe("extractRecoverableMons", () => {
