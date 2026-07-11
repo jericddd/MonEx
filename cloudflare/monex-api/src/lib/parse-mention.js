@@ -1,7 +1,7 @@
 /** Parse tweet text for catch intent (thread reply vs @mention). */
 
 export const MIN_CATCH_SPEND = 1;
-export const MAX_CATCH_SPEND = 50;
+export const MAX_CATCH_SPEND = 10;
 export const CATCH_DENOMINATIONS = Array.from(
   { length: MAX_CATCH_SPEND - MIN_CATCH_SPEND + 1 },
   (_, i) => i + MIN_CATCH_SPEND
@@ -57,7 +57,7 @@ export function isReplyToBotTweet(tweet, botUserId) {
 /**
  * Returns:
  *   { type: 'ignore' }
- *   { type: 'catch', spend: 1..50 }
+ *   { type: 'catch', spend: 1..10 }
  *   { type: 'invalid_denom', raw: string }
  *
  * Outside @monexmonad posts: requires @bot in the tweet.
@@ -81,14 +81,14 @@ export function helpReply(username) {
     `@${username} MonEx Wild — catch commands:\n` +
     `Reply on my post: catch / catch 1 / catch 1 monanimal (1 Monball default)\n` +
     `Anywhere else: @monexmonad catch … (same keywords)\n` +
-    `Spend 1–50 Monballs: catch 1 / catch 10 / catch 50`
+    `Spend 1–10 Monballs: catch 1 / catch 5 / catch 10`
   );
 }
 
 export function invalidDenomReply(username) {
   return (
-    `@${username} Invalid amount. Use 1–50 Monballs.\n` +
-    `Example: catch 5 or @monexmonad catch 30`
+    `@${username} Invalid amount. Use 1–10 Monballs.\n` +
+    `Example: catch 5 or @monexmonad catch 10`
   );
 }
 

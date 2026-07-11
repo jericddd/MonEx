@@ -65,7 +65,7 @@ function buildCatchContext({ monballSpend, results, monballsLeft, repliesLeftAft
 function pickDailyCapNotice(dailyLimit, seed = 0) {
   const lines = [
     (limit) =>
-      `you're out of @ replies for today (${limit}/${limit}). catch commands still work though — tag @monexmonad catch 1–50. Profile → X log in game.`,
+      `you're out of @ replies for today (${limit}/${limit}). catch commands still work though — tag @monexmonad catch 1–10. Profile → X log in game.`,
     (limit) =>
       `daily @ reply cap hit (${limit}/${limit}). no more @ replies, but you can still catch mons. keep using catch, check Profile → X log when you sync.`,
     (limit) =>
@@ -152,9 +152,9 @@ const ALL_ESCAPED_TEMPLATES = [
 ];
 
 const INVALID_DENOM_LINES = [
-  () => `that amount doesn't fly — catches are 1–50 Monballs`,
-  () => `need a valid stack: 1 to 50 Monballs only`,
-  () => `nah — pick any amount from 1 up to 50 Monballs`,
+  () => `that amount doesn't fly — catches are 1–10 Monballs`,
+  () => `need a valid stack: 1 to 10 Monballs only`,
+  () => `nah — pick any amount from 1 up to 10 Monballs`,
 ];
 
 const INSUFFICIENT_LINES = [

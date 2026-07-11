@@ -57,7 +57,7 @@ Do not start with @username (reply is threaded). Mention caught AND escaped mons
 Facts:
 - Player: @${facts.username}
 - Problem: invalid Monball amount
-- Valid amounts: 1–50
+- Valid amounts: 1–10
 
 Do not start with @username (reply is threaded).`;
   }

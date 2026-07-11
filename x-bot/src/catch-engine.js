@@ -84,7 +84,7 @@ const SPECIES_ULTIMATE = {
 };
 
 export const MIN_CATCH_SPEND = 1;
-export const MAX_CATCH_SPEND = 50;
+export const MAX_CATCH_SPEND = 10;
 export const CATCH_DENOMINATIONS = Array.from(
   { length: MAX_CATCH_SPEND - MIN_CATCH_SPEND + 1 },
   (_, i) => i + MIN_CATCH_SPEND
@@ -174,7 +174,7 @@ export function attemptSingleCatch() {
   };
 }
 
-/** Spend `monballSpend` (1–50). 1 Monball = 1 catch. Returns { throws, results } */
+/** Spend `monballSpend` (1–10). 1 Monball = 1 catch. Returns { throws, results } */
 export function runCatchSession(monballSpend) {
   const throws = monballSpend / MONBALLS_PER_THROW;
   const results = [];
