@@ -23,6 +23,7 @@ const repoRoot = join(here, "..", "..", "..", "..");
 
 // Load order mirrors play/index.html <script> tags.
 const PLAY_SCRIPTS = [
+  "js/daily-reset.js",
   "js/patrol-reset.js",
   "js/staging-banner.js",
   "js/monex-config.js",

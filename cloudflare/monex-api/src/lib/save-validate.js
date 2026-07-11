@@ -73,7 +73,10 @@ export const LIMITS = {
   mailboxMax: 50,
 };
 
-const DAILY_LOGIN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+import {
+  isDailyLoginReady,
+  getDailyLoginNextClaimAt,
+} from "./daily-reset.js";
 
 const LEVEL_CAP_BY_RARITY = {
   Common: 20,
@@ -483,12 +486,10 @@ function sanitizeDailyLoginLastClaimAt(raw, now = Date.now()) {
 }
 
 export function getDailyLoginStatusFromSave(save, now = Date.now()) {
-  const lastRaw = save?.dailyLoginLastClaimAt;
-  const last = lastRaw ? Date.parse(lastRaw) : 0;
-  const ready = !Number.isFinite(last) || now - last >= DAILY_LOGIN_COOLDOWN_MS;
+  const ready = isDailyLoginReady(save, now);
   return {
     ready,
-    nextClaimAt: ready ? null : new Date(last + DAILY_LOGIN_COOLDOWN_MS).toISOString(),
+    nextClaimAt: ready ? null : getDailyLoginNextClaimAt(now),
     unclaimed: sanitizeMailbox(save?.mailbox).filter((m) => !m.claimedAt).length,
   };
 }
