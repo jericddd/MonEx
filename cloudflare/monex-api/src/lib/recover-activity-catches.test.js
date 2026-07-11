@@ -6,6 +6,8 @@ import {
   recoverActivityCatchesForUser,
   latestMonballsFromActivity,
   usernameMatchesActivity,
+  prepareRecoverySaveForWrite,
+  syncCatchStateMonballs,
 } from "./recover-activity-catches.js";
 
 const sampleActivities = [
@@ -148,5 +150,27 @@ describe("recoverActivityCatchesForUser", () => {
 
     assert.equal(result.added.length, 1);
     assert.equal(result.added[0].name, "Mosferatu");
+  });
+});
+
+describe("prepareRecoverySaveForWrite", () => {
+  it("bumps revision and stamps recoveredAt", () => {
+    const prepared = prepareRecoverySaveForWrite(
+      { party: [{ name: "Chog" }], box: [], monballs: 0, revision: 4 },
+      { revision: 4 }
+    );
+    assert.equal(prepared.revision, 5);
+    assert.ok(prepared.recoveredAt);
+    assert.ok(prepared.updatedAt);
+    assert.equal(prepared.party.length, 1);
+  });
+});
+
+describe("syncCatchStateMonballs", () => {
+  it("aligns catch-state balance after recovery", () => {
+    const state = { users: { "179": { username: "Lucci_Crypto", monballs: 18, pendingMons: [] } } };
+    const ok = syncCatchStateMonballs(state, "179", "Lucci_Crypto", 0, 10);
+    assert.equal(ok, true);
+    assert.equal(state.users["179"].monballs, 0);
   });
 });

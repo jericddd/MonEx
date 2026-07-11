@@ -15,7 +15,11 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { cleanUsername } from "../src/lib/backfill-pending.js";
-import { recoverActivityCatchesForUser } from "../src/lib/recover-activity-catches.js";
+import {
+  recoverActivityCatchesForUser,
+  prepareRecoverySaveForWrite,
+  syncCatchStateMonballs,
+} from "../src/lib/recover-activity-catches.js";
 import { resolveCatchUser } from "../src/kv-store.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -236,7 +240,12 @@ async function main() {
   });
 
   if (!dryRun && result.added.length > 0) {
-    await putValue(`${SAVE_PREFIX}${cloud.xUserId}`, JSON.stringify(result.save));
+    const saveToWrite = prepareRecoverySaveForWrite(result.save, cloud.save);
+    await putValue(`${SAVE_PREFIX}${cloud.xUserId}`, JSON.stringify(saveToWrite));
+    if (syncCatchStateMonballs(state, cloud.xUserId, username, result.monballs, startingMonballs)) {
+      await putValue(STATE_KEY, JSON.stringify(state));
+    }
+    result.save = saveToWrite;
   }
 
   console.log(
@@ -255,6 +264,10 @@ async function main() {
         added: result.added,
         skipped: result.skipped,
         monballs: result.monballs,
+        partyCount: result.save?.party?.length ?? 0,
+        boxCount: result.save?.box?.length ?? 0,
+        revision: result.save?.revision ?? null,
+        recoveredAt: result.save?.recoveredAt ?? null,
         activities: result.activities,
         status: dryRun ? "dry_run" : result.added.length ? "recovered" : "nothing_to_add",
       },

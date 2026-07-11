@@ -13961,22 +13961,38 @@ function countMonFingerprints(list) {
 }
 
 function mergeMonsterInventories(newerParty, newerBox, olderParty, olderBox) {
-    const newerAll = [...(newerParty || []), ...(newerBox || [])];
-    const olderAll = [...(olderParty || []), ...(olderBox || [])];
-    const newerCounts = countMonFingerprints(newerAll);
-    const olderCounts = countMonFingerprints(olderAll);
+    const party = [...(newerParty || [])];
     const box = [...(newerBox || [])];
+    const seen = new Set();
+    const partySpecies = new Set(party.map((mon) => mon?.name).filter(Boolean));
 
-    olderCounts.forEach((oldCount, fp) => {
-        const newCount = newerCounts.get(fp) || 0;
-        if (oldCount <= newCount) return;
-        const extras = (olderBox || []).filter((mon) => monCollectionKey(mon) === fp);
-        for (let i = 0; i < oldCount - newCount; i++) {
-            if (extras[i]) box.push(extras[i]);
+    const remember = (mon) => {
+        if (!mon?.name) return;
+        const key = mon.wildPendingId
+            ? `wild:${mon.wildPendingId}`
+            : `fp:${monCollectionKey(mon)}`;
+        seen.add(key);
+    };
+    party.forEach(remember);
+    box.forEach(remember);
+
+    const absorb = (mon) => {
+        if (!mon?.name) return;
+        const key = mon.wildPendingId
+            ? `wild:${mon.wildPendingId}`
+            : `fp:${monCollectionKey(mon)}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        if (party.length < 5 && !partySpecies.has(mon.name)) {
+            party.push(mon);
+            partySpecies.add(mon.name);
+        } else {
+            box.push(mon);
         }
-    });
+    };
 
-    return { party: [...(newerParty || [])], box };
+    [...(olderParty || []), ...(olderBox || [])].forEach(absorb);
+    return { party, box };
 }
 
 async function refreshMonballsFromServer() {

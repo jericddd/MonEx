@@ -1,5 +1,6 @@
 import { generateSkills } from "./catch-engine.js";
 import { sanitizeMon, validateAndSanitizeSave } from "./save-validate.js";
+import { resolveCatchUser } from "../kv-store.js";
 import {
   cleanUsername,
   getWildPendingIds,
@@ -200,4 +201,38 @@ export function recoverActivityCatchesForUser({
       mons: entry.mons,
     })),
   };
+}
+
+/**
+ * Bump revision and stamp recovery metadata so stale browser tabs cannot
+ * overwrite a freshly recovered save with an older baseRevision.
+ */
+export function prepareRecoverySaveForWrite(save, existingSave = null) {
+  const base = save && typeof save === "object" ? save : {};
+  const prior = existingSave && typeof existingSave === "object" ? existingSave : {};
+  const currentRevision = Number.isFinite(Number(prior.revision))
+    ? Math.max(0, Math.floor(Number(prior.revision)))
+    : Number.isFinite(Number(base.revision))
+      ? Math.max(0, Math.floor(Number(base.revision)))
+      : 0;
+  const now = new Date().toISOString();
+  return {
+    ...base,
+    revision: currentRevision + 1,
+    recoveredAt: now,
+    updatedAt: now,
+  };
+}
+
+/**
+ * Align catch-state monballs with recovered save so /api/monballs and save PUT
+ * reconcile do not resurrect spent MonBalls after recovery.
+ */
+export function syncCatchStateMonballs(state, xUserId, username, monballs, startingMonballs = 10) {
+  const user = resolveCatchUser(state, xUserId, username, startingMonballs);
+  if (!user) return false;
+  const left = Math.max(0, Math.floor(Number(monballs) || 0));
+  user.monballs = left;
+  user.updatedAt = new Date().toISOString();
+  return true;
 }
