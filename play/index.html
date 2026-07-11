@@ -8,6 +8,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <title>MonEx</title>
 <link rel="icon" type="image/png" href="/favicon.png">
+<link rel="stylesheet" href="css/mobile-ui.css?v=20260711a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 :root {
     --purple: #6B21A8;
@@ -530,8 +534,8 @@ button.green:hover {
 }
 #modal-box .game-modal-panel,
 #modal-inventory .game-modal-panel {
-    height: min(88vh, 920px);
-    max-height: min(88vh, 920px);
+    height: min(88dvh, 920px);
+    max-height: min(88dvh, 920px);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -5989,7 +5993,7 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     background: white;
     border: 4px solid #6B21A8;
     box-shadow: 6px 6px 0 #6B21A8;
-    max-height: 88vh;
+    max-height: 88dvh;
     overflow-y: auto;
     width: 92%;
     max-width: 480px;
@@ -6935,7 +6939,7 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 720px), ((max-height: 520px) and (orientation: landscape) and (hover: none) and (pointer: coarse)) {
     body.afk-layout {
         position: relative;
     }
@@ -6994,8 +6998,8 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
         margin-left: -20px;
     }
     .resource-chest-wrap {
-        right: 8px;
-        bottom: calc(var(--mobile-rail-dock-height) + 8px);
+        right: calc(8px + env(safe-area-inset-right, 0px));
+        bottom: calc(var(--mobile-rail-dock-height) + 8px + env(safe-area-inset-bottom, 0px));
         width: 72px;
         transform: scale(1.65);
         transform-origin: bottom right;
@@ -7022,9 +7026,9 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
         align-items: flex-end;
         gap: var(--rail-gap);
         position: absolute;
-        left: 8px;
-        right: 8px;
-        bottom: 8px;
+        left: calc(8px + env(safe-area-inset-left, 0px));
+        right: calc(8px + env(safe-area-inset-right, 0px));
+        bottom: calc(8px + env(safe-area-inset-bottom, 0px));
         z-index: 10;
         padding: var(--rail-panel-pad);
         box-sizing: border-box;
@@ -7663,6 +7667,9 @@ function bindHoverFloatTips(root) {
         el.addEventListener("mouseenter", () => showHoverFloatTip(el));
         el.addEventListener("mouseleave", () => clearHoverFloatTip(el));
     });
+    if (window.MonExMobile?.enhanceHoverFloatTips) {
+        window.MonExMobile.enhanceHoverFloatTips(root);
+    }
 }
 
 const MONANIMAL_NAMES = ["Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal", "Monavara", "Moncock", "Mondigrade", "Montiger", "Mosferatu", "Monhorse", "Shramp", "Spidermon", "Moyaki"];
@@ -17788,6 +17795,7 @@ function confirmLeaveBattle(targetTab) {
     }
 }
 </script>
+<script src="js/mobile-ui.js?v=20260711a"></script>
 
 </body>
 </html>

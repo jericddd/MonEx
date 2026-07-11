@@ -1,0 +1,363 @@
+/**
+ * MonEx mobile UI — safe areas, touch targets, orientation, modal dvh.
+ * Activated via layout-mobile / layout-tablet / touch-device on <html>.
+ */
+
+/* Prevent horizontal scroll on all touch layouts */
+html.layout-mobile,
+html.layout-tablet,
+html.touch-device {
+  overflow-x: hidden;
+}
+
+html.layout-mobile body.afk-layout,
+html.layout-tablet body.afk-layout {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Safe-area CSS variables (also set in JS for older WebViews) */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --mobile-min-tap: 44px;
+}
+
+/* ---- Phone layout (JS class mirrors @media max-width 720px + landscape phones) ---- */
+html.layout-mobile body.afk-layout {
+  position: relative;
+}
+
+html.layout-mobile body.afk-layout > .game-container-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+}
+
+html.layout-mobile body.afk-layout .game-shell {
+  position: relative;
+}
+
+html.layout-mobile {
+  --game-side-pad: 16px;
+  --mobile-rail-dock-height: 116px;
+}
+
+html.layout-mobile .header-inner {
+  gap: 10px;
+}
+
+html.layout-mobile .header-currencies {
+  width: 100%;
+  margin-left: 0;
+  justify-content: center;
+}
+
+html.layout-mobile .game-container {
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+}
+
+html.layout-mobile .game-rails-dock {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-end;
+  gap: var(--rail-gap, 2px);
+  position: absolute;
+  z-index: 10;
+  padding: var(--rail-panel-pad, 6px);
+  box-sizing: border-box;
+  pointer-events: none;
+  max-width: calc(100% - 16px);
+  margin: 0 auto;
+}
+
+html.layout-mobile .game-rails-dock .side-icon-btn {
+  pointer-events: auto;
+}
+
+html.layout-mobile .left-rail,
+html.layout-mobile .side-rail {
+  display: contents;
+  position: static;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+html.layout-mobile {
+  --scene-fighter-size: 122px;
+  --rail-icon-max: 40px;
+  --rail-btn-size: 48px;
+}
+
+html.layout-mobile body.afk-layout .header {
+  padding-top: calc(12px + var(--safe-top));
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+
+html.layout-mobile body.afk-layout .game-rails-dock {
+  bottom: calc(8px + var(--safe-bottom));
+  left: calc(8px + var(--safe-left));
+  right: calc(8px + var(--safe-right));
+  max-width: calc(100% - 16px - var(--safe-left) - var(--safe-right));
+}
+
+html.layout-mobile body.afk-layout .resource-chest-wrap {
+  right: calc(8px + var(--safe-right));
+  bottom: calc(var(--mobile-rail-dock-height, 116px) + 8px + var(--safe-bottom));
+}
+
+html.layout-mobile .game-container-stage {
+  padding-bottom: calc(var(--mobile-rail-dock-height, 116px) + var(--safe-bottom));
+}
+
+html.layout-mobile .game-modal.open {
+  padding-top: calc(12px + var(--safe-top));
+  padding-bottom: calc(12px + var(--safe-bottom));
+  padding-left: calc(10px + var(--safe-left));
+  padding-right: calc(10px + var(--safe-right));
+  align-items: flex-start;
+}
+
+html.layout-mobile .game-modal-panel,
+html.layout-mobile #modal-box .game-modal-panel,
+html.layout-mobile #modal-inventory .game-modal-panel {
+  max-height: min(88dvh, 920px);
+  height: min(88dvh, 920px);
+}
+
+html.layout-mobile .game-modal-panel {
+  width: min(96vw, 920px);
+  max-width: 100%;
+}
+
+html.layout-mobile .popup-overlay,
+html.layout-mobile .hub-popup-overlay {
+  padding-top: calc(var(--modal-drop, 10vh) + var(--safe-top));
+  padding-bottom: calc(20px + var(--safe-bottom));
+  padding-left: calc(12px + var(--safe-left));
+  padding-right: calc(12px + var(--safe-right));
+}
+
+html.layout-mobile .game-session-modal {
+  padding: calc(16px + var(--safe-top)) calc(16px + var(--safe-right))
+    calc(16px + var(--safe-bottom)) calc(16px + var(--safe-left));
+}
+
+/* Touch targets */
+html.touch-device .side-icon-btn,
+html.touch-device .hub-nav-btn,
+html.touch-device .shop-cat-btn,
+html.touch-device .armory-nav-btn,
+html.touch-device .game-modal-close,
+html.touch-device .header-logout-btn,
+html.touch-device .adventure-start-btn,
+html.touch-device .adventure-continue-btn,
+html.touch-device .hub-popup-qty-btn,
+html.touch-device .battle-pause-btn {
+  min-width: var(--mobile-min-tap);
+  min-height: var(--mobile-min-tap);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html.touch-device .side-icon-btn:active,
+html.touch-device .hub-nav-btn:active,
+html.touch-device .shop-cat-btn:active,
+html.touch-device .adventure-start-btn:active,
+html.touch-device .game-modal-close:active {
+  transform: scale(0.96);
+  filter: brightness(0.95);
+  transition: transform 0.08s ease, filter 0.08s ease;
+}
+
+/* Tap tooltips */
+html.touch-device .has-hover-tip.tip-open {
+  outline: 2px solid rgba(168, 85, 247, 0.55);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+html.touch-device .hover-tip-float {
+  z-index: 10050;
+  pointer-events: auto;
+  max-width: min(92vw, 320px);
+}
+
+/* Team arrange tap-to-swap */
+html.touch-device .team-slot.team-slot-selected {
+  border-color: #a855f7;
+  box-shadow:
+    inset 0 0 16px rgba(168, 85, 247, 0.35),
+    0 4px 0 #3d2010;
+  transform: scale(1.02);
+}
+
+html.touch-device .team-slot {
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+html.touch-device .adventure-panel .adv-desc::after {
+  content: " Tap two slots to swap order.";
+  display: block;
+  font-size: 11px;
+  color: #6b4a2a;
+  margin-top: 4px;
+}
+
+/* Landscape phone — compact HUD and battle */
+@media (orientation: landscape) and (max-height: 520px) {
+  html.layout-mobile {
+    --mobile-rail-dock-height: 88px;
+    --scene-fighter-size: 96px;
+  }
+
+  html.layout-mobile body.afk-layout .header {
+    padding-top: calc(6px + var(--safe-top));
+    padding-bottom: 6px;
+  }
+
+  html.layout-mobile .header-inner {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  html.layout-mobile .header-currencies {
+    width: auto;
+    flex: 1;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  html.layout-mobile .currency-pill {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  html.layout-mobile .scene-idle-stage {
+    transform: translateY(calc(var(--scene-idle-lift, -46px) * 0.6)) scale(0.72);
+  }
+
+  html.layout-mobile .game-rails-dock {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-start;
+    scrollbar-width: none;
+  }
+
+  html.layout-mobile .game-rails-dock::-webkit-scrollbar {
+    display: none;
+  }
+
+  html.layout-mobile .battle-meter-panel {
+    max-height: min(72%, calc(100% - 72px));
+    width: 28%;
+    min-width: 100px;
+  }
+
+  html.layout-mobile .battle-stage {
+    --bsprite-size: 96px;
+  }
+
+  html.layout-mobile .bsprite {
+    width: 96px;
+    height: 96px;
+  }
+
+  html.layout-mobile .game-modal.open .game-modal-panel {
+    max-height: min(92dvh, 640px);
+    height: auto;
+  }
+}
+
+/* ---- Tablet layout — between desktop and phone ---- */
+html.layout-tablet body.afk-layout .header {
+  padding-top: calc(12px + var(--safe-top));
+}
+
+html.layout-tablet body.afk-layout .game-rails-dock,
+html.layout-tablet .left-rail,
+html.layout-tablet .side-rail {
+  /* Keep side rails on tablet when wide enough */
+}
+
+@media (min-width: 721px) and (max-width: 1024px) {
+  html.layout-tablet body.afk-layout .game-container {
+    padding-left: calc(var(--game-side-pad) + var(--safe-left));
+    padding-right: calc(var(--game-side-pad) + var(--safe-right));
+  }
+
+  html.layout-tablet .game-modal.open {
+    padding-left: calc(16px + var(--safe-left));
+    padding-right: calc(16px + var(--safe-right));
+  }
+
+  html.layout-tablet .game-modal-panel,
+  html.layout-tablet #modal-box .game-modal-panel {
+    max-height: min(86dvh, 900px);
+  }
+
+  html.layout-tablet .side-icon-btn {
+    min-width: 52px;
+    min-height: 52px;
+    touch-action: manipulation;
+  }
+}
+
+/* Small phones */
+@media (max-width: 380px) {
+  html.layout-mobile {
+    --mobile-rail-dock-height: 128px;
+    --rail-btn-size: 44px;
+    --rail-icon-max: 36px;
+  }
+
+  html.layout-mobile .header-trainer-block #trainer-name,
+  html.layout-mobile .header-trainer #trainer-name {
+    font-size: 12px;
+  }
+}
+
+/* Smooth scrolling panels */
+html.touch-device .hub-scrollbar-panel,
+html.touch-device .game-modal-panel,
+html.touch-device .box-scroll-panel {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Battle scene back button safe area */
+html.layout-mobile .battle-scene.open .battle-back-btn,
+html.layout-mobile .battle-scene.open .battle-pause-btn {
+  top: calc(var(--afk-header-offset, 64px) + 8px + var(--safe-top));
+}
+
+/* Landing pages */
+html.layout-mobile body,
+html.layout-tablet body {
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+  padding-top: var(--safe-top);
+}
+
+html.touch-device .nav-btn,
+html.touch-device button {
+  min-height: var(--mobile-min-tap);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
