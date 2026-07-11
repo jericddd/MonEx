@@ -119,4 +119,36 @@ describe("reconcileMonballsForCloudSave", () => {
     const reconciled = await reconcileMonballsForCloudSave(kv, { xUserId: "u1", username: "trainer" }, payload, 10);
     assert.equal(reconciled.monballs, 12);
   });
+
+  it("does not resurrect spent monballs when cloud save still shows pre-catch balance", async () => {
+    const kv = makeKv({
+      "monex:state": JSON.stringify({
+        processedTweetIds: [],
+        users: {
+          u1: {
+            username: "lucci_crypto",
+            monballs: 0,
+            pendingMons: [],
+            updatedAt: new Date(4000).toISOString(),
+          },
+        },
+      }),
+      "monex:save:u1": JSON.stringify({
+        monballs: 18,
+        updatedAt: new Date(2000).toISOString(),
+        party: [],
+        box: [],
+      }),
+    });
+
+    const payload = {
+      monballs: 18,
+      updatedAt: new Date(5000).toISOString(),
+      party: [],
+      box: [],
+    };
+
+    const reconciled = await reconcileMonballsForCloudSave(kv, { xUserId: "u1", username: "lucci_crypto" }, payload, 10);
+    assert.equal(reconciled.monballs, 0);
+  });
 });
