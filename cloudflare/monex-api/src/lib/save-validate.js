@@ -77,6 +77,7 @@ import {
   isDailyLoginReady,
   getDailyLoginNextClaimAt,
 } from "./daily-reset.js";
+import { isEquipmentUnlocked } from "./equipment-unlock.js";
 
 const LEVEL_CAP_BY_RARITY = {
   Common: 20,
@@ -516,6 +517,12 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
   const input = src && typeof src === "object" ? src : {};
   const now = options.now ?? Date.now();
   const adventure = sanitizeAdventureFields(input);
+  const equipmentUnlocked = isEquipmentUnlocked(adventure.adventureGlobalBest);
+  let gearInventory = sanitizeGearInventory(input.gearInventory);
+  let gearInventorySeedVersion = clampInt(input.gearInventorySeedVersion ?? 0, 0, 99);
+  if (!equipmentUnlocked) {
+    gearInventorySeedVersion = 0;
+  }
 
   return {
     party: sanitizeMonList(input.party, LIMITS.partyMax),
@@ -530,8 +537,8 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
     adventureGlobalBest: adventure.adventureGlobalBest,
     currentChapter: adventure.currentChapter,
     currentStage: adventure.currentStage,
-    gearInventory: sanitizeGearInventory(input.gearInventory),
-    gearInventorySeedVersion: clampInt(input.gearInventorySeedVersion ?? 0, 0, 99),
+    gearInventory,
+    gearInventorySeedVersion,
     lastResetDate: typeof input.lastResetDate === "string" ? trimString(input.lastResetDate, 32) || null : null,
     patrolScansUsed: clampInt(input.patrolScansUsed ?? 0, 0, 50),
     patrolScansDay: typeof input.patrolScansDay === "string" ? trimString(input.patrolScansDay, 32) || null : null,

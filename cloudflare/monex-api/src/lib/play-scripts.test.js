@@ -25,6 +25,7 @@ const repoRoot = join(here, "..", "..", "..", "..");
 const PLAY_SCRIPTS = [
   "js/daily-reset.js",
   "js/patrol-reset.js",
+  "js/equipment-unlock.js",
   "js/staging-banner.js",
   "js/monex-config.js",
   "js/escape-html.js",
