@@ -45,7 +45,7 @@ import {
 } from "./lib/auth.js";
 import { loadCloudSave, writeCloudSave, buildSavePayload, preserveServerAuthoritativeFields } from "./lib/save.js";
 import { grantMonballs, alignCatchMonballsToMerged } from "./lib/grant-monballs.js";
-import { resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsAfterCatch, getAuthoritativeMonballs } from "./lib/save-reconcile.js";
+import { resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsAfterCatch, getAuthoritativeMonballs, hydrateCloudSaveWithCatchState } from "./lib/save-reconcile.js";
 import { appendMonballAudit } from "./lib/monball-audit.js";
 import {
   claimGameSession,
@@ -254,6 +254,9 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       }
 
       if (result.activity) {
+        markProcessed(state, tweet.id);
+        await saveState(env.MONEX_KV, state);
+
         await appendMonballAudit(env.MONEX_KV, {
           xUserId: tweet.authorId,
           username: tweet.username,
@@ -262,22 +265,34 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
           balanceAfter: result.activity.monballsLeft,
           meta: { pool: "catch", tweetId: tweet.id },
         });
-        await appendActivity(env.MONEX_KV, result.activity);
-        await syncSaveMonballsAfterCatch(
+
+        const hydrated = await hydrateCloudSaveWithCatchState(
           env.MONEX_KV,
           tweet.authorId,
           tweet.username,
-          result.activity.monballsLeft,
-          starting,
-          { spend: result.activity.spend, tweetId: tweet.id }
+          starting
         );
+        if (!hydrated.hydrated) {
+          await syncSaveMonballsAfterCatch(
+            env.MONEX_KV,
+            tweet.authorId,
+            tweet.username,
+            result.activity.monballsLeft,
+            starting,
+            { spend: result.activity.spend, tweetId: tweet.id }
+          );
+        }
+
+        await appendActivity(env.MONEX_KV, result.activity);
         status.activities += 1;
       } else if (result.skipReason) {
         status.skipped.push({ id: tweet.id, user: tweet.username, reason: result.skipReason });
+        markProcessed(state, tweet.id);
+        await saveState(env.MONEX_KV, state);
+      } else {
+        markProcessed(state, tweet.id);
+        await saveState(env.MONEX_KV, state);
       }
-
-      markProcessed(state, tweet.id);
-      await saveState(env.MONEX_KV, state);
 
       if (env.ENABLE_X_REPLY === "1") {
         const dailyLimit = getDailyReplyLimitForUser(tweet.username, env);
@@ -697,14 +712,34 @@ async function handleRequest(request, env) {
     if (path === "/api/save" && request.method === "GET") {
       const auth = await requireSession(request, env.MONEX_KV);
       if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
-      const { found, corrupt, save } = await loadCloudSave(env.MONEX_KV, auth.session.xUserId);
+      const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
+      const { found, corrupt, save: loadedSave } = await loadCloudSave(env.MONEX_KV, auth.session.xUserId);
       if (corrupt) {
-        // Never serve "new player" defaults for a corrupt-but-present save —
-        // the client would treat it as a fresh account and overwrite real
-        // progress. Return an error so the client shows its retry modal.
         console.error(JSON.stringify({ evt: "save_load_corrupt", xUserId: auth.session.xUserId }));
         return json({ ok: false, error: "save_corrupt" }, 500, request, env);
       }
+
+      let save = loadedSave;
+      if (found) {
+        const hydrated = await hydrateCloudSaveWithCatchState(
+          env.MONEX_KV,
+          auth.session.xUserId,
+          auth.session.username,
+          starting
+        );
+        if (hydrated.hydrated && hydrated.save) {
+          save = hydrated.save;
+        } else {
+          const monballs = await getAuthoritativeMonballs(
+            env.MONEX_KV,
+            auth.session.xUserId,
+            auth.session.username,
+            starting
+          );
+          save = { ...loadedSave, monballs };
+        }
+      }
+
       return json(
         { ok: true, found, save, user: { username: auth.session.username, xUserId: auth.session.xUserId } },
         200,

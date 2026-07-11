@@ -2,6 +2,7 @@ import { loadState, saveState, resolveCatchUser } from "../kv-store.js";
 import { loadCloudSave, writeCloudSave } from "./save.js";
 import { clampMonballs, mergeMonballBalances } from "./grant-monballs.js";
 import { appendMonballAudit } from "./monball-audit.js";
+import { backfillPendingForUser } from "./backfill-pending.js";
 
 /**
  * Authoritative monball count across catch state and cloud save.
@@ -64,9 +65,19 @@ export async function reconcileMonballsForCloudSave(kv, session, payload, starti
   if (incoming < merged) {
     merged = incoming;
   } else if (incoming > merged) {
-    const poolsDepleted = catchMonballs === 0 && existingMonballs === 0 && merged === 0;
-    if (!poolsDepleted) {
-      merged = Math.max(merged, incoming);
+    const catchTs = Date.parse(catchUser?.updatedAt || "");
+    const saveTs = Date.parse(existingSave?.updatedAt || "");
+    const catchLeads =
+      Number.isFinite(catchTs) && (!Number.isFinite(saveTs) || catchTs >= saveTs);
+    const catchSpentBelowClient =
+      catchLeads && incoming > catchMonballs && (catchMonballs < existingMonballs || catchMonballs === 0);
+    if (catchSpentBelowClient) {
+      merged = catchMonballs;
+    } else {
+      const poolsDepleted = catchMonballs === 0 && existingMonballs === 0 && merged === 0;
+      if (!poolsDepleted) {
+        merged = Math.max(merged, incoming);
+      }
     }
   }
 
@@ -117,6 +128,53 @@ export async function alignCatchMonballsToSave(kv, session, saveMonballs, starti
  * Pick authoritative monballs when reconciling catch state vs cloud save.
  * Prefer catch when catch state was updated more recently (X wild activity).
  */
+/**
+ * Move pending X catches into cloud save and align monballs — server-side so
+ * inventory updates without waiting for the client /api/sync game-session gate.
+ */
+export async function hydrateCloudSaveWithCatchState(
+  kv,
+  xUserId,
+  username,
+  startingMonballs = 10
+) {
+  if (!xUserId) return { hydrated: false, reason: "no_x_user_id" };
+
+  const { found, save } = await loadCloudSave(kv, xUserId);
+  if (!found) {
+    return { hydrated: false, reason: "no_cloud_save" };
+  }
+
+  const state = await loadState(kv);
+  const result = backfillPendingForUser(state, {
+    xUserId,
+    username,
+    save,
+    startingMonballs,
+  });
+  await saveState(kv, state);
+
+  if (!result.ok || !result.save) {
+    return { hydrated: false, reason: result.reason || "backfill_failed" };
+  }
+
+  const monballs = await getAuthoritativeMonballs(kv, xUserId, username, startingMonballs);
+  const nextSave = {
+    ...result.save,
+    monballs,
+    updatedAt: new Date().toISOString(),
+  };
+  await writeCloudSave(kv, xUserId, nextSave, { skipStaleCheck: true });
+
+  return {
+    hydrated: true,
+    save: nextSave,
+    added: result.added,
+    remaining: result.remaining,
+    monballs,
+  };
+}
+
 export function resolveMergedMonballs(catchUser, save, catchMonballs) {
   const catchTs = Date.parse(catchUser?.updatedAt || "");
   const saveTs = Date.parse(save?.updatedAt || "");

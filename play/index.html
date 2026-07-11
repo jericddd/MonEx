@@ -13929,6 +13929,17 @@ function pickNewerSaveScalar(local, cloud, field, fallback = 0) {
     return Math.max(Number(local[field]) || fallback, Number(cloud[field]) || fallback);
 }
 
+/** Monballs: on tie prefer the lower count — X spends cannot be resurrected by stale tabs. */
+function pickNewerMonballsScalar(local, cloud, fallback = 0) {
+    const localTs = getSaveTimestamp(local);
+    const cloudTs = getSaveTimestamp(cloud);
+    const localVal = Math.max(0, Math.floor(Number(local?.monballs) || fallback));
+    const cloudVal = Math.max(0, Math.floor(Number(cloud?.monballs) || fallback));
+    if (cloudTs > localTs) return cloudVal;
+    if (localTs > cloudTs) return localVal;
+    return Math.min(localVal, cloudVal);
+}
+
 function monCollectionKey(mon) {
     if (!mon?.name) return "";
     return [
@@ -14039,7 +14050,7 @@ function mergeSaveSnapshots(local, cloud) {
 
     merged.money = pickNewerSaveScalar(local, cloud, "money");
     merged.essence = pickNewerSaveScalar(local, cloud, "essence");
-    merged.monballs = pickNewerSaveScalar(local, cloud, "monballs");
+    merged.monballs = pickNewerMonballsScalar(local, cloud);
     merged.monShards = pickNewerSaveScalar(local, cloud, "monShards");
     merged.trainerXp = pickNewerSaveScalar(local, cloud, "trainerXp");
     merged.trainerRewardLevel = Math.max(
