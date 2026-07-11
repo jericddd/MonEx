@@ -67,7 +67,7 @@ test("last reply warns catches still work", () => {
 test("daily limit notice reassures player", () => {
   const text = buildDailyLimitNoticeReply("jeric", 4, 0);
   assert.ok(/catch commands still work|can still catch|catches still run/i.test(text));
-  assert.ok(/catch 1|catch 1–50|tag catch|using catch/i.test(text));
+  assert.ok(/catch 1|catch 1–10|tag catch|using catch/i.test(text));
   assert.ok(text.includes("Profile → X log"));
 });
 

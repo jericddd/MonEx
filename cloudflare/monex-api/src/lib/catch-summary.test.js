@@ -35,18 +35,18 @@ test("picks at least three highlight mons by rarity", () => {
 });
 
 test("large catch reply stays compact under 280 chars", () => {
-  const results = Array.from({ length: 50 }, (_, i) => ({
-    escaped: i % 10 === 0,
+  const results = Array.from({ length: 10 }, (_, i) => ({
+    escaped: i % 4 === 0,
     name: `Esc${i}`,
     mon: {
       name: `Mon${i}`,
-      rarity: i < 5 ? "Legendary" : i < 15 ? "Rare" : i < 30 ? "Uncommon" : "Common",
+      rarity: i < 2 ? "Legendary" : i < 5 ? "Rare" : i < 8 ? "Uncommon" : "Common",
     },
   })).map((r) => (r.escaped ? { escaped: true, name: r.name, rarity: "Common" } : { escaped: false, mon: r.mon }));
 
   const text = buildNaturalCatchReply({
     username: "jeric",
-    monballSpend: 50,
+    monballSpend: 10,
     results,
     monballsLeft: 0,
     seed: 3,

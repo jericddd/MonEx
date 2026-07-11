@@ -27,15 +27,15 @@ test("bare catch defaults to 1 in thread", () => {
 });
 
 test("catch keywords anywhere in sentence (outside post)", () => {
-  const r = parseMention("hey @monexmonad can we catch 20 monanimals today?", BOT);
+  const r = parseMention("hey @monexmonad can we catch 8 monanimals today?", BOT);
   assert.equal(r.type, "catch");
-  assert.equal(r.spend, 20);
+  assert.equal(r.spend, 8);
 });
 
 test("high priority denom beats lower catch phrasing", () => {
-  const r = parseCatchIntent("catch 10 monanimals but actually catch 30 monanimals");
+  const r = parseCatchIntent("catch 5 monanimals but actually catch 10 monanimals");
   assert.equal(r.type, "catch");
-  assert.equal(r.spend, 30);
+  assert.equal(r.spend, 10);
 });
 
 test("catch 1 through 6 variants", () => {
@@ -47,10 +47,10 @@ test("catch 1 through 6 variants", () => {
   }
 });
 
-test("catch 50 max", () => {
-  const r = parseMention("@monexmonad catch 50 monanimals", BOT);
+test("catch 10 max", () => {
+  const r = parseMention("@monexmonad catch 10 monanimals", BOT);
   assert.equal(r.type, "catch");
-  assert.equal(r.spend, 50);
+  assert.equal(r.spend, 10);
 });
 
 test("catch 1 monanimal singular", () => {
@@ -66,15 +66,15 @@ test("invalid denom below min", () => {
 });
 
 test("invalid denom above max", () => {
-  const r = parseMention("@monexmonad catch 51 monanimals", BOT);
+  const r = parseMention("@monexmonad catch 11 monanimals", BOT);
   assert.equal(r.type, "invalid_denom");
-  assert.equal(r.raw, "51");
+  assert.equal(r.raw, "11");
 });
 
 test("valid mid-range denom", () => {
-  const r = parseMention("@monexmonad catch 25 monanimals", BOT);
+  const r = parseMention("@monexmonad catch 7 monanimals", BOT);
   assert.equal(r.type, "catch");
-  assert.equal(r.spend, 25);
+  assert.equal(r.spend, 7);
 });
 
 test("isReplyToBotTweet", () => {
