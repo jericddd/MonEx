@@ -11,6 +11,14 @@ on:
       username:
         description: "X username without @ — case-sensitive (e.g. Lucci_Crypto)"
         required: true
+      spend:
+        description: "Optional — recover only this catch size (e.g. 18). Leave empty when using latest only."
+        required: false
+        default: ""
+      latest_only:
+        description: "Recover only the most recent Wild Log catch for this user (e.g. Catch 18)"
+        type: boolean
+        default: false
       confirm:
         description: "Type PREVIEW to dry-run, or RECOVER to apply"
         required: true
@@ -66,5 +74,11 @@ jobs:
           ARGS=()
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             ARGS+=(--dry-run)
+          fi
+          if [ -n "${{ inputs.spend }}" ]; then
+            ARGS+=(--spend "${{ inputs.spend }}")
+          fi
+          if [ "${{ inputs.latest_only }}" = "true" ]; then
+            ARGS+=(--latest)
           fi
           node scripts/recover-activity-catches.mjs "${ARGS[@]}" "${{ inputs.username }}"

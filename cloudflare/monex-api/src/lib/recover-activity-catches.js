@@ -17,10 +17,25 @@ export function usernameMatchesActivity(stored, filter, { caseSensitive = true }
 
 export function filterActivityEntries(entries, username, options = {}) {
   const rows = Array.isArray(entries) ? entries : [];
-  return rows
+  const spendFilter = options.spend != null ? Number(options.spend) : null;
+  const activityId = options.activityId ? String(options.activityId).trim() : "";
+  const matched = rows
     .filter((entry) => entry?.status === "success")
     .filter((entry) => usernameMatchesActivity(entry.xUsername, username, options))
+    .filter((entry) => {
+      if (activityId) {
+        return entry.id === activityId || entry.tweetId === activityId;
+      }
+      if (Number.isFinite(spendFilter) && spendFilter > 0) {
+        return Number(entry.spend) === spendFilter;
+      }
+      return true;
+    })
     .sort((a, b) => Date.parse(a.at || "") - Date.parse(b.at || ""));
+  if (options.latestOnly && matched.length > 0) {
+    return [matched[matched.length - 1]];
+  }
+  return matched;
 }
 
 export function extractRecoverableMons(activityEntries) {
@@ -139,8 +154,16 @@ export function recoverActivityCatchesForUser({
   save,
   catchMonballs = null,
   caseSensitive = true,
+  spend = null,
+  activityId = null,
+  latestOnly = false,
 }) {
-  const matched = filterActivityEntries(activityEntries, username, { caseSensitive });
+  const matched = filterActivityEntries(activityEntries, username, {
+    caseSensitive,
+    spend,
+    activityId,
+    latestOnly,
+  });
   const recoverable = extractRecoverableMons(matched);
   const applied = applyRecoveredMonsToSave(save, recoverable);
   const activityMonballs = latestMonballsFromActivity(matched);
