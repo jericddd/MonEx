@@ -7525,6 +7525,7 @@ body.cloud-load-blocked .game-shell {
 
 <script src="js/daily-reset.js?v=20260711b"></script>
 <script src="js/patrol-reset.js?v=20260711b"></script>
+<script src="js/equipment-unlock.js?v=20260711c"></script>
 <script src="js/staging-banner.js?v=20260710a"></script>
 <script src="js/monex-config.js?v=20260710a"></script>
 <script src="js/escape-html.js?v=20260710a"></script>
@@ -11805,11 +11806,23 @@ function formatCost(cost) {
 }
 
 // ===== Phase 3: Equipment & Ascension =====
+function getEquipmentUnlockMessage(feature = "Armory") {
+    const label = window.MonExEquipmentUnlock?.getEquipmentUnlockLabel?.()
+        || "Chapter 2, Stage 9";
+    return `${feature} unlocks at ${label}. Keep progressing!`;
+}
+
 function isEquipmentUnlocked() {
     if (isStagingTestUser()) return true;
-    return adventureGlobalBest >= 9
-        || currentChapter >= 2
-        || getGlobalAdventureProgress(currentChapter, currentStage) >= 9;
+    return window.MonExEquipmentUnlock?.isEquipmentUnlocked?.(adventureGlobalBest) === true;
+}
+
+function updateArmoryRailVisibility() {
+    const btn = document.getElementById("rail-armory");
+    if (!btn) return;
+    const unlocked = isEquipmentUnlocked();
+    btn.hidden = !unlocked;
+    btn.setAttribute("aria-hidden", unlocked ? "false" : "true");
 }
 function nextGearId() {
     return "gear_" + Date.now() + "_" + (++_gearIdSeq);
@@ -12457,7 +12470,7 @@ function renderEquipOptionHtml(gear, mon, action, actionClass, options = {}) {
 
 function openEquipModal(location, monIndex, slot) {
     if (!isEquipmentUnlocked()) {
-        alert("Equipment unlocks at Chapter 2 (Stage 9+). Keep progressing!");
+        alert(getEquipmentUnlockMessage("Equipment"));
         return;
     }
     const mon = getMonList(location)[monIndex];
@@ -12673,7 +12686,7 @@ async function runArmoryForgeAction(workFn) {
 function executeGearSynth() {
     if (armoryForgeBusy) return;
     if (!isEquipmentUnlocked()) {
-        showArmoryForgeMessage(false, "Gear synthesis unlocks at Chapter 2 (Stage 9+).");
+        showArmoryForgeMessage(false, getEquipmentUnlockMessage("Gear synthesis"));
         return;
     }
     const recipe = analyzeGearSynthRecipe(gearSynthSlots);
@@ -13288,7 +13301,7 @@ function renderArmoryPane() {
 
 function openArmoryModal(tab) {
     if (!isEquipmentUnlocked()) {
-        alert("Armory unlocks at Chapter 2 (Stage 9+). Keep progressing!");
+        alert(getEquipmentUnlockMessage("Armory"));
         return;
     }
     armoryActiveTab = tab === "enhance" ? "enhance" : (tab === "ascension" ? "ascension" : "synthesize");
@@ -13326,7 +13339,7 @@ function refreshEquippedGearStats() {
 function executeGearEnhance() {
     if (armoryForgeBusy) return;
     if (!isEquipmentUnlocked()) {
-        showArmoryForgeMessage(false, "Gear enhancement unlocks at Chapter 2 (Stage 9+).");
+        showArmoryForgeMessage(false, getEquipmentUnlockMessage("Gear enhancement"));
         return;
     }
     const idx = gearInventory.findIndex(g => g.id === gearEnhanceTargetId);
@@ -14435,6 +14448,7 @@ function updateUI() {
         document.body.classList.toggle("test-user-session", isStagingHost() && isTestUser());
         document.getElementById("trainer-name").innerText = currentUser ? "@" + currentUser.replace(/^@/, "") : "Trainer";
         updateHeaderCurrencies();
+        updateArmoryRailVisibility();
     } catch (e) {
         console.error("updateUI header failed:", e);
     }
@@ -15601,8 +15615,9 @@ function unlockTestMonFully(mon) {
 
 function unlockTestAccountFeatures() {
     if (!isStagingTestUser()) return false;
+    const unlockGlobal = window.MonExEquipmentUnlock?.UNLOCK_GLOBAL_PROGRESS ?? 49;
     let changed = false;
-    if (adventureGlobalBest < 9) { adventureGlobalBest = 9; changed = true; }
+    if (adventureGlobalBest < unlockGlobal) { adventureGlobalBest = unlockGlobal; changed = true; }
     if (highestStageCleared < 9) { highestStageCleared = 9; changed = true; }
     if (currentChapter < 2) { currentChapter = 2; changed = true; }
     if (currentStage < 9) { currentStage = 9; changed = true; }

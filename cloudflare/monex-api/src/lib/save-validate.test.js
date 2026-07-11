@@ -118,3 +118,22 @@ test("preserves updatedAt when sanitizing saves", () => {
   );
   assert.equal(save.updatedAt, ts);
 });
+
+test("clears staging gear seed when armory is locked", () => {
+  const save = validateAndSanitizeSave({
+    adventureGlobalBest: 9,
+    gearInventorySeedVersion: 1,
+    gearInventory: [{ id: "g1", slot: "weapon", tier: 1, name: "Weapon" }],
+  });
+  assert.equal(save.gearInventorySeedVersion, 0);
+  assert.equal(save.gearInventory.length, 1);
+});
+
+test("keeps staging gear seed when armory is unlocked", () => {
+  const save = validateAndSanitizeSave({
+    adventureGlobalBest: 49,
+    gearInventorySeedVersion: 1,
+    gearInventory: [{ id: "g1", slot: "weapon", tier: 1, name: "Weapon" }],
+  });
+  assert.equal(save.gearInventorySeedVersion, 1);
+});
