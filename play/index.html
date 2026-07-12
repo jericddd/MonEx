@@ -8563,7 +8563,7 @@ const QUEST_TASK_DEFS = {
         { id: "d4", track: "patrol_win", goal: 2, desc: "Win 2 patrol encounters", points: 10, rewardKey: "gold", rewardAmount: 50 },
         { id: "d5", track: "resource_collect", goal: 1, desc: "Collect your resource chest once", points: 10, rewardKey: "trainerXp", rewardAmount: 40 },
         { id: "d6", track: "boss_win", goal: 1, desc: "Defeat 1 boss stage", points: 15, rewardKey: "gold", rewardAmount: 120 },
-        { id: "d7", track: "gear_equip", goal: 1, desc: "Equip gear on a monanimal", points: 15, rewardKey: "essence", rewardAmount: 12 },
+        { id: "d7", track: "gear_equip", goal: 2, desc: "Equip gear on 2 party members", points: 15, rewardKey: "essence", rewardAmount: 12 },
         { id: "d8", track: "daily_login", goal: 1, desc: "Claim your Daily Login mail", points: 15, rewardKey: "trainerXp", rewardAmount: 30 },
     ],
     weeklies: [
@@ -12444,7 +12444,7 @@ function equipGearOnMon(location, monIndex, gearId) {
     mon.equipment[gear.slot] = gear;
     refreshMonDerivedStats(mon);
     mon.current_hp = Math.min(mon.max_hp, mon.current_hp);
-    bumpQuestProgress("gear_equip", 1);
+    if (location === "party") bumpQuestProgress("gear_equip", 1);
     saveData();
     updateUI();
     if (location === "box") renderBox();
