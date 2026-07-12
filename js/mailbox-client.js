@@ -1,5 +1,7 @@
 /** Daily login + mailbox API client (homepage + game). */
 
+const mailboxClaimPromises = new Map();
+
 function mailboxAuthHeaders() {
   const headers = { "Content-Type": "application/json" };
   if (typeof MonExAuth !== "undefined" && MonExAuth.authHeaders) {
@@ -51,21 +53,34 @@ async function claimDailyLogin() {
 }
 
 async function claimMailboxMail(mailId) {
+  const id = String(mailId || "").trim();
+  if (!id) throw new Error("mail_id_required");
+  if (mailboxClaimPromises.has(id)) {
+    return mailboxClaimPromises.get(id);
+  }
   if (window.MonExGameSession?.isGameplayAllowed && !window.MonExGameSession.isGameplayAllowed()) {
     throw new Error("game_session_inactive");
   }
-  const res = await fetch(`${mailboxApiBase()}/api/mailbox/claim`, {
-    method: "POST",
-    headers: mailboxAuthHeaders(),
-    body: JSON.stringify(mailboxClaimBody(mailId)),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (res.status === 403 && (data.error === "game_session_inactive" || data.error === "game_session_required")) {
-    window.MonExGameSession?.handleInactiveFromApi?.();
-    throw new Error(data.error || "game_session_inactive");
+  const promise = (async () => {
+    const res = await fetch(`${mailboxApiBase()}/api/mailbox/claim`, {
+      method: "POST",
+      headers: mailboxAuthHeaders(),
+      body: JSON.stringify(mailboxClaimBody(id)),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 403 && (data.error === "game_session_inactive" || data.error === "game_session_required")) {
+      window.MonExGameSession?.handleInactiveFromApi?.();
+      throw new Error(data.error || "game_session_inactive");
+    }
+    if (!res.ok) throw new Error(data.error || "mailbox claim failed");
+    return data;
+  })();
+  mailboxClaimPromises.set(id, promise);
+  try {
+    return await promise;
+  } finally {
+    mailboxClaimPromises.delete(id);
   }
-  if (!res.ok) throw new Error(data.error || "mailbox claim failed");
-  return data;
 }
 
 function formatCooldownRemaining(nextClaimAt) {
