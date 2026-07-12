@@ -17,7 +17,8 @@ const RARITY_STYLES = {
   Mythic: { border: "#9f1239", badge: "#9f1239", badgeText: "#ffffff" },
 };
 
-const MON_DISPLAY_NAMES = { Moxy: "Monhorse" };
+const MON_DISPLAY_NAMES = { Moxy: "Monhorse", Mondigrade: "Pampam" };
+const MON_SPRITE_FILE_ALIASES = { Pampam: "mondigrade", Mondigrade: "mondigrade" };
 
 function escapeXml(value) {
   return String(value ?? "")
@@ -100,7 +101,9 @@ export function getFirstCaughtMon(results) {
 }
 
 export function getMonSpritePath(name) {
-  return `128x128/${getMonDisplayName(name).toLowerCase()}.png`;
+  const display = getMonDisplayName(name);
+  const fileKey = MON_SPRITE_FILE_ALIASES[display] || MON_SPRITE_FILE_ALIASES[name] || display;
+  return `128x128/${String(fileKey).toLowerCase()}.png`;
 }
 
 export function bytesToBase64(bytes) {

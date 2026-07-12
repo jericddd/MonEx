@@ -137,3 +137,11 @@ test("keeps staging gear seed when armory is unlocked", () => {
   });
   assert.equal(save.gearInventorySeedVersion, 1);
 });
+
+test("renames legacy Mondigrade saves to Pampam", () => {
+  const save = validateAndSanitizeSave({
+    party: [{ name: "Mondigrade", rarity: "Rare", level: 10, max_hp: 100, current_hp: 100 }],
+    box: [],
+  });
+  assert.equal(save.party[0].name, "Pampam");
+});
