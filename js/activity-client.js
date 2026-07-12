@@ -528,7 +528,6 @@ const ACTIVITY_HOUSE_ICONS = {
 };
 
 const ACTIVITY_MON_DISPLAY_NAMES = { Moxy: "Monhorse", Mondigrade: "Pampam" };
-const ACTIVITY_MON_SPRITE_ALIASES = { Pampam: "mondigrade", Mondigrade: "mondigrade" };
 
 function getActivityMonDisplayName(name) {
     return ACTIVITY_MON_DISPLAY_NAMES[name] || name;
@@ -540,8 +539,7 @@ function getActivityRarityClass(rarity) {
 
 function getActivityMonSprite(name) {
     const display = getActivityMonDisplayName(name);
-    const fileKey = ACTIVITY_MON_SPRITE_ALIASES[display] || ACTIVITY_MON_SPRITE_ALIASES[name] || display;
-    return `128x128/${String(fileKey).toLowerCase()}.png`;
+    return `128x128/${String(display).toLowerCase()}.png`;
 }
 
 function getActivityHouseIcon(name) {
