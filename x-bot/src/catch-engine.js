@@ -2,7 +2,7 @@
 
 export const MONANIMAL_NAMES = [
   "Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal",
-  "Monavara", "Moncock", "Mondigrade", "Montiger", "Mosferatu", "Monhorse", "Shramp",
+  "Monavara", "Moncock", "Pampam", "Montiger", "Mosferatu", "Monhorse", "Shramp",
   "Spidermon", "Moyaki",
 ];
 
@@ -74,7 +74,7 @@ const SPECIES_ULTIMATE = {
   Mokadal: { name: "Mind Crush", element: "psychic" },
   Monavara: { name: "Void Pulse", element: "dark" },
   Moncock: { name: "Crimson Spur", element: "fire" },
-  Mondigrade: { name: "Seismic Shell", element: "earth" },
+  Pampam: { name: "Seismic Shell", element: "earth" },
   Montiger: { name: "Apex Roar", element: "physical" },
   Mosferatu: { name: "Blood Moon", element: "dark" },
   Monhorse: { name: "Shock Nova", element: "electric" },

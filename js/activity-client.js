@@ -508,7 +508,7 @@ const ACTIVITY_SPECIES_HOUSE = {
     Spidermon: "chog",
     Molandak: "molandak",
     Lyraffe: "molandak",
-    Mondigrade: "molandak",
+    Pampam: "molandak",
     Montiger: "molandak",
     Mokadal: "molandak",
     Monavara: "molandak",
@@ -527,7 +527,8 @@ const ACTIVITY_HOUSE_ICONS = {
     moyaki: "game_icons/house/moyakiicon.png",
 };
 
-const ACTIVITY_MON_DISPLAY_NAMES = { Moxy: "Monhorse" };
+const ACTIVITY_MON_DISPLAY_NAMES = { Moxy: "Monhorse", Mondigrade: "Pampam" };
+const ACTIVITY_MON_SPRITE_ALIASES = { Pampam: "mondigrade", Mondigrade: "mondigrade" };
 
 function getActivityMonDisplayName(name) {
     return ACTIVITY_MON_DISPLAY_NAMES[name] || name;
@@ -539,7 +540,8 @@ function getActivityRarityClass(rarity) {
 
 function getActivityMonSprite(name) {
     const display = getActivityMonDisplayName(name);
-    return `128x128/${String(display).toLowerCase()}.png`;
+    const fileKey = ACTIVITY_MON_SPRITE_ALIASES[display] || ACTIVITY_MON_SPRITE_ALIASES[name] || display;
+    return `128x128/${String(fileKey).toLowerCase()}.png`;
 }
 
 function getActivityHouseIcon(name) {

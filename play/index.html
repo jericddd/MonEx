@@ -7667,13 +7667,16 @@ function bindHoverFloatTips(root) {
     });
 }
 
-const MONANIMAL_NAMES = ["Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal", "Monavara", "Moncock", "Mondigrade", "Montiger", "Mosferatu", "Monhorse", "Shramp", "Spidermon", "Moyaki"];
+const MONANIMAL_NAMES = ["Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal", "Monavara", "Moncock", "Pampam", "Montiger", "Mosferatu", "Monhorse", "Shramp", "Spidermon", "Moyaki"];
 const REMOVED_MONANIMAL_NAMES = new Set(["Mopo"]);
-const MONANIMAL_RENAME_MAP = { Moxy: "Monhorse" };
+const MONANIMAL_RENAME_MAP = { Moxy: "Monhorse", Mondigrade: "Pampam" };
+/** Sprite files not yet renamed on CDN — canonical key → asset filename (no extension). */
+const MON_SPRITE_KEY_ALIASES = { pampam: "mondigrade" };
 
 function getSpeciesSpriteKey(name) {
     const display = MONANIMAL_RENAME_MAP[name] || name;
-    return String(display || "").toLowerCase();
+    const key = String(display || "").toLowerCase();
+    return MON_SPRITE_KEY_ALIASES[key] || key;
 }
 // Fixed house per species — every monanimal belongs to exactly one house.
 const SPECIES_HOUSE = {
@@ -7684,7 +7687,7 @@ const SPECIES_HOUSE = {
     Spidermon: "chog",
     Molandak: "molandak",
     Lyraffe: "molandak",
-    Mondigrade: "molandak",
+    Pampam: "molandak",
     Montiger: "molandak",
     Mokadal: "molandak",
     Monavara: "molandak",
@@ -7712,7 +7715,7 @@ const SPRITE_MAP = {
     "Molandak": "128x128/molandak.png", "Chog": "128x128/chog.png", "Mouch": "128x128/mouch.png",
     "Salmonad": "128x128/salmonad.png", "Anago": "128x128/anago.png", "Larvanad": "128x128/larvanad.png",
     "Lyraffe": "128x128/lyraffe.png", "Mokadal": "128x128/mokadal.png", "Monavara": "128x128/monavara.png",
-    "Moncock": "128x128/moncock.png", "Mondigrade": "128x128/mondigrade.png", "Montiger": "128x128/montiger.png",
+    "Moncock": "128x128/moncock.png", "Pampam": "128x128/mondigrade.png", "Montiger": "128x128/montiger.png",
     "Mosferatu": "128x128/mosferatu.png", "Monhorse": "128x128/monhorse.png",
     "Shramp": "128x128/shramp.png", "Spidermon": "128x128/spidermon.png", "Moyaki": "128x128/moyaki.png",
     "Johnw": "128x128/johnw.png"
@@ -7880,7 +7883,7 @@ const SPECIES_ULTIMATE = {
         desc: "Deep pressure. +20% damage vs shielded or high-Block (15+) foes.",
         bonusVsBlock: 0.2, bonusVsBlockMin: 15, bonusVsShield: 0.2,
     },
-    "Mondigrade": {
+    "Pampam": {
         name: "Seismic Shell", element: "earth", power: 2.2,
         desc: "Armored slam. +15% BLOCK for 2 turns and 10% max HP shield.",
         selfBuff: { id: "seismicguard", turns: 2, statMods: { blockPct: 0.15 } },
@@ -7953,7 +7956,7 @@ const SPECIES_STAT_PROFILE = {
     Mokadal:    { specialty: "pierce", bias: { spd: 0.50, crit: 0.65, dodge: 0.45, block: 0.25, hit: 0.55, pierce: 0.92 } },
     Monavara:   { specialty: "crit",   bias: { spd: 0.55, crit: 0.92, dodge: 0.45, block: 0.30, hit: 0.50, pierce: 0.60 } },
     Moncock:    { specialty: "crit",   bias: { spd: 0.60, crit: 0.88, dodge: 0.40, block: 0.30, hit: 0.65, pierce: 0.45 } },
-    Mondigrade: { specialty: "block",  bias: { spd: 0.20, crit: 0.40, dodge: 0.25, block: 0.96, hit: 0.45, pierce: 0.35 } },
+    Pampam: { specialty: "block",  bias: { spd: 0.20, crit: 0.40, dodge: 0.25, block: 0.96, hit: 0.45, pierce: 0.35 } },
     Montiger:   { specialty: "crit",   bias: { spd: 0.65, crit: 0.95, dodge: 0.35, block: 0.25, hit: 0.70, pierce: 0.55 } },
     Mosferatu:  { specialty: "dodge",  bias: { spd: 0.50, crit: 0.55, dodge: 0.92, block: 0.35, hit: 0.45, pierce: 0.40 } },
     Monhorse:       { specialty: "spd",    bias: { spd: 0.90, crit: 0.55, dodge: 0.50, block: 0.25, hit: 0.60, pierce: 0.50 } },
@@ -8397,7 +8400,7 @@ const SCENE_IDLE_SPRITE_SCALE = {
     Mouch: 0.92,
     Moyaki: 0.94,
     Montiger: 0.86,
-    Mondigrade: 0.86,
+    Pampam: 0.86,
     Mosferatu: 0.88,
     Moncock: 0.90,
     Spidermon: 0.90,
@@ -10497,7 +10500,7 @@ const SPRITE_NATURAL_FACING = {
     Mokadal: "left",
     Monavara: "right",
     Moncock: "left",
-    Mondigrade: "right",
+    Pampam: "right",
     Montiger: "right",
     Mosferatu: "right",
     Monhorse: "right",
