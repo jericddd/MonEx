@@ -24,6 +24,7 @@ export const EQUIPMENT_UNLOCK_GLOBAL_PROGRESS = getGlobalAdventureProgress(
   EQUIPMENT_UNLOCK_STAGE,
 );
 
+/** Armory Shop gate only — Party/Box equip UI is not gated by this. */
 export function isEquipmentUnlocked(adventureGlobalBest) {
   const best = Math.max(0, Math.floor(Number(adventureGlobalBest) || 0));
   return best >= EQUIPMENT_UNLOCK_GLOBAL_PROGRESS;
