@@ -20,8 +20,14 @@ export async function appendMonballAudit(kv, entry) {
     delta: Math.floor(Number(entry.delta) || 0),
     balanceAfter: Math.max(0, Math.floor(Number(entry.balanceAfter) || 0)),
     at: entry.at || new Date().toISOString(),
+    ...(entry.balanceBefore != null
+      ? { balanceBefore: Math.max(0, Math.floor(Number(entry.balanceBefore) || 0)) }
+      : {}),
     ...(entry.meta && typeof entry.meta === "object" ? { meta: entry.meta } : {}),
   };
+  if (payload.balanceBefore == null && Number.isFinite(payload.delta) && Number.isFinite(payload.balanceAfter)) {
+    payload.balanceBefore = Math.max(0, payload.balanceAfter - payload.delta);
+  }
 
   console.info("[monball-audit]", JSON.stringify(payload));
 

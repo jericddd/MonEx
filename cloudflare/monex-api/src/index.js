@@ -238,10 +238,12 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
     status.skipped = [];
 
     for (const tweet of tweets) {
+      const lockKey = (tweet.username || tweet.authorId || "unknown").toLowerCase().replace("@", "");
+      await withUserSyncLock(lockKey, async () => {
       const state = await loadState(env.MONEX_KV);
       if (wasProcessed(state, tweet.id)) {
         status.skipped.push({ id: tweet.id, reason: "already_processed" });
-        continue;
+        return;
       }
 
       let result;
@@ -250,19 +252,22 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       } catch (err) {
         status.errors = status.errors || [];
         status.errors.push({ id: tweet.id, error: err.message || String(err) });
-        break;
+        return;
       }
 
       if (result.activity) {
         markProcessed(state, tweet.id);
         await saveState(env.MONEX_KV, state);
 
+        const spend = result.activity.spend || 0;
+        const balanceAfter = result.activity.monballsLeft;
         await appendMonballAudit(env.MONEX_KV, {
           xUserId: tweet.authorId,
           username: tweet.username,
           source: "x_catch_spend",
-          delta: -(result.activity.spend || 0),
-          balanceAfter: result.activity.monballsLeft,
+          delta: -spend,
+          balanceBefore: balanceAfter + spend,
+          balanceAfter,
           meta: { pool: "catch", tweetId: tweet.id },
         });
 
@@ -366,6 +371,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
 
       await saveState(env.MONEX_KV, state);
       status.processed += 1;
+      });
     }
 
     const pollHadErrors = Array.isArray(status.errors) && status.errors.length > 0;

@@ -12,7 +12,7 @@ export const DAILY_LOGIN_REWARD_MONBALLS = 5;
 
 const claimLocks = globalThis.__monexDailyLoginLocks || (globalThis.__monexDailyLoginLocks = new Map());
 
-async function withDailyLoginClaimLock(xUserId, fn) {
+async function withUserMailboxLock(xUserId, fn) {
   const key = String(xUserId || "");
   while (claimLocks.get(key)) await claimLocks.get(key);
   let release;
@@ -40,7 +40,7 @@ export function getDailyLoginStatus(save, now = Date.now()) {
 }
 
 export async function claimDailyLoginReward(kv, session) {
-  return withDailyLoginClaimLock(session.xUserId, async () => {
+  return withUserMailboxLock(session.xUserId, async () => {
     const { save } = await loadCloudSave(kv, session.xUserId);
     const now = Date.now();
     const status = getDailyLoginStatus(save, now);
@@ -96,6 +96,7 @@ export async function claimMailboxItem(kv, session, mailId) {
   const id = String(mailId || "").trim();
   if (!id) return { ok: false, error: "mail_id_required" };
 
+  return withUserMailboxLock(session.xUserId, async () => {
   const { save } = await loadCloudSave(kv, session.xUserId);
   const mailbox = [...(save.mailbox || [])];
   const idx = mailbox.findIndex((m) => m.id === id && !m.claimedAt);
@@ -161,4 +162,5 @@ export async function claimMailboxItem(kv, session, mailId) {
     save: nextSave,
     unclaimed: (nextSave.mailbox || []).filter((m) => !m.claimedAt).length,
   };
+  });
 }

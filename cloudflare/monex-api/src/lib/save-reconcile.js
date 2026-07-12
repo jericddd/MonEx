@@ -188,6 +188,8 @@ export function resolveMergedMonballs(catchUser, save, catchMonballs) {
   if (catchTsValid && saveTsValid) {
     if (catchTs > saveTs) return catchVal;
     if (saveTs > catchTs) return saveVal;
+    // Equal timestamps: prefer catch pool (X wild spends are authoritative).
+    return catchVal;
   }
   return mergeMonballBalances(catchVal, saveVal);
 }
