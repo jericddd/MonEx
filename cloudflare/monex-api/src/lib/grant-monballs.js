@@ -36,7 +36,11 @@ export async function creditCatchMonballs(kv, session, delta, startingMonballs =
 }
 
 export function mergeMonballBalances(catchMonballs, saveMonballs) {
-  return clampMonballs(Math.max(clampMonballs(catchMonballs), clampMonballs(saveMonballs)));
+  const catchVal = clampMonballs(catchMonballs);
+  const saveVal = clampMonballs(saveMonballs);
+  // Depleted catch pool must not resurrect from a stale cloud-save balance.
+  if (catchVal === 0 && saveVal > 0) return 0;
+  return clampMonballs(Math.max(catchVal, saveVal));
 }
 
 export async function alignCatchMonballsToMerged(kv, session, mergedMonballs, startingMonballs = 10) {

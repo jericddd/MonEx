@@ -57,6 +57,21 @@ describe("resolveMergedMonballs", () => {
     const merged = resolveMergedMonballs({}, { monballs: 4 }, 7);
     assert.equal(merged, 7);
   });
+
+  it("does not resurrect spent catch balance when timestamps are missing", () => {
+    const merged = resolveMergedMonballs({}, { monballs: 18 }, 0);
+    assert.equal(merged, 0);
+  });
+
+  it("prefers catch when timestamps are equal (X spend is authoritative)", () => {
+    const ts = new Date(2000).toISOString();
+    const merged = resolveMergedMonballs(
+      { updatedAt: ts },
+      { monballs: 15, updatedAt: ts },
+      0
+    );
+    assert.equal(merged, 0);
+  });
 });
 
 describe("reconcileMonballsForCloudSave", () => {

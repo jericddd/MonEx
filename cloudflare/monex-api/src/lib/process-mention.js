@@ -1,7 +1,8 @@
-import { runCatchSession, formatSkillsShort, MIN_MONBALLS } from "./catch-engine.js";
+import { runCatchSession, formatSkillsShort } from "./catch-engine.js";
 import { parseMention } from "./parse-mention.js";
 import { getUser, addPendingMons } from "./store.js";
 import { makeActivityId } from "./activity-log.js";
+import { trySpendCatchMonballs } from "./catch-spend.js";
 
 function summarizeResults(results) {
   const caught = results.filter((r) => !r.escaped);
@@ -39,18 +40,16 @@ export function processMentionTweet(tweet, botUsername, state, startingMonballs,
   if (parsed.type === "catch") {
     const user = getUser(state, tweet.authorId, tweet.username, startingMonballs);
 
-    if (user.monballs < MIN_MONBALLS || user.monballs < parsed.spend) {
+    const spendResult = trySpendCatchMonballs(user, parsed.spend);
+    if (!spendResult.ok) {
       return {
         parsed,
         activity: null,
         state,
-        skipReason: "insufficient",
-        monballs: user.monballs,
+        skipReason: spendResult.reason || "insufficient",
+        monballs: spendResult.before,
       };
     }
-
-    user.monballs -= parsed.spend;
-    user.updatedAt = new Date().toISOString();
     const { throws, results } = runCatchSession(parsed.spend);
     const { caught, escaped, highlights, mons } = summarizeResults(results);
     const caughtMons = caught.map((r) => r.mon).slice(0, throws);
