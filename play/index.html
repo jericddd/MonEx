@@ -1896,6 +1896,13 @@ button.green:hover {
     cursor: wait;
     pointer-events: none;
 }
+.quest-advance-btn.loading,
+.quest-chest-btn.loading,
+.resource-chest-collect-btn.loading {
+    opacity: 0.7;
+    cursor: wait;
+    pointer-events: none;
+}
 .rail-mail-badge {
     display: none;
     position: absolute;
@@ -7538,6 +7545,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/activity-client.js?v=20260710a"></script>
 <script src="js/auth-client.js?v=20260710a"></script>
 <script src="js/game-session-client.js?v=20260710a"></script>
+<script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/mailbox-client.js?v=20260713a"></script>
 <script>
 // =====================================================
@@ -8973,9 +8981,10 @@ function getWeeklyQuestRefreshLabel() {
 
 function grantQuestReward(grant, grantKey) {
     if (!grant) return false;
-    if (grantKey && questState.grantedKeys?.includes(grantKey)) return false;
+    if (grantKey) {
+        if (!markQuestGrantKey(grantKey)) return false;
+    }
     applyQuestGrantToResources(grant);
-    if (grantKey) markQuestGrantKey(grantKey);
     saveData();
     updateHeaderCurrencies();
     return true;
@@ -9172,32 +9181,38 @@ function playResourceChestCollectFx(preview) {
     setTimeout(() => { layer.innerHTML = ""; }, 950);
 }
 
-function collectResourceChest() {
-    const preview = previewResourceChestRewards();
-    if (!preview.canCollect) return;
+function collectResourceChest(buttonEl) {
+    const run = window.MonExClaimGuard?.runClaimOnce
+        ? (fn, opts) => MonExClaimGuard.runClaimOnce("resource-chest", fn, opts)
+        : async (fn) => fn();
+    return run(async () => {
+        const preview = previewResourceChestRewards();
+        if (!preview.canCollect) return;
 
-    closeGameModal("resource-chest");
+        closeGameModal("resource-chest");
+        resourceChestLastCollectAt = Date.now();
 
-    const grant = {
-        gold: preview.gold,
-        essence: preview.essence,
-        trainerXp: preview.trainerXp,
-    };
-    let gear = null;
-    if (preview.gearChance > 0 && Math.random() < preview.gearChance) {
-        gear = rollResourceChestGear(preview.chapter);
-    }
+        const grant = {
+            gold: preview.gold,
+            essence: preview.essence,
+            trainerXp: preview.trainerXp,
+        };
+        let gear = null;
+        if (preview.gearChance > 0 && Math.random() < preview.gearChance) {
+            gear = rollResourceChestGear(preview.chapter);
+        }
 
-    playResourceChestCollectFx(preview);
-    grantQuestReward(grant);
-    bumpQuestProgress("resource_collect", 1);
-    if (gear) {
-        gearInventory.push(gear);
-        setTimeout(() => alert("Bonus gear found: " + gear.name + "!"), 320);
-    }
+        playResourceChestCollectFx(preview);
+        grantQuestReward(grant);
+        bumpQuestProgress("resource_collect", 1);
+        if (gear) {
+            gearInventory.push(gear);
+            setTimeout(() => alert("Bonus gear found: " + gear.name + "!"), 320);
+        }
 
-    resourceChestLastCollectAt = Date.now();
-    void persistProgress().then(() => updateResourceChestWidget());
+        await persistProgress();
+        updateResourceChestWidget();
+    }, { button: buttonEl });
 }
 
 function renderResourceChestModal() {
@@ -9236,7 +9251,7 @@ function renderResourceChestModal() {
                 <span>${gearNote}</span>
             </div>
         </div>
-        <button type="button" class="resource-chest-collect-btn" onclick="collectResourceChest()" ${preview.canCollect ? "" : "disabled"}>COLLECT</button>
+        <button type="button" class="resource-chest-collect-btn" onclick="collectResourceChest(this)" ${preview.canCollect ? "" : "disabled"}>COLLECT</button>
     `;
 }
 
@@ -9304,45 +9319,65 @@ function switchQuestTab(tab) {
     renderDailyQuest();
 }
 
-function advanceQuestTask(taskId) {
-    ensureQuestResets();
+async function advanceQuestTask(taskId, buttonEl) {
     const tab = questState.tab;
-    const tasks = questState.tasks[tab] || [];
-    const task = tasks.find(t => t.id === taskId);
-    const def = getQuestTaskDef(tab, taskId);
-    if (!task || !def || task.claimed || task.progress < def.goal) return;
-    const grantKey = questGrantKey(tab, taskId);
-    if (questState.grantedKeys?.includes(grantKey)) return;
-    const grant = buildQuestGrantFromDef(def);
-    if (!grant || !grantQuestReward(grant, grantKey)) return;
-    task.claimed = true;
-    const track = tab === "weeklies" ? "weeklies" : "dailies";
-    const nextPoints = getQuestPointsForTrack(track) + def.points;
-    setQuestPointsForTrack(track, nextPoints);
-    saveData();
-    renderDailyQuest();
-    persistQuestClaim();
+    const run = window.MonExClaimGuard?.runClaimOnce
+        ? (fn, opts) => MonExClaimGuard.runClaimOnce(`quest:task:${tab}:${taskId}`, fn, opts)
+        : async (fn) => fn();
+    await run(async () => {
+        ensureQuestResets();
+        const tasks = questState.tasks[tab] || [];
+        const task = tasks.find(t => t.id === taskId);
+        const def = getQuestTaskDef(tab, taskId);
+        if (!task || !def || task.claimed || task.progress < def.goal) return;
+        const grantKey = questGrantKey(tab, taskId);
+        if (questState.grantedKeys?.includes(grantKey)) return;
+        const grant = buildQuestGrantFromDef(def);
+        task.claimed = true;
+        if (!grant || !grantQuestReward(grant, grantKey)) {
+            task.claimed = false;
+            return;
+        }
+        const track = tab === "weeklies" ? "weeklies" : "dailies";
+        const nextPoints = getQuestPointsForTrack(track) + def.points;
+        setQuestPointsForTrack(track, nextPoints);
+        saveData();
+        renderDailyQuest();
+        await persistQuestClaim();
+    }, { button: buttonEl });
 }
 
-function claimQuestChest(milestone) {
+async function claimQuestChest(milestone, buttonEl) {
     const track = getActiveQuestMilestoneTrack();
     if (!track) return;
-    const points = getQuestPointsForTrack(track);
-    const claimed = getQuestClaimedChestsForTrack(track);
-    if (points < milestone || claimed.includes(milestone)) return;
-    const chest = getQuestChestRewardsForTrack(track)[milestone];
-    if (!chest) return;
-    const grantKey = questChestGrantKey(track, milestone);
-    if (questState.grantedKeys?.includes(grantKey)) return;
-    if (!grantQuestReward(chest.grant, grantKey)) return;
-    if (track === "weeklies") {
-        questState.weeklyClaimedChests = [...claimed, milestone];
-    } else {
-        questState.dailyClaimedChests = [...claimed, milestone];
-    }
-    saveData();
-    renderDailyQuest();
-    persistQuestClaim();
+    const run = window.MonExClaimGuard?.runClaimOnce
+        ? (fn, opts) => MonExClaimGuard.runClaimOnce(`quest:chest:${track}:${milestone}`, fn, opts)
+        : async (fn) => fn();
+    await run(async () => {
+        const points = getQuestPointsForTrack(track);
+        const claimed = getQuestClaimedChestsForTrack(track);
+        if (points < milestone || claimed.includes(milestone)) return;
+        const chest = getQuestChestRewardsForTrack(track)[milestone];
+        if (!chest) return;
+        const grantKey = questChestGrantKey(track, milestone);
+        if (questState.grantedKeys?.includes(grantKey)) return;
+        if (track === "weeklies") {
+            questState.weeklyClaimedChests = [...claimed, milestone];
+        } else {
+            questState.dailyClaimedChests = [...claimed, milestone];
+        }
+        if (!grantQuestReward(chest.grant, grantKey)) {
+            if (track === "weeklies") {
+                questState.weeklyClaimedChests = claimed;
+            } else {
+                questState.dailyClaimedChests = claimed;
+            }
+            return;
+        }
+        saveData();
+        renderDailyQuest();
+        await persistQuestClaim();
+    }, { button: buttonEl });
 }
 
 function renderQuestTaskCard(task, tab) {
@@ -9355,7 +9390,7 @@ function renderQuestTaskCard(task, tab) {
     const rewardIcon = GAME_ICONS[rewardIconKey]?.src || GAME_ICONS.gold.src;
     const action = done
         ? `<span class="quest-completed-label">Completed</span>`
-        : `<button type="button" class="quest-advance-btn" onclick="advanceQuestTask('${task.id}')" ${canAdvance ? "" : "disabled"}>Claim</button>`;
+        : `<button type="button" class="quest-advance-btn" onclick="advanceQuestTask('${task.id}', this)" ${canAdvance ? "" : "disabled"}>Claim</button>`;
     return `
         <div class="quest-task-card${done ? " is-done" : ""}">
             <div class="quest-task-reward">
@@ -9401,7 +9436,7 @@ function renderDailyQuest() {
             <div class="quest-chest has-hover-tip" data-ms="${ms}">
                 <button type="button" class="quest-chest-btn${claimed ? " claimed" : ""}"
                     aria-label="${getQuestChestRewardsForTrack(milestoneTrack)[ms]?.label || "Milestone reward"}"
-                    onclick="claimQuestChest(${ms})"
+                    onclick="claimQuestChest(${ms}, this)"
                     ${canClaim ? "" : "disabled"}>🎁</button>
                 ${renderQuestChestHoverTip(ms, milestoneTrack)}
                 <span class="quest-chest-ms">${ms}</span>
@@ -15947,56 +15982,67 @@ const mailboxClaimInFlight = new Set();
 
 async function claimMailboxReward(mailId, buttonEl) {
     if (!mailId) return;
-    if (mailboxClaimInFlight.has(mailId)) return;
     if (!isGameSessionPlayable()) return;
     if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
         alert("Login required to claim mail.");
         return;
     }
-    const claimBtn = buttonEl && buttonEl.classList?.contains("mailbox-claim-btn") ? buttonEl : null;
-    if (claimBtn) {
-        claimBtn.disabled = true;
-        claimBtn.classList.add("loading");
-        claimBtn.textContent = "...";
-    }
-    mailboxClaimInFlight.add(mailId);
+    const run = window.MonExClaimGuard?.runClaimOnce
+        ? (fn, opts) => MonExClaimGuard.runClaimOnce(`mailbox:${mailId}`, fn, opts)
+        : async (fn, opts) => {
+            if (mailboxClaimInFlight.has(mailId)) return;
+            mailboxClaimInFlight.add(mailId);
+            const claimBtn = opts?.button;
+            if (claimBtn) {
+                claimBtn.disabled = true;
+                claimBtn.classList.add("loading");
+                claimBtn.textContent = "...";
+            }
+            try {
+                return await fn();
+            } catch (e) {
+                if (claimBtn) {
+                    claimBtn.disabled = false;
+                    claimBtn.classList.remove("loading");
+                    claimBtn.textContent = "CLAIM";
+                }
+                throw e;
+            } finally {
+                mailboxClaimInFlight.delete(mailId);
+            }
+        };
     const mailBefore = (mailbox || []).find((m) => m.id === mailId);
     try {
-        const result = await MonExMailbox.claimMailboxMail(mailId);
-        if (result.save) {
-            applyLoadedSave(result.save);
-            writeLocalSave(result.save);
-        } else {
-            const item = (mailbox || []).find((m) => m.id === mailId);
-            if (item) {
-                item.claimedAt = new Date().toISOString();
-                if (item.type === "monballs") monballs += item.amount || 1;
-                else if (item.type === "resources" && item.grant) applyQuestGrantToResources(item.grant);
+        await run(async () => {
+            const result = await MonExMailbox.claimMailboxMail(mailId);
+            if (result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(result.save);
+            } else {
+                const item = (mailbox || []).find((m) => m.id === mailId);
+                if (item) {
+                    item.claimedAt = new Date().toISOString();
+                    if (item.type === "monballs") monballs += item.amount || 1;
+                    else if (item.type === "resources" && item.grant) applyQuestGrantToResources(item.grant);
+                }
+                saveData();
             }
-            saveData();
-        }
-        const claimedMail = mailBefore || (mailbox || []).find((m) => m.id === mailId);
-        if (claimedMail?.title === "Daily Login Reward") {
-            bumpQuestProgress("daily_login", 1);
-        }
-        renderMailbox();
-        updateHeaderCurrencies();
-        updateUI();
-        await refreshMonballsFromServer();
-        if (result.save && typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
-            try {
-                await flushSaveToCloud();
-            } catch (_) {}
-        }
+            const claimedMail = mailBefore || (mailbox || []).find((m) => m.id === mailId);
+            if (claimedMail?.title === "Daily Login Reward") {
+                bumpQuestProgress("daily_login", 1);
+            }
+            renderMailbox();
+            updateHeaderCurrencies();
+            updateUI();
+            await refreshMonballsFromServer();
+            if (result.save && typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+                try {
+                    await flushSaveToCloud();
+                } catch (_) {}
+            }
+        }, { button: buttonEl && buttonEl.classList?.contains("mailbox-claim-btn") ? buttonEl : null });
     } catch (e) {
-        if (claimBtn) {
-            claimBtn.disabled = false;
-            claimBtn.classList.remove("loading");
-            claimBtn.textContent = "CLAIM";
-        }
         alert(e.message || "Could not claim mail.");
-    } finally {
-        mailboxClaimInFlight.delete(mailId);
     }
 }
 

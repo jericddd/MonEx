@@ -417,8 +417,12 @@ async function verifyAndApplyStatus() {
   return status;
 }
 
+let claimSessionPromise = null;
+
 async function claimActiveSession() {
   if (!MonExAuth?.isLoggedIn?.()) return { ok: false, error: "not_logged_in" };
+  if (claimSessionPromise) return claimSessionPromise;
+  claimSessionPromise = (async () => {
   initCrossTabListeners();
   await ensureUniqueGameSessionId();
   const res = await fetch(`${getApiBase()}/api/game-session/claim`, {
@@ -444,6 +448,10 @@ async function claimActiveSession() {
     markSuperseded("claim_verify");
   }
   return verified || data;
+  })().finally(() => {
+    claimSessionPromise = null;
+  });
+  return claimSessionPromise;
 }
 
 async function fetchSessionStatus() {

@@ -6,11 +6,14 @@ import { mailboxHasCapacity } from "./save-validate.js";
 import {
   isDailyLoginReady,
   getDailyLoginNextClaimAt,
+  getDailyDayKey,
+  getDailyLoginDayKeyFromTimestamp,
 } from "./daily-reset.js";
 
 export const DAILY_LOGIN_REWARD_MONBALLS = 5;
 
 const MAIL_CLAIM_RECEIPT_PREFIX = "monex:mailbox-claim:";
+const DAILY_LOGIN_RECEIPT_PREFIX = "monex:daily-login-claim:";
 const MAX_CLAIM_RETRIES = 4;
 
 const claimLocks = globalThis.__monexDailyLoginLocks || (globalThis.__monexDailyLoginLocks = new Map());
@@ -114,57 +117,113 @@ export function getDailyLoginStatus(save, now = Date.now()) {
   return { ready, nextClaimAt, unclaimed };
 }
 
+function dailyLoginReceiptKey(xUserId, dayKey) {
+  return `${DAILY_LOGIN_RECEIPT_PREFIX}${String(xUserId || "")}:${String(dayKey || "")}`;
+}
+
+function findDailyLoginMailForDay(mailbox, dayKey) {
+  return (mailbox || []).find(
+    (m) =>
+      m?.title === "Daily Login Reward"
+      && getDailyLoginDayKeyFromTimestamp(m.createdAt) === dayKey
+  ) || null;
+}
+
+function buildDailyLoginAlreadyClaimed(save, dayKey, now = Date.now()) {
+  const mail = findDailyLoginMailForDay(save.mailbox, dayKey);
+  return {
+    ok: true,
+    alreadyClaimed: true,
+    delivery: "mailbox",
+    item: mail || null,
+    nextClaimAt: getDailyLoginNextClaimAt(now),
+    unclaimed: (save.mailbox || []).filter((m) => !m.claimedAt).length,
+  };
+}
+
 export async function claimDailyLoginReward(kv, session) {
   return withUserMailboxLock(session.xUserId, async () => {
-    const { save } = await loadCloudSave(kv, session.xUserId);
     const now = Date.now();
-    const status = getDailyLoginStatus(save, now);
-    if (!status.ready) {
-      return { ok: false, error: "cooldown", nextClaimAt: status.nextClaimAt };
-    }
-    if (!mailboxHasCapacity(save.mailbox)) {
-      return { ok: false, error: "mailbox_full" };
-    }
-
-    const monballsBefore = save.monballs ?? 0;
-    const item = {
-      id: makeMailId(),
-      type: "monballs",
-      amount: DAILY_LOGIN_REWARD_MONBALLS,
-      title: "Daily Login Reward",
-      body: `${DAILY_LOGIN_REWARD_MONBALLS} Monballs — open Mailbox in game to claim.`,
-      createdAt: new Date(now).toISOString(),
-    };
-
-    const nextSave = buildSavePayload(
-      {
-        ...save,
-        monballs: monballsBefore,
-        mailbox: [item, ...(save.mailbox || [])],
-        dailyLoginLastClaimAt: new Date(now).toISOString(),
-        updatedAt: new Date(now).toISOString(),
-      },
-      session,
-      { now }
-    );
-
-    const delivered = (nextSave.mailbox || []).some(
-      (mail) => mail.id === item.id && !mail.claimedAt && mail.type === "monballs"
-    );
-    if (!delivered || nextSave.monballs !== monballsBefore) {
-      return { ok: false, error: "mailbox_delivery_failed" };
+    const dayKey = getDailyDayKey(new Date(now));
+    const receiptRaw = await kv.get(dailyLoginReceiptKey(session.xUserId, dayKey));
+    if (receiptRaw) {
+      const { save } = await loadCloudSave(kv, session.xUserId);
+      return buildDailyLoginAlreadyClaimed(save, dayKey, now);
     }
 
-    await writeCloudSave(kv, session.xUserId, nextSave, { skipStaleCheck: true });
-
-    return {
-      ok: true,
-      delivery: "mailbox",
-      item,
-      nextClaimAt: getDailyLoginNextClaimAt(now),
-      unclaimed: (nextSave.mailbox || []).filter((m) => !m.claimedAt).length,
-    };
+    return persistDailyLoginClaim(kv, session, dayKey, now);
   });
+}
+
+async function persistDailyLoginClaim(kv, session, dayKey, now, attempt = 0) {
+  const { save } = await loadCloudSave(kv, session.xUserId);
+  const expectedRevision = Number.isFinite(Number(save.revision)) ? Number(save.revision) : 0;
+  const status = getDailyLoginStatus(save, now);
+
+  if (!status.ready) {
+    const existing = findDailyLoginMailForDay(save.mailbox, dayKey);
+    if (existing) return buildDailyLoginAlreadyClaimed(save, dayKey, now);
+    return { ok: false, error: "cooldown", nextClaimAt: status.nextClaimAt };
+  }
+  if (!mailboxHasCapacity(save.mailbox)) {
+    return { ok: false, error: "mailbox_full" };
+  }
+
+  const monballsBefore = save.monballs ?? 0;
+  const item = {
+    id: makeMailId(),
+    type: "monballs",
+    amount: DAILY_LOGIN_REWARD_MONBALLS,
+    title: "Daily Login Reward",
+    body: `${DAILY_LOGIN_REWARD_MONBALLS} Monballs — open Mailbox in game to claim.`,
+    createdAt: new Date(now).toISOString(),
+  };
+
+  const nextSave = buildSavePayload(
+    {
+      ...save,
+      monballs: monballsBefore,
+      mailbox: [item, ...(save.mailbox || [])],
+      dailyLoginLastClaimAt: new Date(now).toISOString(),
+      updatedAt: new Date(now).toISOString(),
+    },
+    session,
+    { now }
+  );
+
+  const delivered = (nextSave.mailbox || []).some(
+    (mail) => mail.id === item.id && !mail.claimedAt && mail.type === "monballs"
+  );
+  if (!delivered || nextSave.monballs !== monballsBefore) {
+    return { ok: false, error: "mailbox_delivery_failed" };
+  }
+
+  try {
+    await writeCloudSave(kv, session.xUserId, nextSave, { expectedRevision });
+  } catch (err) {
+    if (err?.code === "revision_conflict" && attempt < MAX_CLAIM_RETRIES) {
+      return persistDailyLoginClaim(kv, session, dayKey, now, attempt + 1);
+    }
+    if (err?.code === "revision_conflict") {
+      const { save: latest } = await loadCloudSave(kv, session.xUserId);
+      const existing = findDailyLoginMailForDay(latest.mailbox, dayKey);
+      if (existing || !isDailyLoginReady(latest, now)) {
+        return buildDailyLoginAlreadyClaimed(latest, dayKey, now);
+      }
+      return { ok: false, error: "claim_conflict" };
+    }
+    throw err;
+  }
+
+  await kv.put(dailyLoginReceiptKey(session.xUserId, dayKey), item.createdAt);
+
+  return {
+    ok: true,
+    delivery: "mailbox",
+    item,
+    nextClaimAt: getDailyLoginNextClaimAt(now),
+    unclaimed: (nextSave.mailbox || []).filter((m) => !m.claimedAt).length,
+  };
 }
 
 async function persistMailboxClaim(kv, session, mailId, attempt = 0) {

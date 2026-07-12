@@ -1,6 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { claimMailboxItem, DAILY_LOGIN_REWARD_MONBALLS } from "./mailbox.js";
+import {
+  claimDailyLoginReward,
+  claimMailboxItem,
+  DAILY_LOGIN_REWARD_MONBALLS,
+} from "./mailbox.js";
 
 function makeMemoryKv(initial = {}) {
   const data = new Map(Object.entries(initial));
@@ -34,6 +38,56 @@ function baseSave(mailbox, extra = {}) {
     ...extra,
   };
 }
+
+describe("daily login claim idempotency", () => {
+  it("returns alreadyClaimed on duplicate daily login spam", async () => {
+    const kv = makeMemoryKv({
+      "monex:save:user_1": JSON.stringify({
+        party: [],
+        box: [],
+        monballs: 10,
+        mailbox: [],
+        updatedAt: new Date(0).toISOString(),
+        revision: 1,
+      }),
+    });
+
+    const first = await claimDailyLoginReward(kv, session);
+    assert.equal(first.ok, true);
+    assert.equal(first.alreadyClaimed, undefined);
+
+    const second = await claimDailyLoginReward(kv, session);
+    assert.equal(second.ok, true);
+    assert.equal(second.alreadyClaimed, true);
+
+    const saved = JSON.parse(kv.dump("monex:save:user_1"));
+    assert.equal(saved.mailbox.length, 1);
+    assert.equal(saved.monballs, 10);
+  });
+
+  it("serializes concurrent daily login claims into one mailbox mail", async () => {
+    const kv = makeMemoryKv({
+      "monex:save:user_1": JSON.stringify({
+        party: [],
+        box: [],
+        monballs: 10,
+        mailbox: [],
+        updatedAt: new Date(0).toISOString(),
+        revision: 2,
+      }),
+    });
+
+    const results = await Promise.all(
+      Array.from({ length: 6 }, () => claimDailyLoginReward(kv, session))
+    );
+    const successes = results.filter((r) => r.ok && !r.alreadyClaimed);
+    const duplicates = results.filter((r) => r.ok && r.alreadyClaimed);
+    assert.equal(successes.length, 1);
+    assert.equal(duplicates.length, 5);
+    const saved = JSON.parse(kv.dump("monex:save:user_1"));
+    assert.equal(saved.mailbox.length, 1);
+  });
+});
 
 describe("mailbox claim idempotency", () => {
   it("returns alreadyClaimed without granting rewards on duplicate claim", async () => {
