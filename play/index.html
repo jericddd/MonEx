@@ -11414,7 +11414,6 @@ function ensureHouseGearInventorySeed() {
 }
 
 function renderGearRow(location, index, mon) {
-    if (!isEquipmentUnlocked()) return "";
     return `<div class="gear-row">${GEAR_SLOTS.map(slot => {
         const g = mon.equipment && mon.equipment[slot];
         const filled = g ? " filled" : " empty";
@@ -11812,15 +11811,20 @@ function getEquipmentUnlockMessage(feature = "Armory") {
     return `${feature} unlocks at ${label}. Keep progressing!`;
 }
 
-function isEquipmentUnlocked() {
+function isArmoryShopUnlocked() {
     if (isStagingTestUser()) return true;
     return window.MonExEquipmentUnlock?.isEquipmentUnlocked?.(adventureGlobalBest) === true;
+}
+
+/** @deprecated Use isArmoryShopUnlocked — only gates Armory Shop, not Party/Box equipment. */
+function isEquipmentUnlocked() {
+    return isArmoryShopUnlocked();
 }
 
 function updateArmoryRailVisibility() {
     const btn = document.getElementById("rail-armory");
     if (!btn) return;
-    const unlocked = isEquipmentUnlocked();
+    const unlocked = isArmoryShopUnlocked();
     btn.hidden = !unlocked;
     btn.setAttribute("aria-hidden", unlocked ? "false" : "true");
 }
@@ -12469,10 +12473,6 @@ function renderEquipOptionHtml(gear, mon, action, actionClass, options = {}) {
 }
 
 function openEquipModal(location, monIndex, slot) {
-    if (!isEquipmentUnlocked()) {
-        alert(getEquipmentUnlockMessage("Equipment"));
-        return;
-    }
     const mon = getMonList(location)[monIndex];
     const equipped = mon.equipment[slot];
     const monHouse = getSpeciesHouseId(mon.name);
@@ -12685,7 +12685,7 @@ async function runArmoryForgeAction(workFn) {
 
 function executeGearSynth() {
     if (armoryForgeBusy) return;
-    if (!isEquipmentUnlocked()) {
+    if (!isArmoryShopUnlocked()) {
         showArmoryForgeMessage(false, getEquipmentUnlockMessage("Gear synthesis"));
         return;
     }
@@ -13300,7 +13300,7 @@ function renderArmoryPane() {
 }
 
 function openArmoryModal(tab) {
-    if (!isEquipmentUnlocked()) {
+    if (!isArmoryShopUnlocked()) {
         alert(getEquipmentUnlockMessage("Armory"));
         return;
     }
@@ -13338,7 +13338,7 @@ function refreshEquippedGearStats() {
 
 function executeGearEnhance() {
     if (armoryForgeBusy) return;
-    if (!isEquipmentUnlocked()) {
+    if (!isArmoryShopUnlocked()) {
         showArmoryForgeMessage(false, getEquipmentUnlockMessage("Gear enhancement"));
         return;
     }

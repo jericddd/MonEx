@@ -25,6 +25,10 @@
 
   const UNLOCK_GLOBAL_PROGRESS = getGlobalAdventureProgress(UNLOCK_CHAPTER, UNLOCK_STAGE);
 
+  /**
+   * Armory Shop unlock only (synthesize / enhance / ascension).
+   * Party and Box equip UI is always available regardless of this gate.
+   */
   function isEquipmentUnlocked(adventureGlobalBest) {
     const best = Math.max(0, Math.floor(Number(adventureGlobalBest) || 0));
     return best >= UNLOCK_GLOBAL_PROGRESS;
