@@ -18,7 +18,6 @@ const RARITY_STYLES = {
 };
 
 const MON_DISPLAY_NAMES = { Moxy: "Monhorse", Mondigrade: "Pampam" };
-const MON_SPRITE_FILE_ALIASES = { Pampam: "mondigrade", Mondigrade: "mondigrade" };
 
 function escapeXml(value) {
   return String(value ?? "")
@@ -102,8 +101,7 @@ export function getFirstCaughtMon(results) {
 
 export function getMonSpritePath(name) {
   const display = getMonDisplayName(name);
-  const fileKey = MON_SPRITE_FILE_ALIASES[display] || MON_SPRITE_FILE_ALIASES[name] || display;
-  return `128x128/${String(fileKey).toLowerCase()}.png`;
+  return `128x128/${String(display).toLowerCase()}.png`;
 }
 
 export function bytesToBase64(bytes) {

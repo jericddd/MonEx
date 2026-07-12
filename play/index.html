@@ -7670,13 +7670,10 @@ function bindHoverFloatTips(root) {
 const MONANIMAL_NAMES = ["Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal", "Monavara", "Moncock", "Pampam", "Montiger", "Mosferatu", "Monhorse", "Shramp", "Spidermon", "Moyaki"];
 const REMOVED_MONANIMAL_NAMES = new Set(["Mopo"]);
 const MONANIMAL_RENAME_MAP = { Moxy: "Monhorse", Mondigrade: "Pampam" };
-/** Sprite files not yet renamed on CDN — canonical key → asset filename (no extension). */
-const MON_SPRITE_KEY_ALIASES = { pampam: "mondigrade" };
 
 function getSpeciesSpriteKey(name) {
     const display = MONANIMAL_RENAME_MAP[name] || name;
-    const key = String(display || "").toLowerCase();
-    return MON_SPRITE_KEY_ALIASES[key] || key;
+    return String(display || "").toLowerCase();
 }
 // Fixed house per species — every monanimal belongs to exactly one house.
 const SPECIES_HOUSE = {
@@ -7715,7 +7712,7 @@ const SPRITE_MAP = {
     "Molandak": "128x128/molandak.png", "Chog": "128x128/chog.png", "Mouch": "128x128/mouch.png",
     "Salmonad": "128x128/salmonad.png", "Anago": "128x128/anago.png", "Larvanad": "128x128/larvanad.png",
     "Lyraffe": "128x128/lyraffe.png", "Mokadal": "128x128/mokadal.png", "Monavara": "128x128/monavara.png",
-    "Moncock": "128x128/moncock.png", "Pampam": "128x128/mondigrade.png", "Montiger": "128x128/montiger.png",
+    "Moncock": "128x128/moncock.png", "Pampam": "128x128/pampam.png", "Montiger": "128x128/montiger.png",
     "Mosferatu": "128x128/mosferatu.png", "Monhorse": "128x128/monhorse.png",
     "Shramp": "128x128/shramp.png", "Spidermon": "128x128/spidermon.png", "Moyaki": "128x128/moyaki.png",
     "Johnw": "128x128/johnw.png"
@@ -9610,7 +9607,7 @@ function getMonIdleGifPath(name) {
 // for main-scene AFK only — mon cards stay Legendary+ idle / Rare− PNG.
 const MONS_WITH_IDLE_GIF = new Set(["anago", "mouch", "moyaki", "moncock", "salmonad"]);
 // Main-scene AFK idle battles always animate; mon cards still follow rarity rule.
-const MONS_WITH_SCENE_IDLE_GIF = new Set(["larvanad", "monhorse"]);
+const MONS_WITH_SCENE_IDLE_GIF = new Set(["larvanad", "monhorse", "pampam"]);
 const MON_LEGENDARY_GIF_OVERRIDES = {
     moyaki: "128x128/main-moyaki.gif",
     salmonad: "128x128/slamonad-idle.gif",
@@ -9684,6 +9681,7 @@ const SALMONAD_SWING_SPRITES = [
     "128x128/salmonad-swing2.gif"
 ];
 const LARVANAD_SWING_SPRITE = "128x128/larvanad-swing1.gif";
+const PAMPAM_SWING_SPRITE = "128x128/pampam-swing1.gif";
 const CHOG_SWING_SPRITES = [
     CHOG_SWING1_PATH,
     CHOG_SWING2_PATH
@@ -9711,6 +9709,10 @@ function isSalmonad(name) {
 
 function isLarvanad(name) {
     return String(name || "").toLowerCase() === "larvanad";
+}
+
+function isPampam(name) {
+    return String(name || "").toLowerCase() === "pampam";
 }
 
 function pickAnagoSwingSprite() {
@@ -9844,6 +9846,7 @@ function getAttackSpritePath(name) {
     if (isMoncock(name)) return pickMoncockSwingSprite();
     if (isSalmonad(name)) return pickSalmonadSwingSprite();
     if (isLarvanad(name)) return LARVANAD_SWING_SPRITE;
+    if (isPampam(name)) return PAMPAM_SWING_SPRITE;
     if (isChog(name)) return pickChogSwingSprite();
     return ATTACK_SPRITE_MAP[name] || null;
 }
@@ -9868,6 +9871,8 @@ function getSceneIdleDisplaySprite(mon) {
 const GIF_NATURAL_LOOP_PATHS = new Set([
     "128x128/larvanad-idle.gif",
     "128x128/larvanad-swing1.gif",
+    "128x128/pampam-idle.gif",
+    "128x128/pampam-swing1.gif",
     "128x128/monhorse-idle.gif",
 ]);
 const gifLoopMsCache = new Map();
