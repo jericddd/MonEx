@@ -1,6 +1,25 @@
 import { validateAndSanitizeSave } from "./save-validate.js";
 
 const SAVE_PREFIX = "monex:save:";
+const saveWriteLocks = globalThis.__monexSaveWriteLocks || (globalThis.__monexSaveWriteLocks = new Map());
+
+async function acquireKeyedLock(lockMap, key) {
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  while (true) {
+    if (!lockMap.has(key)) {
+      lockMap.set(key, gate);
+      break;
+    }
+    await lockMap.get(key);
+  }
+  return () => {
+    if (lockMap.get(key) === gate) lockMap.delete(key);
+    release();
+  };
+}
 
 export const DEFAULT_SAVE = validateAndSanitizeSave({});
 
@@ -54,6 +73,16 @@ export function preserveServerAuthoritativeFields(payload, existingSave) {
  *   stale check (options.skipStaleCheck bypasses it for server-internal writes).
  */
 export async function writeCloudSave(kv, xUserId, payload, options = {}) {
+  const useRevisionLock = options.expectedRevision != null;
+  const release = useRevisionLock ? await acquireKeyedLock(saveWriteLocks, String(xUserId || "")) : null;
+  try {
+    return await writeCloudSaveUnlocked(kv, xUserId, payload, options);
+  } finally {
+    if (release) release();
+  }
+}
+
+async function writeCloudSaveUnlocked(kv, xUserId, payload, options = {}) {
   const raw = await kv.get(saveKey(xUserId));
   let existing = null;
   if (raw) {

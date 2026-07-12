@@ -10,26 +10,101 @@ import {
 
 export const DAILY_LOGIN_REWARD_MONBALLS = 5;
 
-const claimLocks = globalThis.__monexDailyLoginLocks || (globalThis.__monexDailyLoginLocks = new Map());
+const MAIL_CLAIM_RECEIPT_PREFIX = "monex:mailbox-claim:";
+const MAX_CLAIM_RETRIES = 4;
 
-async function withUserMailboxLock(xUserId, fn) {
-  const key = String(xUserId || "");
-  while (claimLocks.get(key)) await claimLocks.get(key);
+const claimLocks = globalThis.__monexDailyLoginLocks || (globalThis.__monexDailyLoginLocks = new Map());
+const mailClaimLocks = globalThis.__monexMailClaimLocks || (globalThis.__monexMailClaimLocks = new Map());
+
+async function acquireKeyedLock(lockMap, key) {
   let release;
   const gate = new Promise((resolve) => {
     release = resolve;
   });
-  claimLocks.set(key, gate);
+  while (true) {
+    if (!lockMap.has(key)) {
+      lockMap.set(key, gate);
+      break;
+    }
+    await lockMap.get(key);
+  }
+  return () => {
+    if (lockMap.get(key) === gate) lockMap.delete(key);
+    release();
+  };
+}
+
+async function withUserMailboxLock(xUserId, fn) {
+  const key = String(xUserId || "");
+  const release = await acquireKeyedLock(claimLocks, key);
   try {
     return await fn();
   } finally {
-    claimLocks.delete(key);
     release();
   }
 }
 
+async function withMailClaimLock(xUserId, mailId, fn) {
+  const key = `${String(xUserId || "")}:${String(mailId || "")}`;
+  const release = await acquireKeyedLock(mailClaimLocks, key);
+  try {
+    return await fn();
+  } finally {
+    release();
+  }
+}
+
+function mailClaimReceiptKey(xUserId, mailId) {
+  return `${MAIL_CLAIM_RECEIPT_PREFIX}${String(xUserId || "")}:${String(mailId || "")}`;
+}
+
 function makeMailId() {
   return `mail_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function findMailboxItem(mailbox, mailId) {
+  return (mailbox || []).find((m) => m?.id === mailId) || null;
+}
+
+function computeMailboxRewardDeltas(save, item) {
+  const monballsBefore = save.monballs || 0;
+  let monballs = monballsBefore;
+  let money = save.money || 0;
+  let essence = save.essence || 0;
+  let monShards = save.monShards || 0;
+  let trainerXp = save.trainerXp || 0;
+
+  if (item.type === "monballs") {
+    monballs += item.amount || 1;
+  } else if (item.type === "resources" && item.grant && typeof item.grant === "object") {
+    if (item.grant.gold) money += item.grant.gold;
+    if (item.grant.essence) essence += item.grant.essence;
+    if (item.grant.monballs) monballs += item.grant.monballs;
+    if (item.grant.monShards) monShards += item.grant.monShards;
+    if (item.grant.trainerXp) trainerXp += item.grant.trainerXp;
+  } else {
+    return { ok: false, error: "unsupported_reward" };
+  }
+
+  return {
+    ok: true,
+    monballs,
+    money,
+    essence,
+    monShards,
+    trainerXp,
+    monballsDelta: monballs - monballsBefore,
+  };
+}
+
+function buildAlreadyClaimedResult(save, item) {
+  return {
+    ok: true,
+    alreadyClaimed: true,
+    item,
+    save,
+    unclaimed: (save.mailbox || []).filter((m) => !m.claimedAt).length,
+  };
 }
 
 export function getDailyLoginStatus(save, now = Date.now()) {
@@ -92,49 +167,35 @@ export async function claimDailyLoginReward(kv, session) {
   });
 }
 
-export async function claimMailboxItem(kv, session, mailId) {
+async function persistMailboxClaim(kv, session, mailId, attempt = 0) {
   const id = String(mailId || "").trim();
-  if (!id) return { ok: false, error: "mail_id_required" };
-
-  return withUserMailboxLock(session.xUserId, async () => {
   const { save } = await loadCloudSave(kv, session.xUserId);
+  const expectedRevision = Number.isFinite(Number(save.revision)) ? Number(save.revision) : 0;
   const mailbox = [...(save.mailbox || [])];
+  const existing = findMailboxItem(mailbox, id);
+
+  if (!existing) {
+    return { ok: false, error: "not_found" };
+  }
+  if (existing.claimedAt) {
+    return buildAlreadyClaimedResult(save, existing);
+  }
+
+  const receiptRaw = await kv.get(mailClaimReceiptKey(session.xUserId, id));
+  if (receiptRaw) {
+    const claimedItem = { ...existing, claimedAt: existing.claimedAt || receiptRaw };
+    return buildAlreadyClaimedResult(save, claimedItem);
+  }
+
   const idx = mailbox.findIndex((m) => m.id === id && !m.claimedAt);
-  if (idx < 0) return { ok: false, error: "not_found" };
+  if (idx < 0) {
+    return buildAlreadyClaimedResult(save, existing);
+  }
 
   const item = { ...mailbox[idx] };
   const now = Date.now();
-  const monballsBefore = save.monballs || 0;
-  let monballs = monballsBefore;
-  let money = save.money || 0;
-  let essence = save.essence || 0;
-  let monShards = save.monShards || 0;
-  let trainerXp = save.trainerXp || 0;
-
-  if (item.type === "monballs") {
-    monballs += item.amount || 1;
-  } else if (item.type === "resources" && item.grant && typeof item.grant === "object") {
-    if (item.grant.gold) money += item.grant.gold;
-    if (item.grant.essence) essence += item.grant.essence;
-    if (item.grant.monballs) monballs += item.grant.monballs;
-    if (item.grant.monShards) monShards += item.grant.monShards;
-    if (item.grant.trainerXp) trainerXp += item.grant.trainerXp;
-  } else {
-    return { ok: false, error: "unsupported_reward" };
-  }
-
-  const monballsDelta = monballs - monballsBefore;
-  if (monballsDelta > 0) {
-    await creditCatchMonballs(kv, session, monballsDelta, 10, "mailbox_claim");
-    await appendMonballAudit(kv, {
-      xUserId: session.xUserId,
-      username: session.username,
-      source: "mailbox_claim",
-      delta: monballsDelta,
-      balanceAfter: monballs,
-      meta: { mailId: id, mailType: item.type, pool: "cloud_save" },
-    });
-  }
+  const reward = computeMailboxRewardDeltas(save, item);
+  if (!reward.ok) return reward;
 
   item.claimedAt = new Date(now).toISOString();
   mailbox[idx] = item;
@@ -142,11 +203,11 @@ export async function claimMailboxItem(kv, session, mailId) {
   const nextSave = buildSavePayload(
     {
       ...save,
-      monballs,
-      money,
-      essence,
-      monShards,
-      trainerXp,
+      monballs: reward.monballs,
+      money: reward.money,
+      essence: reward.essence,
+      monShards: reward.monShards,
+      trainerXp: reward.trainerXp,
       mailbox,
       updatedAt: new Date(now).toISOString(),
     },
@@ -154,7 +215,37 @@ export async function claimMailboxItem(kv, session, mailId) {
     { now }
   );
 
-  await writeCloudSave(kv, session.xUserId, nextSave, { skipStaleCheck: true });
+  try {
+    await writeCloudSave(kv, session.xUserId, nextSave, { expectedRevision });
+  } catch (err) {
+    if (err?.code === "revision_conflict" && attempt < MAX_CLAIM_RETRIES) {
+      return persistMailboxClaim(kv, session, mailId, attempt + 1);
+    }
+    if (err?.code === "revision_conflict") {
+      const { save: latest } = await loadCloudSave(kv, session.xUserId);
+      const claimed = findMailboxItem(latest.mailbox, id);
+      if (claimed?.claimedAt) {
+        return buildAlreadyClaimedResult(latest, claimed);
+      }
+      return { ok: false, error: "claim_conflict" };
+    }
+    throw err;
+  }
+
+  await kv.put(mailClaimReceiptKey(session.xUserId, id), item.claimedAt);
+
+  if (reward.monballsDelta > 0) {
+    await creditCatchMonballs(kv, session, reward.monballsDelta, 10, "mailbox_claim");
+    await appendMonballAudit(kv, {
+      xUserId: session.xUserId,
+      username: session.username,
+      source: "mailbox_claim",
+      delta: reward.monballsDelta,
+      balanceBefore: save.monballs || 0,
+      balanceAfter: reward.monballs,
+      meta: { mailId: id, mailType: item.type, pool: "cloud_save" },
+    });
+  }
 
   return {
     ok: true,
@@ -162,5 +253,13 @@ export async function claimMailboxItem(kv, session, mailId) {
     save: nextSave,
     unclaimed: (nextSave.mailbox || []).filter((m) => !m.claimedAt).length,
   };
-  });
+}
+
+export async function claimMailboxItem(kv, session, mailId) {
+  const id = String(mailId || "").trim();
+  if (!id) return { ok: false, error: "mail_id_required" };
+
+  return withUserMailboxLock(session.xUserId, async () =>
+    withMailClaimLock(session.xUserId, id, async () => persistMailboxClaim(kv, session, id))
+  );
 }

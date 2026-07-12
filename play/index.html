@@ -1891,6 +1891,11 @@ button.green:hover {
     cursor: default;
     box-shadow: none;
 }
+.mailbox-claim-btn.loading {
+    opacity: 0.7;
+    cursor: wait;
+    pointer-events: none;
+}
 .rail-mail-badge {
     display: none;
     position: absolute;
@@ -7533,7 +7538,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/activity-client.js?v=20260710a"></script>
 <script src="js/auth-client.js?v=20260710a"></script>
 <script src="js/game-session-client.js?v=20260710a"></script>
-<script src="js/mailbox-client.js?v=20260710a"></script>
+<script src="js/mailbox-client.js?v=20260713a"></script>
 <script>
 // =====================================================
 // MONEX - CLEAN ORGANIZED STRUCTURE
@@ -15926,7 +15931,7 @@ function renderMailbox() {
         const safeId = typeof escapeHtml === "function" ? escapeHtml(String(item.id)) : String(item.id);
         const btn = claimed
             ? '<button type="button" class="mailbox-claim-btn" disabled>CLAIMED</button>'
-            : `<button type="button" class="mailbox-claim-btn" data-mail-id="${safeId}" onclick="claimMailboxReward(this.getAttribute('data-mail-id'))">CLAIM</button>`;
+            : `<button type="button" class="mailbox-claim-btn" data-mail-id="${safeId}" onclick="claimMailboxReward(this.getAttribute('data-mail-id'), this)">CLAIM</button>`;
         return `<div class="mailbox-item${claimed ? " claimed" : ""}">
             <div>
                 <p class="mailbox-item-title">${safeTitle}</p>
@@ -15938,13 +15943,23 @@ function renderMailbox() {
     }).join("");
 }
 
-async function claimMailboxReward(mailId) {
+const mailboxClaimInFlight = new Set();
+
+async function claimMailboxReward(mailId, buttonEl) {
     if (!mailId) return;
+    if (mailboxClaimInFlight.has(mailId)) return;
     if (!isGameSessionPlayable()) return;
     if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
         alert("Login required to claim mail.");
         return;
     }
+    const claimBtn = buttonEl && buttonEl.classList?.contains("mailbox-claim-btn") ? buttonEl : null;
+    if (claimBtn) {
+        claimBtn.disabled = true;
+        claimBtn.classList.add("loading");
+        claimBtn.textContent = "...";
+    }
+    mailboxClaimInFlight.add(mailId);
     const mailBefore = (mailbox || []).find((m) => m.id === mailId);
     try {
         const result = await MonExMailbox.claimMailboxMail(mailId);
@@ -15974,7 +15989,14 @@ async function claimMailboxReward(mailId) {
             } catch (_) {}
         }
     } catch (e) {
+        if (claimBtn) {
+            claimBtn.disabled = false;
+            claimBtn.classList.remove("loading");
+            claimBtn.textContent = "CLAIM";
+        }
         alert(e.message || "Could not claim mail.");
+    } finally {
+        mailboxClaimInFlight.delete(mailId);
     }
 }
 
