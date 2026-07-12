@@ -7525,6 +7525,7 @@ body.cloud-load-blocked .game-shell {
 
 <script src="js/daily-reset.js?v=20260711b"></script>
 <script src="js/patrol-reset.js?v=20260711b"></script>
+<script src="js/mana-system.js?v=20260712a"></script>
 <script src="js/equipment-unlock.js?v=20260711c"></script>
 <script src="js/staging-banner.js?v=20260710a"></script>
 <script src="js/monex-config.js?v=20260710a"></script>
@@ -9467,13 +9468,13 @@ const GEAR_SYSTEM_VERSION = 5;
 const GEAR_LEVEL_REQ_STEP = 20;
 /** Rarity (tier) sets roll ranges; gearLevelTier scales base stats + equip req. Independent axes. */
 const GEAR_LEVEL_STAT_MULT = [1.0, 1.15, 1.32, 1.52, 1.75];
-const GEAR_STAT_LABELS = { atk: "ATK", hp: "HP", spd: "SPD", crit: "Crit", dodge: "Dodge", block: "Block", hit: "Hit", pierce: "Pierce" };
+const GEAR_STAT_LABELS = { atk: "ATK", hp: "HP", mana: "Mana", spd: "SPD", crit: "Crit", dodge: "Dodge", block: "Block", hit: "Hit", pierce: "Pierce" };
 const GEAR_STAT_PRIMARY_LABELS = { atk: "ATK", hp: "HP", dodge: "Dodge", spd: "Speed" };
 const GEAR_SLOT_PRIMARY = { weapon: "atk", armor: "hp", helmet: "dodge", boots: "spd" };
 const GEAR_SLOT_RNG_POOL = {
     weapon: ["crit", "pierce", "hit"],
-    armor: ["block", "hp", "crit"],
-    helmet: ["hp", "block", "hit"],
+    armor: ["block", "hp", "mana"],
+    helmet: ["mana", "hp", "block"],
     boots: ["hit", "dodge", "pierce"],
 };
 const GEAR_PRIMARY_RANGES = {
@@ -9489,6 +9490,7 @@ const GEAR_RNG_RANGES = {
     block: [[2, 4], [3, 5], [4, 8], [5, 10], [6, 12]],
     dodge: [[2, 4], [3, 5], [5, 8], [6, 10], [6, 12]],
     hp_bonus: [[20, 40], [40, 70], [80, 120], [120, 180], [150, 220]],
+    mana: [[4, 8], [6, 12], [10, 18], [14, 24], [18, 32]],
 };
 const GEAR_RNG_LINE_COUNT = 2;
 const GEAR_MYTHIC_RNG_LINE_COUNT = 3;
@@ -9818,17 +9820,14 @@ function getSceneIdleSpriteHitAtMs(spritePath, monName) {
 
 const ATTACK_DASH_MS = 220;
 const MELEE_TOUCH_GAP_PX = 2;
-const BATTLE_MANA_MAX = 100;
 const ULTIMATE_TRIGGER_MAX_CHANCE = 90;
 const SKILL_REPEAT_WEIGHT = 0.15;
 const NORMAL_ATTACK_POWER = 0.55;
-const NORMAL_ATTACK_MANA_GAIN = 20;
 const NORMAL_ATTACK_SKILL = {
     name: "Normal Attack",
     element: "physical",
     type: "normal",
     power: NORMAL_ATTACK_POWER,
-    manaGain: NORMAL_ATTACK_MANA_GAIN,
     desc: "A basic strike. Damage scales with level and gear. Restores mana."
 };
 const BATTLE_METER_DUMMY_DEFENDER = { skills: [], status: [], battleId: "__meter__" };
@@ -10540,7 +10539,7 @@ function getGearPower(gear) {
     if (!gear) return 0;
     migrateGearBonuses(gear);
     const b = gear.bonuses || {};
-    return (b.atk || 0) + (b.hp || 0) + (b.spd || 0) + (b.crit || 0)
+    return (b.atk || 0) + (b.hp || 0) + (b.mana || 0) + (b.spd || 0) + (b.crit || 0)
         + (b.dodge || 0) + (b.block || 0) + (b.hit || 0) + (b.pierce || 0);
 }
 
@@ -10945,12 +10944,26 @@ function formatPassiveDetail(skill) {
     return parts.join(" · ");
 }
 
-function getSkillManaCost(skill) {
-    if (skill.mana != null) return skill.mana;
-    if (skill.cleanse) return 28;
-    if (skill.type === "heal") return Math.round(16 + (skill.healPower || 0) * 18);
-    if (skill.type === "active") return Math.round(12 + (skill.power || 1) * 12);
-    return 0;
+function getSkillManaCost(skill, levelOrMon = 1) {
+    const level = typeof levelOrMon === "object"
+        ? Math.floor(levelOrMon?.level || 1)
+        : Math.floor(levelOrMon || 1);
+    return window.MonExManaSystem?.getSkillManaCost(skill, level) ?? 0;
+}
+
+function getNormalAttackManaGain(levelOrMon = 1) {
+    const level = typeof levelOrMon === "object"
+        ? Math.floor(levelOrMon?.level || 1)
+        : Math.floor(levelOrMon || 1);
+    return window.MonExManaSystem?.getNormalAttackManaGain(level) ?? 20;
+}
+
+function computeMonMaxMana(mon) {
+    return window.MonExManaSystem?.computeMonMaxMana(mon) ?? 100;
+}
+
+function getBattleMaxMana(fighter) {
+    return window.MonExManaSystem?.getBattleMaxMana(fighter) ?? (fighter?.maxMana || 100);
 }
 
 function getUltimateTriggerChance(fighter) {
@@ -11090,7 +11103,7 @@ function getSkillStatsLine(mon, skill) {
         return [triggerPart, detailPart].filter(Boolean).join(" · ");
     }
     const manaPart = (skill.type === "active" || skill.type === "heal")
-        ? "Mana: " + getSkillManaCost(skill) : "";
+        ? "Mana: " + getSkillManaCost(skill, mon) : "";
     if (skill.cleanse) {
         const cleansePart = "Removes Frozen, Poison & Burn (not Stun)";
         return manaPart ? manaPart + " · " + cleansePart : cleansePart;
@@ -11191,11 +11204,11 @@ function getSkillStatsLineForFighter(fighter, skill) {
         return [formatUltimateTriggerDetail(fighter), detailPart].filter(Boolean).join(" · ");
     }
     const manaPart = (skill.type === "active" || skill.type === "heal")
-        ? "Mana: " + getSkillManaCost(skill) : "";
+        ? "Mana: " + getSkillManaCost(skill, fighter) : "";
     if (skill.type === "normal") {
         const dmg = calculateDamage(fighter, BATTLE_METER_DUMMY_DEFENDER, skill);
         const dmgPart = "DMG: " + dmg + " (basic strike)";
-        return [dmgPart, "Restores " + (skill.manaGain || NORMAL_ATTACK_MANA_GAIN) + " mana"].join(" · ");
+        return [dmgPart, "Restores " + getNormalAttackManaGain(fighter) + " mana"].join(" · ");
     }
     if (skill.cleanse) {
         const cleansePart = "Removes Frozen, Poison & Burn (not Stun)";
@@ -11292,7 +11305,7 @@ function renderStatsInfo(mon) {
         <div class="stats-tooltip">
             <div class="st-title">COMBAT STATS</div>
             <div style="text-align:center;font-size:10px;color:#fbbf24;margin-bottom:4px;font-family:'Lato',sans-serif;">Specialty: ${getBattleSpecialtyLabel(sp)}</div>
-            <div style="text-align:center;font-size:11px;color:#c4b5fd;margin-bottom:6px;font-family:'Lato',sans-serif;">ATK ${atkText}</div>
+            <div style="text-align:center;font-size:11px;color:#c4b5fd;margin-bottom:6px;font-family:'Lato',sans-serif;">ATK ${atkText} · MANA ${mon.max_mana ?? computeMonMaxMana(mon)}</div>
             ${pair("", cell("spd", "SPD", eff.spd), cell("crit", "CRIT DMG", eff.crit))}
             ${pair("counter", cell("pierce", "PIERCE", eff.pierce), cell("block", "BLOCK", eff.block))}
             ${pair("counter", cell("hit", "HIT", eff.hit), cell("dodge", "DODGE", eff.dodge))}
@@ -12137,7 +12150,7 @@ function migrateAllGear() {
 }
 
 function getGearBonuses(mon) {
-    const b = { atk: 0, hp: 0, spd: 0, crit: 0, dodge: 0, block: 0, hit: 0, pierce: 0 };
+    const b = { atk: 0, hp: 0, mana: 0, spd: 0, crit: 0, dodge: 0, block: 0, hit: 0, pierce: 0 };
     if (!mon?.equipment) return b;
     const lvl = Math.floor(mon.level || 1);
     const ascMult = getAscensionStatMult(mon);
@@ -12202,6 +12215,7 @@ function refreshMonDerivedStats(mon) {
     if (mon.current_hp != null && oldMax > 0) {
         mon.current_hp = Math.min(mon.max_hp, Math.ceil(mon.current_hp * (mon.max_hp / oldMax)));
     }
+    window.MonExManaSystem?.refreshMonManaStats(mon);
 }
 function formatGearBonuses(b, options = {}) {
     const lvl = options.monLevel ? Math.floor(options.monLevel) : 0;
@@ -12215,7 +12229,7 @@ function formatGearBonuses(b, options = {}) {
         return label + "+" + val;
     };
     const parts = [
-        fmt("atk", "ATK"), fmt("hp", "HP"), fmt("spd", "SPD"), fmt("crit", "CRIT"),
+        fmt("atk", "ATK"), fmt("hp", "HP"), fmt("mana", "MANA"), fmt("spd", "SPD"), fmt("crit", "CRIT"),
         fmt("dodge", "DODGE"), fmt("block", "BLOCK"), fmt("hit", "HIT"), fmt("pierce", "PIERCE"),
     ].filter(Boolean);
     return parts.join(", ") || "No bonus";
@@ -14504,6 +14518,7 @@ function renderMonCardInner(mon, index, location) {
             <div class="mon-stats mon-stats-compact">
                 <div class="stat-row"><span><strong>LV</strong></span><span>${Math.floor(mon.level)} / ${cap}</span></div>
                 <div class="stat-row"><span><strong>HP</strong></span><span>${mon.max_hp}</span></div>
+                <div class="stat-row"><span><strong>MANA</strong></span><span>${mon.max_mana ?? computeMonMaxMana(mon)}</span></div>
             </div>
         </div>
     </div>
@@ -16883,6 +16898,7 @@ function makeFighter(mon, isPlayer, options = {}) {
         : (isPlayer
             ? (currentUser ? "@" + String(currentUser).replace(/^@/, "") : "Trainer")
             : "Enemy");
+    const maxMana = computeMonMaxMana(mon);
     return {
         ref: isPlayer ? mon : null,
         name: mon.name, rarity: mon.rarity, level: Math.floor(mon.level),
@@ -16895,7 +16911,7 @@ function makeFighter(mon, isPlayer, options = {}) {
         skills: mon.skills.map(s => ({ ...s })),
         ultimate: { ...mon.ultimate },
         sprite: getSceneIdleDisplaySprite(mon),
-        mana: BATTLE_MANA_MAX, maxMana: BATTLE_MANA_MAX,
+        mana: maxMana, maxMana,
         battleId: (isPlayer ? "p" : "e") + "_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
         ultimateUsed: false, lastSkillName: null, status: [], isPlayer
     };
@@ -17209,7 +17225,7 @@ function updateBattleMeterVitals(side, fighter) {
     const hpEl = document.getElementById("bm-hp-" + side);
     if (hpEl) hpEl.textContent = Math.max(0, Math.ceil(fighter.hp)) + " / " + fighter.maxHp;
     const manaEl = document.getElementById("bm-mana-" + side);
-    if (manaEl) manaEl.textContent = Math.floor(fighter.mana) + " / " + fighter.maxMana;
+    if (manaEl) manaEl.textContent = Math.floor(fighter.mana) + " / " + getBattleMaxMana(fighter);
     const sh = document.getElementById("bm-shield-" + side);
     if (sh) sh.textContent = String(getBattleShield(fighter));
 }
@@ -17296,8 +17312,9 @@ function updateBars(side, f) {
     hf.style.width = pct + "%";
     hf.style.background = pct > 50 ? "#22c55e" : pct > 25 ? "#f59e0b" : "#ef4444";
     document.getElementById("hptext-" + side).textContent = Math.max(0, Math.ceil(f.hp)) + " / " + f.maxHp;
+    const maxMana = getBattleMaxMana(f);
     const manaEl = document.getElementById("mana-" + side);
-    if (manaEl) manaEl.style.width = Math.min(100, (f.mana / f.maxMana) * 100) + "%";
+    if (manaEl) manaEl.style.width = Math.min(100, (f.mana / maxMana) * 100) + "%";
     updateBattleMeterVitals(side, f);
     updateBattleMeterStats(side, f);
 }
@@ -17476,7 +17493,7 @@ function clearStatuses(f) { f.status = []; }
 function canUseBattleSkill(atk, skill) {
     if (skill.type !== "active" && skill.type !== "heal") return false;
     if (skill.type === "heal" && !skill.cleanse && atk.hp >= atk.maxHp) return false;
-    return getSkillManaCost(skill) <= atk.mana;
+    return getSkillManaCost(skill, atk) <= atk.mana;
 }
 
 function getAffordableBattleSkills(atk) {
@@ -17581,12 +17598,12 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
 
     const spendMana = () => {
         if (!isUlt && skill.type !== "normal") {
-            atk.mana = Math.max(0, atk.mana - getSkillManaCost(skill));
+            atk.mana = Math.max(0, atk.mana - getSkillManaCost(skill, atk));
         }
     };
     const restoreMana = () => {
         if (skill.type === "normal") {
-            atk.mana = Math.min(atk.maxMana, atk.mana + (skill.manaGain || NORMAL_ATTACK_MANA_GAIN));
+            atk.mana = Math.min(getBattleMaxMana(atk), atk.mana + getNormalAttackManaGain(atk));
         }
     };
     const finishTurn = () => {

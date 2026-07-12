@@ -43,7 +43,7 @@ const VALID_GEAR_HOUSES = new Set(Object.keys(HOUSE_GEAR_LINES));
 
 export const STAT_SPECIALTIES = new Set(["spd", "crit", "pierce", "block", "hit", "dodge"]);
 
-export const GEAR_BONUS_KEYS = new Set(["atk", "hp", "spd", "crit", "dodge", "block", "hit", "pierce"]);
+export const GEAR_BONUS_KEYS = new Set(["atk", "hp", "mana", "spd", "crit", "dodge", "block", "hit", "pierce"]);
 
 export const LIMITS = {
   money: 99_999_999,
@@ -70,6 +70,7 @@ export const LIMITS = {
   stringMaxLen: 120,
   gearIdMaxLen: 80,
   monLevelMax: 80,
+  maxMana: 600,
   mailboxMax: 50,
 };
 
@@ -78,6 +79,7 @@ import {
   getDailyLoginNextClaimAt,
 } from "./daily-reset.js";
 import { isEquipmentUnlocked } from "./equipment-unlock.js";
+import { computeMonMaxMana } from "./mana-system.js";
 
 const LEVEL_CAP_BY_RARITY = {
   Common: 20,
@@ -229,6 +231,7 @@ function sanitizeSkill(raw) {
   if (raw.power != null) skill.power = clampNum(raw.power, 0, 99);
   if (typeof raw.desc === "string") skill.desc = trimString(raw.desc, 200);
   if (raw.manaCost != null) skill.manaCost = clampInt(raw.manaCost, 0, 999);
+  if (raw.mana != null) skill.mana = clampInt(raw.mana, 0, 999);
   if (raw.cooldown != null) skill.cooldown = clampInt(raw.cooldown, 0, 99);
   if (raw.healPower != null) skill.healPower = clampNum(raw.healPower, 0, 10);
   if (raw.dmgTaken != null) skill.dmgTaken = clampNum(raw.dmgTaken, 0, 1);
@@ -287,7 +290,7 @@ function sanitizeBuffDef(raw) {
   if (raw.turns != null) buff.turns = clampInt(raw.turns, 1, 99);
   if (raw.statMods && typeof raw.statMods === "object") {
     const mods = {};
-    for (const key of ["atk", "hp", "spd", "crit", "dodge", "block", "hit", "pierce"]) {
+    for (const key of ["atk", "hp", "mana", "spd", "crit", "dodge", "block", "hit", "pierce"]) {
       if (raw.statMods[key] != null) mods[key] = clampInt(raw.statMods[key], -200, 200);
     }
     if (Object.keys(mods).length) buff.statMods = mods;
@@ -347,6 +350,8 @@ export function sanitizeMon(raw) {
       .slice(0, LIMITS.ascensionSkillPendingMax);
     if (pending.length) mon.ascensionSkillPending = pending;
   }
+
+  mon.max_mana = clampInt(computeMonMaxMana(mon), 1, LIMITS.maxMana);
 
   return mon;
 }
