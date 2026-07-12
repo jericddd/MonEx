@@ -640,7 +640,7 @@
                 <span id="status-text" style="color: #22c55e;">Online</span>
             </div>
         </div>
-        <div class="side-box side-box-clickable" id="daily-login-box" onclick="handleDailyLoginClick()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();handleDailyLoginClick();}">
+        <div class="side-box side-box-clickable" id="daily-login-box" onclick="handleDailyLoginClick(event)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();handleDailyLoginClick(event);}">
             <h2>DAILY LOGIN</h2>
             <p id="daily-login-text">Claim your daily reward!</p>
             <p id="daily-login-status" class="daily-login-sub"></p>
@@ -712,7 +712,8 @@ startAutoPlay();
 <script src="js/escape-html.js?v=20260708b"></script>
 <script src="js/activity-client.js?v=20260708i"></script>
 <script src="js/auth-client.js?v=20260708b"></script>
-<script src="js/mailbox-client.js?v=20260708a"></script>
+<script src="js/claim-guard.js?v=20260713a"></script>
+<script src="js/mailbox-client.js?v=20260713a"></script>
 <script>
 // Dynamic Header Logic
 async function updateHeader() {
@@ -820,36 +821,55 @@ async function refreshDailyLoginPanel() {
     }
 }
 
-async function handleDailyLoginClick() {
+async function handleDailyLoginClick(ev) {
     if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
         showCustomModal("Please login with X first");
         return;
     }
     const box = document.getElementById("daily-login-box");
-    if (box?.dataset.claiming === "1") return;
-    if (box) box.dataset.claiming = "1";
+    const setBoxLoading = (on) => {
+        if (!box) return;
+        if (on) {
+            box.dataset.claiming = "1";
+            box.style.pointerEvents = "none";
+            box.style.opacity = "0.65";
+        } else {
+            delete box.dataset.claiming;
+            box.style.pointerEvents = "";
+            box.style.opacity = "";
+        }
+    };
+    const run = window.MonExClaimGuard?.runClaimOnce
+        ? (fn) => MonExClaimGuard.runClaimOnce("daily-login-home", fn)
+        : async (fn) => fn();
+    setBoxLoading(true);
     try {
-        const result = await MonExMailbox.claimDailyLogin();
-        if (!result.ok) {
-            if (result.error === "cooldown") {
-                showCustomModal(`Daily reward on cooldown. Try again in ${MonExMailbox.formatCooldownRemaining(result.nextClaimAt)}.`);
-            } else {
-                showCustomModal(result.error || "Could not claim daily reward");
+        await run(async () => {
+            const result = await MonExMailbox.claimDailyLogin();
+            if (!result.ok && !result.alreadyClaimed) {
+                if (result.error === "cooldown") {
+                    showCustomModal(`Daily reward on cooldown. Try again in ${MonExMailbox.formatCooldownRemaining(result.nextClaimAt)}.`);
+                } else {
+                    showCustomModal(result.error || "Could not claim daily reward");
+                }
+                refreshDailyLoginPanel();
+                return;
             }
+            if (!result.alreadyClaimed && (!result.item || result.item.type !== "monballs" || result.delivery !== "mailbox")) {
+                showCustomModal("Daily reward was not delivered to Mailbox. Please try again.");
+                refreshDailyLoginPanel();
+                return;
+            }
+            showCustomModal(result.alreadyClaimed
+                ? "Daily reward already sent to your Mailbox today."
+                : "5 Monballs sent to your Mailbox! Open the game and tap Mailbox to collect.");
             refreshDailyLoginPanel();
-            return;
-        }
-        if (!result.item || result.item.type !== "monballs" || result.delivery !== "mailbox") {
-            showCustomModal("Daily reward was not delivered to Mailbox. Please try again.");
-            refreshDailyLoginPanel();
-            return;
-        }
-        showCustomModal("5 Monballs sent to your Mailbox! Open the game and tap Mailbox to collect.");
-        refreshDailyLoginPanel();
+        });
     } catch (e) {
         showCustomModal(e.message || "Claim failed");
+        refreshDailyLoginPanel();
     } finally {
-        if (box) delete box.dataset.claiming;
+        setBoxLoading(false);
     }
 }
 

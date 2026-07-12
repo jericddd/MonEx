@@ -1,6 +1,6 @@
 /** Daily login + mailbox API client (homepage + game). */
 
-const mailboxClaimPromises = new Map();
+const mailboxApiClaimPromises = new Map();
 
 function mailboxAuthHeaders() {
   const headers = { "Content-Type": "application/json" };
@@ -30,6 +30,14 @@ function mailboxApiBase() {
   return "https://monex-api.0xjericd.workers.dev";
 }
 
+async function runDedupedClaim(key, fn) {
+  const id = String(key || "").trim();
+  if (mailboxApiClaimPromises.has(id)) return mailboxApiClaimPromises.get(id);
+  const promise = fn().finally(() => mailboxApiClaimPromises.delete(id));
+  mailboxApiClaimPromises.set(id, promise);
+  return promise;
+}
+
 async function fetchDailyLoginStatus() {
   const res = await fetch(`${mailboxApiBase()}/api/daily-login/status`, {
     headers: mailboxAuthHeaders(),
@@ -42,26 +50,25 @@ async function fetchDailyLoginStatus() {
 }
 
 async function claimDailyLogin() {
-  const res = await fetch(`${mailboxApiBase()}/api/daily-login/claim`, {
-    method: "POST",
-    headers: mailboxAuthHeaders(),
-    body: "{}",
+  return runDedupedClaim("daily-login", async () => {
+    const res = await fetch(`${mailboxApiBase()}/api/daily-login/claim`, {
+      method: "POST",
+      headers: mailboxAuthHeaders(),
+      body: "{}",
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok && !data?.error) throw new Error("claim failed");
+    return data;
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok && !data?.error) throw new Error("claim failed");
-  return data;
 }
 
 async function claimMailboxMail(mailId) {
   const id = String(mailId || "").trim();
   if (!id) throw new Error("mail_id_required");
-  if (mailboxClaimPromises.has(id)) {
-    return mailboxClaimPromises.get(id);
-  }
-  if (window.MonExGameSession?.isGameplayAllowed && !window.MonExGameSession.isGameplayAllowed()) {
-    throw new Error("game_session_inactive");
-  }
-  const promise = (async () => {
+  return runDedupedClaim(`mailbox:${id}`, async () => {
+    if (window.MonExGameSession?.isGameplayAllowed && !window.MonExGameSession.isGameplayAllowed()) {
+      throw new Error("game_session_inactive");
+    }
     const res = await fetch(`${mailboxApiBase()}/api/mailbox/claim`, {
       method: "POST",
       headers: mailboxAuthHeaders(),
@@ -74,13 +81,7 @@ async function claimMailboxMail(mailId) {
     }
     if (!res.ok) throw new Error(data.error || "mailbox claim failed");
     return data;
-  })();
-  mailboxClaimPromises.set(id, promise);
-  try {
-    return await promise;
-  } finally {
-    mailboxClaimPromises.delete(id);
-  }
+  });
 }
 
 function formatCooldownRemaining(nextClaimAt) {

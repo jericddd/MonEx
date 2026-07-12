@@ -33,6 +33,7 @@ const PLAY_SCRIPTS = [
   "js/activity-client.js",
   "js/auth-client.js",
   "js/game-session-client.js",
+  "js/claim-guard.js",
   "js/mailbox-client.js",
 ];
 
@@ -113,6 +114,8 @@ describe("play page scripts (shared browser global scope)", () => {
     assert.ok(windowStub.MonExAuth, "window.MonExAuth must be defined");
     assert.ok(windowStub.MonExGameSession, "window.MonExGameSession must be defined");
     assert.ok(windowStub.MonExPatrolReset, "window.MonExPatrolReset must be defined");
+    assert.ok(windowStub.MonExClaimGuard, "window.MonExClaimGuard must be defined");
+    assert.equal(typeof windowStub.MonExClaimGuard.runClaimOnce, "function");
 
     // Session guard API surface used by play/index.html.
     for (const fn of [
