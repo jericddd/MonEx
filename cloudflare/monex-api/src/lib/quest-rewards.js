@@ -32,12 +32,18 @@ export const QUEST_TASK_DEFS = {
     { id: "d3", points: 10, rewardKey: "gold", rewardAmount: 80 },
     { id: "d4", points: 10, rewardKey: "gold", rewardAmount: 50 },
     { id: "d5", points: 10, rewardKey: "trainerXp", rewardAmount: 40 },
+    { id: "d6", points: 15, rewardKey: "gold", rewardAmount: 120 },
+    { id: "d7", points: 15, rewardKey: "essence", rewardAmount: 12 },
+    { id: "d8", points: 15, rewardKey: "trainerXp", rewardAmount: 30 },
   ],
   weeklies: [
     { id: "w1", points: 20, rewardKey: "gold", rewardAmount: 250 },
     { id: "w2", points: 15, rewardKey: "essence", rewardAmount: 25 },
     { id: "w3", points: 15, rewardKey: "shards", rewardAmount: 3 },
     { id: "w4", points: 15, rewardKey: "gold", rewardAmount: 200 },
+    { id: "w5", points: 15, rewardKey: "essence", rewardAmount: 35 },
+    { id: "w6", points: 15, rewardKey: "trainerXp", rewardAmount: 80 },
+    { id: "w7", points: 15, rewardKey: "gold", rewardAmount: 350 },
   ],
   campaign: [
     { id: "c1", points: 15, rewardKey: "monball", rewardAmount: 2 },
