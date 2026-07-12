@@ -145,3 +145,26 @@ test("renames legacy Mondigrade saves to Pampam", () => {
   });
   assert.equal(save.party[0].name, "Pampam");
 });
+
+test("recalculates max_mana from level and gear on sanitize", () => {
+  const save = validateAndSanitizeSave({
+    party: [{
+      name: "Chog",
+      rarity: "Legendary",
+      level: 30,
+      max_hp: 500,
+      current_hp: 500,
+      max_mana: 9999,
+      equipment: {
+        weapon: null,
+        armor: { id: "a1", slot: "armor", tier: 3, tierName: "Rare", name: "Armor", bonuses: { mana: 12 } },
+        helmet: null,
+        boots: null,
+      },
+    }],
+    box: [],
+  });
+  const mon = save.party[0];
+  assert.ok(mon.max_mana < 9999);
+  assert.ok(mon.max_mana > 80);
+});
