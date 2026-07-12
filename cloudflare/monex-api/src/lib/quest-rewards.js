@@ -32,6 +32,9 @@ export const QUEST_TASK_DEFS = {
     { id: "d3", points: 10, rewardKey: "gold", rewardAmount: 80 },
     { id: "d4", points: 10, rewardKey: "gold", rewardAmount: 50 },
     { id: "d5", points: 10, rewardKey: "trainerXp", rewardAmount: 40 },
+    { id: "d6", points: 15, rewardKey: "gold", rewardAmount: 120 },
+    { id: "d7", points: 15, rewardKey: "essence", rewardAmount: 12 },
+    { id: "d8", points: 15, rewardKey: "trainerXp", rewardAmount: 30 },
   ],
   weeklies: [
     { id: "w1", points: 20, rewardKey: "gold", rewardAmount: 250 },
