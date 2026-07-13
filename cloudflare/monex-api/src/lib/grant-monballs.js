@@ -1,6 +1,6 @@
 import { loadState, resolveCatchUser, withUserSyncLock, userSyncLockKey } from "../kv-store.js";
 import { persistCatchUserFromState, hydrateCatchUserIntoState } from "./catch-user-store.js";
-import { loadCloudSave, writeCloudSave } from "./save.js";
+import { loadCloudSave, writeCloudSave, buildSavePayload } from "./save.js";
 import { appendMonballAudit } from "./monball-audit.js";
 
 const SAVE_PREFIX = "monex:save:";
@@ -132,32 +132,29 @@ export async function grantMonballs(kv, username, amount, startingMonballs = 10)
 
   let catchBefore = 0;
   let catchAfter = 0;
-  if (!state.users[xUserId]) {
-    catchAfter = clampMonballs(startingMonballs + grant);
-    state.users[xUserId] = {
-      username: target,
-      monballs: catchAfter,
-      pendingMons: [],
-      updatedAt: new Date().toISOString(),
-    };
-  } else {
-    catchBefore = clampMonballs(state.users[xUserId].monballs ?? 0);
+  await withUserSyncLock(userSyncLockKey(xUserId, target), async () => {
+    const lockedState = await loadState(kv);
+    const user = await hydrateCatchUserIntoState(kv, lockedState, xUserId, target, startingMonballs);
+    if (!user) throw new Error(`catch user @${target} not found`);
+    catchBefore = clampMonballs(user.monballs ?? 0);
     catchAfter = clampMonballs(catchBefore + grant);
-    state.users[xUserId].monballs = catchAfter;
-    state.users[xUserId].username = target;
-    state.users[xUserId].updatedAt = new Date().toISOString();
-  }
-  await saveState(kv, state);
+    user.monballs = catchAfter;
+    user.updatedAt = new Date().toISOString();
+    await persistCatchUserFromState(kv, lockedState, xUserId);
+  });
 
   const { found, save } = await loadCloudSave(kv, xUserId);
   const saveBefore = clampMonballs(save.monballs ?? 0);
   const saveAfter = clampMonballs(saveBefore + grant);
-  const nextSave = {
-    ...save,
-    monballs: saveAfter,
-    xHandle: save.xHandle || target,
-    updatedAt: new Date().toISOString(),
-  };
+  const nextSave = buildSavePayload(
+    {
+      ...save,
+      monballs: saveAfter,
+      xHandle: save.xHandle || target,
+      updatedAt: new Date().toISOString(),
+    },
+    { xUserId, username: target }
+  );
   await writeCloudSave(kv, xUserId, nextSave, { skipStaleCheck: true });
 
   await appendMonballAudit(kv, {

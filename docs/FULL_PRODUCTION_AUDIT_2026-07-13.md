@@ -245,39 +245,41 @@ Allows claiming daily mail from homepage without active play session. Server ide
 
 Mailbox claim credits catch pool outside `withUserSyncLock` — minor race with poll.
 
-### P1-6: Client optimistic grants before cloud confirm — **OPEN**
+### P1-6: Client optimistic grants before cloud confirm — **FIXED**
 
-Resource chest, quests, battles apply locally then flush. Server guard on PUT limits damage.
+Battle and patrol rewards now use `POST /api/battle/claim-reward` (`battle-reward.js`, `js/battle-reward-client.js`). Server rolls rewards, advances adventure progress, and bumps quest tracks with idempotent claim receipts.
 
 ### P1-7: `mergeSaveSnapshots` quest OR-merge — **PARTIALLY FIXED**
 
 Server strips invalid claims on PUT; client merge still ORs `claimed` flags before save.
 
-### P1-8: `/api/activity` ignores username filter — **OPEN**
+### P1-8: `/api/activity` ignores username filter — **FIXED**
 
-Public feed endpoint does not filter by `?username=` (use `/api/activity/mine` with auth).
+`listActivities` filters by `?username=` (case-insensitive).
 
-### P1-9: `partyMax` default mismatch (sync 5 vs game 3) — **OPEN**
+### P1-9: `partyMax` default mismatch (sync 5 vs game 3) — **FIXED**
 
-`DEFAULT_PARTY_MAX = 5` in kv-store vs `GAME_PARTY_MAX = 3` in backfill.
+`DEFAULT_PARTY_MAX = 3` in kv-store matches `GAME_PARTY_MAX`.
 
-### P1-10: Admin scripts skip revision CAS — **OPEN (ops)**
+### P1-10: Admin scripts skip revision CAS — **PARTIALLY FIXED**
 
-Grant/backfill scripts write KV directly — can revision-jump; expected for ops.
+`grantMonballs` uses per-user catch KV + `buildSavePayload`; bulk backfill scripts remain ops-only.
 
-### P1-11: Rate limits per-IP not per-user — **OPEN**
+### P1-11: Rate limits per-IP not per-user — **FIXED**
 
-### P1-12: Mailbox client fallback local grant — **OPEN (latent)**
+Per-user buckets on mutating routes (PR #164).
 
-`claimMailboxReward` grants locally if API returns no `save` — server always returns save today.
+### P1-12: Mailbox client fallback local grant — **FIXED**
 
-### P1-13: Username case splits (backfill filter) — **OPEN**
+`claimMailboxReward` no longer grants locally when API returns no save.
 
-`usernameMatchesFilter` case-sensitive; X preserves casing.
+### P1-13: Username case splits (backfill filter) — **FIXED**
 
-### P1-14: Concurrent save debounce drops intermediate state — **OPEN**
+`usernameMatchesFilter` is case-insensitive.
 
-`scheduleCloudSave` coalesces — usually OK; combined with merge can surprise.
+### P1-14: Concurrent save debounce drops intermediate state — **PARTIALLY FIXED**
+
+`visibilitychange` triggers `flushCloudSave` on tab hide (PR #164).
 
 ---
 
@@ -320,10 +322,10 @@ Grant/backfill scripts write KV directly — can revision-jump; expected for ops
 |------|--------------|-----------------|--------|
 | Mailbox | `MonExClaimGuard` + dedupe | `POST /api/mailbox/claim` | OK |
 | Daily login | `MonExClaimGuard` | `POST /api/daily-login/claim` | OK |
-| Quest task/chest | `MonExClaimGuard` | Save PUT only | Guarded on PUT |
-| Resource chest | `MonExClaimGuard` | Save PUT only | Timestamp guarded |
-| Shop | None | Save PUT only | Delta capped |
-| Battle rewards | None | Save PUT only | Delta capped |
+| Quest task/chest | `MonExClaimGuard` | `POST /api/quest/claim-*` | OK |
+| Resource chest | `MonExClaimGuard` | `POST /api/resource-chest/collect` | OK |
+| Shop | `MonExClaimGuard` | `POST /api/shop/purchase` | OK |
+| Battle rewards | `MonExClaimGuard` | `POST /api/battle/claim-reward` | OK |
 
 ### Resources verified
 

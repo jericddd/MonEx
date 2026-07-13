@@ -261,6 +261,16 @@ export function clampInventoryGrowth(existing, incoming, maxAdded = 15) {
 }
 
 /**
+ * Trainer reward level may only advance modestly per save (blocks merge-max inflation).
+ */
+export function clampTrainerRewardLevel(existing, incoming) {
+  const before = clampInt(existing?.trainerRewardLevel ?? 1, 1, 9999);
+  const raw = clampInt(incoming?.trainerRewardLevel ?? before, 1, 9999);
+  if (raw <= before) return { ...incoming, trainerRewardLevel: raw };
+  return { ...incoming, trainerRewardLevel: Math.min(raw, before + 3) };
+}
+
+/**
  * Apply all server-side save guards before persist.
  */
 export function guardSavePayload(existing, incoming, options = {}) {
@@ -269,6 +279,7 @@ export function guardSavePayload(existing, incoming, options = {}) {
   let out = { ...incoming };
   out = clampEconomyScalars(ex, out);
   out = clampAdventureProgress(ex, out);
+  out = clampTrainerRewardLevel(ex, out);
   out = clampResourceChestTimestamp(ex, out, options.now);
   out = reconcileQuestState(ex, out);
   out = clampInventoryGrowth(ex, out);

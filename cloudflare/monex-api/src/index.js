@@ -52,6 +52,7 @@ import { guardSavePayload } from "./lib/save-economy-guard.js";
 import { claimQuestTask, claimQuestChest } from "./lib/quest-claim.js";
 import { purchaseShopItem } from "./lib/shop-purchase.js";
 import { collectResourceChest } from "./lib/resource-chest.js";
+import { claimBattleReward } from "./lib/battle-reward.js";
 import { hydrateCatchUserIntoState, persistCatchUserFromState } from "./lib/catch-user-store.js";
 import { hydrateUserCloudSave, lookupCatchUserReadOnly } from "./lib/hydrate-save.js";
 import { tryClaimTweetForProcessing, finalizeTweetProcessed, releaseTweetClaim } from "./lib/tweet-dedupe.js";
@@ -1122,6 +1123,34 @@ async function handleRequest(request, env) {
         return json(result, status, request, env);
       } catch (err) {
         return json({ ok: false, error: err.message || "collect failed" }, 500, request, env);
+      }
+    }
+
+    if (path === "/api/battle/claim-reward" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const auth = await requireGameplay(request, env, body);
+      if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
+      await enforceRateLimit(request, env, "battle-reward", { limit: 120, windowSec: 60, userId: auth.session.xUserId });
+      const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
+      const expectedRevision = body?.baseRevision != null && Number.isFinite(Number(body.baseRevision))
+        ? Number(body.baseRevision)
+        : undefined;
+      try {
+        const result = await claimBattleReward(env.MONEX_KV, auth.session, {
+          mode: body?.mode,
+          win: body?.win === true,
+          encounterId: body?.encounterId,
+          claimId: body?.claimId,
+          expectedRevision,
+        }, starting);
+        const status = result.ok
+          ? 200
+          : result.error === "win_required" || result.error === "claim_id_required"
+            ? 400
+            : 409;
+        return json(result, status, request, env);
+      } catch (err) {
+        return json({ ok: false, error: err.message || "battle reward failed" }, 500, request, env);
       }
     }
 

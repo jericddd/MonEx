@@ -37,6 +37,7 @@ const PLAY_SCRIPTS = [
   "js/quest-client.js",
   "js/shop-client.js",
   "js/resource-chest-client.js",
+  "js/battle-reward-client.js",
   "js/mailbox-client.js",
 ];
 
@@ -122,6 +123,7 @@ describe("play page scripts (shared browser global scope)", () => {
     assert.ok(windowStub.MonExQuest, "window.MonExQuest must be defined");
     assert.ok(windowStub.MonExShop, "window.MonExShop must be defined");
     assert.ok(windowStub.MonExResourceChest, "window.MonExResourceChest must be defined");
+    assert.ok(windowStub.MonExBattle, "window.MonExBattle must be defined");
 
     // Session guard API surface used by play/index.html.
     for (const fn of [
