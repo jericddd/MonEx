@@ -84,8 +84,7 @@ function bumpResourceCollectQuest(questState) {
   return { ...qs, tasks };
 }
 
-async function persistChestSave(kv, session, save, expectedRevision, startingMonballs, attempt = 0) {
-  const now = Date.now();
+async function persistChestSave(kv, session, save, expectedRevision, startingMonballs, now = Date.now(), attempt = 0) {
   let payload = buildSavePayload(
     { ...save, updatedAt: new Date(now).toISOString() },
     session,
@@ -97,8 +96,8 @@ async function persistChestSave(kv, session, save, expectedRevision, startingMon
     return { ok: true, save: written };
   } catch (err) {
     if (err?.code === "revision_conflict" && attempt < MAX_CLAIM_RETRIES) {
-      const { save: latest } = await loadCloudSave(kv, session.xUserId);
-      return persistChestSave(kv, session, latest, latest.revision, startingMonballs, attempt + 1);
+      const { save: latest } = await loadCloudSave(kv, session.xUserId, { now });
+      return persistChestSave(kv, session, latest, latest.revision, startingMonballs, now, attempt + 1);
     }
     if (err?.code === "revision_conflict") {
       return { ok: false, error: "collect_conflict", save: err.existingSave };
@@ -108,7 +107,7 @@ async function persistChestSave(kv, session, save, expectedRevision, startingMon
 }
 
 export async function collectResourceChest(kv, session, { expectedRevision, now = Date.now() }, startingMonballs = 10) {
-  const { save } = await loadCloudSave(kv, session.xUserId);
+  const { save } = await loadCloudSave(kv, session.xUserId, { now });
   const preview = previewResourceChest(save, now);
   if (!preview.canCollect) {
     return { ok: false, error: "chest_empty" };
@@ -133,7 +132,7 @@ export async function collectResourceChest(kv, session, { expectedRevision, now 
     questState: bumpResourceCollectQuest(save.questState),
   };
 
-  const result = await persistChestSave(kv, session, nextSave, expectedRevision, startingMonballs);
+  const result = await persistChestSave(kv, session, nextSave, expectedRevision, startingMonballs, now);
   if (!result.ok) return result;
 
   return {
