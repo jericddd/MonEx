@@ -6572,6 +6572,14 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
 .profile-log-scroll .activity-feed {
     padding-right: 22px;
 }
+.profile-log-section + .profile-log-section {
+    margin-top: 14px;
+}
+.profile-release-rewards {
+    font-size: 11px;
+    color: rgba(255, 232, 200, 0.8);
+    margin-top: 2px;
+}
 .profile-hub-frame .activity-item-clickable:hover {
     background: rgba(240, 160, 80, 0.14);
 }
@@ -7646,7 +7654,7 @@ body.cloud-load-blocked .game-shell {
                     <div class="profile-panel">
                         <div class="profile-tabs-row" role="tablist" aria-label="Profile sections">
                             <button type="button" class="profile-tab-btn active" id="profile-tab-account" onclick="setProfileTab('account')">ACCOUNT</button>
-                            <button type="button" class="profile-tab-btn" id="profile-tab-log" onclick="setProfileTab('log')">CATCH LOG</button>
+                            <button type="button" class="profile-tab-btn" id="profile-tab-log" onclick="setProfileTab('log')">LOGS</button>
                         </div>
                         <div id="profile-pane-account" class="profile-pane active">
                             <div class="profile-pending" id="profile-pending-panel">
@@ -7664,10 +7672,20 @@ body.cloud-load-blocked .game-shell {
                             <p style="font-size:11px; margin:0;">On X post: <b>@monexmonad catch 1 monanimal</b> (1 Monball = 1 catch, max 10 per tweet)</p>
                         </div>
                         <div id="profile-pane-log" class="profile-pane profile-pane--log">
-                            <h3 class="profile-log-title">YOUR X CATCH LOG</h3>
-                            <div class="profile-log-scroll hub-scrollbar-panel">
-                                <div id="profile-activity-feed" class="activity-feed">
-                                    <p class="activity-empty">Save your X @handle above.</p>
+                            <div class="profile-log-section">
+                                <h3 class="profile-log-title">CATCH LOG</h3>
+                                <div class="profile-log-scroll hub-scrollbar-panel">
+                                    <div id="profile-activity-feed" class="activity-feed">
+                                        <p class="activity-empty">Save your X @handle above.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="profile-log-section">
+                                <h3 class="profile-log-title">RELEASE LOG</h3>
+                                <div class="profile-log-scroll hub-scrollbar-panel">
+                                    <div id="profile-release-feed" class="activity-feed">
+                                        <p class="activity-empty">Released monanimals will appear here.</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -7685,7 +7703,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/staging-banner.js?v=20260710a"></script>
 <script src="js/monex-config.js?v=20260710a"></script>
 <script src="js/escape-html.js?v=20260710a"></script>
-<script src="js/activity-client.js?v=20260710a"></script>
+<script src="js/activity-client.js?v=20260713b"></script>
 <script src="js/auth-client.js?v=20260710a"></script>
 <script src="js/game-session-client.js?v=20260710a"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
@@ -8611,6 +8629,8 @@ function applyBattleBodyShadow(side, monName) {
 let sceneIdleBattleRunning = false;
 let xHandle = "";
 let profileActivitySignature = "";
+let profileReleaseSignature = "";
+let releaseLog = [];
 let profileActivityHandle = "";
 
 /** OAuth session @handle wins over a stale manual link in cloud/local save. */
@@ -9847,6 +9867,23 @@ function formatReleaseSalvageMessage(salvage) {
         : "\n\nNo resource rewards for this release.\nEquipped gear returns to Inventory.";
     return `Are you sure you want to release this monanimal?${rewardBlock}`;
 }
+
+function recordRelease(mon, salvage, source = "box") {
+    if (!mon) return;
+    const entry = {
+        id: `rel_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        at: new Date().toISOString(),
+        name: mon.name,
+        rarity: mon.rarity || "Common",
+        level: Math.max(1, Math.floor(mon.level || 1)),
+        gold: Math.max(0, Math.floor(salvage?.gold || 0)),
+        essence: Math.max(0, Math.floor(salvage?.essence || 0)),
+        shards: Math.max(0, Math.floor(salvage?.shards || 0)),
+        source: source === "party" ? "party" : "box",
+    };
+    releaseLog = [entry, ...releaseLog].slice(0, 200);
+}
+
 let gearInventory = [];
 let gearInventorySeedVersion = 0;
 let _gearIdSeq = 0;
@@ -14513,6 +14550,7 @@ function buildSavePayload() {
         questState,
         mailbox,
         dailyLoginLastClaimAt,
+        releaseLog,
         saveVersion: 2,
         updatedAt: new Date().toISOString(),
     };
@@ -14828,7 +14866,23 @@ function mergeSaveSnapshots(local, cloud) {
     }
 
     merged.updatedAt = new Date(Math.max(localTs, cloudTs, Date.now())).toISOString();
+    merged.releaseLog = mergeReleaseLogs(local?.releaseLog, cloud?.releaseLog);
     return merged;
+}
+
+function mergeReleaseLogs(localRows, cloudRows) {
+    const seen = new Set();
+    const merged = [];
+    for (const row of [...(Array.isArray(localRows) ? localRows : []), ...(Array.isArray(cloudRows) ? cloudRows : [])]) {
+        if (!row || typeof row !== "object") continue;
+        const id = String(row.id || `${row.at || ""}:${row.name || ""}:${row.level || 0}`);
+        if (seen.has(id)) continue;
+        seen.add(id);
+        merged.push(row);
+    }
+    return merged
+        .sort((a, b) => Date.parse(b.at || "") - Date.parse(a.at || ""))
+        .slice(0, 200);
 }
 
 function readLocalSaveData() {
@@ -14880,6 +14934,7 @@ function applyLoadedSave(data) {
     ensureQuestResets();
     mailbox = Array.isArray(data.mailbox) ? data.mailbox : [];
     dailyLoginLastClaimAt = data.dailyLoginLastClaimAt || null;
+    releaseLog = Array.isArray(data.releaseLog) ? data.releaseLog : [];
 
     [...party, ...box].forEach((mon) => {
         try {
@@ -15865,6 +15920,7 @@ function renderProfile() {
     const alreadyLoaded = feedEl?.dataset.profileActivityLoaded === "1";
     syncXWildMons(true);
     refreshProfileActivity({ silent: alreadyLoaded });
+    refreshProfileReleases({ silent: alreadyLoaded });
 }
 
 function setProfileTab(tab) {
@@ -15887,6 +15943,7 @@ async function refreshProfileActivity(opts = {}) {
         el.removeAttribute("data-profile-activity-loaded");
         profileActivitySignature = "";
         profileActivityHandle = "";
+        refreshProfileReleases({ force: true });
         return;
     }
     const handleChanged = profileActivityHandle !== xHandle;
@@ -15909,6 +15966,49 @@ async function refreshProfileActivity(opts = {}) {
         if (!hasLoadedFeed || handleChanged || force) {
             el.innerHTML = '<div class="activity-empty">Could not reach activity server. Check your connection and API config in js/monex-config.js.</div>';
             el.removeAttribute("data-profile-activity-loaded");
+        }
+    }
+}
+
+async function refreshProfileReleases(opts = {}) {
+    const silent = !!opts.silent;
+    const force = !!opts.force;
+    const el = document.getElementById("profile-release-feed");
+    if (!el || typeof MonExActivity === "undefined") return;
+    if (!xHandle || (typeof MonExAuth !== "undefined" && !MonExAuth.isLoggedIn())) {
+        el.innerHTML = '<div class="activity-empty">Log in and link your X @handle to see your release history.</div>';
+        el.removeAttribute("data-profile-release-loaded");
+        profileReleaseSignature = "";
+        return;
+    }
+    const hasLoadedFeed = el.dataset.profileReleaseLoaded === "1";
+    if (!silent && (!hasLoadedFeed || force)) {
+        el.innerHTML = '<div class="activity-empty">Loading release log…</div>';
+    }
+    try {
+        let items = releaseLog || [];
+        if (MonExActivity.fetchReleases) {
+            const data = await MonExActivity.fetchReleases(50, 1);
+            if (Array.isArray(data?.entries)) {
+                items = mergeReleaseLogs(items, data.entries);
+                releaseLog = items;
+            }
+        }
+        const sig = JSON.stringify(items.map((entry) => entry.id || `${entry.at}:${entry.name}:${entry.level}`));
+        if (!force && sig === profileReleaseSignature) return;
+        profileReleaseSignature = sig;
+        MonExActivity.renderReleaseFeed(el, items, {
+            emptyText: "No released monanimals yet. Releases from Box appear here.",
+        });
+        el.dataset.profileReleaseLoaded = "1";
+    } catch (e) {
+        if (!hasLoadedFeed || force) {
+            MonExActivity.renderReleaseFeed(el, releaseLog || [], {
+                emptyText: releaseLog?.length
+                    ? "Showing local release history."
+                    : "Could not reach release log server. Check your connection.",
+            });
+            if (releaseLog?.length) el.dataset.profileReleaseLoaded = "1";
         }
     }
 }
@@ -16247,10 +16347,12 @@ function releaseFromBox(index) {
         if (salvage.gold > 0) money += salvage.gold;
         if (salvage.essence > 0) essence += salvage.essence;
         if (salvage.shards > 0) monShards += salvage.shards;
+        recordRelease(mon, salvage, "box");
         box.splice(index, 1);
         void persistProgress();
         updateUI();
         renderBox();
+        refreshProfileReleases({ force: true, silent: true });
     });
 }
 

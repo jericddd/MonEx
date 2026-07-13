@@ -874,6 +874,51 @@ async function fetchPersonalActivity(username, limit, page) {
     return res.json();
 }
 
+async function fetchPersonalReleases(limit, page) {
+    const base = getMonexApiBase();
+    const headers = getAuthHeaders();
+    const params = new URLSearchParams({
+        limit: String(limit || 30),
+        page: String(page || 1),
+    });
+    const url = `${base}/api/releases/mine?${params}`;
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error("personal release fetch failed");
+    return res.json();
+}
+
+function formatReleaseRewardLine(entry) {
+    const parts = [];
+    if (entry.gold > 0) parts.push(`+${entry.gold} Gold`);
+    if (entry.essence > 0) parts.push(`+${entry.essence} KB's Onion`);
+    if (entry.shards > 0) parts.push(`+${entry.shards} Mon Shard${entry.shards === 1 ? "" : "s"}`);
+    return parts.length ? parts.join(" · ") : "No salvage rewards";
+}
+
+function formatReleaseEntryHtml(entry) {
+    const time = escapeActivityHtml(new Date(entry.at).toLocaleString());
+    const displayName = getActivityMonDisplayName(entry.name);
+    const rarity = escapeActivityHtml(entry.rarity || "Common");
+    const level = escapeActivityHtml(entry.level || 1);
+    const source = entry.source === "party" ? "Party" : "Box";
+    const rewards = escapeActivityHtml(formatReleaseRewardLine(entry));
+    return `<div class="activity-item">
+        <span class="activity-rare">${rarity}</span> <b>${escapeActivityHtml(displayName)}</b> Lv.${level}
+        <div class="profile-release-rewards">${rewards}</div>
+        <div class="activity-meta">${time} · released from ${escapeActivityHtml(source)}</div>
+    </div>`;
+}
+
+function renderReleaseFeedElement(el, entries, emptyMsg) {
+    if (!el) return;
+    injectActivityUiStyles();
+    if (!entries || entries.length === 0) {
+        el.innerHTML = `<p class="activity-empty">${emptyMsg}</p>`;
+        return;
+    }
+    el.innerHTML = entries.map((entry) => formatReleaseEntryHtml(entry)).join("");
+}
+
 async function fetchPendingMons(username) {
     const base = getMonexApiBase();
     const headers = getAuthHeaders();
@@ -1040,6 +1085,9 @@ window.MonExActivity = {
         const data = await fetchPersonalActivity(username, limit, page);
         return data.entries || [];
     },
+    fetchReleases: async (limit, page) => {
+        return fetchPersonalReleases(limit, page);
+    },
     fetchGlobal: async (limit, page) => {
         const data = await fetchGlobalActivity(limit, page);
         return data;
@@ -1050,6 +1098,13 @@ window.MonExActivity = {
             entries,
             opts.emptyText || "No activity yet.",
             opts
+        );
+    },
+    renderReleaseFeed(el, entries, opts = {}) {
+        renderReleaseFeedElement(
+            el,
+            entries,
+            opts.emptyText || "No releases yet.",
         );
     },
     renderTable: renderActivityTable,

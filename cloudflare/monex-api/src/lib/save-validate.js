@@ -77,6 +77,7 @@ export const LIMITS = {
   monLevelMax: 80,
   maxMana: 600,
   mailboxMax: 50,
+  releaseLogMax: 200,
 };
 
 import {
@@ -519,6 +520,40 @@ function sanitizeDailyLoginLastClaimAt(raw, now = Date.now()) {
   return new Date(ts).toISOString();
 }
 
+function sanitizeReleaseEntry(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const name = canonicalMonanimalName(trimString(raw.name, 48));
+  if (!name || !MONANIMAL_NAMES.has(name) || REMOVED_MONANIMAL_NAMES.has(name)) return null;
+  const rarity = RARITY_ORDER.includes(raw.rarity) ? raw.rarity : "Common";
+  const entry = {
+    id: trimString(raw.id, 80) || `rel_${Date.now()}`,
+    at: resolveUpdatedAt({ updatedAt: raw.at }, Date.now()),
+    name,
+    rarity,
+    level: clampInt(raw.level ?? 1, 1, getLevelCap(rarity)),
+    gold: clampInt(raw.gold ?? 0, 0, LIMITS.money),
+    essence: clampInt(raw.essence ?? 0, 0, LIMITS.essence),
+    shards: clampInt(raw.shards ?? 0, 0, LIMITS.monShards),
+    source: raw.source === "party" ? "party" : "box",
+  };
+  return entry;
+}
+
+export function sanitizeReleaseLog(raw) {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set();
+  const rows = [];
+  for (const item of raw) {
+    const entry = sanitizeReleaseEntry(item);
+    if (!entry || seen.has(entry.id)) continue;
+    seen.add(entry.id);
+    rows.push(entry);
+  }
+  return rows
+    .sort((a, b) => Date.parse(b.at || "") - Date.parse(a.at || ""))
+    .slice(0, LIMITS.releaseLogMax);
+}
+
 export function getDailyLoginStatusFromSave(save, now = Date.now()) {
   const ready = isDailyLoginReady(save, now);
   return {
@@ -564,6 +599,7 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
     questState: sanitizeQuestState(input.questState),
     mailbox: sanitizeMailbox(input.mailbox),
     dailyLoginLastClaimAt: sanitizeDailyLoginLastClaimAt(input.dailyLoginLastClaimAt, now),
+    releaseLog: sanitizeReleaseLog(input.releaseLog),
     adventureBattleActive: false,
     revision: clampInt(input.revision ?? 0, 0, Number.MAX_SAFE_INTEGER),
     saveVersion: Number.isFinite(input.saveVersion) ? clampInt(input.saveVersion, 1, 999) : 1,
