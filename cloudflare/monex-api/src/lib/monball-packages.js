@@ -3,7 +3,7 @@
  * Catalog is server-authoritative — frontend must load via API, not hardcode prices.
  *
  * Optional env override:
- *   MONBALL_PACKAGES_JSON='[{"id":"mb_10","amount":10,"monexPrice":5,"active":true,"displayOrder":1},...]'
+ *   MONBALL_PACKAGES_JSON='[{"id":"mb_10","amount":10,"monexPrice":5000,"active":true,"displayOrder":1},...]'
  *
  * Optional purchase grant (staging / until on-chain MONEX settle is live):
  *   ENABLE_MONBALL_PACKAGE_PURCHASE=1
@@ -21,21 +21,21 @@ export const DEFAULT_MONBALL_PACKAGES = Object.freeze([
   Object.freeze({
     id: "mb_10",
     amount: 10,
-    monexPrice: 5,
+    monexPrice: 5000,
     active: true,
     displayOrder: 1,
   }),
   Object.freeze({
     id: "mb_50",
     amount: 50,
-    monexPrice: 20,
+    monexPrice: 25000,
     active: true,
     displayOrder: 2,
   }),
   Object.freeze({
     id: "mb_100",
     amount: 100,
-    monexPrice: 35,
+    monexPrice: 50000,
     active: true,
     displayOrder: 3,
   }),

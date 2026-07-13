@@ -40,7 +40,7 @@ WORKER_ORIGIN = "https://monex-api.0xjericd.workers.dev"
 # Live site (custom domain). OAuth redirects return here after X login.
 FRONTEND_ORIGIN = "https://monexmonad.xyz"
 # MonBall package catalog (optional JSON override). Default: 10/50/100 packs.
-# MONBALL_PACKAGES_JSON = '[{"id":"mb_10","amount":10,"monexPrice":5,"active":true,"displayOrder":1},{"id":"mb_50","amount":50,"monexPrice":20,"active":true,"displayOrder":2},{"id":"mb_100","amount":100,"monexPrice":35,"active":true,"displayOrder":3}]'
+# MONBALL_PACKAGES_JSON = '[{"id":"mb_10","amount":10,"monexPrice":5000,"active":true,"displayOrder":1},{"id":"mb_50","amount":50,"monexPrice":25000,"active":true,"displayOrder":2},{"id":"mb_100","amount":100,"monexPrice":50000,"active":true,"displayOrder":3}]'
 # Set to 1 only on staging to grant packages without on-chain $MONEX settlement.
 # ENABLE_MONBALL_PACKAGE_PURCHASE = "0"
 
