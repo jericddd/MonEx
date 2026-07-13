@@ -149,4 +149,22 @@ describe("recoverActivityCatchesForUser", () => {
     assert.equal(result.added.length, 1);
     assert.equal(result.added[0].name, "Mosferatu");
   });
+
+  it("skips mons from same activity by tweetId even with different recovery id", () => {
+    const result = recoverActivityCatchesForUser({
+      username: "Lucci_Crypto",
+      activityEntries: sampleActivities,
+      save: {
+        party: [{ name: "Mosferatu", rarity: "Common", level: 1, wildPendingId: "recovery_tw_1_0", equipment: {} }],
+        box: [],
+        monballs: 9,
+        xHandle: "Lucci_Crypto",
+      },
+    });
+
+    assert.equal(result.added.length, 1);
+    assert.equal(result.added[0].name, "Shramp");
+    assert.equal(result.skipped.length, 1);
+    assert.equal(result.skipped[0].reason, "already_from_activity");
+  });
 });

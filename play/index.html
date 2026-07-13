@@ -7547,6 +7547,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/game-session-client.js?v=20260710a"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/quest-client.js?v=20260713b"></script>
+<script src="js/shop-client.js?v=20260713c"></script>
 <script src="js/mailbox-client.js?v=20260713a"></script>
 <script>
 // =====================================================
@@ -14756,7 +14757,19 @@ function renderShopItemIconHtml(item) {
     return `<div class="shop-slot-icon" title="${item.name}">?</div>`;
 }
 
-function executeShopPurchase(item, qty) {
+async function executeShopPurchase(item, qty) {
+    if (typeof MonExShop !== "undefined" && MonExShop.purchaseShopItem) {
+        const result = await MonExShop.purchaseShopItem(item.id, qty);
+        if (!result.ok) return false;
+        if (result.save) {
+            applyLoadedSave(result.save);
+            writeLocalSave(result.save);
+        }
+        bumpQuestProgress("shop_buy", qty);
+        updateUI();
+        if (typeof renderShop === "function") renderShop();
+        return true;
+    }
     const totalCost = multiplyCost(item.cost, qty);
     if (!canAffordCost(totalCost)) return false;
     spendCost(totalCost);
@@ -14848,8 +14861,8 @@ function openItemBuyPopup(item) {
             refreshBuyPopup();
         }
     };
-    overlay.querySelector(".hub-popup-buy-btn").onclick = () => {
-        if (!executeShopPurchase(item, qty)) {
+    overlay.querySelector(".hub-popup-buy-btn").onclick = async () => {
+        if (!(await executeShopPurchase(item, qty))) {
             showHubNotice("Not enough resources!<br>Need: " + formatCost(multiplyCost(item.cost, qty)), "CAN'T BUY", { html: true });
             return;
         }
