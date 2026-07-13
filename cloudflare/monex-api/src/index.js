@@ -2,10 +2,7 @@ import { processMentionTweet } from "./lib/process-mention.js";
 import { parseMention } from "./lib/parse-mention.js";
 import {
   loadState,
-  saveState,
   wasProcessed,
-  markProcessed,
-  getUser,
   appendActivity,
   listActivities,
   getPendingForSession,
@@ -50,12 +47,12 @@ import {
 } from "./lib/auth.js";
 import { loadCloudSave, writeCloudSave, buildSavePayload, preserveServerAuthoritativeFields } from "./lib/save.js";
 import { grantMonballs, alignCatchMonballsToMerged } from "./lib/grant-monballs.js";
-import { resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsAfterCatch, getAuthoritativeMonballs, hydrateCloudSaveWithCatchState } from "./lib/save-reconcile.js";
+import { resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsAfterCatch, getAuthoritativeMonballs, hydrateCloudSaveWithCatchState, seedOrHydrateCloudSaveFromCatch } from "./lib/save-reconcile.js";
 import { guardSavePayload } from "./lib/save-economy-guard.js";
 import { claimQuestTask, claimQuestChest } from "./lib/quest-claim.js";
 import { purchaseShopItem } from "./lib/shop-purchase.js";
 import { hydrateCatchUserIntoState, persistCatchUserFromState } from "./lib/catch-user-store.js";
-import { wasTweetProcessedKv, markTweetProcessedKv } from "./lib/tweet-dedupe.js";
+import { tryClaimTweetForProcessing, finalizeTweetProcessed, releaseTweetClaim } from "./lib/tweet-dedupe.js";
 import { appendMonballAudit } from "./lib/monball-audit.js";
 import {
   claimGameSession,
@@ -127,11 +124,12 @@ async function handleSimulate(body, env, request) {
   const bot = env.BOT_USERNAME || "monexmonad";
 
   const state = await loadState(env.MONEX_KV);
+  await hydrateCatchUserIntoState(env.MONEX_KV, state, authorId, username, starting);
   const replyToBot = body?.replyToBot === true;
   const parsed = parseMention(text, bot, { replyToBot });
   if (parsed.type === "catch") {
-    const user = getUser(state, authorId, username, starting);
-    if (user.monballs < parsed.spend) user.monballs = starting;
+    const user = state.users[authorId];
+    if (user && user.monballs < parsed.spend) user.monballs = starting;
   }
 
   const result = processMentionTweet(
@@ -143,6 +141,7 @@ async function handleSimulate(body, env, request) {
   );
   if (result.activity) await appendActivity(env.MONEX_KV, result.activity);
   if (result.activity?.monballsLeft != null && authorId) {
+    await persistCatchUserFromState(env.MONEX_KV, state, authorId);
     await appendMonballAudit(env.MONEX_KV, {
       xUserId: authorId,
       username,
@@ -151,16 +150,13 @@ async function handleSimulate(body, env, request) {
       balanceAfter: result.activity.monballsLeft,
       meta: { pool: "catch", tweetId },
     });
-    await syncSaveMonballsAfterCatch(
+    await seedOrHydrateCloudSaveFromCatch(
       env.MONEX_KV,
       authorId,
       username,
-      result.activity.monballsLeft,
-      starting,
-      { spend: result.activity.spend, tweetId }
+      starting
     );
   }
-  await saveState(env.MONEX_KV, state);
 
   return json(
     {
@@ -250,30 +246,33 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
     for (const tweet of tweets) {
       const lockKey = userSyncLockKey(tweet.authorId, tweet.username);
       await withUserSyncLock(lockKey, async () => {
-      if (await wasTweetProcessedKv(env.MONEX_KV, tweet.id)) {
-        status.skipped.push({ id: tweet.id, reason: "already_processed" });
+      const claim = await tryClaimTweetForProcessing(env.MONEX_KV, tweet.id);
+      if (!claim.claimed) {
+        status.skipped.push({ id: tweet.id, reason: claim.reason || "already_processed" });
         return;
       }
+
       let state = await loadState(env.MONEX_KV);
       if (wasProcessed(state, tweet.id)) {
-        status.skipped.push({ id: tweet.id, reason: "already_processed" });
-        await markTweetProcessedKv(env.MONEX_KV, tweet.id);
+        await finalizeTweetProcessed(env.MONEX_KV, tweet.id);
+        status.skipped.push({ id: tweet.id, reason: "already_processed_legacy" });
         return;
       }
+
+      await hydrateCatchUserIntoState(env.MONEX_KV, state, tweet.authorId, tweet.username, starting);
 
       let result;
       try {
         result = processMentionTweet(tweet, bot, state, starting, botUser.id);
       } catch (err) {
+        await releaseTweetClaim(env.MONEX_KV, tweet.id);
         status.errors = status.errors || [];
         status.errors.push({ id: tweet.id, error: err.message || String(err) });
         return;
       }
 
       if (result.activity) {
-        markProcessed(state, tweet.id);
         await persistCatchUserFromState(env.MONEX_KV, state, tweet.authorId);
-        await saveState(env.MONEX_KV, state);
 
         const spend = result.activity.spend || 0;
         const balanceAfter = result.activity.monballsLeft;
@@ -287,7 +286,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
           meta: { pool: "catch", tweetId: tweet.id },
         });
 
-        const hydrated = await hydrateCloudSaveWithCatchState(
+        const hydrated = await seedOrHydrateCloudSaveFromCatch(
           env.MONEX_KV,
           tweet.authorId,
           tweet.username,
@@ -308,22 +307,14 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
         status.activities += 1;
       } else if (result.skipReason) {
         status.skipped.push({ id: tweet.id, user: tweet.username, reason: result.skipReason });
-        markProcessed(state, tweet.id);
         if (state.users[tweet.authorId]) {
           await persistCatchUserFromState(env.MONEX_KV, state, tweet.authorId);
         }
-        await saveState(env.MONEX_KV, state);
-      } else {
-        markProcessed(state, tweet.id);
-        await saveState(env.MONEX_KV, state);
       }
 
       if (env.ENABLE_X_REPLY === "1") {
-        // hydrate/sync may have written monex:state — reload before reply quota.
-        state = await loadState(env.MONEX_KV);
-
-        const dailyLimit = getDailyReplyLimitForUser(tweet.username, env);
         const replyUser = state.users[tweet.authorId];
+        const dailyLimit = getDailyReplyLimitForUser(tweet.username, env);
         const usedToday = await getReplyCountToday(env.MONEX_KV, tweet.authorId, replyUser);
         const repliesLeftAfter = dailyLimit - usedToday - 1;
         const mayReply = await canSendReply(env.MONEX_KV, tweet.authorId, dailyLimit, replyUser);
@@ -391,10 +382,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
         }
       }
 
-      await saveState(env.MONEX_KV, state);
-      if (wasProcessed(state, tweet.id)) {
-        await markTweetProcessedKv(env.MONEX_KV, tweet.id);
-      }
+      await finalizeTweetProcessed(env.MONEX_KV, tweet.id);
       status.processed += 1;
       });
     }
@@ -955,7 +943,6 @@ async function handleRequest(request, env) {
             startingMonballs: starting,
           });
           await persistCatchUserFromState(env.MONEX_KV, state, xUserId);
-          await saveState(env.MONEX_KV, state);
           if (result.ok && result.save) {
             await writeCloudSave(env.MONEX_KV, xUserId, result.save, { skipStaleCheck: true });
             await alignCatchMonballsToMerged(env.MONEX_KV, auth.session, result.monballs, starting);

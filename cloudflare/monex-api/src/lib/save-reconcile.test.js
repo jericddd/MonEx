@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   resolveMergedMonballs,
   reconcileMonballsForCloudSave,
+  seedOrHydrateCloudSaveFromCatch,
 } from "./save-reconcile.js";
 
 function makeKv(store = {}) {
@@ -195,5 +196,26 @@ describe("reconcileMonballsForCloudSave", () => {
 
     const reconciled = await reconcileMonballsForCloudSave(kv, { xUserId: "u1", username: "lucci_crypto" }, payload, 10);
     assert.equal(reconciled.monballs, 0);
+  });
+});
+
+describe("seedOrHydrateCloudSaveFromCatch", () => {
+  it("creates stub cloud save and backfills pending mons on first catch", async () => {
+    const kv = makeKv({
+      "monex:catch-user:u1": JSON.stringify({
+        username: "newbie",
+        monballs: 8,
+        pendingMons: [{ name: "Chog", rarity: "Common", pendingId: "p_1" }],
+        updatedAt: new Date().toISOString(),
+      }),
+      "monex:state": JSON.stringify({ processedTweetIds: [], users: {} }),
+    });
+
+    const result = await seedOrHydrateCloudSaveFromCatch(kv, "u1", "newbie", 10);
+    assert.equal(result.hydrated, true);
+    assert.equal(result.seeded, true);
+    assert.equal(result.save.party.length, 1);
+    assert.equal(result.save.party[0].name, "Chog");
+    assert.equal(result.save.monballs, 8);
   });
 });

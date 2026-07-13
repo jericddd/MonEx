@@ -56,8 +56,8 @@ describe("hydrateCloudSaveWithCatchState", () => {
     assert.equal(result.save.party.length, 3);
     assert.equal(result.save.box.length, 15);
 
-    const state = JSON.parse(store["monex:state"]);
-    assert.equal(state.users.lucci.pendingMons.length, 0);
+    const catchRecord = JSON.parse(store["monex:catch-user:lucci"]);
+    assert.equal(catchRecord.pendingMons.length, 0);
 
     const saved = JSON.parse(store["monex:save:lucci"]);
     assert.equal(saved.monballs, 0);

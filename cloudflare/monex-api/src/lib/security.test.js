@@ -37,6 +37,7 @@ describe("security helpers", () => {
     assert.equal(simulateAllowed({}), false);
     assert.equal(simulateAllowed({ ENABLE_SIMULATE: "0" }), false);
     assert.equal(simulateAllowed({ ENABLE_SIMULATE: "1" }), true);
+    assert.equal(simulateAllowed({ ENABLE_SIMULATE: "1", DEPLOY_ENV: "production" }), false);
   });
 
   it("isStagingOrigin detects preview hosts only", () => {
