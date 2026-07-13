@@ -31,6 +31,7 @@ const API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 const STATE_KEY = "monex:state";
 const ACTIVITY_KEY = "monex:activity";
 const SAVE_PREFIX = "monex:save:";
+const CATCH_USER_PREFIX = "monex:catch-user:";
 const AUDIT_PREFIX = "monex:monball-audit:";
 
 function requireEnv() {
@@ -132,14 +133,19 @@ async function main() {
   const xUserId = findUserIdInState(state, username);
 
   let save = null;
+  let catchUser = null;
   let audit = [];
   let replyKvCount = null;
   const replyDay = todayUtcDay();
   if (xUserId) {
-    const saveRaw = await getValue(`${SAVE_PREFIX}${xUserId}`);
+    const [saveRaw, auditRaw, catchUserRaw] = await Promise.all([
+      getValue(`${SAVE_PREFIX}${xUserId}`),
+      getValue(`${AUDIT_PREFIX}${xUserId}`),
+      getValue(`${CATCH_USER_PREFIX}${xUserId}`),
+    ]);
     if (saveRaw) save = JSON.parse(saveRaw);
-    const auditRaw = await getValue(`${AUDIT_PREFIX}${xUserId}`);
     if (auditRaw) audit = JSON.parse(auditRaw);
+    if (catchUserRaw) catchUser = JSON.parse(catchUserRaw);
     const replyRaw = await getValue(replyCountKey(xUserId, replyDay));
     replyKvCount = replyRaw != null ? Number.parseInt(replyRaw, 10) : 0;
   }
@@ -160,6 +166,10 @@ async function main() {
     .sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
 
   const auditLedger = reconcileAuditTrail(audit);
+  const pendingMons = Array.isArray(catchUser?.pendingMons) ? catchUser.pendingMons.length : 0;
+  const inventoryMons = (save?.party?.length || 0) + (save?.box?.length || 0);
+  const catchMonballs = catchUser?.monballs ?? null;
+  const saveMonballs = save?.monballs ?? null;
   const dailyLoginDay = save?.dailyLoginLastClaimAt
     ? getDailyLoginDayKeyFromTimestamp(save.dailyLoginLastClaimAt)
     : null;
@@ -214,6 +224,14 @@ async function main() {
       totalCatchSpend: catches.reduce((sum, c) => sum + (c.spend || 0), 0),
       catchSessions: catches.length,
       auditEntries: auditLedger.length,
+      pendingMons,
+      inventoryMons,
+      monballPools: {
+        catchKv: catchMonballs,
+        cloudSave: saveMonballs,
+        mismatch: catchMonballs != null && saveMonballs != null && catchMonballs !== saveMonballs,
+      },
+      pendingMonsNotInInventory: pendingMons > 0,
       likelyDailyLoginBetweenCatches:
         catches.length >= 2
         && catches.some((c) => c.monballsLeft === 0)
@@ -272,6 +290,14 @@ async function main() {
   console.log("");
   console.log("Analysis:");
   console.log(`  Total catch spend logged: ${report.analysis.totalCatchSpend}`);
+  console.log(`  Pending mons (catch KV): ${report.analysis.pendingMons}`);
+  console.log(`  Inventory mons (party+box): ${report.analysis.inventoryMons}`);
+  if (report.analysis.pendingMonsNotInInventory) {
+    console.log("  ⚠ Pending catches exist in catch KV — run /api/sync or backfill if inventory is missing mons.");
+  }
+  if (report.analysis.monballPools.mismatch) {
+    console.log(`  ⚠ MonBall pool mismatch: catch KV=${report.analysis.monballPools.catchKv}, save=${report.analysis.monballPools.cloudSave}`);
+  }
   if (report.analysis.likelyDailyLoginBetweenCatches) {
     console.log("  ⚠ Pattern matches: catch to 0, then mailbox_claim +5, then another catch.");
     console.log("    This is expected if Daily Login mail was claimed between sessions.");

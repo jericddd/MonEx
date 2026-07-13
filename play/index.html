@@ -9197,7 +9197,12 @@ function collectResourceChest(buttonEl) {
 
         if (typeof MonExResourceChest !== "undefined" && MonExResourceChest.collectResourceChest) {
             const result = await MonExResourceChest.collectResourceChest();
-            if (!result.ok) return;
+            if (!result.ok) {
+                if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+                    showHubNotice("Resource chest could not sync with the server. Check your connection and try again.", "Chest sync failed");
+                }
+                return;
+            }
             if (result.save) {
                 applyLoadedSave(result.save);
                 writeLocalSave(result.save);
@@ -9205,6 +9210,10 @@ function collectResourceChest(buttonEl) {
             playResourceChestCollectFx(preview);
             updateResourceChestWidget();
             updateUI();
+            return;
+        }
+        if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+            showHubNotice("Resource chest must sync through the server. Refresh and try again.", "Chest offline");
             return;
         }
 
@@ -9361,6 +9370,10 @@ async function advanceQuestTask(taskId, buttonEl) {
             updateHeaderCurrencies();
             return;
         }
+        if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+            showHubNotice("Quest rewards must sync through the server. Refresh and try again.", "Quest offline");
+            return;
+        }
         const grant = buildQuestGrantFromDef(def);
         task.claimed = true;
         if (!grant || !grantQuestReward(grant, grantKey)) {
@@ -9399,6 +9412,10 @@ async function claimQuestChest(milestone, buttonEl) {
             }
             renderDailyQuest();
             updateHeaderCurrencies();
+            return;
+        }
+        if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+            showHubNotice("Quest chest rewards must sync through the server. Refresh and try again.", "Quest offline");
             return;
         }
         if (track === "weeklies") {
@@ -14848,9 +14865,17 @@ function renderShopItemIconHtml(item) {
 }
 
 async function executeShopPurchase(item, qty) {
-    if (typeof MonExShop !== "undefined" && MonExShop.purchaseShopItem) {
+    const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
+    if (loggedIn) {
+        if (typeof MonExShop === "undefined" || !MonExShop.purchaseShopItem) {
+            showHubNotice("Shop sync is unavailable. Refresh the page and try again.", "Shop offline");
+            return false;
+        }
         const result = await MonExShop.purchaseShopItem(item.id, qty);
-        if (!result.ok) return false;
+        if (!result.ok) {
+            showHubNotice("Purchase could not sync with the server. Check your connection and try again.", "Shop error");
+            return false;
+        }
         if (result.save) {
             applyLoadedSave(result.save);
             writeLocalSave(result.save);
@@ -16747,6 +16772,11 @@ async function finishPatrolBattleRewards(win, encounter) {
             logTag: "patrol",
         });
         if (serverReward) reward = serverReward;
+    } else if (win && MonExAuth?.isLoggedIn?.()) {
+        showHubNotice(
+            "Battle reward API is unavailable. Refresh the page to sync rewards from the cloud.",
+            "Reward offline"
+        );
     } else if (win) {
         reward = rollPatrolRewards(encounter, true);
         grantBattleRewards(reward);
@@ -18049,6 +18079,11 @@ async function finishAdventureBattleRewards(win) {
             logTag: "adventure",
         });
         if (serverReward) reward = serverReward;
+    } else if (win && MonExAuth?.isLoggedIn?.()) {
+        showHubNotice(
+            "Battle reward API is unavailable. Refresh the page to sync rewards from the cloud.",
+            "Reward offline"
+        );
     } else if (win) {
         const boss = isBossStage(currentStage);
         const mult = boss ? 2 : 1;
