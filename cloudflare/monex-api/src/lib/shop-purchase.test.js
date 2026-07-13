@@ -66,7 +66,7 @@ test("purchaseShopItem rejects insufficient funds", async () => {
   assert.equal(result.error, "insufficient_funds");
 });
 
-test("purchaseShopItem blocks monball pack", async () => {
+test("purchaseShopItem rejects removed monball qty item", async () => {
   const kv = makeKv({
     "monex:save:u1": JSON.stringify({
       revision: 0,
@@ -88,7 +88,7 @@ test("purchaseShopItem blocks monball pack", async () => {
   );
 
   assert.equal(result.ok, false);
-  assert.equal(result.error, "item_unavailable");
+  assert.equal(result.error, "invalid_item");
 });
 
 test("purchaseShopItem grants gear to inventory", async () => {

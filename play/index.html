@@ -6004,6 +6004,140 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     width: min(92vw, 520px);
     max-width: 560px;
 }
+.monball-pack-popup .hub-popup-inner {
+    padding-bottom: 18px;
+}
+.monball-pack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 4px 0 8px;
+}
+.monball-pack-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 10px 12px;
+    border: 2px solid #8b4513;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #5c3a24 0%, #3d2518 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 220, 160, 0.12), 0 3px 0 #2a1810;
+    cursor: pointer;
+    text-align: center;
+    color: #ffe8c8;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+}
+.monball-pack-card:hover {
+    border-color: #f0a040;
+}
+.monball-pack-card.is-selected {
+    border-color: #fde68a;
+    box-shadow:
+        inset 0 0 0 1px rgba(253, 230, 138, 0.45),
+        0 0 0 2px rgba(245, 158, 11, 0.35),
+        0 3px 0 #2a1810;
+    transform: translateY(-1px);
+}
+.monball-pack-icon {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+.monball-pack-amount {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    line-height: 1.45;
+    color: #fde68a;
+}
+.monball-pack-price {
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffe8c8;
+}
+.monball-pack-price span {
+    color: #fbbf24;
+}
+.monball-pack-buy {
+    width: 100%;
+    margin-top: 2px;
+    padding: 10px 8px;
+}
+.monball-pack-status {
+    min-height: 18px;
+    margin: 8px 0 0;
+    text-align: center;
+    font-size: 12px;
+    color: rgba(255, 232, 200, 0.8);
+}
+.shop-monball-cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    border: 2px solid #c46a28;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #6b4426 0%, #4a2e18 100%);
+    color: #ffe8c8;
+    cursor: pointer;
+    text-align: left;
+    box-shadow: 0 3px 0 #2a1810;
+    font: inherit;
+}
+.shop-monball-cta:hover {
+    border-color: #fde68a;
+    filter: brightness(1.05);
+}
+.shop-monball-cta-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+.shop-monball-cta-left img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    flex-shrink: 0;
+}
+.shop-monball-cta-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #fde68a;
+    line-height: 1.4;
+}
+.shop-monball-cta-sub {
+    font-size: 12px;
+    color: rgba(255, 232, 200, 0.8);
+    margin-top: 4px;
+}
+.shop-monball-cta-go {
+    flex-shrink: 0;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: #14532d;
+    background: linear-gradient(180deg, #86efac 0%, #16a34a 100%);
+    border: 2px solid #15803d;
+    box-shadow: 2px 2px 0 #166534;
+    padding: 8px 10px;
+}
+@media (max-width: 520px) {
+    .monball-pack-grid {
+        grid-template-columns: 1fr;
+    }
+    .shop-monball-cta {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .shop-monball-cta-go {
+        text-align: center;
+    }
+}
 .game-modal-panel {
     background: white;
     border: 4px solid #6B21A8;
@@ -7274,7 +7408,7 @@ body.cloud-load-blocked .game-shell {
         </button>
         <button type="button" class="side-icon-btn" onclick="buyMonball()">
             <img src="game_icons/button%20tabs/monball.png?v=5" alt="">
-            <span class="rail-tip">BUY BALL ($MONEX soon)</span>
+            <span class="rail-tip">BUY MONBALLS</span>
         </button>
         <button type="button" class="side-icon-btn" id="rail-mailbox" onclick="openGameModal('mailbox')">
             <span class="rail-mail-badge" id="rail-mailbox-badge" aria-hidden="true">0</span>
@@ -7556,7 +7690,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/game-session-client.js?v=20260710a"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/quest-client.js?v=20260713b"></script>
-<script src="js/shop-client.js?v=20260713c"></script>
+<script src="js/shop-client.js?v=20260713f"></script>
 <script src="js/resource-chest-client.js?v=20260713d"></script>
 <script src="js/battle-reward-client.js?v=20260713e"></script>
 <script src="js/mailbox-client.js?v=20260713a"></script>
@@ -8555,7 +8689,6 @@ const SHOP_ITEMS = [
     { id: "shop_weapon_t2", category: "weapon",  name: "Field Blade",      iconKey: null, gearGrant: { randomRarity: true, slot: "weapon", gearLevelTier: 2 }, desc: "Any rarity, Lv 21 equip tier. Random house.", cost: { gold: 8500, essence: 20 } },
     { id: "shop_armor_t1",  category: "armor",   name: "Training Vest",    iconKey: null, gearGrant: { tier: 1, slot: "armor", gearLevelTier: 1 },  desc: "Common rarity, Lv 1 equip tier. Random house.",  cost: { gold: 3200 } },
     { id: "shop_armor_t2",  category: "armor",   name: "Field Vest",       iconKey: null, gearGrant: { randomRarity: true, slot: "armor", gearLevelTier: 2 },  desc: "Any rarity, Lv 21 equip tier. Random house.", cost: { gold: 7800, essence: 18 } },
-    { id: "monball5",       category: "mats",    name: "Monball Pack",     iconKey: "monball",  desc: "$MONEX token integration coming soon. Monballs will be paid in $MONEX.", cost: { gold: 2000 },              grant: { monballs: 5 } },
     { id: "essence25",      category: "mats",    name: "KB's Onion Pack",  iconKey: "essence",  desc: "25 KB's Onion for leveling.", cost: { gold: 900 },               grant: { essence: 25 } },
     { id: "shards3",        category: "mats",    name: "Shard Pack",       iconKey: "shards",   desc: "3 Mon Shards.",                cost: { gold: 1800, essence: 15 }, grant: { monShards: 3 } },
 ];
@@ -15028,23 +15161,51 @@ function renderBox() {
 }
 
 // ==================== ACTIONS ====================
-const MONBALL_QUICK_BUY = {
-    id: "_monball1",
-    name: "Monball",
-    desc: "$MONEX token integration coming soon. Monballs will be paid in $MONEX.",
-    cost: { gold: 500 },
-    grant: { monballs: 1 },
-};
-
 const MONEX_TOKEN_COMING_SOON_HTML =
-    "$MONEX token integration coming soon.<br>Monballs will be paid in $MONEX — everything else stays in Gold.";
+    "$MONEX token integration coming soon.<br>Monballs are sold in fixed packages priced in $MONEX.";
+
+let _monballPackagesCache = null;
+let _monballPackagesCacheAt = 0;
+const MONBALL_PACKAGES_CACHE_MS = 60_000;
 
 function isMonballPurchaseItem(item) {
     return !!(item?.grant?.monballs);
 }
 
-function showMonballComingSoonNotice() {
+function showMonballComingSoonNotice(pkg) {
+    if (pkg && Number.isFinite(Number(pkg.monexPrice))) {
+        const amount = Math.floor(Number(pkg.amount) || 0);
+        const price = Number(pkg.monexPrice);
+        showHubNotice(
+            `${amount} MonBalls — <strong>${price} $MONEX</strong><br>$MONEX payment integration coming soon.`,
+            "COMING SOON",
+            { html: true }
+        );
+        return;
+    }
     showHubNotice(MONEX_TOKEN_COMING_SOON_HTML, "COMING SOON", { html: true });
+}
+
+function formatMonexPrice(price) {
+    const n = Number(price);
+    if (!Number.isFinite(n)) return "— $MONEX";
+    return `${n} $MONEX`;
+}
+
+async function fetchMonballPackages({ force = false } = {}) {
+    const now = Date.now();
+    if (!force && _monballPackagesCache && now - _monballPackagesCacheAt < MONBALL_PACKAGES_CACHE_MS) {
+        return _monballPackagesCache;
+    }
+    if (typeof MonExShop === "undefined" || !MonExShop.listMonballPackages) {
+        return { ok: false, packages: [], currency: "MONEX", error: "shop_offline" };
+    }
+    const result = await MonExShop.listMonballPackages();
+    if (result.ok && Array.isArray(result.packages)) {
+        _monballPackagesCache = result;
+        _monballPackagesCacheAt = now;
+    }
+    return result;
 }
 
 function multiplyCost(cost, qty) {
@@ -15066,7 +15227,7 @@ function getMaxAffordableQty(cost) {
 
 function grantShopItem(item, qty) {
     const mult = qty || 1;
-    if (item.grant?.monballs) monballs += item.grant.monballs * mult;
+    if (item.grant?.monballs) return; // MonBalls are package-only via server
     if (item.grant?.essence) essence += item.grant.essence * mult;
     if (item.grant?.monShards) monShards += item.grant.monShards * mult;
     if (item.gearGrant) {
@@ -15097,6 +15258,10 @@ function renderShopItemIconHtml(item) {
 }
 
 async function executeShopPurchase(item, qty) {
+    if (isMonballPurchaseItem(item)) {
+        showMonballComingSoonNotice();
+        return false;
+    }
     const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
     if (loggedIn) {
         if (typeof MonExShop === "undefined" || !MonExShop.purchaseShopItem) {
@@ -15152,6 +15317,10 @@ function showHubNotice(message, title = "NOTICE", options = {}) {
 
 function openItemBuyPopup(item) {
     if (!item) return;
+    if (isMonballPurchaseItem(item)) {
+        openMonballPackagePopup();
+        return;
+    }
 
     let qty = 1;
     const maxQty = Math.max(1, getMaxAffordableQty(item.cost));
@@ -15228,13 +15397,143 @@ function openItemBuyPopup(item) {
     refreshBuyPopup();
 }
 
-function buyMonball() {
-    if (!isStagingTestUser()) {
-        showMonballComingSoonNotice();
+function renderMonballPackageCards(packages, selectedId, currency) {
+    const monballIcon = GAME_ICONS.monball?.src || "game_icons/button%20tabs/monball.png";
+    const cur = currency || "MONEX";
+    return packages.map((pkg) => {
+        const selected = pkg.id === selectedId ? " is-selected" : "";
+        const amount = Math.floor(Number(pkg.amount) || 0);
+        const price = formatMonexPrice(pkg.monexPrice).replace("$MONEX", `$${cur}`);
+        return `
+            <div class="monball-pack-card${selected}" data-package-id="${pkg.id}" role="button" tabindex="0" aria-pressed="${pkg.id === selectedId ? "true" : "false"}">
+                <img class="monball-pack-icon" src="${monballIcon}" alt="">
+                <div class="monball-pack-amount">${amount} MonBalls</div>
+                <div class="monball-pack-price">Price: <span>${price}</span></div>
+                <button type="button" class="hub-popup-btn hub-popup-btn-primary monball-pack-buy" data-buy-package="${pkg.id}">BUY</button>
+            </div>`;
+    }).join("");
+}
+
+async function executeMonballPackagePurchase(pkg) {
+    const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
+    if (!loggedIn) {
+        showHubNotice("Log in with X to buy MonBall packages.", "LOGIN REQUIRED");
+        return { ok: false, error: "login_required" };
+    }
+    if (typeof MonExShop === "undefined" || !MonExShop.purchaseMonballPackage) {
+        showHubNotice("Shop sync is unavailable. Refresh the page and try again.", "Shop offline");
+        return { ok: false, error: "shop_offline" };
+    }
+    const result = await MonExShop.purchaseMonballPackage(pkg.id);
+    if (result.ok && result.save) {
+        applyLoadedSave(result.save);
+        writeLocalSave(result.save);
+        bumpQuestProgress("shop_buy", 1);
+        updateUI();
+        if (typeof renderShop === "function") renderShop();
+        return result;
+    }
+    return result;
+}
+
+async function openMonballPackagePopup() {
+    const existing = document.querySelector(".monball-pack-popup-overlay");
+    if (existing) existing.remove();
+
+    const overlay = document.createElement("div");
+    overlay.className = "popup-overlay hub-popup-overlay monball-pack-popup-overlay";
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    overlay.innerHTML = `
+        <div class="hub-popup-frame hub-frame hub-popup-wide monball-pack-popup" onclick="event.stopPropagation()">
+            <button type="button" class="hub-popup-close-left" aria-label="Close">&times;</button>
+            <div class="hub-popup-inner">
+                <h3 class="hub-popup-title">BUY MONBALLS</h3>
+                <p class="hub-popup-sub">Choose a package. Prices are in $MONEX.</p>
+                <div class="monball-pack-grid" aria-live="polite">
+                    <p class="monball-pack-status">Loading packages…</p>
+                </div>
+                <p class="monball-pack-status monball-pack-footer-status"></p>
+            </div>
+        </div>`;
+    overlay.querySelector(".hub-popup-close-left").onclick = () => overlay.remove();
+    document.body.appendChild(overlay);
+
+    const grid = overlay.querySelector(".monball-pack-grid");
+    const footer = overlay.querySelector(".monball-pack-footer-status");
+    let selectedId = null;
+    let packages = [];
+    let currency = "MONEX";
+
+    function setSelected(id) {
+        selectedId = id;
+        grid.querySelectorAll(".monball-pack-card").forEach((card) => {
+            const on = card.getAttribute("data-package-id") === selectedId;
+            card.classList.toggle("is-selected", on);
+            card.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+        const pkg = packages.find((p) => p.id === selectedId);
+        if (footer && pkg) {
+            footer.textContent = `${Math.floor(pkg.amount)} MonBalls · ${formatMonexPrice(pkg.monexPrice)}`;
+        }
+    }
+
+    function bindPackageCards() {
+        grid.querySelectorAll(".monball-pack-card").forEach((card) => {
+            const id = card.getAttribute("data-package-id");
+            card.onclick = (e) => {
+                if (e.target.closest("[data-buy-package]")) return;
+                setSelected(id);
+            };
+            card.onkeydown = (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelected(id);
+                }
+            };
+        });
+        grid.querySelectorAll("[data-buy-package]").forEach((btn) => {
+            btn.onclick = async (e) => {
+                e.stopPropagation();
+                const packageId = btn.getAttribute("data-buy-package");
+                const pkg = packages.find((p) => p.id === packageId);
+                if (!pkg) return;
+                setSelected(packageId);
+                const run = window.MonExClaimGuard?.runClaimOnce
+                    ? (fn, opts) => MonExClaimGuard.runClaimOnce(`monball-pack:${packageId}`, fn, opts)
+                    : async (fn) => fn();
+                await run(async () => {
+                    const result = await executeMonballPackagePurchase(pkg);
+                    if (result.ok) {
+                        overlay.remove();
+                        showHubNotice(`Purchased ${Math.floor(pkg.amount)} MonBalls!`, "PURCHASED");
+                        return;
+                    }
+                    if (result.error === "monex_payment_required" || result.error === "monex_payment_unverified") {
+                        showMonballComingSoonNotice(result.package || pkg);
+                        return;
+                    }
+                    if (result.error === "login_required" || result.error === "shop_offline") return;
+                    showHubNotice(result.message || "Could not complete MonBall package purchase.", "Shop error");
+                }, { button: btn, loadingText: "BUYING...", resetOnError: true });
+            };
+        });
+    }
+
+    const result = await fetchMonballPackages();
+    packages = Array.isArray(result.packages) ? result.packages : [];
+    currency = result.currency || "MONEX";
+    if (!result.ok || !packages.length) {
+        grid.innerHTML = `<p class="monball-pack-status">Could not load MonBall packages. Try again shortly.</p>`;
         return;
     }
-    const item = SHOP_ITEMS.find((i) => i.id === "monball5");
-    if (item) openShopBuyPopup(item);
+    selectedId = packages[0].id;
+    grid.innerHTML = renderMonballPackageCards(packages, selectedId, currency);
+    bindPackageCards();
+    setSelected(selectedId);
+}
+
+function buyMonball() {
+    openMonballPackagePopup();
 }
 
 // Spend KB's Onion + Gold to level a party member up by one (also fully heals it).
@@ -15279,8 +15578,8 @@ function levelUpMonManual(index, buttonEl) {
 function buyShopItem(itemId) {
     const item = SHOP_ITEMS.find(i => i.id === itemId);
     if (!item) return;
-    if (isMonballPurchaseItem(item) && !isStagingTestUser()) {
-        showMonballComingSoonNotice();
+    if (isMonballPurchaseItem(item)) {
+        openMonballPackagePopup();
         return;
     }
     openItemBuyPopup(item);
@@ -15301,6 +15600,21 @@ function renderShopCategories() {
     `).join("");
 }
 
+function renderShopMonballCta() {
+    const monballIcon = GAME_ICONS.monball?.src || "game_icons/button%20tabs/monball.png";
+    return `
+        <button type="button" class="shop-monball-cta" onclick="openMonballPackagePopup()">
+            <span class="shop-monball-cta-left">
+                <img src="${monballIcon}" alt="">
+                <span>
+                    <div class="shop-monball-cta-title">BUY MONBALLS</div>
+                    <div class="shop-monball-cta-sub">Fixed packages · priced in $MONEX</div>
+                </span>
+            </span>
+            <span class="shop-monball-cta-go">OPEN</span>
+        </button>`;
+}
+
 function renderShop() {
     const grid = document.getElementById("shop-grid");
     if (!grid) return;
@@ -15308,16 +15622,16 @@ function renderShop() {
     renderShopCategories();
 
     const items = SHOP_ITEMS.filter(i => i.category === shopActiveCategory);
-    if (!items.length) {
+    const monballCta = shopActiveCategory === "mats" ? renderShopMonballCta() : "";
+    if (!items.length && !monballCta) {
         grid.innerHTML = `<p class="shop-empty-msg">No items in this category yet.</p>`;
         return;
     }
 
-    grid.innerHTML = items.map(item => {
-        const monballSoon = isMonballPurchaseItem(item);
-        const afford = monballSoon || canAffordCost(item.cost);
-        const costShort = monballSoon ? "$MONEX soon" : (item.cost.gold ? item.cost.gold + "G" : formatCost(item.cost));
-        const tip = renderHoverTip(item.name, item.desc + (monballSoon ? "" : " — " + formatCost(item.cost)));
+    const itemHtml = items.map(item => {
+        const afford = canAffordCost(item.cost);
+        const costShort = item.cost.gold ? item.cost.gold + "G" : formatCost(item.cost);
+        const tip = renderHoverTip(item.name, item.desc + " — " + formatCost(item.cost));
         const inner = `
             ${renderShopItemIconHtml(item)}
             <span class="shop-slot-cost">${costShort}</span>
@@ -15339,6 +15653,10 @@ function renderShop() {
             </div>
         `;
     }).join("");
+
+    grid.innerHTML = monballCta
+        ? `<div style="grid-column:1/-1;">${monballCta}</div>${itemHtml}`
+        : itemHtml;
     bindHoverFloatTips(grid);
 }
 

@@ -30,14 +30,6 @@ export const SHOP_ITEMS = [
     cost: { gold: 7800, essence: 18 },
   },
   {
-    id: "monball5",
-    category: "mats",
-    name: "Monball Pack",
-    blocked: true,
-    cost: { gold: 2000 },
-    grant: { monballs: 5 },
-  },
-  {
     id: "essence25",
     category: "mats",
     name: "KB's Onion Pack",
