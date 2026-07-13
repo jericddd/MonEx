@@ -111,11 +111,22 @@ export async function checkRateLimit(kv, bucket, { limit = 60, windowSec = 60 } 
 
 export async function enforceRateLimit(request, env, routeKey, options = {}) {
   const ip = getClientIp(request);
-  const result = await checkRateLimit(env.MONEX_KV, `${routeKey}:${ip}`, options);
+  const limitOpts = { limit: options.limit, windowSec: options.windowSec };
+  const result = await checkRateLimit(env.MONEX_KV, `${routeKey}:ip:${ip}`, limitOpts);
   if (!result.ok) {
     const err = new Error("rate_limited");
     err.code = "rate_limited";
     err.retryAfterSec = result.retryAfterSec;
     throw err;
+  }
+  const userId = options.userId ? String(options.userId).trim() : "";
+  if (userId) {
+    const userResult = await checkRateLimit(env.MONEX_KV, `${routeKey}:user:${userId}`, limitOpts);
+    if (!userResult.ok) {
+      const err = new Error("rate_limited");
+      err.code = "rate_limited";
+      err.retryAfterSec = userResult.retryAfterSec;
+      throw err;
+    }
   }
 }

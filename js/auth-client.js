@@ -240,6 +240,25 @@ async function loadCloudSave() {
   return data;
 }
 
+async function hydrateCloudSave() {
+  const base = getApiBase();
+  const res = await fetch(`${base}/api/hydrate`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: "{}",
+  });
+  if (res.status === 401) {
+    throw new Error("not_logged_in");
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "hydrate failed");
+  }
+  const data = await res.json();
+  if (data?.save?.revision != null) setSaveRevision(data.save.revision);
+  return data;
+}
+
 let _saveTimer = null;
 let _saveInflight = null;
 let _pendingSaveState = null;
@@ -380,6 +399,14 @@ async function flushCloudSave(state) {
 // Save session token as soon as auth-client loads (OAuth return URL).
 captureSessionFromUrl();
 
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden" && _pendingSaveState && isLoggedIn()) {
+      void flushCloudSave(_pendingSaveState);
+    }
+  });
+}
+
 window.MonExAuth = {
   SESSION_KEY,
   USER_KEY,
@@ -394,6 +421,7 @@ window.MonExAuth = {
   getUsername,
   getXUserId,
   loadCloudSave,
+  hydrateCloudSave,
   scheduleCloudSave,
   flushCloudSave,
   buildSavePayload,
