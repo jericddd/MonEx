@@ -10,6 +10,11 @@ test("getMonDisplaySpritePath uses PNG for Common", () => {
   assert.equal(getMonDisplaySpritePath({ name: "Anago", rarity: "Common" }), "128x128/anago.png");
 });
 
+test("getMonDisplaySpritePath never returns Johnw sprite for other species", () => {
+  assert.notEqual(getMonDisplaySpritePath({ name: "Anago", rarity: "Common" }), "128x128/johnw-idle.gif");
+  assert.notEqual(getMonDisplaySpritePath({ name: "Molandak", rarity: "Legendary" }), "128x128/johnw-idle.gif");
+});
+
 test("getMonDisplaySpritePath uses idle GIF for Legendary when confirmed", () => {
   assert.equal(
     getMonDisplaySpritePath({ name: "Anago", rarity: "Legendary" }),
