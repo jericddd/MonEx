@@ -2,9 +2,12 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   getDailyDayKey,
+  getDailyWeekKey,
   getNextDailyResetAt,
   isDailyLoginReady,
   getDailyLoginNextClaimAt,
+  needsDailyQuestReset,
+  isLegacyUtcDayKeyForCurrentUtc8Day,
 } from "./daily-reset.js";
 
 describe("daily-reset UTC+8", () => {
@@ -30,5 +33,12 @@ describe("daily-reset UTC+8", () => {
       getDailyLoginNextClaimAt(now),
       new Date("2026-07-10T16:00:00.000Z").toISOString()
     );
+  });
+
+  it("needsDailyQuestReset handles legacy UTC day keys", () => {
+    const now = new Date("2026-07-14T20:00:00.000Z");
+    assert.equal(getDailyDayKey(now), "2026-07-15");
+    assert.equal(needsDailyQuestReset("2026-07-14", now), true);
+    assert.equal(isLegacyUtcDayKeyForCurrentUtc8Day("2026-07-14", now), true);
   });
 });

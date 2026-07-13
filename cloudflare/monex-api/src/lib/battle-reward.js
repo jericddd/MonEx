@@ -8,6 +8,7 @@ import {
   isEquipmentUnlocked,
   STAGES_PER_CHAPTER,
 } from "./equipment-unlock.js";
+import { applyQuestResetsToState } from "./quest-reset.js";
 
 const MAX_CLAIM_RETRIES = 3;
 const CLAIM_PREFIX = "monex:battle-claim:";
@@ -291,6 +292,7 @@ export async function claimBattleReward(
   const reward = computed.reward;
   let nextSave = applyRewardToSave(save, reward);
   const questState = normalizeQuestState(nextSave);
+  applyQuestResetsToState(questState);
 
   if (battleMode === "patrol") {
     bumpQuestTrack(questState, "patrol_win", 1);

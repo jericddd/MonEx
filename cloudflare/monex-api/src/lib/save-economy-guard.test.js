@@ -11,6 +11,22 @@ import {
   MAX_SAVE_DELTA,
   MAX_INVENTORY_SHRINK,
 } from "./save-economy-guard.js";
+import { getDailyDayKey, getDailyWeekKey } from "./daily-reset.js";
+
+const QUEST_TEST_NOW = Date.parse("2026-07-13T12:00:00.000Z");
+const QUEST_TEST_DAY_KEY = getDailyDayKey(new Date(QUEST_TEST_NOW));
+const QUEST_TEST_WEEK_KEY = getDailyWeekKey(new Date(QUEST_TEST_NOW));
+
+function currentQuestKeys() {
+  return {
+    dailyResetKey: QUEST_TEST_DAY_KEY,
+    weeklyResetKey: QUEST_TEST_WEEK_KEY,
+  };
+}
+
+function reconcileAtTestNow(existing, incoming) {
+  return reconcileQuestState(existing, incoming, { now: QUEST_TEST_NOW });
+}
 
 test("blocks arbitrary money inflation on save PUT", () => {
   const existing = { money: 5000, essence: 100, monShards: 5, trainerXp: 200 };
@@ -55,6 +71,7 @@ test("strips forged quest claims without progress", () => {
   const incoming = {
     questState: {
       grantedKeys: [],
+      ...currentQuestKeys(),
       dailyPoints: 0,
       weeklyPoints: 0,
       dailyClaimedChests: [],
@@ -66,7 +83,7 @@ test("strips forged quest claims without progress", () => {
       },
     },
   };
-  const out = reconcileQuestState(existing, incoming);
+  const out = reconcileAtTestNow(existing, incoming);
   assert.equal(out.questState.tasks.dailies[0].claimed, false);
 });
 
@@ -75,6 +92,7 @@ test("allows quest claim when progress meets goal", () => {
   const incoming = {
     questState: {
       grantedKeys: [],
+      ...currentQuestKeys(),
       dailyPoints: 15,
       weeklyPoints: 0,
       dailyClaimedChests: [],
@@ -86,7 +104,7 @@ test("allows quest claim when progress meets goal", () => {
       },
     },
   };
-  const out = reconcileQuestState(existing, incoming);
+  const out = reconcileAtTestNow(existing, incoming);
   assert.equal(out.questState.tasks.dailies[0].claimed, true);
   assert.ok(out.questState.grantedKeys.includes("task:dailies:d1"));
 });
@@ -95,7 +113,7 @@ test("caps forged quest progress jumps per save", () => {
   const existing = {
     questState: {
       grantedKeys: [],
-      dailyResetKey: "2026-07-13",
+      ...currentQuestKeys(),
       tasks: {
         dailies: [{ id: "d1", progress: 0, claimed: false }],
         weeklies: [],
@@ -106,7 +124,7 @@ test("caps forged quest progress jumps per save", () => {
   const incoming = {
     questState: {
       grantedKeys: [],
-      dailyResetKey: "2026-07-13",
+      ...currentQuestKeys(),
       dailyPoints: 0,
       weeklyPoints: 0,
       dailyClaimedChests: [],
@@ -118,7 +136,7 @@ test("caps forged quest progress jumps per save", () => {
       },
     },
   };
-  const out = reconcileQuestState(existing, incoming);
+  const out = reconcileAtTestNow(existing, incoming);
   assert.equal(out.questState.tasks.dailies[0].progress, 2);
 });
 
@@ -126,7 +144,7 @@ test("caps forged quest points jumps per save", () => {
   const existing = {
     questState: {
       grantedKeys: [],
-      dailyResetKey: "2026-07-13",
+      ...currentQuestKeys(),
       dailyPoints: 10,
       weeklyPoints: 0,
       tasks: { dailies: [], weeklies: [], campaign: [] },
@@ -135,7 +153,7 @@ test("caps forged quest points jumps per save", () => {
   const incoming = {
     questState: {
       grantedKeys: [],
-      dailyResetKey: "2026-07-13",
+      ...currentQuestKeys(),
       dailyPoints: 100,
       weeklyPoints: 0,
       dailyClaimedChests: [],
@@ -143,7 +161,7 @@ test("caps forged quest points jumps per save", () => {
       tasks: { dailies: [], weeklies: [], campaign: [] },
     },
   };
-  const out = reconcileQuestState(existing, incoming);
+  const out = reconcileAtTestNow(existing, incoming);
   assert.equal(out.questState.dailyPoints, 35);
 });
 
@@ -196,6 +214,7 @@ test("guardSavePayload preserves large box against stale shrink", () => {
     box: [{ name: "Molandak", level: 1 }],
     questState: {
       grantedKeys: [],
+      ...currentQuestKeys(),
       dailyPoints: 0,
       weeklyPoints: 0,
       dailyClaimedChests: [],
@@ -203,7 +222,7 @@ test("guardSavePayload preserves large box against stale shrink", () => {
       tasks: { dailies: [], weeklies: [], campaign: [] },
     },
   };
-  const out = guardSavePayload(existing, incoming, { now: Date.now() });
+  const out = guardSavePayload(existing, incoming, { now: QUEST_TEST_NOW });
   assert.equal(out.box.length, 200);
   assert.equal(out.money, 1100);
 });
@@ -223,6 +242,7 @@ test("guardSavePayload applies all guards", () => {
     box: [],
     questState: {
       grantedKeys: [],
+      ...currentQuestKeys(),
       dailyPoints: 0,
       weeklyPoints: 0,
       dailyClaimedChests: [100],
@@ -230,7 +250,7 @@ test("guardSavePayload applies all guards", () => {
       tasks: { dailies: [], weeklies: [], campaign: [] },
     },
   };
-  const out = guardSavePayload(existing, incoming, { now: Date.now() });
+  const out = guardSavePayload(existing, incoming, { now: QUEST_TEST_NOW });
   assert.ok(out.money < 99_999_999);
   assert.ok(out.adventureGlobalBest < 999);
   assert.equal(out.questState.dailyClaimedChests.length, 0);
