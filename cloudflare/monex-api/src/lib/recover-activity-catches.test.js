@@ -150,21 +150,48 @@ describe("recoverActivityCatchesForUser", () => {
     assert.equal(result.added[0].name, "Mosferatu");
   });
 
-  it("skips mons from same activity by tweetId even with different recovery id", () => {
+  it("keeps duplicate species from the same catch session", () => {
+    const result = recoverActivityCatchesForUser({
+      username: "Lucci_Crypto",
+      activityEntries: [
+        {
+          id: "act_multi",
+          tweetId: "tw_multi",
+          xUserId: "999",
+          xUsername: "Lucci_Crypto",
+          spend: 3,
+          caughtCount: 3,
+          monballsLeft: 5,
+          status: "success",
+          at: "2026-07-10T14:00:00.000Z",
+          mons: [
+            { name: "Mouch", rarity: "Common", skills: "★A" },
+            { name: "Mouch", rarity: "Uncommon", skills: "★B" },
+            { name: "Chog", rarity: "Common", skills: "★C" },
+          ],
+        },
+      ],
+      save: { party: [], box: [], monballs: 10, xHandle: "Lucci_Crypto" },
+    });
+    assert.equal(result.recoverableCount, 3);
+    assert.equal(result.added.length, 3);
+    assert.equal(result.save.party.length + result.save.box.length, 3);
+  });
+
+  it("replaceInventory rebuilds party/box from activity only", () => {
     const result = recoverActivityCatchesForUser({
       username: "Lucci_Crypto",
       activityEntries: sampleActivities,
       save: {
-        party: [{ name: "Mosferatu", rarity: "Common", level: 1, wildPendingId: "recovery_tw_1_0", equipment: {} }],
-        box: [],
-        monballs: 9,
+        party: [{ name: "Chog", rarity: "Common", level: 99 }],
+        box: [{ name: "Extra", rarity: "Common", level: 1 }],
+        monballs: 10,
         xHandle: "Lucci_Crypto",
       },
+      replaceInventory: true,
     });
-
-    assert.equal(result.added.length, 1);
-    assert.equal(result.added[0].name, "Shramp");
-    assert.equal(result.skipped.length, 1);
-    assert.equal(result.skipped[0].reason, "already_from_activity");
+    assert.equal(result.added.length, 2);
+    assert.equal(result.save.party.length + result.save.box.length, 2);
+    assert.ok(!result.save.party.some((m) => m.level === 99));
   });
 });

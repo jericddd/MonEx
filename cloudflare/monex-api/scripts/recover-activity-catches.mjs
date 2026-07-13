@@ -6,6 +6,7 @@
  *   node scripts/recover-activity-catches.mjs --dry-run Lucci_Crypto
  *   node scripts/recover-activity-catches.mjs --dry-run --latest Lucci_Crypto
  *   node scripts/recover-activity-catches.mjs --dry-run --spend 18 Lucci_Crypto
+ *   node scripts/recover-activity-catches.mjs --dry-run --replace-inventory jericddd
  *   node scripts/recover-activity-catches.mjs --activity-id act_xxx Lucci_Crypto
  *
  * Requires: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID
@@ -96,12 +97,13 @@ function parseArgs(argv) {
   const args = argv.slice(2);
   const dryRun = args.includes("--dry-run");
   const latestOnly = args.includes("--latest");
+  const replaceInventory = args.includes("--replace-inventory");
   let spend = null;
   let activityId = null;
   const positional = [];
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    if (arg === "--dry-run") continue;
+    if (arg === "--dry-run" || arg === "--latest" || arg === "--replace-inventory") continue;
     if (arg === "--spend" && args[i + 1]) {
       spend = parseInt(args[++i], 10);
       continue;
@@ -113,7 +115,7 @@ function parseArgs(argv) {
     if (!arg.startsWith("--")) positional.push(arg);
   }
   const username = cleanUsername(positional[0] || "");
-  return { dryRun, username, spend, activityId, latestOnly };
+  return { dryRun, username, spend, activityId, latestOnly, replaceInventory };
 }
 
 async function buildSaveIndex() {
@@ -171,10 +173,10 @@ function getCatchMonballs(state, xUserId, username, startingMonballs) {
 
 async function main() {
   requireEnv();
-  const { dryRun, username, spend, activityId, latestOnly } = parseArgs(process.argv);
+  const { dryRun, username, spend, activityId, latestOnly, replaceInventory } = parseArgs(process.argv);
   if (!username) {
     console.error(
-      "Usage: node scripts/recover-activity-catches.mjs [--dry-run] [--latest] [--spend N] [--activity-id ID] <x_username>"
+      "Usage: node scripts/recover-activity-catches.mjs [--dry-run] [--latest] [--replace-inventory] [--spend N] [--activity-id ID] <x_username>"
     );
     process.exit(1);
   }
@@ -183,6 +185,7 @@ async function main() {
     spend: Number.isFinite(spend) && spend > 0 ? spend : null,
     activityId,
     latestOnly,
+    replaceInventory,
   };
 
   const startingMonballs = parseInt(process.env.STARTING_MONBALLS || "10", 10) || 10;
@@ -235,8 +238,14 @@ async function main() {
     ...recoveryFilter,
   });
 
-  if (!dryRun && result.added.length > 0) {
-    await putValue(`${SAVE_PREFIX}${cloud.xUserId}`, JSON.stringify(result.save));
+  if (!dryRun && (result.added.length > 0 || replaceInventory)) {
+    const nextSave = {
+      ...result.save,
+      revision: (Number(cloud.save?.revision) || 0) + 1,
+      updatedAt: new Date().toISOString(),
+    };
+    await putValue(`${SAVE_PREFIX}${cloud.xUserId}`, JSON.stringify(nextSave));
+    result.save = nextSave;
   }
 
   console.log(
@@ -249,14 +258,18 @@ async function main() {
         spendFilter: recoveryFilter.spend,
         activityIdFilter: recoveryFilter.activityId,
         latestOnly: recoveryFilter.latestOnly,
+        replaceInventory: !!recoveryFilter.replaceInventory,
         activityMatches: result.activityMatches,
         recoverableCount: result.recoverableCount,
         addedCount: result.added.length,
+        inventoryTotal: (result.save?.party?.length || 0) + (result.save?.box?.length || 0),
+        partyCount: result.save?.party?.length || 0,
+        boxCount: result.save?.box?.length || 0,
         added: result.added,
         skipped: result.skipped,
         monballs: result.monballs,
         activities: result.activities,
-        status: dryRun ? "dry_run" : result.added.length ? "recovered" : "nothing_to_add",
+        status: dryRun ? "dry_run" : result.added.length || recoveryFilter.replaceInventory ? "recovered" : "nothing_to_add",
       },
       null,
       2
