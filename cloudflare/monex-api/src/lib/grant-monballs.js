@@ -1,4 +1,5 @@
 import { loadState, saveState, resolveCatchUser, withUserSyncLock, userSyncLockKey } from "../kv-store.js";
+import { persistCatchUserFromState, hydrateCatchUserIntoState } from "./catch-user-store.js";
 import { loadCloudSave, writeCloudSave } from "./save.js";
 import { appendMonballAudit } from "./monball-audit.js";
 
@@ -19,11 +20,12 @@ export async function creditCatchMonballs(kv, session, delta, startingMonballs =
   if (!amount || !session?.xUserId) return null;
   return withUserSyncLock(userSyncLockKey(session.xUserId, session.username), async () => {
     const state = await loadState(kv);
-    const user = resolveCatchUser(state, session.xUserId, session.username, startingMonballs);
+    const user = await hydrateCatchUserIntoState(kv, state, session.xUserId, session.username, startingMonballs);
     if (!user) return null;
     const before = clampMonballs(user.monballs ?? 0);
     user.monballs = clampMonballs(before + amount);
     user.updatedAt = new Date().toISOString();
+    await persistCatchUserFromState(kv, state, session.xUserId);
     await saveState(kv, state);
     await appendMonballAudit(kv, {
       xUserId: session.xUserId,
@@ -49,12 +51,13 @@ export async function alignCatchMonballsToMerged(kv, session, mergedMonballs, st
   const target = clampMonballs(mergedMonballs);
   if (!session?.xUserId) return target;
   const state = await loadState(kv);
-  const user = resolveCatchUser(state, session.xUserId, session.username, startingMonballs);
+  const user = await hydrateCatchUserIntoState(kv, state, session.xUserId, session.username, startingMonballs);
   if (!user) return target;
   const current = clampMonballs(user.monballs ?? 0);
   if (current !== target) {
     user.monballs = target;
     user.updatedAt = new Date().toISOString();
+    await persistCatchUserFromState(kv, state, session.xUserId);
     await saveState(kv, state);
     await appendMonballAudit(kv, {
       xUserId: session.xUserId,

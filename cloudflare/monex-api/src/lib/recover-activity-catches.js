@@ -80,6 +80,42 @@ function partyHasSpecies(party, name) {
   return party.some((mon) => mon?.name === name);
 }
 
+/** Signatures for mons already recovered from the same activity/tweet. */
+export function getExistingRecoverySignatures(save) {
+  const sigs = new Set();
+  for (const mon of [...(save?.party || []), ...(save?.box || [])]) {
+    const id = mon?.wildPendingId || mon?.pendingId;
+    if (!id || !mon?.name) continue;
+    sigs.add(id);
+    const match = String(id).match(/^recovery_(.+)_(\d+)$/);
+    if (!match) continue;
+    const activityKey = match[1];
+    sigs.add(`activity:${activityKey}:${mon.name}`);
+    if (activityKey.startsWith("tw_") || activityKey.startsWith("tweet_")) {
+      sigs.add(`tweet:${activityKey}:${mon.name}`);
+    }
+  }
+  return sigs;
+}
+
+export function recoverySignatureForMon(raw) {
+  if (!raw?.name) return null;
+  const activityKey = raw.tweetId || raw.activityId;
+  if (activityKey) return `activity:${activityKey}:${raw.name}`;
+  return raw.recoveryId || null;
+}
+
+export function isMonAlreadyRecovered(save, raw, seenRecoveryIds) {
+  if (raw.recoveryId && seenRecoveryIds.has(raw.recoveryId)) {
+    return "already_recovered";
+  }
+  const sig = recoverySignatureForMon(raw);
+  if (sig && getExistingRecoverySignatures(save).has(sig)) {
+    return "already_from_activity";
+  }
+  return null;
+}
+
 export function activityMonToSaveMon(recovered) {
   if (!recovered?.name) return null;
   const rarity = recovered.rarity || "Common";
@@ -105,9 +141,13 @@ export function applyRecoveredMonsToSave(
   const added = [];
   const skipped = [];
 
+  const activitySigs = getExistingRecoverySignatures({ party, box });
+
   for (const raw of recoveredMons || []) {
-    if (raw.recoveryId && seen.has(raw.recoveryId)) {
-      skipped.push({ ...raw, reason: "already_recovered" });
+    const dupReason = isMonAlreadyRecovered({ party, box }, raw, seen) ||
+      (activitySigs.has(recoverySignatureForMon(raw)) ? "already_from_activity" : null);
+    if (dupReason) {
+      skipped.push({ ...raw, reason: dupReason });
       continue;
     }
 
@@ -118,6 +158,8 @@ export function applyRecoveredMonsToSave(
     }
 
     if (raw.recoveryId) seen.add(raw.recoveryId);
+    const sig = recoverySignatureForMon(raw);
+    if (sig) activitySigs.add(sig);
 
     if (party.length < partyMax && !partyHasSpecies(party, mon.name)) {
       party.push(mon);

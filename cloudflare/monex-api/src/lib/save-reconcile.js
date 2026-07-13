@@ -1,4 +1,5 @@
-import { loadState, saveState, resolveCatchUser } from "../kv-store.js";
+import { loadState, saveState } from "../kv-store.js";
+import { hydrateCatchUserIntoState, persistCatchUserFromState } from "./catch-user-store.js";
 import { loadCloudSave, writeCloudSave } from "./save.js";
 import { clampMonballs, mergeMonballBalances } from "./grant-monballs.js";
 import { appendMonballAudit } from "./monball-audit.js";
@@ -10,7 +11,7 @@ import { MAX_SAVE_DELTA } from "./save-economy-guard.js";
  */
 export async function getAuthoritativeMonballs(kv, xUserId, username, startingMonballs = 10) {
   const state = await loadState(kv);
-  const catchUser = resolveCatchUser(state, xUserId, username, startingMonballs);
+  const catchUser = await hydrateCatchUserIntoState(kv, state, xUserId, username, startingMonballs);
   const { save } = await loadCloudSave(kv, xUserId);
   return resolveMergedMonballs(catchUser, save, catchUser?.monballs ?? 0);
 }
@@ -55,7 +56,7 @@ export async function reconcileMonballsForCloudSave(kv, session, payload, starti
 
   const { save: existingSave } = await loadCloudSave(kv, session.xUserId);
   const state = await loadState(kv);
-  const catchUser = resolveCatchUser(state, session.xUserId, session.username, startingMonballs);
+  const catchUser = await hydrateCatchUserIntoState(kv, state, session.xUserId, session.username, startingMonballs);
   const catchMonballs = clampMonballs(catchUser?.monballs ?? 0);
   const existingMonballs = clampMonballs(existingSave?.monballs ?? 0);
 
@@ -90,6 +91,7 @@ export async function reconcileMonballsForCloudSave(kv, session, payload, starti
   if (catchUser && catchMonballs !== merged) {
     catchUser.monballs = merged;
     catchUser.updatedAt = now;
+    await persistCatchUserFromState(kv, state, session.xUserId);
     await saveState(kv, state);
   }
 
@@ -118,11 +120,12 @@ export async function reconcileMonballsForCloudSave(kv, session, payload, starti
 export async function alignCatchMonballsToSave(kv, session, saveMonballs, startingMonballs = 10) {
   if (!session?.xUserId) return null;
   const state = await loadState(kv);
-  const user = resolveCatchUser(state, session.xUserId, session.username, startingMonballs);
+  const user = await hydrateCatchUserIntoState(kv, state, session.xUserId, session.username, startingMonballs);
   if (!user) return null;
   const aligned = clampMonballs(saveMonballs ?? 0);
   user.monballs = aligned;
   user.updatedAt = new Date().toISOString();
+  await persistCatchUserFromState(kv, state, session.xUserId);
   await saveState(kv, state);
   return aligned;
 }
@@ -149,12 +152,14 @@ export async function hydrateCloudSaveWithCatchState(
   }
 
   const state = await loadState(kv);
+  await hydrateCatchUserIntoState(kv, state, xUserId, username, startingMonballs);
   const result = backfillPendingForUser(state, {
     xUserId,
     username,
     save,
     startingMonballs,
   });
+  await persistCatchUserFromState(kv, state, xUserId);
   await saveState(kv, state);
 
   if (!result.ok || !result.save) {

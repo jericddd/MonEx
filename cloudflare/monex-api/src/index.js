@@ -53,6 +53,8 @@ import { grantMonballs, alignCatchMonballsToMerged } from "./lib/grant-monballs.
 import { resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsAfterCatch, getAuthoritativeMonballs, hydrateCloudSaveWithCatchState } from "./lib/save-reconcile.js";
 import { guardSavePayload } from "./lib/save-economy-guard.js";
 import { claimQuestTask, claimQuestChest } from "./lib/quest-claim.js";
+import { purchaseShopItem } from "./lib/shop-purchase.js";
+import { hydrateCatchUserIntoState, persistCatchUserFromState } from "./lib/catch-user-store.js";
 import { wasTweetProcessedKv, markTweetProcessedKv } from "./lib/tweet-dedupe.js";
 import { appendMonballAudit } from "./lib/monball-audit.js";
 import {
@@ -270,6 +272,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
 
       if (result.activity) {
         markProcessed(state, tweet.id);
+        await persistCatchUserFromState(env.MONEX_KV, state, tweet.authorId);
         await saveState(env.MONEX_KV, state);
 
         const spend = result.activity.spend || 0;
@@ -306,6 +309,9 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       } else if (result.skipReason) {
         status.skipped.push({ id: tweet.id, user: tweet.username, reason: result.skipReason });
         markProcessed(state, tweet.id);
+        if (state.users[tweet.authorId]) {
+          await persistCatchUserFromState(env.MONEX_KV, state, tweet.authorId);
+        }
         await saveState(env.MONEX_KV, state);
       } else {
         markProcessed(state, tweet.id);
@@ -891,6 +897,7 @@ async function handleRequest(request, env) {
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
       const state = await loadState(env.MONEX_KV);
+      await hydrateCatchUserIntoState(env.MONEX_KV, state, auth.session.xUserId, auth.session.username, starting);
       const result = getPendingForSession(
         state,
         auth.session.xUserId,
@@ -937,6 +944,7 @@ async function handleRequest(request, env) {
       if (xUserId) {
         syncResult = await withUserSyncLock(userSyncLockKey(xUserId, username), async () => {
           const state = await loadState(env.MONEX_KV);
+          await hydrateCatchUserIntoState(env.MONEX_KV, state, xUserId, username, starting);
           const { save } = await loadCloudSave(env.MONEX_KV, xUserId);
           const result = backfillPendingForUser(state, {
             xUserId,
@@ -946,6 +954,7 @@ async function handleRequest(request, env) {
             boxMax,
             startingMonballs: starting,
           });
+          await persistCatchUserFromState(env.MONEX_KV, state, xUserId);
           await saveState(env.MONEX_KV, state);
           if (result.ok && result.save) {
             await writeCloudSave(env.MONEX_KV, xUserId, result.save, { skipStaleCheck: true });
@@ -1066,6 +1075,32 @@ async function handleRequest(request, env) {
         return json(result, status, request, env);
       } catch (err) {
         return json({ ok: false, error: err.message || "claim failed" }, 500, request, env);
+      }
+    }
+
+    if (path === "/api/shop/purchase" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const auth = await requireGameplay(request, env, body);
+      if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
+      await enforceRateLimit(request, env, "shop-purchase", { limit: 60, windowSec: 60 });
+      const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
+      const expectedRevision = body?.baseRevision != null && Number.isFinite(Number(body.baseRevision))
+        ? Number(body.baseRevision)
+        : undefined;
+      try {
+        const result = await purchaseShopItem(env.MONEX_KV, auth.session, {
+          itemId: body?.itemId,
+          qty: body?.qty,
+          expectedRevision,
+        }, starting);
+        const status = result.ok
+          ? 200
+          : result.error === "insufficient_funds" || result.error === "invalid_item" || result.error === "item_unavailable"
+            ? 400
+            : 409;
+        return json(result, status, request, env);
+      } catch (err) {
+        return json({ ok: false, error: err.message || "purchase failed" }, 500, request, env);
       }
     }
 

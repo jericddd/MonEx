@@ -397,6 +397,7 @@ export async function resetAllData(kv) {
     ["monex:save:", "saves"],
     ["monex:session:", "sessions"],
     ["monex:oauth:", "oauth"],
+    ["monex:catch-user:", "catchUsers"],
   ]) {
     const count = await deleteKvPrefix(kv, prefix);
     if (counter === "saves") deletedSaves = count;
