@@ -337,12 +337,14 @@ async function pushCloudSave(payload) {
   const data = await res.json();
   if (data?.save?.revision != null) setSaveRevision(data.save.revision);
   else if (data?.revision != null) setSaveRevision(data.revision);
-  console.info("[monex-save] push ok", {
-    revision: data?.save?.revision ?? data?.revision,
-    baseRevision: body.baseRevision,
-    gameSessionId,
-    updatedAt: payload.updatedAt,
-  });
+  if (window.MONEX_DEBUG_SAVE) {
+    console.info("[monex-save] push ok", {
+      revision: data?.save?.revision ?? data?.revision,
+      baseRevision: body.baseRevision,
+      gameSessionId,
+      updatedAt: payload.updatedAt,
+    });
+  }
   return { conflict: false, save: data.save || null };
 }
 

@@ -3770,6 +3770,12 @@ body.afk-layout .currency-tip-float {
     z-index: 2;
     filter: drop-shadow(0 6px 5px rgba(0,0,0,0.45));
     transform-origin: center bottom;
+    will-change: transform;
+}
+.fighter-wrap.attack-anim .bsprite,
+.fighter-wrap.dash-sweep .bsprite,
+.fighter-wrap.dodge-evade .bsprite {
+    will-change: transform;
 }
 .nameplate {
     background: rgba(255,255,255,0.92);
@@ -4714,6 +4720,7 @@ body.afk-layout .currency-pill .currency-tip {
     display: block;
     flex-shrink: 0;
     transform-origin: center bottom;
+    will-change: transform;
 }
 .scene-idle-fighter.dash-sweep .scene-idle-sprite {
     filter: brightness(1.15);
@@ -6027,6 +6034,8 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
 .box-content-grid .mon-card {
     min-width: 0;
     padding: 10px;
+    content-visibility: auto;
+    contain-intrinsic-size: 220px 320px;
 }
 .box-content-grid .mon-sprite {
     height: 110px;
@@ -8171,15 +8180,19 @@ function openHouseTower(houseId) {
     const meta = getHouseMeta(houseId);
     if (!meta) return;
     if (!party.length) {
-        alert("Add Monanimals to your party before entering a House Tower.");
+        showHubNotice("Add Monanimals to your party before entering a House Tower.", "House Tower");
         return;
     }
     const offHouse = getPartyOffHouseMembers(houseId);
     if (offHouse.length) {
-        alert(`${meta.label} Tower only allows party members from ${meta.label}.\n\nSwitch out: ${offHouse.map(m => m.name).join(", ")}`);
+        showHubNotice(`${meta.label} Tower only allows party members from ${meta.label}.\n\nSwitch out: ${offHouse.map(m => m.name).join(", ")}`, "House Tower");
         return;
     }
-    alert(`${meta.label} Tower coming soon!`);
+    showHubNotice(`${meta.label} Tower coming soon!`, "Coming soon");
+}
+
+function showComingSoonNotice(feature) {
+    showHubNotice((feature || "This feature") + " is coming soon!", "Coming soon");
 }
 // Pad centers on battlescene_background.png (1672×941) — left/top are art-space %; top maps to stage via header offset
 const BATTLE_HUB_STATUE_ANCHORS = {
@@ -9234,7 +9247,7 @@ function collectResourceChest(buttonEl) {
         bumpQuestProgress("resource_collect", 1);
         if (gear) {
             gearInventory.push(gear);
-            setTimeout(() => alert("Bonus gear found: " + gear.name + "!"), 320);
+            setTimeout(() => showHubNotice("Bonus gear found: " + gear.name + "!", "Chest bonus"), 320);
         }
 
         await persistProgress();
@@ -12688,11 +12701,11 @@ function equipGearOnMon(location, monIndex, gearId) {
     const gear = gearInventory[gi];
     if (!canMonEquipGear(mon, gear)) {
         if (Math.floor(mon.level) < getGearRequiredLevel(gear)) {
-            alert(`${mon.name} must be level ${getGearRequiredLevel(gear)} or higher to equip this gear. (Current: Lv ${Math.floor(mon.level)})`);
+            showHubNotice(`${mon.name} must be level ${getGearRequiredLevel(gear)} or higher to equip this gear. (Current: Lv ${Math.floor(mon.level)})`, "Can't equip");
             return;
         }
         const meta = getHouseMeta(gear.house);
-        alert(`${meta ? meta.label + " gear" : "This gear"} can only be worn by that house's Monanimals.`);
+        showHubNotice(`${meta ? meta.label + " gear" : "This gear"} can only be worn by that house's Monanimals.`, "Can't equip");
         return;
     }
     gearInventory.splice(gi, 1);
@@ -12704,7 +12717,6 @@ function equipGearOnMon(location, monIndex, gearId) {
     if (location === "party") bumpQuestProgress("gear_equip", 1);
     saveData();
     updateUI();
-    if (location === "box") renderBox();
 }
 function unequipGear(location, monIndex, slot) {
     const mon = getMonList(location)[monIndex];
@@ -12712,7 +12724,6 @@ function unequipGear(location, monIndex, slot) {
     unequipToInventory(mon, slot);
     saveData();
     updateUI();
-    if (location === "box") renderBox();
 }
 function renderEquipOptionHtml(gear, mon, action, actionClass, options = {}) {
     const bonuses = mon ? formatGearBonusesForMon(gear, mon) : formatGearRngSummary(gear);
@@ -13397,16 +13408,16 @@ function confirmHeroAscensionSkill(location, monIndex, optionIndex) {
     if (!skill) return;
     const freePick = !!mon.ascensionSkillFreePick;
     if (!freePick && money < HERO_SKILL_UNLOCK_GOLD) {
-        alert(`Need ${HERO_SKILL_UNLOCK_GOLD} Gold to unlock this skill.\nYou have: ${money}`);
+        showHubNotice(`Need ${HERO_SKILL_UNLOCK_GOLD} Gold to unlock this skill.\nYou have: ${money}`, "Can't unlock");
         return;
     }
     if ((mon.skills || []).length >= getMonSkillSlotCap(mon)) {
-        alert("This hero has no free skill slots for ascension.");
+        showHubNotice("This hero has no free skill slots for ascension.", "Can't unlock");
         return;
     }
     const alreadyKnown = (mon.skills || []).some(s => s.name === skill.name);
     if (alreadyKnown) {
-        alert(`${skill.name} is already on this hero. Pick a different option.`);
+        showHubNotice(`${skill.name} is already on this hero. Pick a different option.`, "Can't unlock");
         return;
     }
     if (!freePick) money -= HERO_SKILL_UNLOCK_GOLD;
@@ -13421,18 +13432,18 @@ function confirmHeroAscensionSkill(location, monIndex, optionIndex) {
     void persistProgress();
     updateUI();
     renderArmoryPane();
-    alert(`${mon.name} learned ${skill.name}!`);
+    showHubNotice(`${mon.name} learned ${skill.name}!`, "Skill unlocked");
 }
 
 function openHeroAscensionSkillUnlock() {
     const main = heroAscensionMainMon;
     if (!main?.ascensionSkillPending?.length) {
-        alert("No pending skill unlock on the selected main hero.");
+        showHubNotice("No pending skill unlock on the selected main hero.", "Skill unlock");
         return;
     }
     const loc = findMonLocationIndex(main);
     if (!loc) {
-        alert("Selected hero is no longer in Party or Box.");
+        showHubNotice("Selected hero is no longer in Party or Box.", "Skill unlock");
         return;
     }
     openAscensionSkillPicker(loc.location, loc.index);
@@ -13562,7 +13573,7 @@ function renderArmoryPane() {
 
 function openArmoryModal(tab) {
     if (!isArmoryShopUnlocked()) {
-        alert(getEquipmentUnlockMessage("Armory"));
+        showHubNotice(getEquipmentUnlockMessage("Armory"), "Armory locked");
         return;
     }
     armoryActiveTab = tab === "enhance" ? "enhance" : (tab === "ascension" ? "ascension" : "synthesize");
@@ -13662,31 +13673,42 @@ function ascendMonRarity(index) {
     if (!mon) return;
     ensureMonReady(mon);
     if (!canAscendRarity(mon.rarity)) {
-        alert("Only Legendary monanimals can ascend to Mythic.");
+        showHubNotice("Only Legendary monanimals can ascend to Mythic.", "Can't ascend");
         return;
     }
     const cap = getLevelCap(mon);
     if (Math.floor(mon.level) < cap) {
-        alert(mon.name + " must reach max level (" + cap + ") before ascending.");
+        showHubNotice(mon.name + " must reach max level (" + cap + ") before ascending.", "Can't ascend");
         return;
     }
     const next = getNextRarity(mon.rarity);
-    if (!next) { alert(mon.name + " is already Mythic!"); return; }
-    const cost = getAscendCost(mon.rarity);
-    if (monShards < cost) {
-        alert("Need " + cost + " Mon Shards to ascend.\nYou have: " + monShards);
+    if (!next) {
+        showHubNotice(mon.name + " is already Mythic!", "Can't ascend");
         return;
     }
-    if (!confirm("Ascend " + mon.name + " from " + mon.rarity + " to " + next + "?\nCost: " + cost + " Mon Shards")) return;
-    monShards -= cost;
-    mon.rarity = next;
-    expandSkillsForRarity(mon);
-    syncUltimateFromSkills(mon);
-    refreshMonDerivedStats(mon);
-    mon.current_hp = mon.max_hp;
-    void persistProgress();
-    updateUI();
-    alert(mon.name + " ascended to " + next + "! New level cap: " + getLevelCap(mon));
+    const cost = getAscendCost(mon.rarity);
+    if (monShards < cost) {
+        showHubNotice("Need " + cost + " Mon Shards to ascend.\nYou have: " + monShards, "Can't ascend");
+        return;
+    }
+    showConfirmModal(
+        "Ascend " + mon.name + " from " + mon.rarity + " to " + next + "?\nCost: " + cost + " Mon Shards",
+        () => {
+            const live = party[index];
+            if (!live) return;
+            if (monShards < cost) return;
+            monShards -= cost;
+            live.rarity = next;
+            expandSkillsForRarity(live);
+            syncUltimateFromSkills(live);
+            refreshMonDerivedStats(live);
+            live.current_hp = live.max_hp;
+            void persistProgress();
+            updateUI();
+            showHubNotice(live.name + " ascended to " + next + "! New level cap: " + getLevelCap(live), "Ascended");
+        },
+        { title: "ASCEND", confirmLabel: "Ascend", cancelLabel: "Cancel" }
+    );
 }
 function returnAllGearToInventory(mon) {
     if (!mon.equipment) return;
@@ -15360,12 +15382,12 @@ function saveXHandle() {
     if (!input) return;
     const raw = input.value.trim().replace(/^@/, "").toLowerCase();
     if (!raw) {
-        alert("Enter your X @handle");
+        showHubNotice("Enter your X @handle", "Link X");
         return;
     }
     xHandle = raw;
     saveData();
-    alert("@" + xHandle + " linked — X catches will auto-sync to Party/Box");
+    showHubNotice("@" + xHandle + " linked — X catches will auto-sync to Party/Box", "X linked");
     syncXWildMons(true);
     refreshProfileActivity({ force: true });
 }
@@ -15421,7 +15443,7 @@ async function syncXWildMons(silent) {
             renderBox();
 
             if (!silent && totalAdded > 0) {
-                alert("Synced " + totalAdded + " MonAnimal(s) from X to your collection!");
+                showHubNotice("Synced " + totalAdded + " MonAnimal(s) from X to your collection!", "Synced");
             }
 
             if (statusEl) {
@@ -15782,7 +15804,7 @@ function addToPartyFromBox(boxIndex) {
     if (party.length >= PARTY_MAX || !box[boxIndex]) return;
     const mon = box[boxIndex];
     if (partyHasSpecies(mon.name)) {
-        alert(`You already have ${mon.name} in your party.\nOnly one of each species allowed.`);
+            showHubNotice(`You already have ${mon.name} in your party.\nOnly one of each species allowed.`, "Can't add");
         return;
     }
     party.push(box.splice(boxIndex, 1)[0]);
@@ -16170,7 +16192,7 @@ async function runPostLoginBootstrap() {
     try { resolveAbandonedAdventureBattle(); } catch (e) { console.error("resolveAbandonedAdventureBattle failed:", e); }
     if (adventureForfeitNotice) {
         adventureForfeitNotice = false;
-        alert("Your adventure battle was abandoned. It counts as a defeat — your team was restored to full HP.");
+        showHubNotice("Your adventure battle was abandoned. It counts as a defeat — your team was restored to full HP.", "Battle abandoned");
     }
     resolveXHandle();
     try { await refreshMonballsFromServer(); } catch (_) {}
@@ -16353,7 +16375,7 @@ async function claimMailboxReward(mailId, buttonEl) {
     if (!mailId) return;
     if (!isGameSessionPlayable()) return;
     if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
-        alert("Login required to claim mail.");
+        showHubNotice("Login required to claim mail.", "Login required");
         return;
     }
     const run = window.MonExClaimGuard?.runClaimOnce
@@ -16406,7 +16428,7 @@ async function claimMailboxReward(mailId, buttonEl) {
             }
         }, { button: buttonEl && buttonEl.classList?.contains("mailbox-claim-btn") ? buttonEl : null });
     } catch (e) {
-        alert(e.message || "Could not claim mail.");
+        showHubNotice(e.message || "Could not claim mail.", "Mail error");
     }
 }
 
@@ -16575,10 +16597,10 @@ registerCoverStage("battle-scene-viewport", "battle-scene-cover-stage", {
 
 const BATTLE_HUB_MAIN_BUTTONS = [
     { alt: "Adventure", label: "ADVENTURE", src: battleHubIconSrc(`${BATTLE_ICONS_DIR}/adventure/adventure.png`), onclick: "launchAdventureFromHub()", statue: true, scene: "adventure" },
-    { alt: "Arena", label: "ARENA", src: battleHubIconSrc(`${BATTLE_ICONS_DIR}/arena/arena.png`), onclick: "alert('Arena coming soon!')", statue: true, scene: "house-tower" },
+    { alt: "Arena", label: "ARENA", src: battleHubIconSrc(`${BATTLE_ICONS_DIR}/arena/arena.png`), onclick: "showComingSoonNotice('Arena')", statue: true, scene: "house-tower" },
     { alt: "House Tower", label: "HOUSE TOWER", src: battleHubIconSrc(`${BATTLE_ICONS_DIR}/house%20tower/housetower.png`), onclick: "showBattleTowerHub()", statue: true, scene: "arena" },
-    { alt: "PVP Wager", label: "PVP WAGER", src: battleHubIconSrc(`${BATTLE_ICONS_DIR}/pvp%20wager/pvpwager.png`), onclick: "alert('PVP Wager coming soon!')", statue: true, scene: "pvp-wager" },
-    { alt: "Training", label: "TRAINING", src: battleHubIconSrc(`${BATTLE_ICONS_DIR}/training/training.png`), onclick: "alert('Training coming soon!')", statue: true, scene: "training" },
+    { alt: "PVP Wager", label: "PVP WAGER", src: battleHubIconSrc(`${BATTLE_ICONS_DIR}/pvp%20wager/pvpwager.png`), onclick: "showComingSoonNotice('PVP Wager')", statue: true, scene: "pvp-wager" },
+    { alt: "Training", label: "TRAINING", src: battleHubIconSrc(`${BATTLE_ICONS_DIR}/training/training.png`), onclick: "showComingSoonNotice('Training')", statue: true, scene: "training" },
 ];
 const BATTLE_HUB_TOWER_BUTTONS = [
     { alt: "Tower of Chog", houseId: "chog", src: `${BATTLE_HUB_BTN_DIR}/battle_btn_tower_chog.png`, left: 28, top: 42, onclick: "openHouseTower('chog')" },
@@ -16875,12 +16897,12 @@ async function runPatrolScanSequence(encounter, scanToken) {
 
 function beginPatrolScan() {
     if (party.length < 3) {
-        alert("You need at least 3 Monanimals in your party!");
+        showHubNotice("You need at least 3 Monanimals in your party!", "Patrol");
         return;
     }
     ensurePatrolDailyReset();
     if (getPatrolScansRemaining() <= 0) {
-        alert("No patrol scans left today. Resets at 00:00 UTC+8.");
+        showHubNotice("No patrol scans left today. Resets at 00:00 UTC+8.", "Patrol");
         return;
     }
     if (!isStagingTestUser()) patrolScansUsed++;
@@ -17365,7 +17387,7 @@ function moveDown(index) {
 
 function startAdventureBattle() {
     if (party.length < 3) {
-        alert("You need at least 3 Monanimals in your party!");
+        showHubNotice("You need at least 3 Monanimals in your party!", "Adventure");
         return;
     }
 
