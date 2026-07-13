@@ -1,10 +1,11 @@
-import { loadState, saveState } from "../kv-store.js";
+import { loadState } from "../kv-store.js";
 import { hydrateCatchUserIntoState, persistCatchUserFromState } from "./catch-user-store.js";
 import { loadCloudSave, writeCloudSave } from "./save.js";
 import { clampMonballs, mergeMonballBalances } from "./grant-monballs.js";
 import { appendMonballAudit } from "./monball-audit.js";
-import { backfillPendingForUser } from "./backfill-pending.js";
+import { backfillPendingForUser, cleanUsername } from "./backfill-pending.js";
 import { MAX_SAVE_DELTA } from "./save-economy-guard.js";
+import { validateAndSanitizeSave } from "./save-validate.js";
 
 /**
  * Authoritative monball count across catch state and cloud save.
@@ -92,7 +93,6 @@ export async function reconcileMonballsForCloudSave(kv, session, payload, starti
     catchUser.monballs = merged;
     catchUser.updatedAt = now;
     await persistCatchUserFromState(kv, state, session.xUserId);
-    await saveState(kv, state);
   }
 
   if (merged !== persistedMonballs) {
@@ -126,7 +126,6 @@ export async function alignCatchMonballsToSave(kv, session, saveMonballs, starti
   user.monballs = aligned;
   user.updatedAt = new Date().toISOString();
   await persistCatchUserFromState(kv, state, session.xUserId);
-  await saveState(kv, state);
   return aligned;
 }
 
@@ -160,7 +159,6 @@ export async function hydrateCloudSaveWithCatchState(
     startingMonballs,
   });
   await persistCatchUserFromState(kv, state, xUserId);
-  await saveState(kv, state);
 
   if (!result.ok || !result.save) {
     return { hydrated: false, reason: result.reason || "backfill_failed" };
@@ -176,6 +174,68 @@ export async function hydrateCloudSaveWithCatchState(
 
   return {
     hydrated: true,
+    save: nextSave,
+    added: result.added,
+    remaining: result.remaining,
+    monballs,
+  };
+}
+
+/**
+ * On X catch: seed a stub cloud save when none exists, then backfill pending mons.
+ * Fixes pre-login catch gap (activity logged but inventory empty until first login).
+ */
+export async function seedOrHydrateCloudSaveFromCatch(
+  kv,
+  xUserId,
+  username,
+  startingMonballs = 10
+) {
+  if (!xUserId) return { hydrated: false, reason: "no_x_user_id" };
+
+  const { found, save } = await loadCloudSave(kv, xUserId);
+  if (found) {
+    return hydrateCloudSaveWithCatchState(kv, xUserId, username, startingMonballs);
+  }
+
+  const uname = cleanUsername(username);
+  const state = await loadState(kv);
+  await hydrateCatchUserIntoState(kv, state, xUserId, uname, startingMonballs);
+  const catchUser = state.users?.[xUserId];
+  const stub = validateAndSanitizeSave(
+    {
+      party: [],
+      box: [],
+      monballs: clampMonballs(catchUser?.monballs ?? startingMonballs),
+      xHandle: uname,
+      updatedAt: new Date().toISOString(),
+    },
+    { username: uname }
+  );
+
+  const result = backfillPendingForUser(state, {
+    xUserId,
+    username: uname,
+    save: stub,
+    startingMonballs,
+  });
+  await persistCatchUserFromState(kv, state, xUserId);
+
+  if (!result.ok || !result.save) {
+    return { hydrated: false, reason: result.reason || "seed_backfill_failed" };
+  }
+
+  const monballs = await getAuthoritativeMonballs(kv, xUserId, uname, startingMonballs);
+  const nextSave = {
+    ...result.save,
+    monballs,
+    updatedAt: new Date().toISOString(),
+  };
+  await writeCloudSave(kv, xUserId, nextSave, { skipStaleCheck: true });
+
+  return {
+    hydrated: true,
+    seeded: true,
     save: nextSave,
     added: result.added,
     remaining: result.remaining,

@@ -101,8 +101,8 @@ describe("daily login mailbox delivery", () => {
     assert.equal(result.save.monballs, 10 + DAILY_LOGIN_REWARD_MONBALLS);
     assert.ok(result.save.mailbox[0].claimedAt);
 
-    const catchState = JSON.parse(kv.dump("monex:state"));
-    assert.equal(catchState.users.user_1.monballs, 1 + DAILY_LOGIN_REWARD_MONBALLS);
+    const catchState = JSON.parse(kv.dump("monex:catch-user:user_1"));
+    assert.equal(catchState.monballs, 1 + DAILY_LOGIN_REWARD_MONBALLS);
   });
 });
 

@@ -120,8 +120,8 @@ describe("mailbox claim idempotency", () => {
 
     const saved = JSON.parse(kv.dump("monex:save:user_1"));
     assert.equal(saved.monballs, 10 + 5);
-    const catchState = JSON.parse(kv.dump("monex:state"));
-    assert.equal(catchState.users.user_1.monballs, 10 + 5);
+    const catchState = JSON.parse(kv.dump("monex:catch-user:user_1"));
+    assert.equal(catchState.monballs, 10 + 5);
   });
 
   it("serializes concurrent spam clicks into one grant", async () => {
@@ -156,8 +156,8 @@ describe("mailbox claim idempotency", () => {
     const saved = JSON.parse(kv.dump("monex:save:user_1"));
     assert.equal(saved.monballs, 10 + DAILY_LOGIN_REWARD_MONBALLS);
     assert.ok(saved.mailbox[0].claimedAt);
-    const catchState = JSON.parse(kv.dump("monex:state"));
-    assert.equal(catchState.users.user_1.monballs, DAILY_LOGIN_REWARD_MONBALLS);
+    const catchState = JSON.parse(kv.dump("monex:catch-user:user_1"));
+    assert.equal(catchState.monballs, DAILY_LOGIN_REWARD_MONBALLS);
   });
 
   it("grants bundled resource rewards only once", async () => {
@@ -243,11 +243,11 @@ describe("mailbox claim idempotency", () => {
         const mail = parsed.mailbox?.find((m) => m.id === "mail_order");
         events.push({ step: "save_write", claimedAt: mail?.claimedAt || null });
       }
-      if (String(key) === "monex:state") {
+      if (String(key) === "monex:catch-user:user_1") {
         const parsed = JSON.parse(value);
         events.push({
           step: "catch_credit",
-          monballs: parsed.users?.user_1?.monballs ?? null,
+          monballs: parsed.monballs ?? null,
         });
       }
       return originalPut(key, value);

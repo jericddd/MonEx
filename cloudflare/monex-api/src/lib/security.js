@@ -90,7 +90,10 @@ export function buildCorsHeaders(request, env) {
 }
 
 export function simulateAllowed(env) {
-  return env.ENABLE_SIMULATE === "1";
+  if (env.ENABLE_SIMULATE !== "1") return false;
+  // Block simulate on production deployments even if misconfigured.
+  if (env.DEPLOY_ENV === "production") return false;
+  return true;
 }
 
 export async function checkRateLimit(kv, bucket, { limit = 60, windowSec = 60 } = {}) {

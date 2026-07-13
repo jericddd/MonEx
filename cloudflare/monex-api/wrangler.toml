@@ -34,6 +34,7 @@ ENABLE_DEV_AUTH = "0"
 ENABLE_STAGING_DEV_AUTH = "0"
 ENABLE_SIMULATE = "0"
 ENABLE_ADMIN_RESET = "0"
+DEPLOY_ENV = "production"
 # Worker public URL — must match OAuth callback host in X Developer Portal.
 WORKER_ORIGIN = "https://monex-api.0xjericd.workers.dev"
 # Live site (custom domain). OAuth redirects return here after X login.
