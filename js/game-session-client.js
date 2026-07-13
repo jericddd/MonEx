@@ -31,6 +31,8 @@ let _statusTimer = null;
 let _heartbeatTimer = null;
 let _onSuperseded = null;
 let _onActive = null;
+let _onUnsupported = null;
+let _pendingUnsupportedWhere = null;
 let _guardRunning = false;
 let _broadcast = null;
 let _fetchPatched = false;
@@ -392,9 +394,18 @@ function markApiUnavailable(where) {
       console.warn(
         `[monex-session] game-session API unavailable (${where}); single-session enforcement is disabled until the API is deployed`
       );
+      if (typeof _onUnsupported === "function") _onUnsupported(where);
+      else _pendingUnsupportedWhere = where;
     } catch (_) {}
   }
-  markActive();
+}
+
+function flushPendingUnsupportedNotice() {
+  if (_pendingUnsupportedWhere && typeof _onUnsupported === "function") {
+    const where = _pendingUnsupportedWhere;
+    _pendingUnsupportedWhere = null;
+    _onUnsupported(where);
+  }
 }
 
 function applyServerStatus(status) {
@@ -432,7 +443,7 @@ async function claimActiveSession() {
   });
   if (res.status === 404) {
     markApiUnavailable("claim");
-    return { ok: true, active: true, unsupported: true };
+    return { ok: true, active: false, unsupported: true };
   }
   const data = await res.json().catch(() => ({}));
   debugLog("claim_response", { httpStatus: res.status, active: data.active, tookOver: data.tookOver, reason: data.reason });
@@ -463,7 +474,7 @@ async function fetchSessionStatus() {
   const res = await fetch(url.toString(), { headers: authHeaders() });
   if (res.status === 404) {
     markApiUnavailable("status");
-    return { ok: true, active: true, unsupported: true };
+    return { ok: true, active: false, unsupported: true };
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) return { ok: false, error: data.error || "status_failed", httpStatus: res.status };
@@ -481,7 +492,7 @@ async function sendHeartbeat() {
   });
   if (res.status === 404) {
     markApiUnavailable("heartbeat");
-    return { ok: true, active: true, unsupported: true };
+    return { ok: true, active: false, unsupported: true };
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) return { ok: false, error: data.error || "heartbeat_failed" };
@@ -495,6 +506,7 @@ async function sendHeartbeat() {
 
 async function pollSessionStatus() {
   if (!MonExAuth?.isLoggedIn?.()) return;
+  if (_apiUnavailable) return;
   await ensureUniqueGameSessionId();
   writeTabLock(false);
   if (_state === "superseded") return;
@@ -579,6 +591,8 @@ function scheduleStatusPoll() {
 function startSessionGuard(options = {}) {
   _onSuperseded = options.onSuperseded || options.onInactive || null;
   _onActive = options.onActive || null;
+  _onUnsupported = options.onUnsupported || null;
+  flushPendingUnsupportedNotice();
   initCrossTabListeners();
   installFetchInterceptor();
   installClickBlocker();
@@ -636,7 +650,11 @@ function isSuperseded() {
 }
 
 function isGameplayAllowed() {
-  return _state === "active";
+  return _state === "active" || _apiUnavailable;
+}
+
+function isEnforcementSupported() {
+  return !_apiUnavailable;
 }
 
 function hasGameSessionId() {
@@ -684,6 +702,7 @@ window.MonExGameSession = {
   isActive,
   isSuperseded,
   isGameplayAllowed,
+  isEnforcementSupported,
   hasGameSessionId,
   handleInactiveFromApi,
   ensureGameplayApiAllowed,

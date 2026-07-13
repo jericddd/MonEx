@@ -18,6 +18,10 @@
     return body;
   }
 
+  function delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
   async function claimBattleReward({ mode, win, encounterId, claimId }) {
     const res = await fetch(`${apiBase()}/api/battle/claim-reward`, {
       method: "POST",
@@ -37,5 +41,17 @@
     return { ok: res.ok && data.ok, status: res.status, ...data };
   }
 
-  window.MonExBattle = { claimBattleReward };
+  async function claimBattleRewardWithRetry(params, options = {}) {
+    const waits = options.waits || [0, 800, 2000];
+    let last = null;
+    for (let i = 0; i < waits.length; i++) {
+      if (waits[i]) await delay(waits[i]);
+      last = await claimBattleReward(params);
+      if (last.ok && last.save) return last;
+      if (last.status === 403 || last.status === 409) return last;
+    }
+    return last;
+  }
+
+  window.MonExBattle = { claimBattleReward, claimBattleRewardWithRetry };
 })();
