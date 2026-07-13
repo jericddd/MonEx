@@ -77,6 +77,19 @@
     return storedKey === legacyUtc && legacyUtc !== current;
   }
 
+  /** True when daily quests/milestones should roll over for the current UTC+8 day. */
+  function needsDailyQuestReset(storedKey, now = new Date()) {
+    const dayKey = getDailyDayKey(now);
+    if (!storedKey || storedKey !== dayKey) return true;
+    return isLegacyUtcDayKeyForCurrentUtc8Day(storedKey, now);
+  }
+
+  /** True when weekly quests/milestones should roll over for the current UTC+8 week. */
+  function needsWeeklyQuestReset(storedKey, now = new Date()) {
+    const weekKey = getDailyWeekKey(now);
+    return !storedKey || storedKey !== weekKey;
+  }
+
   const api = {
     UTC8_OFFSET_MS,
     getDailyDayKey,
@@ -85,6 +98,8 @@
     msUntilNextDailyReset,
     getDailyResetCountdownLabel,
     isLegacyUtcDayKeyForCurrentUtc8Day,
+    needsDailyQuestReset,
+    needsWeeklyQuestReset,
   };
 
   if (typeof window !== "undefined") window.MonExDailyReset = api;

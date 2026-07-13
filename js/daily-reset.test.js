@@ -28,4 +28,22 @@ describe("MonExDailyReset UTC+8 day key", () => {
     const next = api.getNextDailyResetAt(now);
     assert.equal(next.toISOString(), "2026-07-10T16:00:00.000Z");
   });
+
+  it("needsDailyQuestReset detects stale and legacy UTC day keys", () => {
+    const now = new Date("2026-07-14T20:00:00.000Z");
+    assert.equal(api.getDailyDayKey(now), "2026-07-15");
+    assert.equal(api.needsDailyQuestReset("2026-07-14", now), true);
+    assert.equal(api.needsDailyQuestReset("2026-07-15", now), false);
+    assert.equal(
+      api.isLegacyUtcDayKeyForCurrentUtc8Day("2026-07-14", now),
+      true
+    );
+  });
+
+  it("needsWeeklyQuestReset detects stale week keys", () => {
+    const now = new Date("2026-07-14T20:00:00.000Z");
+    const weekKey = api.getDailyWeekKey(now);
+    assert.equal(api.needsWeeklyQuestReset(weekKey, now), false);
+    assert.equal(api.needsWeeklyQuestReset("2026-01-W01", now), true);
+  });
 });

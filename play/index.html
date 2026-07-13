@@ -8834,6 +8834,78 @@ function getUtcWeekKey(d = new Date()) {
     return `${isoYear}-W${String(week).padStart(2, "0")}`;
 }
 
+function needsDailyQuestReset(storedKey, now = new Date()) {
+    if (window.MonExDailyReset?.needsDailyQuestReset) {
+        return window.MonExDailyReset.needsDailyQuestReset(storedKey, now);
+    }
+    const dayKey = getUtcDateKey(now);
+    return !storedKey || storedKey !== dayKey;
+}
+
+function needsWeeklyQuestReset(storedKey, now = new Date()) {
+    if (window.MonExDailyReset?.needsWeeklyQuestReset) {
+        return window.MonExDailyReset.needsWeeklyQuestReset(storedKey, now);
+    }
+    const weekKey = getUtcWeekKey(now);
+    return !storedKey || storedKey !== weekKey;
+}
+
+function isDailyQuestBundleDesynced(qs, now = new Date()) {
+    if (needsDailyQuestReset(qs?.dailyResetKey, now)) return false;
+    const tasks = qs?.tasks?.dailies || [];
+    const hasClaimedTasks = tasks.some(t => t.claimed);
+    const milestonesReset = (qs.dailyPoints || 0) === 0 && !(qs.dailyClaimedChests || []).length;
+    return milestonesReset && hasClaimedTasks;
+}
+
+function isWeeklyQuestBundleDesynced(qs, now = new Date()) {
+    if (needsWeeklyQuestReset(qs?.weeklyResetKey, now)) return false;
+    const tasks = qs?.tasks?.weeklies || [];
+    const hasClaimedTasks = tasks.some(t => t.claimed);
+    const milestonesReset = (qs.weeklyPoints || 0) === 0 && !(qs.weeklyClaimedChests || []).length;
+    return milestonesReset && hasClaimedTasks;
+}
+
+function applyDailyQuestReset(qs, now = new Date()) {
+    qs.dailyResetKey = getUtcDateKey(now);
+    qs.dailyPoints = 0;
+    qs.dailyClaimedChests = [];
+    qs.grantedKeys = filterQuestGrantedKeys(qs.grantedKeys, {
+        clearDailies: true,
+        clearDailyChests: true,
+    });
+    qs.tasks.dailies = createQuestTasksFromDefs("dailies");
+}
+
+function applyWeeklyQuestReset(qs, now = new Date()) {
+    qs.weeklyResetKey = getUtcWeekKey(now);
+    qs.dailyPoints = 0;
+    qs.weeklyPoints = 0;
+    qs.dailyClaimedChests = [];
+    qs.weeklyClaimedChests = [];
+    qs.grantedKeys = filterQuestGrantedKeys(qs.grantedKeys, {
+        clearDailies: true,
+        clearWeeklies: true,
+        clearChests: true,
+    });
+    qs.tasks.weeklies = createQuestTasksFromDefs("weeklies");
+    qs.tasks.dailies = createQuestTasksFromDefs("dailies");
+    qs.dailyResetKey = getUtcDateKey(now);
+}
+
+function applyQuestResetsToState(qs, now = new Date()) {
+    if (!qs || typeof qs !== "object") return false;
+    if (needsWeeklyQuestReset(qs.weeklyResetKey, now) || isWeeklyQuestBundleDesynced(qs, now)) {
+        applyWeeklyQuestReset(qs, now);
+        return true;
+    }
+    if (needsDailyQuestReset(qs.dailyResetKey, now) || isDailyQuestBundleDesynced(qs, now)) {
+        applyDailyQuestReset(qs, now);
+        return true;
+    }
+    return false;
+}
+
 function defaultQuestState() {
     const now = new Date();
     return {
@@ -9079,38 +9151,7 @@ function reconcileUngrantedQuestRewards(options = {}) {
 }
 
 function ensureQuestResets() {
-    const now = new Date();
-    const dayKey = getUtcDateKey(now);
-    const weekKey = getUtcWeekKey(now);
-    let changed = false;
-
-    if (questState.weeklyResetKey !== weekKey) {
-        questState.weeklyResetKey = weekKey;
-        questState.dailyPoints = 0;
-        questState.weeklyPoints = 0;
-        questState.dailyClaimedChests = [];
-        questState.weeklyClaimedChests = [];
-        questState.grantedKeys = filterQuestGrantedKeys(questState.grantedKeys, {
-            clearDailies: true,
-            clearWeeklies: true,
-            clearChests: true,
-        });
-        questState.tasks.weeklies = createQuestTasksFromDefs("weeklies");
-        questState.tasks.dailies = createQuestTasksFromDefs("dailies");
-        questState.dailyResetKey = dayKey;
-        changed = true;
-    } else if (questState.dailyResetKey !== dayKey) {
-        questState.dailyResetKey = dayKey;
-        questState.dailyPoints = 0;
-        questState.dailyClaimedChests = [];
-        questState.grantedKeys = filterQuestGrantedKeys(questState.grantedKeys, {
-            clearDailies: true,
-            clearDailyChests: true,
-        });
-        questState.tasks.dailies = createQuestTasksFromDefs("dailies");
-        changed = true;
-    }
-
+    const changed = applyQuestResetsToState(questState);
     syncCampaignQuestProgress();
     if (changed) saveData();
 }
@@ -14830,6 +14871,7 @@ function mergeSaveSnapshots(local, cloud) {
             };
         });
     });
+    applyQuestResetsToState(questMerged);
     merged.questState = questMerged;
 
     const mailById = new Map();

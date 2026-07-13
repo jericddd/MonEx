@@ -4,6 +4,7 @@
  */
 
 import { LIMITS, sanitizeReleaseLog } from "./save-validate.js";
+import { applyQuestResetsToState } from "./quest-reset.js";
 import {
   QUEST_TASK_DEFS,
   DAILY_QUEST_MILESTONES,
@@ -134,27 +135,41 @@ function maxPointsForChests(track) {
 /**
  * Validate quest claims: strip forged claimed flags; only allow new grantedKeys when earned.
  */
-export function reconcileQuestState(existing, incoming) {
+export function reconcileQuestState(existing, incoming, options = {}) {
+  const now = options.now ?? Date.now();
   const ex = existing?.questState && typeof existing.questState === "object" ? existing.questState : {};
   const inc = incoming?.questState && typeof incoming.questState === "object" ? incoming.questState : null;
   if (!inc) return incoming;
+
+  const qs = {
+    ...inc,
+    dailyClaimedChests: [...(inc.dailyClaimedChests || [])],
+    weeklyClaimedChests: [...(inc.weeklyClaimedChests || [])],
+    grantedKeys: [...(inc.grantedKeys || [])],
+    tasks: {
+      dailies: (inc.tasks?.dailies || []).map((t) => ({ ...t })),
+      weeklies: (inc.tasks?.weeklies || []).map((t) => ({ ...t })),
+      campaign: (inc.tasks?.campaign || []).map((t) => ({ ...t })),
+    },
+  };
+  applyQuestResetsToState(qs, new Date(now), { repairDesync: false });
 
   const existingKeys = new Set(
     Array.isArray(ex.grantedKeys) ? ex.grantedKeys.map(String) : []
   );
   const incomingKeys = new Set(
-    Array.isArray(inc.grantedKeys) ? inc.grantedKeys.map(String) : []
+    Array.isArray(qs.grantedKeys) ? qs.grantedKeys.map(String) : []
   );
   const allowedKeys = new Set(existingKeys);
 
   const tasks = { dailies: [], weeklies: [], campaign: [] };
-  const dailyResetChanged = inc.dailyResetKey != null && inc.dailyResetKey !== ex.dailyResetKey;
-  const weeklyResetChanged = inc.weeklyResetKey != null && inc.weeklyResetKey !== ex.weeklyResetKey;
+  const dailyResetChanged = qs.dailyResetKey != null && qs.dailyResetKey !== ex.dailyResetKey;
+  const weeklyResetChanged = qs.weeklyResetKey != null && qs.weeklyResetKey !== ex.weeklyResetKey;
 
   for (const tab of ["dailies", "weeklies", "campaign"]) {
     const exTasks = new Map((ex.tasks?.[tab] || []).map((t) => [t.id, t]));
     const resetChanged = tab === "weeklies" ? weeklyResetChanged : tab === "dailies" ? dailyResetChanged : false;
-    for (const task of inc.tasks?.[tab] || []) {
+    for (const task of qs.tasks?.[tab] || []) {
       const id = String(task.id || "");
       const goal = taskGoal(tab, id);
       const exTask = exTasks.get(id) || {};
@@ -181,6 +196,7 @@ export function reconcileQuestState(existing, incoming) {
     }
     for (const [id, exTask] of exTasks) {
       if (tasks[tab].some((t) => t.id === id)) continue;
+      if (resetChanged) continue;
       tasks[tab].push({
         id,
         progress: clampInt(exTask.progress ?? 0, 0, 9999),
@@ -189,8 +205,8 @@ export function reconcileQuestState(existing, incoming) {
     }
   }
 
-  const dailyPoints = clampInt(inc.dailyPoints ?? ex.dailyPoints ?? 0, 0, DAILY_QUEST_MAX_POINTS);
-  const weeklyPoints = clampInt(inc.weeklyPoints ?? ex.weeklyPoints ?? 0, 0, WEEKLY_QUEST_MAX_POINTS);
+  const dailyPoints = clampInt(qs.dailyPoints ?? ex.dailyPoints ?? 0, 0, DAILY_QUEST_MAX_POINTS);
+  const weeklyPoints = clampInt(qs.weeklyPoints ?? ex.weeklyPoints ?? 0, 0, WEEKLY_QUEST_MAX_POINTS);
   const exDailyPoints = clampInt(ex.dailyPoints ?? 0, 0, DAILY_QUEST_MAX_POINTS);
   const exWeeklyPoints = clampInt(ex.weeklyPoints ?? 0, 0, WEEKLY_QUEST_MAX_POINTS);
   const cappedDailyPoints = dailyResetChanged
@@ -201,7 +217,7 @@ export function reconcileQuestState(existing, incoming) {
     : Math.min(weeklyPoints, exWeeklyPoints + MAX_QUEST_POINTS_DELTA);
 
   const dailyClaimed = [];
-  for (const ms of inc.dailyClaimedChests || []) {
+  for (const ms of qs.dailyClaimedChests || []) {
     const milestone = clampInt(ms, 0, 100);
     if (!DAILY_QUEST_MILESTONES.includes(milestone)) continue;
     const key = questChestGrantKey("dailies", milestone);
@@ -220,7 +236,7 @@ export function reconcileQuestState(existing, incoming) {
   }
 
   const weeklyClaimed = [];
-  for (const ms of inc.weeklyClaimedChests || []) {
+  for (const ms of qs.weeklyClaimedChests || []) {
     const milestone = clampInt(ms, 0, 100);
     if (!WEEKLY_QUEST_MILESTONES.includes(milestone)) continue;
     const key = questChestGrantKey("weeklies", milestone);
@@ -241,7 +257,7 @@ export function reconcileQuestState(existing, incoming) {
   return {
     ...incoming,
     questState: {
-      ...inc,
+      ...qs,
       tasks,
       dailyPoints: cappedDailyPoints,
       weeklyPoints: cappedWeeklyPoints,
@@ -327,7 +343,7 @@ export function guardSavePayload(existing, incoming, options = {}) {
   out = clampAdventureProgress(ex, out);
   out = clampTrainerRewardLevel(ex, out);
   out = clampResourceChestTimestamp(ex, out, options.now);
-  out = reconcileQuestState(ex, out);
+  out = reconcileQuestState(ex, out, options);
   out = clampInventoryGrowth(ex, out);
   out = clampInventoryShrink(ex, out);
   out.releaseLog = mergeReleaseLog(ex, out);
