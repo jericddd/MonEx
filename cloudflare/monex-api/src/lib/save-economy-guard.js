@@ -175,7 +175,7 @@ export function reconcileQuestState(existing, incoming) {
   for (const ms of inc.dailyClaimedChests || []) {
     const milestone = clampInt(ms, 0, 100);
     if (!DAILY_QUEST_MILESTONES.includes(milestone)) continue;
-    const key = questChestGrantKey("daily", milestone);
+    const key = questChestGrantKey("dailies", milestone);
     if (existingKeys.has(key)) {
       dailyClaimed.push(milestone);
       continue;
@@ -187,14 +187,14 @@ export function reconcileQuestState(existing, incoming) {
   }
   for (const ms of ex.dailyClaimedChests || []) {
     if (dailyClaimed.includes(ms)) continue;
-    if (existingKeys.has(questChestGrantKey("daily", ms))) dailyClaimed.push(ms);
+    if (existingKeys.has(questChestGrantKey("dailies", ms))) dailyClaimed.push(ms);
   }
 
   const weeklyClaimed = [];
   for (const ms of inc.weeklyClaimedChests || []) {
     const milestone = clampInt(ms, 0, 100);
     if (!WEEKLY_QUEST_MILESTONES.includes(milestone)) continue;
-    const key = questChestGrantKey("weekly", milestone);
+    const key = questChestGrantKey("weeklies", milestone);
     if (existingKeys.has(key)) {
       weeklyClaimed.push(milestone);
       continue;
@@ -206,7 +206,7 @@ export function reconcileQuestState(existing, incoming) {
   }
   for (const ms of ex.weeklyClaimedChests || []) {
     if (weeklyClaimed.includes(ms)) continue;
-    if (existingKeys.has(questChestGrantKey("weekly", ms))) weeklyClaimed.push(ms);
+    if (existingKeys.has(questChestGrantKey("weeklies", ms))) weeklyClaimed.push(ms);
   }
 
   return {

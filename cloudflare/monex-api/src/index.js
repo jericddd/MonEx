@@ -52,6 +52,8 @@ import { loadCloudSave, writeCloudSave, buildSavePayload, preserveServerAuthorit
 import { grantMonballs, alignCatchMonballsToMerged } from "./lib/grant-monballs.js";
 import { resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsAfterCatch, getAuthoritativeMonballs, hydrateCloudSaveWithCatchState } from "./lib/save-reconcile.js";
 import { guardSavePayload } from "./lib/save-economy-guard.js";
+import { claimQuestTask, claimQuestChest } from "./lib/quest-claim.js";
+import { wasTweetProcessedKv, markTweetProcessedKv } from "./lib/tweet-dedupe.js";
 import { appendMonballAudit } from "./lib/monball-audit.js";
 import {
   claimGameSession,
@@ -246,9 +248,14 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
     for (const tweet of tweets) {
       const lockKey = userSyncLockKey(tweet.authorId, tweet.username);
       await withUserSyncLock(lockKey, async () => {
+      if (await wasTweetProcessedKv(env.MONEX_KV, tweet.id)) {
+        status.skipped.push({ id: tweet.id, reason: "already_processed" });
+        return;
+      }
       let state = await loadState(env.MONEX_KV);
       if (wasProcessed(state, tweet.id)) {
         status.skipped.push({ id: tweet.id, reason: "already_processed" });
+        await markTweetProcessedKv(env.MONEX_KV, tweet.id);
         return;
       }
 
@@ -379,6 +386,9 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       }
 
       await saveState(env.MONEX_KV, state);
+      if (wasProcessed(state, tweet.id)) {
+        await markTweetProcessedKv(env.MONEX_KV, tweet.id);
+      }
       status.processed += 1;
       });
     }
@@ -843,7 +853,8 @@ async function handleRequest(request, env) {
       await enforceRateLimit(request, env, "activity-feed", { limit: 120, windowSec: 60 });
       const limit = parseBoundedInt(url.searchParams.get("limit"), { fallback: 50, min: 1, max: 50 });
       const page = parseBoundedInt(url.searchParams.get("page"), { fallback: 1, min: 1, max: 9999 });
-      const result = await listActivities(env.MONEX_KV, { limit, page, successOnly: true });
+      const username = url.searchParams.get("username") || null;
+      const result = await listActivities(env.MONEX_KV, { limit, page, username, successOnly: true });
       return json({ ok: true, ...result }, 200, request, env);
     }
 
@@ -1008,6 +1019,50 @@ async function handleRequest(request, env) {
       try {
         const result = await claimDailyLoginReward(env.MONEX_KV, auth.session);
         const status = result.ok ? 200 : result.error === "cooldown" ? 429 : 400;
+        return json(result, status, request, env);
+      } catch (err) {
+        return json({ ok: false, error: err.message || "claim failed" }, 500, request, env);
+      }
+    }
+
+    if (path === "/api/quest/claim-task" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const auth = await requireGameplay(request, env, body);
+      if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
+      await enforceRateLimit(request, env, "quest-claim", { limit: 60, windowSec: 60 });
+      const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
+      const expectedRevision = body?.baseRevision != null && Number.isFinite(Number(body.baseRevision))
+        ? Number(body.baseRevision)
+        : undefined;
+      try {
+        const result = await claimQuestTask(env.MONEX_KV, auth.session, {
+          tab: body?.tab,
+          taskId: body?.taskId,
+          expectedRevision,
+        }, starting);
+        const status = result.ok ? 200 : result.error === "progress_insufficient" ? 400 : 409;
+        return json(result, status, request, env);
+      } catch (err) {
+        return json({ ok: false, error: err.message || "claim failed" }, 500, request, env);
+      }
+    }
+
+    if (path === "/api/quest/claim-chest" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const auth = await requireGameplay(request, env, body);
+      if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
+      await enforceRateLimit(request, env, "quest-claim", { limit: 60, windowSec: 60 });
+      const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
+      const expectedRevision = body?.baseRevision != null && Number.isFinite(Number(body.baseRevision))
+        ? Number(body.baseRevision)
+        : undefined;
+      try {
+        const result = await claimQuestChest(env.MONEX_KV, auth.session, {
+          track: body?.track,
+          milestone: body?.milestone,
+          expectedRevision,
+        }, starting);
+        const status = result.ok ? 200 : result.error === "points_insufficient" ? 400 : 409;
         return json(result, status, request, env);
       } catch (err) {
         return json({ ok: false, error: err.message || "claim failed" }, 500, request, env);

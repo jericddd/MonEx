@@ -20,8 +20,9 @@ export function collectPendingUsers(state) {
     if (!pending.length) continue;
     const username = cleanUsername(user?.username);
     if (!username) continue;
-    if (!groups.has(username)) groups.set(username, []);
-    groups.get(username).push({ key, user, pendingCount: pending.length });
+    const groupKey = username.toLowerCase();
+    if (!groups.has(groupKey)) groups.set(groupKey, []);
+    groups.get(groupKey).push({ key, user, pendingCount: pending.length });
   }
   return groups;
 }
@@ -32,7 +33,7 @@ export function listPendingUsernames(state) {
 
 export function usernameMatchesFilter(stored, filter) {
   if (!filter) return true;
-  return cleanUsername(stored) === cleanUsername(filter);
+  return cleanUsername(stored).toLowerCase() === cleanUsername(filter).toLowerCase();
 }
 
 /** Prefer real X author id over sim_* dev keys when the same @handle has duplicates. */

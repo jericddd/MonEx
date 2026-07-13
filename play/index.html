@@ -7546,6 +7546,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/auth-client.js?v=20260710a"></script>
 <script src="js/game-session-client.js?v=20260710a"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
+<script src="js/quest-client.js?v=20260713b"></script>
 <script src="js/mailbox-client.js?v=20260713a"></script>
 <script>
 // =====================================================
@@ -9332,6 +9333,17 @@ async function advanceQuestTask(taskId, buttonEl) {
         if (!task || !def || task.claimed || task.progress < def.goal) return;
         const grantKey = questGrantKey(tab, taskId);
         if (questState.grantedKeys?.includes(grantKey)) return;
+        if (typeof MonExQuest !== "undefined" && MonExQuest.claimQuestTask) {
+            const result = await MonExQuest.claimQuestTask(tab, taskId);
+            if (!result.ok) return;
+            if (result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(result.save);
+            }
+            renderDailyQuest();
+            updateHeaderCurrencies();
+            return;
+        }
         const grant = buildQuestGrantFromDef(def);
         task.claimed = true;
         if (!grant || !grantQuestReward(grant, grantKey)) {
@@ -9361,6 +9373,17 @@ async function claimQuestChest(milestone, buttonEl) {
         if (!chest) return;
         const grantKey = questChestGrantKey(track, milestone);
         if (questState.grantedKeys?.includes(grantKey)) return;
+        if (typeof MonExQuest !== "undefined" && MonExQuest.claimQuestChest) {
+            const result = await MonExQuest.claimQuestChest(track, milestone);
+            if (!result.ok) return;
+            if (result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(result.save);
+            }
+            renderDailyQuest();
+            updateHeaderCurrencies();
+            return;
+        }
         if (track === "weeklies") {
             questState.weeklyClaimedChests = [...claimed, milestone];
         } else {
