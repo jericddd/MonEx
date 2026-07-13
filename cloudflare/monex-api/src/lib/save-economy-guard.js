@@ -265,6 +265,29 @@ export function clampInventoryGrowth(existing, incoming, maxAdded = 15) {
 }
 
 /**
+ * Block catastrophic inventory shrink on save PUT (cross-device stale overwrite).
+ * Releases are one-at-a-time in the client, so a drop of more than maxRemoved
+ * in a single PUT is treated as stale-client data loss and rejected.
+ */
+export const MAX_INVENTORY_SHRINK = 5;
+
+export function clampInventoryShrink(existing, incoming, maxRemoved = MAX_INVENTORY_SHRINK) {
+  const exParty = Array.isArray(existing?.party) ? existing.party : [];
+  const exBox = Array.isArray(existing?.box) ? existing.box : [];
+  const inParty = Array.isArray(incoming?.party) ? incoming.party : [];
+  const inBox = Array.isArray(incoming?.box) ? incoming.box : [];
+  const exCount = exParty.length + exBox.length;
+  const inCount = inParty.length + inBox.length;
+  if (exCount <= 0) return incoming;
+  if (inCount >= exCount - maxRemoved) return incoming;
+  return {
+    ...incoming,
+    party: exParty.slice(),
+    box: exBox.slice(),
+  };
+}
+
+/**
  * Trainer reward level may only advance modestly per save (blocks merge-max inflation).
  */
 export function clampTrainerRewardLevel(existing, incoming) {
@@ -287,6 +310,7 @@ export function guardSavePayload(existing, incoming, options = {}) {
   out = clampResourceChestTimestamp(ex, out, options.now);
   out = reconcileQuestState(ex, out);
   out = clampInventoryGrowth(ex, out);
+  out = clampInventoryShrink(ex, out);
   return out;
 }
 

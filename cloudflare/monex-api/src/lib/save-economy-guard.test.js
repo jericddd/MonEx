@@ -6,8 +6,10 @@ import {
   clampTrainerRewardLevel,
   clampResourceChestTimestamp,
   reconcileQuestState,
+  clampInventoryShrink,
   guardSavePayload,
   MAX_SAVE_DELTA,
+  MAX_INVENTORY_SHRINK,
 } from "./save-economy-guard.js";
 
 test("blocks arbitrary money inflation on save PUT", () => {
@@ -150,6 +152,60 @@ test("caps trainer reward level jumps per save", () => {
   const incoming = { trainerRewardLevel: 20 };
   const out = clampTrainerRewardLevel(existing, incoming);
   assert.equal(out.trainerRewardLevel, 8);
+});
+
+test("blocks catastrophic party/box shrink on save PUT", () => {
+  const existing = {
+    party: Array.from({ length: 4 }, (_, i) => ({ name: "Chog", level: i + 1 })),
+    box: Array.from({ length: 257 }, (_, i) => ({ name: "Molandak", level: (i % 10) + 1 })),
+  };
+  const incoming = {
+    party: [{ name: "Chog", level: 1 }],
+    box: [{ name: "Molandak", level: 1 }, { name: "Mouch", level: 2 }, { name: "Chog", level: 3 }],
+  };
+  const out = clampInventoryShrink(existing, incoming);
+  assert.equal(out.party.length, 4);
+  assert.equal(out.box.length, 257);
+});
+
+test("allows small legitimate inventory shrink (releases)", () => {
+  const existing = {
+    party: [{ name: "Chog", level: 1 }],
+    box: Array.from({ length: 10 }, () => ({ name: "Molandak", level: 1 })),
+  };
+  const incoming = {
+    party: [{ name: "Chog", level: 1 }],
+    box: existing.box.slice(0, 10 - Math.min(3, MAX_INVENTORY_SHRINK)),
+  };
+  const out = clampInventoryShrink(existing, incoming);
+  assert.equal(out.box.length, incoming.box.length);
+});
+
+test("guardSavePayload preserves large box against stale shrink", () => {
+  const existing = {
+    money: 1000,
+    adventureGlobalBest: 5,
+    party: [{ name: "Chog", level: 1 }],
+    box: Array.from({ length: 200 }, () => ({ name: "Molandak", level: 1 })),
+    questState: { grantedKeys: [], tasks: { dailies: [], weeklies: [], campaign: [] } },
+  };
+  const incoming = {
+    money: 1100,
+    adventureGlobalBest: 5,
+    party: [{ name: "Chog", level: 1 }],
+    box: [{ name: "Molandak", level: 1 }],
+    questState: {
+      grantedKeys: [],
+      dailyPoints: 0,
+      weeklyPoints: 0,
+      dailyClaimedChests: [],
+      weeklyClaimedChests: [],
+      tasks: { dailies: [], weeklies: [], campaign: [] },
+    },
+  };
+  const out = guardSavePayload(existing, incoming, { now: Date.now() });
+  assert.equal(out.box.length, 200);
+  assert.equal(out.money, 1100);
 });
 
 test("guardSavePayload applies all guards", () => {
