@@ -57,6 +57,7 @@ import {
 } from "./lib/catch-user-store.js";
 import { backfillPendingForCatchUser } from "./lib/backfill-pending.js";
 import { hydrateUserCloudSave, lookupCatchUserReadOnly } from "./lib/hydrate-save.js";
+import { listReleaseLog } from "./lib/release-log.js";
 import { tryClaimTweetForProcessing, finalizeTweetProcessed, releaseTweetClaim } from "./lib/tweet-dedupe.js";
 import { appendMonballAudit } from "./lib/monball-audit.js";
 import {
@@ -875,6 +876,16 @@ async function handleRequest(request, env) {
       const page = parseBoundedInt(url.searchParams.get("page"), { fallback: 1, min: 1, max: 9999 });
       const result = await listActivities(env.MONEX_KV, { limit, page, username, successOnly: true });
       return json({ ok: true, username, ...result }, 200, request, env);
+    }
+
+    if (path === "/api/releases/mine" && request.method === "GET") {
+      const auth = await requireGameplay(request, env);
+      if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
+      const limit = parseBoundedInt(url.searchParams.get("limit"), { fallback: 30, min: 1, max: 50 });
+      const page = parseBoundedInt(url.searchParams.get("page"), { fallback: 1, min: 1, max: 9999 });
+      const { save } = await loadCloudSave(env.MONEX_KV, auth.session.xUserId);
+      const result = listReleaseLog(save, { limit, page });
+      return json({ ok: true, username: auth.session.username, ...result }, 200, request, env);
     }
 
     if (path === "/api/monballs" && request.method === "GET") {

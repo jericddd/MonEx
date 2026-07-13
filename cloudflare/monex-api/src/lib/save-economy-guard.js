@@ -3,7 +3,7 @@
  * and invalid progression jumps while allowing legitimate per-save gameplay deltas.
  */
 
-import { LIMITS } from "./save-validate.js";
+import { LIMITS, sanitizeReleaseLog } from "./save-validate.js";
 import {
   QUEST_TASK_DEFS,
   DAILY_QUEST_MILESTONES,
@@ -298,6 +298,25 @@ export function clampTrainerRewardLevel(existing, incoming) {
 }
 
 /**
+ * Append-only merge for release history. New entries from the client are kept;
+ * existing server log entries are never dropped by a stale tab.
+ */
+export function mergeReleaseLog(existing, incoming) {
+  const prior = sanitizeReleaseLog(existing?.releaseLog);
+  const next = sanitizeReleaseLog(incoming?.releaseLog);
+  const seen = new Set(prior.map((entry) => entry.id));
+  const merged = [...prior];
+  for (const entry of next) {
+    if (seen.has(entry.id)) continue;
+    merged.push(entry);
+    seen.add(entry.id);
+  }
+  return merged
+    .sort((a, b) => Date.parse(b.at || "") - Date.parse(a.at || ""))
+    .slice(0, LIMITS.releaseLogMax);
+}
+
+/**
  * Apply all server-side save guards before persist.
  */
 export function guardSavePayload(existing, incoming, options = {}) {
@@ -311,6 +330,7 @@ export function guardSavePayload(existing, incoming, options = {}) {
   out = reconcileQuestState(ex, out);
   out = clampInventoryGrowth(ex, out);
   out = clampInventoryShrink(ex, out);
+  out.releaseLog = mergeReleaseLog(ex, out);
   return out;
 }
 
