@@ -14001,6 +14001,14 @@ function resolveAbandonedAdventureBattle() {
     return true;
 }
 
+function showGameSessionUnsupportedNotice(where) {
+    console.warn("[monex-session] enforcement unavailable:", where);
+    showHubNotice(
+        "Single-session protection is unavailable (API not deployed). Avoid playing in multiple tabs at once until the server is updated.",
+        "Session guard offline"
+    );
+}
+
 function showGameSessionModal() {
     const el = document.getElementById("game-session-modal");
     if (el) {
@@ -14209,6 +14217,20 @@ function pickNewerMonballsScalar(local, cloud, fallback = 0) {
     return Math.min(localVal, cloudVal);
 }
 
+function saveTiePrefersCloud(local, cloud) {
+    return getSaveTimestamp(cloud) >= getSaveTimestamp(local);
+}
+
+function pickMergedQuestScalar(localVal, cloudVal, local, cloud) {
+    const localTs = getSaveTimestamp(local);
+    const cloudTs = getSaveTimestamp(cloud);
+    const localNum = Number(localVal) || 0;
+    const cloudNum = Number(cloudVal) || 0;
+    if (cloudTs > localTs) return cloudNum;
+    if (localTs > cloudTs) return Math.max(localNum, cloudNum);
+    return cloudNum;
+}
+
 function monCollectionKey(mon) {
     if (!mon?.name) return "";
     return [
@@ -14325,26 +14347,38 @@ function mergeSaveSnapshots(local, cloud) {
     const localQuest = normalizeQuestState(local.questState);
     const cloudQuest = normalizeQuestState(cloud.questState);
     const questMerged = normalizeQuestState(newer.questState);
-    const newerIsCloud = cloudTs >= localTs;
-    questMerged.grantedKeys = newerIsCloud
+    const tiePrefersCloud = saveTiePrefersCloud(local, cloud);
+    questMerged.grantedKeys = tiePrefersCloud
         ? [...(cloudQuest.grantedKeys || [])]
         : [...new Set([...(localQuest.grantedKeys || []), ...(cloudQuest.grantedKeys || [])])];
-    questMerged.dailyPoints = Math.max(localQuest.dailyPoints || 0, cloudQuest.dailyPoints || 0);
-    questMerged.weeklyPoints = Math.max(localQuest.weeklyPoints || 0, cloudQuest.weeklyPoints || 0);
-    questMerged.dailyClaimedChests = [
-        ...new Set([...(localQuest.dailyClaimedChests || []), ...(cloudQuest.dailyClaimedChests || [])]),
-    ].filter(ms => DAILY_QUEST_MILESTONES.includes(ms)).sort((a, b) => a - b);
-    questMerged.weeklyClaimedChests = [
-        ...new Set([...(localQuest.weeklyClaimedChests || []), ...(cloudQuest.weeklyClaimedChests || [])]),
-    ].filter(ms => WEEKLY_QUEST_MILESTONES.includes(ms)).sort((a, b) => a - b);
+    questMerged.dailyPoints = pickMergedQuestScalar(
+        localQuest.dailyPoints, cloudQuest.dailyPoints, local, cloud
+    );
+    questMerged.weeklyPoints = pickMergedQuestScalar(
+        localQuest.weeklyPoints, cloudQuest.weeklyPoints, local, cloud
+    );
+    questMerged.dailyClaimedChests = (tiePrefersCloud
+        ? [...(cloudQuest.dailyClaimedChests || [])]
+        : [...new Set([...(localQuest.dailyClaimedChests || []), ...(cloudQuest.dailyClaimedChests || [])])]
+    ).filter(ms => DAILY_QUEST_MILESTONES.includes(ms)).sort((a, b) => a - b);
+    questMerged.weeklyClaimedChests = (tiePrefersCloud
+        ? [...(cloudQuest.weeklyClaimedChests || [])]
+        : [...new Set([...(localQuest.weeklyClaimedChests || []), ...(cloudQuest.weeklyClaimedChests || [])])]
+    ).filter(ms => WEEKLY_QUEST_MILESTONES.includes(ms)).sort((a, b) => a - b);
     ["dailies", "weeklies", "campaign"].forEach(tab => {
         questMerged.tasks[tab] = (questMerged.tasks[tab] || []).map(task => {
             const localTask = (localQuest.tasks[tab] || []).find(t => t.id === task.id);
             const cloudTask = (cloudQuest.tasks[tab] || []).find(t => t.id === task.id);
+            const localProgress = localTask?.progress || 0;
+            const cloudProgress = cloudTask?.progress || 0;
+            let progress;
+            if (cloudTs > localTs) progress = cloudProgress;
+            else if (localTs > cloudTs) progress = Math.max(localProgress, cloudProgress, task.progress || 0);
+            else progress = cloudProgress;
             return {
                 id: task.id,
-                progress: Math.max(localTask?.progress || 0, cloudTask?.progress || 0, task.progress || 0),
-                claimed: newerIsCloud ? !!(cloudTask?.claimed) : !!(localTask?.claimed),
+                progress,
+                claimed: tiePrefersCloud ? !!(cloudTask?.claimed) : !!(localTask?.claimed),
             };
         });
     });
@@ -14359,26 +14393,37 @@ function mergeSaveSnapshots(local, cloud) {
     merged.mailbox = [...mailById.values()];
 
     const gearById = new Map();
-    [...(local.gearInventory || []), ...(cloud.gearInventory || [])].forEach((gear) => {
+    const gearLists = localTs > cloudTs
+        ? [...(cloud.gearInventory || []), ...(local.gearInventory || [])]
+        : [...(local.gearInventory || []), ...(cloud.gearInventory || [])];
+    gearLists.forEach((gear) => {
         if (gear?.id) gearById.set(gear.id, gear);
     });
     merged.gearInventory = [...gearById.values()];
 
-    merged.adventureGlobalBest = Math.max(
-        Number(local.adventureGlobalBest) || 0,
-        Number(cloud.adventureGlobalBest) || 0
-    );
     const localGlobal = getGlobalAdventureProgress(local.currentChapter, local.currentStage);
     const cloudGlobal = getGlobalAdventureProgress(cloud.currentChapter, cloud.currentStage);
-    const bestGlobal = Math.max(localGlobal, cloudGlobal, merged.adventureGlobalBest || 0);
+    let bestGlobal;
+    if (cloudTs > localTs) {
+        bestGlobal = Math.max(cloudGlobal, Number(cloud.adventureGlobalBest) || 0);
+    } else if (localTs > cloudTs) {
+        bestGlobal = Math.max(localGlobal, cloudGlobal, Number(local.adventureGlobalBest) || 0);
+    } else {
+        bestGlobal = Math.max(cloudGlobal, Number(cloud.adventureGlobalBest) || 0);
+    }
     const bestPos = globalProgressToChapterStage(bestGlobal);
+    merged.adventureGlobalBest = bestGlobal;
     merged.currentChapter = bestPos.chapter;
     merged.currentStage = bestPos.stage;
-    merged.highestStageCleared = Math.max(
-        Number(local.highestStageCleared) || 0,
-        Number(cloud.highestStageCleared) || 0,
-        bestPos.stage
-    );
+    if (cloudTs > localTs || tiePrefersCloud) {
+        merged.highestStageCleared = Math.max(Number(cloud.highestStageCleared) || 0, bestPos.stage);
+    } else {
+        merged.highestStageCleared = Math.max(
+            Number(local.highestStageCleared) || 0,
+            Number(cloud.highestStageCleared) || 0,
+            bestPos.stage
+        );
+    }
 
     const patrolMerged = window.MonExPatrolReset
         ? window.MonExPatrolReset.mergePatrolProgress(local, cloud)
@@ -15916,6 +15961,7 @@ async function checkLogin() {
             MonExGameSession.startSessionGuard({
                 onSuperseded: showGameSessionModal,
                 onActive: onGameSessionActive,
+                onUnsupported: showGameSessionUnsupportedNotice,
             });
             if (MonExGameSession.isSuperseded()) showGameSessionModal();
             else hideGameSessionModal();
@@ -15940,6 +15986,7 @@ async function checkLogin() {
                 MonExGameSession.startSessionGuard({
                     onSuperseded: showGameSessionModal,
                     onActive: onGameSessionActive,
+                    onUnsupported: showGameSessionUnsupportedNotice,
                 });
                 if (MonExGameSession.isSuperseded()) showGameSessionModal();
                 else hideGameSessionModal();
@@ -16659,33 +16706,47 @@ function endPatrolBattle(win, player) {
     void finishPatrolBattleRewards(win, encounter);
 }
 
+async function claimServerBattleReward({ mode, encounterId, claimId, logTag }) {
+    const claimFn = MonExBattle.claimBattleRewardWithRetry || MonExBattle.claimBattleReward;
+    try {
+        const result = await claimFn({ mode, win: true, encounterId, claimId });
+        if (result.ok && result.save) {
+            applyLoadedSave(result.save);
+            writeLocalSave(result.save);
+            return {
+                gold: result.reward?.gold || 0,
+                essence: result.reward?.essence || 0,
+                shards: result.reward?.monShards || 0,
+                trainerXp: result.reward?.trainerXp || 0,
+                gear: result.reward?.gear || null,
+            };
+        }
+        console.warn(`[${logTag}] server reward claim failed`, result);
+        showHubNotice(
+            "Your win was saved, but rewards could not sync with the server. Refresh to pull the latest cloud save — your claim id is stored server-side and will not double-pay.",
+            "Reward sync failed"
+        );
+    } catch (e) {
+        console.error(`[${logTag}] reward claim error`, e);
+        showHubNotice(
+            "Network error while claiming battle rewards. Refresh to sync from the cloud.",
+            "Reward sync failed"
+        );
+    }
+    return null;
+}
+
 async function finishPatrolBattleRewards(win, encounter) {
     let reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null };
     if (win && typeof MonExBattle !== "undefined" && MonExAuth?.isLoggedIn?.()) {
         const claimId = `patrol-${encounter?.id || "common"}-${patrolScanToken}-${adventureBattleToken}`;
-        try {
-            const result = await MonExBattle.claimBattleReward({
-                mode: "patrol",
-                win: true,
-                encounterId: encounter?.id,
-                claimId,
-            });
-            if (result.ok && result.save) {
-                applyLoadedSave(result.save);
-                writeLocalSave(result.save);
-                reward = {
-                    gold: result.reward?.gold || 0,
-                    essence: result.reward?.essence || 0,
-                    shards: result.reward?.monShards || 0,
-                    trainerXp: result.reward?.trainerXp || 0,
-                    gear: result.reward?.gear || null,
-                };
-            } else {
-                console.warn("[patrol] server reward claim failed", result);
-            }
-        } catch (e) {
-            console.error("[patrol] reward claim error", e);
-        }
+        const serverReward = await claimServerBattleReward({
+            mode: "patrol",
+            encounterId: encounter?.id,
+            claimId,
+            logTag: "patrol",
+        });
+        if (serverReward) reward = serverReward;
     } else if (win) {
         reward = rollPatrolRewards(encounter, true);
         grantBattleRewards(reward);
@@ -17982,28 +18043,12 @@ async function finishAdventureBattleRewards(win) {
     let reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null };
     if (win && typeof MonExBattle !== "undefined" && MonExAuth?.isLoggedIn?.()) {
         const claimId = `adv-${currentChapter}-${currentStage}-${adventureBattleToken}`;
-        try {
-            const result = await MonExBattle.claimBattleReward({
-                mode: "adventure",
-                win: true,
-                claimId,
-            });
-            if (result.ok && result.save) {
-                applyLoadedSave(result.save);
-                writeLocalSave(result.save);
-                reward = {
-                    gold: result.reward?.gold || 0,
-                    essence: result.reward?.essence || 0,
-                    shards: result.reward?.monShards || 0,
-                    trainerXp: result.reward?.trainerXp || 0,
-                    gear: result.reward?.gear || null,
-                };
-            } else {
-                console.warn("[adventure] server reward claim failed", result);
-            }
-        } catch (e) {
-            console.error("[adventure] reward claim error", e);
-        }
+        const serverReward = await claimServerBattleReward({
+            mode: "adventure",
+            claimId,
+            logTag: "adventure",
+        });
+        if (serverReward) reward = serverReward;
     } else if (win) {
         const boss = isBossStage(currentStage);
         const mult = boss ? 2 : 1;
