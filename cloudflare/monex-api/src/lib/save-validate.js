@@ -356,6 +356,14 @@ export function sanitizeMon(raw) {
     if (pending.length) mon.ascensionSkillPending = pending;
   }
 
+  // Preserve catch/recovery dedupe keys across save round-trips. Without these,
+  // hydrate re-imports the full activity log on every refresh (inventory inflation).
+  if (typeof raw.wildPendingId === "string" && raw.wildPendingId.trim()) {
+    mon.wildPendingId = trimString(raw.wildPendingId, 80);
+  } else if (typeof raw.pendingId === "string" && raw.pendingId.trim()) {
+    mon.wildPendingId = trimString(raw.pendingId, 80);
+  }
+
   mon.max_mana = clampInt(computeMonMaxMana(mon), 1, LIMITS.maxMana);
 
   return mon;
