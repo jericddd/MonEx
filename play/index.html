@@ -9887,7 +9887,9 @@ const SCENE_SPRITE_DURATION_MS = {
     "128x128/moncock-swing2.gif": 1920,
     "128x128/slamonad-idle.gif": 1200,
     "128x128/salmonad-swing1.gif": 1920,
-    "128x128/salmonad-swing2.gif": 1680
+    "128x128/salmonad-swing2.gif": 1680,
+    "128x128/larvanad-swing1.gif": 1920,
+    "128x128/pampam-swing1.gif": 1920
 };
 
 // End one loop slightly before the browser restarts infinite GIFs (loop ext = 0).
@@ -10182,7 +10184,6 @@ function setSceneIdleSprite(imgEl, spritePath, forceReplay) {
     }
 
     return new Promise(resolve => {
-        const url = base + "?t=" + Date.now();
         let settled = false;
         const onReady = () => {
             if (settled) return;
@@ -10203,8 +10204,13 @@ function setSceneIdleSprite(imgEl, spritePath, forceReplay) {
         imgEl.addEventListener("load", onReady, { once: true });
         imgEl.addEventListener("error", onReady, { once: true });
         applyMeta();
-        imgEl.src = url;
-        if (imgEl.complete) onReady();
+        // Restart GIF from memory — no cache-bust (avoids re-download/decode).
+        if (forceReplay && current === base) {
+            imgEl.src = "";
+            void imgEl.offsetWidth;
+        }
+        imgEl.src = base;
+        if (imgEl.complete && imgEl.naturalWidth) onReady();
     });
 }
 
@@ -10421,7 +10427,11 @@ async function sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token) {
             if (token !== sceneIdleBattleToken) return;
             const animStart = Number(atkImg.dataset.animStart) || performance.now();
             if (usesGifNaturalLoop(attackPath)) {
-                const loopMs = await measureGifLoopMs(atkImg, attackPath);
+                // Prefer cached / table timing — never run canvas GIF measurement on the main scene.
+                const loopKey = normalizeSpritePath(attackPath);
+                const loopMs = gifLoopMsCache.has(loopKey)
+                    ? gifLoopMsCache.get(loopKey)
+                    : getSceneSpriteDurationMs(attackPath, atkMon.name);
                 const playMs = Math.max(48, loopMs - SCENE_GIF_LOOP_GUARD_MS);
                 const hitAtMs = Math.min(Math.floor(loopMs * 0.45), playMs - 16);
                 const hitShake = waitSceneIdleUntil(animStart, hitAtMs, token).then(() => {
@@ -10462,6 +10472,10 @@ async function sceneIdleFighterCombatLoop(atkTeam, atkIdx, token, startDelay) {
             await delay(250);
             continue;
         }
+        if (shouldPauseSceneIdleCombat()) {
+            await delay(400);
+            continue;
+        }
 
         const heroes = party.slice(0, 3);
         const enemies = sceneIdleEnemyTeam.slice(0, 3);
@@ -10475,6 +10489,15 @@ async function sceneIdleFighterCombatLoop(atkTeam, atkIdx, token, startDelay) {
         await sceneIdleAttackBurst(atkTeam, atkIdx, defTeam, defIdx, token);
         await delay(180 + Math.random() * 320);
     }
+}
+
+function shouldPauseSceneIdleCombat() {
+    if (typeof document !== "undefined" && document.hidden) return true;
+    if (document.getElementById("battle-scene")?.classList.contains("open")) return true;
+    if (document.querySelector(".game-modal.open")) return true;
+    const container = document.querySelector(".game-container");
+    if (container?.classList.contains("adventure-mode")) return true;
+    return false;
 }
 
 async function startSceneIdleBattleLoop() {
@@ -14247,14 +14270,41 @@ async function onGameSessionActive() {
     } catch (_) {}
 }
 
-function saveData() {
+function saveData(options = {}) {
     if (!currentUser) return;
     if (!isGameSessionPlayable()) return;
     const payload = buildSavePayload();
-    writeLocalSave(payload);
+    scheduleLocalSave(payload, options.immediate === true);
     if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
         MonExAuth.scheduleCloudSave(payload);
     }
+}
+
+let _pendingLocalSavePayload = null;
+let _localSaveTimer = null;
+const LOCAL_SAVE_DEBOUNCE_MS = 400;
+
+function scheduleLocalSave(payload, immediate = false) {
+    if (!payload) return;
+    _pendingLocalSavePayload = payload;
+    if (immediate) {
+        flushLocalSave();
+        return;
+    }
+    if (_localSaveTimer) return;
+    _localSaveTimer = setTimeout(() => {
+        _localSaveTimer = null;
+        flushLocalSave();
+    }, LOCAL_SAVE_DEBOUNCE_MS);
+}
+
+function flushLocalSave() {
+    if (_localSaveTimer) {
+        clearTimeout(_localSaveTimer);
+        _localSaveTimer = null;
+    }
+    if (!_pendingLocalSavePayload) return;
+    writeLocalSave(_pendingLocalSavePayload);
 }
 
 function buildSavePayload() {
@@ -14285,6 +14335,12 @@ function writeLocalSave(payload) {
     if (isGameSessionSuperseded()) return;
     const key = getSaveStorageKey();
     if (!key || !payload) return;
+    // Cancel any pending debounced write so it can't overwrite this payload.
+    if (_localSaveTimer) {
+        clearTimeout(_localSaveTimer);
+        _localSaveTimer = null;
+    }
+    _pendingLocalSavePayload = null;
     localStorage.setItem(key, JSON.stringify(payload));
 }
 
@@ -14292,7 +14348,8 @@ function flushSaveToCloud() {
     if (!currentUser || typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return;
     if (isGameSessionSuperseded()) return;
     const payload = buildSavePayload();
-    writeLocalSave(payload);
+    _pendingLocalSavePayload = payload;
+    flushLocalSave();
     return MonExAuth.flushCloudSave(payload);
 }
 
@@ -14397,7 +14454,7 @@ async function refreshMonballsFromServer() {
 async function persistProgress(options = {}) {
     if (!isGameSessionPlayable()) return;
     const { flush = true } = options;
-    saveData();
+    saveData({ immediate: true });
     updateHeaderCurrencies();
     if (flush && typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
         try {
@@ -14720,6 +14777,17 @@ async function loadData() {
 }
 
 // ==================== UI RENDER ====================
+function isGameModalOpen(name) {
+    return !!document.getElementById("modal-" + name)?.classList.contains("open");
+}
+
+function shouldRefreshMainScene() {
+    const mainScene = document.getElementById("main-scene");
+    if (!mainScene || mainScene.style.display === "none") return false;
+    if (document.getElementById("battle-scene")?.classList.contains("open")) return false;
+    return true;
+}
+
 function updateUI() {
     try {
         document.body.classList.toggle("test-user-session", isStagingHost() && isTestUser());
@@ -14730,9 +14798,16 @@ function updateUI() {
         console.error("updateUI header failed:", e);
     }
 
-    try { renderMainScene(); } catch (e) { console.error("renderMainScene failed:", e); }
-    try { renderPartyGrid(); } catch (e) { console.error("renderPartyGrid failed:", e); }
-    try { renderBox(); } catch (e) { console.error("renderBox failed:", e); }
+    // Scoped refresh: avoid rebuilding closed modals (party/box cards are expensive).
+    if (shouldRefreshMainScene()) {
+        try { renderMainScene(); } catch (e) { console.error("renderMainScene failed:", e); }
+    }
+    if (isGameModalOpen("party") || isGameModalOpen("party-switch")) {
+        try { renderPartyGrid(); } catch (e) { console.error("renderPartyGrid failed:", e); }
+    }
+    if (isGameModalOpen("box")) {
+        try { renderBox(); } catch (e) { console.error("renderBox failed:", e); }
+    }
     try { syncDesktopFullscreenLayout(); } catch (_) {}
 }
 
@@ -14832,11 +14907,16 @@ function renderMainScene() {
 }
 
 function renderParty() {
-    renderPartyGrid();
-    renderMainScene();
+    if (isGameModalOpen("party") || isGameModalOpen("party-switch")) {
+        renderPartyGrid();
+    }
+    if (shouldRefreshMainScene()) {
+        renderMainScene();
+    }
 }
 
 function renderBox() {
+    if (!isGameModalOpen("box")) return;
     const content = document.getElementById("box-content");
     if (!content) return;
     clearAllHubFloatTips();
@@ -14872,8 +14952,11 @@ function renderBox() {
     content.className = "box-content-grid";
     content.style.gridColumn = "";
 
+    const indexByMon = new Map();
+    box.forEach((mon, i) => indexByMon.set(mon, i));
+
     displayList.forEach((mon) => {
-        const i = box.indexOf(mon);
+        const i = indexByMon.has(mon) ? indexByMon.get(mon) : box.indexOf(mon);
         ensureMonReady(mon);
         const card = document.createElement("div");
         card.className = `mon-card ${getRarityClass(mon.rarity)}`;
