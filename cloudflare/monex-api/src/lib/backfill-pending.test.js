@@ -35,7 +35,7 @@ describe("collectPendingUsers", () => {
     assert.equal(groups.get("alpha").length, 2);
   });
 
-  it("preserves username casing as separate groups", () => {
+  it("merges usernames case-insensitively into one group", () => {
     const state = makeState({
       "1": {
         username: "Lucci_Crypto",
@@ -48,16 +48,15 @@ describe("collectPendingUsers", () => {
     });
 
     const groups = collectPendingUsers(state);
-    assert.equal(groups.size, 2);
-    assert.equal(groups.get("Lucci_Crypto").length, 1);
-    assert.equal(groups.get("lucci_crypto").length, 1);
+    assert.equal(groups.size, 1);
+    assert.equal(groups.get("lucci_crypto").length, 2);
   });
 });
 
 describe("usernameMatchesFilter", () => {
-  it("matches exact case only", () => {
+  it("matches username case-insensitively", () => {
     assert.equal(usernameMatchesFilter("Lucci_Crypto", "Lucci_Crypto"), true);
-    assert.equal(usernameMatchesFilter("Lucci_Crypto", "lucci_crypto"), false);
+    assert.equal(usernameMatchesFilter("Lucci_Crypto", "lucci_crypto"), true);
     assert.equal(usernameMatchesFilter("Lucci_Crypto", ""), true);
   });
 });
@@ -67,7 +66,7 @@ describe("listPendingUsernames", () => {
     const state = makeState({
       "1": { username: "Lucci_Crypto", pendingMons: [{ pendingId: "p1" }] },
     });
-    assert.deepEqual(listPendingUsernames(state), ["Lucci_Crypto"]);
+    assert.deepEqual(listPendingUsernames(state), ["lucci_crypto"]);
   });
 });
 

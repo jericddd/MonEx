@@ -12,7 +12,8 @@ const MAX_ACTIVITY = 500;
 /** Hidden from global /api/activity feed (home X Wild Log). Personal /mine still works. */
 const HIDDEN_ACTIVITY_USERNAMES = new Set(["yesdraken_"]);
 
-export const DEFAULT_PARTY_MAX = 5;
+/** Matches GAME_PARTY_MAX in backfill-pending.js (client party slots). */
+export const DEFAULT_PARTY_MAX = 3;
 export const DEFAULT_BOX_MAX = 500;
 
 const syncLocks = globalThis.__monexSyncLocks || (globalThis.__monexSyncLocks = new Map());
