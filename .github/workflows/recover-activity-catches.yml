@@ -19,6 +19,10 @@ on:
         description: "Recover only the most recent Wild Log catch for this user (e.g. Catch 18)"
         type: boolean
         default: false
+      replace_inventory:
+        description: "Replace party/box with ONLY activity-log mons (exact restore; drops non-activity mons)"
+        type: boolean
+        default: false
       confirm:
         description: "Type PREVIEW to dry-run, or RECOVER to apply"
         required: true
@@ -80,5 +84,8 @@ jobs:
           fi
           if [ "${{ inputs.latest_only }}" = "true" ]; then
             ARGS+=(--latest)
+          fi
+          if [ "${{ inputs.replace_inventory }}" = "true" ]; then
+            ARGS+=(--replace-inventory)
           fi
           node scripts/recover-activity-catches.mjs "${ARGS[@]}" "${{ inputs.username }}"

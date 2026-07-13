@@ -48,6 +48,7 @@ export function extractRecoverableMons(activityEntries) {
         recoveryId: `recovery_${entry.id || entry.tweetId || "act"}_${index}`,
         activityId: entry.id || null,
         tweetId: entry.tweetId || null,
+        index,
         caughtAt: entry.at || null,
         name: mon.name,
         rarity: mon.rarity || "Common",
@@ -80,19 +81,22 @@ function partyHasSpecies(party, name) {
   return party.some((mon) => mon?.name === name);
 }
 
-/** Signatures for mons already recovered from the same activity/tweet. */
+/** Signatures for mons already recovered from activity (by recovery id / slot). */
 export function getExistingRecoverySignatures(save) {
   const sigs = new Set();
   for (const mon of [...(save?.party || []), ...(save?.box || [])]) {
     const id = mon?.wildPendingId || mon?.pendingId;
     if (!id || !mon?.name) continue;
     sigs.add(id);
+    // recovery_<activityOrTweet>_<index> — keep slot-level identity so duplicate
+    // species in the same catch session are not dropped.
     const match = String(id).match(/^recovery_(.+)_(\d+)$/);
     if (!match) continue;
     const activityKey = match[1];
-    sigs.add(`activity:${activityKey}:${mon.name}`);
+    const index = match[2];
+    sigs.add(`activity:${activityKey}:${index}`);
     if (activityKey.startsWith("tw_") || activityKey.startsWith("tweet_")) {
-      sigs.add(`tweet:${activityKey}:${mon.name}`);
+      sigs.add(`tweet:${activityKey}:${index}`);
     }
   }
   return sigs;
@@ -100,9 +104,14 @@ export function getExistingRecoverySignatures(save) {
 
 export function recoverySignatureForMon(raw) {
   if (!raw?.name) return null;
+  // Prefer the stable per-slot recovery id (includes index).
+  if (raw.recoveryId) return raw.recoveryId;
   const activityKey = raw.tweetId || raw.activityId;
+  if (activityKey != null && raw.index != null) {
+    return `activity:${activityKey}:${raw.index}`;
+  }
   if (activityKey) return `activity:${activityKey}:${raw.name}`;
-  return raw.recoveryId || null;
+  return null;
 }
 
 export function isMonAlreadyRecovered(save, raw, seenRecoveryIds) {
@@ -133,10 +142,10 @@ export function activityMonToSaveMon(recovered) {
 export function applyRecoveredMonsToSave(
   save,
   recoveredMons,
-  { partyMax = GAME_PARTY_MAX, boxMax = GAME_BOX_MAX } = {}
+  { partyMax = GAME_PARTY_MAX, boxMax = GAME_BOX_MAX, replaceInventory = false } = {}
 ) {
-  const party = [...(save?.party || [])];
-  const box = [...(save?.box || [])];
+  const party = replaceInventory ? [] : [...(save?.party || [])];
+  const box = replaceInventory ? [] : [...(save?.box || [])];
   const seen = getWildPendingIds({ party, box });
   const added = [];
   const skipped = [];
@@ -199,6 +208,7 @@ export function recoverActivityCatchesForUser({
   spend = null,
   activityId = null,
   latestOnly = false,
+  replaceInventory = false,
 }) {
   const matched = filterActivityEntries(activityEntries, username, {
     caseSensitive,
@@ -207,7 +217,7 @@ export function recoverActivityCatchesForUser({
     latestOnly,
   });
   const recoverable = extractRecoverableMons(matched);
-  const applied = applyRecoveredMonsToSave(save, recoverable);
+  const applied = applyRecoveredMonsToSave(save, recoverable, { replaceInventory });
   const activityMonballs = latestMonballsFromActivity(matched);
   const monballs =
     activityMonballs ??
@@ -233,6 +243,7 @@ export function recoverActivityCatchesForUser({
     monballs,
     save: nextSave,
     xUserId: latestActivityUserId(matched),
+    replaceInventory: !!replaceInventory,
     activities: matched.map((entry) => ({
       id: entry.id,
       at: entry.at,

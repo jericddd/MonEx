@@ -14954,7 +14954,13 @@ async function loadData() {
         const localCount = inventoryMonCount(localData.party, localData.box);
         const cloudCount = inventoryMonCount(cloudData.party, cloudData.box);
 
-        if (cloudCount > localCount) {
+        if (localCount > cloudCount) {
+            // Local still has the larger roster (common after a stale PC wipe).
+            // Keep it and heal cloud — never adopt the smaller cloud snapshot.
+            data = mergeSaveSnapshots(localData, cloudData);
+            shouldPersistLocal = true;
+            shouldSyncCloud = true;
+        } else if (cloudCount > localCount) {
             data = cloudData;
             shouldPersistLocal = true;
             shouldSyncCloud = false;
@@ -14963,8 +14969,6 @@ async function loadData() {
                 ? mergeSaveSnapshots(localData, cloudData)
                 : cloudData;
             shouldPersistLocal = true;
-            // If cloud was already shrunk by a stale device but local still has
-            // the larger roster, push the heal (never-shrink merge kept it).
             shouldSyncCloud = inventoryMonCount(data.party, data.box) > cloudCount;
         } else if (localRev > cloudRev || localTs > cloudTs) {
             data = mergeSaveSnapshots(localData, cloudData);
