@@ -25,6 +25,9 @@ export const MAX_SAVE_DELTA = {
   adventureGlobalBest: 45,
 };
 
+/** Max quest progress increase per save PUT (blocks progress: 9999 forgery). */
+export const MAX_QUEST_PROGRESS_DELTA = 12;
+
 /** Quest task goals mirrored from play/index.html (server enforcement). */
 export const QUEST_TASK_GOALS = {
   dailies: {
@@ -138,12 +141,23 @@ export function reconcileQuestState(existing, incoming) {
   const allowedKeys = new Set(existingKeys);
 
   const tasks = { dailies: [], weeklies: [], campaign: [] };
+  const dailyResetChanged = inc.dailyResetKey != null && inc.dailyResetKey !== ex.dailyResetKey;
+  const weeklyResetChanged = inc.weeklyResetKey != null && inc.weeklyResetKey !== ex.weeklyResetKey;
+
   for (const tab of ["dailies", "weeklies", "campaign"]) {
     const exTasks = new Map((ex.tasks?.[tab] || []).map((t) => [t.id, t]));
+    const resetChanged = tab === "weeklies" ? weeklyResetChanged : tab === "dailies" ? dailyResetChanged : false;
     for (const task of inc.tasks?.[tab] || []) {
       const id = String(task.id || "");
       const goal = taskGoal(tab, id);
-      const progress = clampInt(task.progress ?? 0, 0, 9999);
+      const exTask = exTasks.get(id) || {};
+      const exProgress = clampInt(exTask.progress ?? 0, 0, goal ?? 9999);
+      let progress = clampInt(task.progress ?? 0, 0, goal ?? 9999);
+      if (goal != null) progress = Math.min(progress, goal);
+      if (!resetChanged && progress > exProgress + MAX_QUEST_PROGRESS_DELTA) {
+        progress = exProgress + MAX_QUEST_PROGRESS_DELTA;
+      }
+      if (goal != null) progress = Math.min(progress, goal);
       let claimed = !!task.claimed;
       const key = questGrantKey(tab, id);
 

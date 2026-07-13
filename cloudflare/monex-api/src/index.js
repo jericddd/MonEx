@@ -51,6 +51,7 @@ import { resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsA
 import { guardSavePayload } from "./lib/save-economy-guard.js";
 import { claimQuestTask, claimQuestChest } from "./lib/quest-claim.js";
 import { purchaseShopItem } from "./lib/shop-purchase.js";
+import { collectResourceChest } from "./lib/resource-chest.js";
 import { hydrateCatchUserIntoState, persistCatchUserFromState } from "./lib/catch-user-store.js";
 import { tryClaimTweetForProcessing, finalizeTweetProcessed, releaseTweetClaim } from "./lib/tweet-dedupe.js";
 import { appendMonballAudit } from "./lib/monball-audit.js";
@@ -1101,6 +1102,24 @@ async function handleRequest(request, env) {
         return json(result, status, request, env);
       } catch (err) {
         return json({ ok: false, error: err.message || "purchase failed" }, 500, request, env);
+      }
+    }
+
+    if (path === "/api/resource-chest/collect" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const auth = await requireGameplay(request, env, body);
+      if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
+      await enforceRateLimit(request, env, "resource-chest", { limit: 30, windowSec: 60 });
+      const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
+      const expectedRevision = body?.baseRevision != null && Number.isFinite(Number(body.baseRevision))
+        ? Number(body.baseRevision)
+        : undefined;
+      try {
+        const result = await collectResourceChest(env.MONEX_KV, auth.session, { expectedRevision }, starting);
+        const status = result.ok ? 200 : result.error === "chest_empty" ? 400 : 409;
+        return json(result, status, request, env);
+      } catch (err) {
+        return json({ ok: false, error: err.message || "collect failed" }, 500, request, env);
       }
     }
 
