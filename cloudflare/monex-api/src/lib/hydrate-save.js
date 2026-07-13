@@ -13,9 +13,17 @@ export async function lookupCatchUserReadOnly(kv, xUserId, username, startingMon
   return lookupCatchUserKv(kv, xUserId, username, startingMonballs);
 }
 
-/** Recover mons from activity log when pending queue is empty (legacy auto-backfill). */
+/** Recover mons from activity log only when cloud inventory is empty. */
 export async function recoverMissingMonsFromActivity(kv, xUserId, username, save, startingMonballs = 10) {
   const uname = cleanUsername(username);
+  const invCount = (save?.party?.length || 0) + (save?.box?.length || 0);
+  // Never auto-import activity into an already-populated save. Doing so on every
+  // /api/hydrate refresh caused party/box to grow unboundedly (40→121→500).
+  // Ops recovery script still supports explicit backfill/replace.
+  if (invCount > 0) {
+    return { recovered: false, added: [], save, skippedReason: "inventory_populated" };
+  }
+
   const log = await loadActivityLog(kv);
   const result = recoverActivityCatchesForUser({
     username: uname,

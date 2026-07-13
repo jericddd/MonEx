@@ -14623,28 +14623,16 @@ function inventoryMonCount(partyList, boxList) {
 
 /**
  * Cross-device inventory merge.
- * Never shrink total party+box when merging snapshots — a stale PC localStorage
- * with a newer updatedAt must not wipe a larger mobile/cloud box.
- * Equal counts keep the preferred (newer) side.
+ * Prefer the cloud/preferred snapshot; do NOT pick by larger count alone —
+ * count-max merge locked in refresh-duplication inflation (40→500).
  */
 function mergeMonsterInventories(preferredParty, preferredBox, otherParty, otherBox) {
-    const preferredCount = inventoryMonCount(preferredParty, preferredBox);
-    const otherCount = inventoryMonCount(otherParty, otherBox);
-    if (otherCount > preferredCount) {
-        return {
-            party: [...(otherParty || [])],
-            box: [...(otherBox || [])],
-            choseLarger: true,
-            preferredCount,
-            otherCount,
-        };
-    }
     return {
         party: [...(preferredParty || [])],
         box: [...(preferredBox || [])],
         choseLarger: false,
-        preferredCount,
-        otherCount,
+        preferredCount: inventoryMonCount(preferredParty, preferredBox),
+        otherCount: inventoryMonCount(otherParty, otherBox),
     };
 }
 
@@ -14696,10 +14684,8 @@ window.handleCloudSaveConflict = function handleCloudSaveConflict(cloudSave) {
     const localData = readLocalSaveData();
     const cloudRev = Number(cloudSave.revision ?? 0);
     const localRev = Number(localData?.revision ?? 0);
-    const cloudCount = inventoryMonCount(cloudSave.party, cloudSave.box);
-    const localCount = inventoryMonCount(localData?.party, localData?.box);
-    // Prefer cloud when it is ahead on revision OR holds a strictly larger roster.
-    if (cloudRev > localRev || !localData || cloudCount > localCount) {
+    // Prefer cloud whenever it is ahead on revision (or local is missing).
+    if (cloudRev > localRev || !localData) {
         applyLoadedSave(cloudSave);
         writeLocalSave(cloudSave);
         if (typeof MonExAuth !== "undefined" && MonExAuth.setSaveRevision) {
@@ -14710,14 +14696,13 @@ window.handleCloudSaveConflict = function handleCloudSaveConflict(cloudSave) {
         return;
     }
     const merged = mergeSaveSnapshots(localData, cloudSave);
+    // Conflict with equal/older cloud revision: still keep cloud inventory to
+    // avoid re-pushing a duplicated local roster.
+    merged.party = [...(cloudSave.party || [])];
+    merged.box = [...(cloudSave.box || [])];
     applyLoadedSave(merged);
     writeLocalSave(merged);
     reconcileUngrantedQuestRewards({ silent: true });
-    const mergedCount = inventoryMonCount(merged.party, merged.box);
-    // Never push a shrunk roster back to cloud after a conflict merge.
-    if (mergedCount >= cloudCount && typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
-        MonExAuth.scheduleCloudSave(buildSavePayload(), 200);
-    }
     updateUI();
 };
 
@@ -14735,16 +14720,11 @@ function mergeSaveSnapshots(local, cloud) {
     merged.trainerXp = pickNewerSaveScalar(local, cloud, "trainerXp");
     merged.trainerRewardLevel = pickNewerSaveScalar(local, cloud, "trainerRewardLevel");
 
-    // Prefer the larger roster regardless of which snapshot is "newer" by clock.
+    // Inventory: keep the preferred (newer-by-clock) side only — no count-max,
+    // no append/union (refresh inflation).
     const inv = mergeMonsterInventories(newer.party, newer.box, older.party, older.box);
     merged.party = inv.party;
     merged.box = inv.box;
-    if (inv.choseLarger) {
-        console.warn("[monex-save] kept larger monster inventory during merge", {
-            preferredCount: inv.preferredCount,
-            otherCount: inv.otherCount,
-        });
-    }
 
     const localQuest = normalizeQuestState(local.questState);
     const cloudQuest = normalizeQuestState(cloud.questState);
@@ -14945,35 +14925,30 @@ async function loadData() {
     let shouldSyncCloud = false;
     let shouldPersistLocal = false;
     if (localData && cloudData) {
-        // Prefer cloud revision / larger roster over a stale local updatedAt.
-        // A PC with an old small box must never overwrite a larger mobile cloud box.
+        // Cloud revision is authoritative for inventory. Never pick the larger
+        // roster by count — that locked in hydrate duplication (40→500).
         const localRev = Number(localData.revision ?? 0);
         const cloudRev = Number(cloudData.revision ?? 0);
         const localTs = getSaveTimestamp(localData);
         const cloudTs = getSaveTimestamp(cloudData);
-        const localCount = inventoryMonCount(localData.party, localData.box);
-        const cloudCount = inventoryMonCount(cloudData.party, cloudData.box);
 
-        if (localCount > cloudCount) {
-            // Local still has the larger roster (common after a stale PC wipe).
-            // Keep it and heal cloud — never adopt the smaller cloud snapshot.
-            data = mergeSaveSnapshots(localData, cloudData);
-            shouldPersistLocal = true;
-            shouldSyncCloud = true;
-        } else if (cloudCount > localCount) {
+        if (cloudRev > localRev) {
             data = cloudData;
             shouldPersistLocal = true;
             shouldSyncCloud = false;
-        } else if (cloudRev > localRev) {
-            data = localTs > cloudTs
-                ? mergeSaveSnapshots(localData, cloudData)
-                : cloudData;
-            shouldPersistLocal = true;
-            shouldSyncCloud = inventoryMonCount(data.party, data.box) > cloudCount;
-        } else if (localRev > cloudRev || localTs > cloudTs) {
+        } else if (localRev > cloudRev) {
             data = mergeSaveSnapshots(localData, cloudData);
+            // Inventory stays from the newer-revision local preferred side in merge,
+            // but never inflate beyond cloud via append — merge is replace-only.
             shouldPersistLocal = true;
-            shouldSyncCloud = inventoryMonCount(data.party, data.box) >= cloudCount;
+            shouldSyncCloud = true;
+        } else if (localTs > cloudTs) {
+            // Same revision: keep cloud inventory; merge may update scalars from local.
+            data = mergeSaveSnapshots(localData, cloudData);
+            data.party = [...(cloudData.party || [])];
+            data.box = [...(cloudData.box || [])];
+            shouldPersistLocal = true;
+            shouldSyncCloud = false;
         } else {
             data = cloudData;
             shouldPersistLocal = true;

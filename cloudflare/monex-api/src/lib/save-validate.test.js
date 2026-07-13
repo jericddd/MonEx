@@ -39,6 +39,36 @@ test("clamps mon level to rarity cap", () => {
   assert.equal(mon.level, 20);
 });
 
+test("preserves wildPendingId through sanitize and save round-trip", () => {
+  const mon = sanitizeMon({
+    name: "Chog",
+    rarity: "Common",
+    level: 1,
+    max_hp: 50,
+    current_hp: 50,
+    wildPendingId: "recovery_act_1_0",
+  });
+  assert.equal(mon.wildPendingId, "recovery_act_1_0");
+
+  const fromPendingAlias = sanitizeMon({
+    name: "Mouch",
+    rarity: "Common",
+    level: 1,
+    max_hp: 50,
+    current_hp: 50,
+    pendingId: "p_abc123",
+  });
+  assert.equal(fromPendingAlias.wildPendingId, "p_abc123");
+
+  const save = validateAndSanitizeSave({
+    party: [mon],
+    box: [fromPendingAlias],
+    monballs: 10,
+  });
+  assert.equal(save.party[0].wildPendingId, "recovery_act_1_0");
+  assert.equal(save.box[0].wildPendingId, "p_abc123");
+});
+
 test("sanitizes gear and inventory cap", () => {
   const gear = sanitizeGear({
     id: "gear_1",
