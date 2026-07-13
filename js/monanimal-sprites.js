@@ -36,7 +36,6 @@
     johnw: {
       png: "128x128/johnw.png",
       idleGif: "128x128/johnw-idle.gif",
-      alwaysAnimate: true,
     },
   };
 
@@ -116,7 +115,7 @@
     const m = normalizeMon(mon);
     const name = m.name;
     if (!name) return getPngPath("");
-    if (isJohnw(name) || SPECIAL.johnw.alwaysAnimate) return SPECIAL.johnw.idleGif;
+    if (isJohnw(name)) return SPECIAL.johnw.idleGif;
     if (m.rarity && isLegendaryOrAbove(m.rarity)) {
       const gif = getLegendaryCardGifPath(name);
       if (gif) return gif;
