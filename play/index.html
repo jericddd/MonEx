@@ -9990,25 +9990,42 @@ function getMonIdleGifPath(name) {
     return `128x128/${lower}-idle.gif`;
 }
 
-// Legacy: always idle GIF on mon cards (all rarities). New species use MONS_WITH_SCENE_IDLE_GIF
-// for main-scene AFK only — mon cards stay Legendary+ idle / Rare− PNG.
-const MONS_WITH_IDLE_GIF = new Set(["anago", "mouch", "moyaki", "moncock", "salmonad"]);
-// Main-scene AFK idle battles always animate; mon cards still follow rarity rule.
-const MONS_WITH_SCENE_IDLE_GIF = new Set(["larvanad", "monhorse", "pampam"]);
 const MON_LEGENDARY_GIF_OVERRIDES = {
     moyaki: "128x128/main-moyaki.gif",
     salmonad: "128x128/slamonad-idle.gif",
 };
 
+/** Species with a confirmed idle GIF for Legendary party/box cards (+ scene idle). */
+const MONS_WITH_IDLE_GIF = new Set([
+    "anago", "mouch", "moncock", "salmonad",
+    "larvanad", "monhorse", "pampam",
+]);
+
+/** Species with generic {name}.gif (no -idle file) for Legendary party/box cards. */
+const MONS_WITH_GENERIC_CARD_GIF = new Set(["molandak", "chog"]);
+
+/** Main-scene AFK idle — animate these between battles (not party/box rarity bypass). */
+const MONS_WITH_SCENE_IDLE_GIF = new Set(["larvanad", "monhorse", "pampam", "moyaki"]);
+
+function speciesHasLegendaryCardGif(name) {
+    const lower = getSpeciesSpriteKey(name);
+    return !!MON_LEGENDARY_GIF_OVERRIDES[lower]
+        || MONS_WITH_IDLE_GIF.has(lower)
+        || MONS_WITH_GENERIC_CARD_GIF.has(lower);
+}
+
 function speciesHasIdleGifAsset(name) {
     const lower = getSpeciesSpriteKey(name);
-    return MONS_WITH_IDLE_GIF.has(lower) || MONS_WITH_SCENE_IDLE_GIF.has(lower);
+    return !!MON_LEGENDARY_GIF_OVERRIDES[lower]
+        || MONS_WITH_IDLE_GIF.has(lower)
+        || MONS_WITH_SCENE_IDLE_GIF.has(lower);
 }
 
 function getMonLegendaryGifPath(name) {
+    if (!speciesHasLegendaryCardGif(name)) return null;
     const lower = getSpeciesSpriteKey(name);
     if (MON_LEGENDARY_GIF_OVERRIDES[lower]) return MON_LEGENDARY_GIF_OVERRIDES[lower];
-    if (speciesHasIdleGifAsset(name)) return getMonIdleGifPath(name);
+    if (MONS_WITH_IDLE_GIF.has(lower)) return getMonIdleGifPath(name);
     return getMonGifPath(name);
 }
 
@@ -10022,9 +10039,10 @@ function getMonAvatarPath(mon) {
     const name = mon?.name || mon;
     const rarity = mon?.rarity;
     if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
-    const lower = getSpeciesSpriteKey(name);
-    if (MONS_WITH_IDLE_GIF.has(lower)) return getMonIdleGifPath(name);
-    if (rarity && isLegendaryOrAbove(rarity)) return getMonLegendaryGifPath(name);
+    if (rarity && isLegendaryOrAbove(rarity)) {
+        const gifPath = getMonLegendaryGifPath(name);
+        if (gifPath) return gifPath;
+    }
     return getMonPngPath(name);
 }
 
@@ -10244,7 +10262,7 @@ function getSceneIdleAttackSpritePath(name) {
 }
 
 // Main-scene battle sprites: stable GIF idle for animated species, PNG for everyone else.
-// Party/box/switch still use getMonAvatarPath (rarity-driven GIF for Legendary+).
+// Party/box cards: Legendary+ uses GIF only when speciesHasLegendaryCardGif; otherwise PNG at all rarities.
 function getSceneIdleDisplaySprite(mon) {
     const name = mon?.name || mon;
     if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
