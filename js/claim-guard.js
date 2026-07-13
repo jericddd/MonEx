@@ -46,6 +46,9 @@ async function runClaimOnce(key, fn, options = {}) {
     } finally {
       claimInFlight.delete(id);
       claimPromises.delete(id);
+      // Always restore the button. Success paths that rebuild the DOM leave a
+      // detached node (safe no-op); early returns need the control re-enabled.
+      if (options.resetOnComplete !== false) resetButton();
     }
   })();
 
@@ -54,7 +57,6 @@ async function runClaimOnce(key, fn, options = {}) {
   try {
     return await promise;
   } catch (err) {
-    if (options.resetOnError !== false) resetButton();
     throw err;
   }
 }
