@@ -7548,6 +7548,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/quest-client.js?v=20260713b"></script>
 <script src="js/shop-client.js?v=20260713c"></script>
+<script src="js/resource-chest-client.js?v=20260713d"></script>
 <script src="js/mailbox-client.js?v=20260713a"></script>
 <script>
 // =====================================================
@@ -9192,6 +9193,20 @@ function collectResourceChest(buttonEl) {
         if (!preview.canCollect) return;
 
         closeGameModal("resource-chest");
+
+        if (typeof MonExResourceChest !== "undefined" && MonExResourceChest.collectResourceChest) {
+            const result = await MonExResourceChest.collectResourceChest();
+            if (!result.ok) return;
+            if (result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(result.save);
+            }
+            playResourceChestCollectFx(preview);
+            updateResourceChestWidget();
+            updateUI();
+            return;
+        }
+
         resourceChestLastCollectAt = Date.now();
 
         const grant = {
@@ -14261,9 +14276,15 @@ async function persistProgress(options = {}) {
 window.handleCloudSaveConflict = function handleCloudSaveConflict(cloudSave) {
     if (!cloudSave || typeof cloudSave !== "object") return;
     const localData = readLocalSaveData();
-    if (!localData) {
+    const cloudRev = Number(cloudSave.revision ?? 0);
+    const localRev = Number(localData?.revision ?? 0);
+    if (cloudRev > localRev || !localData) {
         applyLoadedSave(cloudSave);
         writeLocalSave(cloudSave);
+        if (typeof MonExAuth !== "undefined" && MonExAuth.setSaveRevision) {
+            MonExAuth.setSaveRevision(cloudSave.revision);
+        }
+        reconcileUngrantedQuestRewards({ silent: true });
         updateUI();
         return;
     }
@@ -14301,9 +14322,10 @@ function mergeSaveSnapshots(local, cloud) {
     const localQuest = normalizeQuestState(local.questState);
     const cloudQuest = normalizeQuestState(cloud.questState);
     const questMerged = normalizeQuestState(newer.questState);
-    questMerged.grantedKeys = [
-        ...new Set([...(localQuest.grantedKeys || []), ...(cloudQuest.grantedKeys || [])]),
-    ];
+    const newerIsCloud = cloudTs >= localTs;
+    questMerged.grantedKeys = newerIsCloud
+        ? [...(cloudQuest.grantedKeys || [])]
+        : [...new Set([...(localQuest.grantedKeys || []), ...(cloudQuest.grantedKeys || [])])];
     questMerged.dailyPoints = Math.max(localQuest.dailyPoints || 0, cloudQuest.dailyPoints || 0);
     questMerged.weeklyPoints = Math.max(localQuest.weeklyPoints || 0, cloudQuest.weeklyPoints || 0);
     questMerged.dailyClaimedChests = [
@@ -14319,7 +14341,7 @@ function mergeSaveSnapshots(local, cloud) {
             return {
                 id: task.id,
                 progress: Math.max(localTask?.progress || 0, cloudTask?.progress || 0, task.progress || 0),
-                claimed: !!(localTask?.claimed || cloudTask?.claimed || task.claimed),
+                claimed: newerIsCloud ? !!(cloudTask?.claimed) : !!(localTask?.claimed),
             };
         });
     });
@@ -16064,13 +16086,8 @@ async function claimMailboxReward(mailId, buttonEl) {
                 applyLoadedSave(result.save);
                 writeLocalSave(result.save);
             } else {
-                const item = (mailbox || []).find((m) => m.id === mailId);
-                if (item) {
-                    item.claimedAt = new Date().toISOString();
-                    if (item.type === "monballs") monballs += item.amount || 1;
-                    else if (item.type === "resources" && item.grant) applyQuestGrantToResources(item.grant);
-                }
-                saveData();
+                console.warn("[mailbox] claim returned no save — reward not applied locally");
+                return;
             }
             const claimedMail = mailBefore || (mailbox || []).find((m) => m.id === mailId);
             if (claimedMail?.title === "Daily Login Reward") {

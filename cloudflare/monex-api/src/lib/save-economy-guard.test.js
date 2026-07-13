@@ -88,6 +88,37 @@ test("allows quest claim when progress meets goal", () => {
   assert.ok(out.questState.grantedKeys.includes("task:dailies:d1"));
 });
 
+test("caps forged quest progress jumps per save", () => {
+  const existing = {
+    questState: {
+      grantedKeys: [],
+      dailyResetKey: "2026-07-13",
+      tasks: {
+        dailies: [{ id: "d1", progress: 0, claimed: false }],
+        weeklies: [],
+        campaign: [],
+      },
+    },
+  };
+  const incoming = {
+    questState: {
+      grantedKeys: [],
+      dailyResetKey: "2026-07-13",
+      dailyPoints: 0,
+      weeklyPoints: 0,
+      dailyClaimedChests: [],
+      weeklyClaimedChests: [],
+      tasks: {
+        dailies: [{ id: "d1", progress: 9999, claimed: false }],
+        weeklies: [],
+        campaign: [],
+      },
+    },
+  };
+  const out = reconcileQuestState(existing, incoming);
+  assert.equal(out.questState.tasks.dailies[0].progress, 2);
+});
+
 test("guardSavePayload applies all guards", () => {
   const existing = {
     money: 1000,
