@@ -8,6 +8,8 @@ import {
   QUEST_TASK_DEFS,
   DAILY_QUEST_MILESTONES,
   WEEKLY_QUEST_MILESTONES,
+  DAILY_QUEST_MAX_POINTS,
+  WEEKLY_QUEST_MAX_POINTS,
   questGrantKey,
   questChestGrantKey,
   buildGrantFromTaskDef,
@@ -187,10 +189,10 @@ export function reconcileQuestState(existing, incoming) {
     }
   }
 
-  const dailyPoints = clampInt(inc.dailyPoints ?? ex.dailyPoints ?? 0, 0, 100);
-  const weeklyPoints = clampInt(inc.weeklyPoints ?? ex.weeklyPoints ?? 0, 0, 100);
-  const exDailyPoints = clampInt(ex.dailyPoints ?? 0, 0, 100);
-  const exWeeklyPoints = clampInt(ex.weeklyPoints ?? 0, 0, 100);
+  const dailyPoints = clampInt(inc.dailyPoints ?? ex.dailyPoints ?? 0, 0, DAILY_QUEST_MAX_POINTS);
+  const weeklyPoints = clampInt(inc.weeklyPoints ?? ex.weeklyPoints ?? 0, 0, WEEKLY_QUEST_MAX_POINTS);
+  const exDailyPoints = clampInt(ex.dailyPoints ?? 0, 0, DAILY_QUEST_MAX_POINTS);
+  const exWeeklyPoints = clampInt(ex.weeklyPoints ?? 0, 0, WEEKLY_QUEST_MAX_POINTS);
   const cappedDailyPoints = dailyResetChanged
     ? dailyPoints
     : Math.min(dailyPoints, exDailyPoints + MAX_QUEST_POINTS_DELTA);

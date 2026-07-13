@@ -1,5 +1,10 @@
 /** Server-side save validation — mirrors client game limits (Phase 1 security). */
 
+import {
+  DAILY_QUEST_MAX_POINTS,
+  WEEKLY_QUEST_MAX_POINTS,
+} from "./quest-rewards.js";
+
 export const MONANIMAL_NAMES = new Set([
   "Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal",
   "Monavara", "Moncock", "Pampam", "Montiger", "Mosferatu", "Monhorse", "Shramp",
@@ -432,11 +437,11 @@ function sanitizeQuestState(raw) {
     ? raw.grantedKeys.map((k) => trimString(k, 48)).filter(Boolean).slice(0, 120)
     : [];
   const milestoneFilter = (n) => [20, 40, 60, 80, 100].includes(n);
-  const legacyPoints = clampInt(raw.points ?? 0, 0, 100);
+  const legacyPoints = clampInt(raw.points ?? 0, 0, DAILY_QUEST_MAX_POINTS);
   const dailyPoints = raw.dailyPoints != null
-    ? clampInt(raw.dailyPoints ?? 0, 0, 100)
+    ? clampInt(raw.dailyPoints ?? 0, 0, DAILY_QUEST_MAX_POINTS)
     : legacyPoints;
-  const weeklyPoints = clampInt(raw.weeklyPoints ?? 0, 0, 100);
+  const weeklyPoints = clampInt(raw.weeklyPoints ?? 0, 0, WEEKLY_QUEST_MAX_POINTS);
   const legacyChests = Array.isArray(raw.claimedChests)
     ? raw.claimedChests.map((n) => clampInt(n, 0, 100)).filter(milestoneFilter).slice(0, 5)
     : [];

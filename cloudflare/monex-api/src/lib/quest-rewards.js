@@ -2,6 +2,9 @@
 
 export const DAILY_QUEST_MILESTONES = [20, 40, 60, 80, 100];
 export const WEEKLY_QUEST_MILESTONES = [20, 40, 60, 80, 100];
+/** Soft chest track ends at 100; total earnable points exceed that for skip flexibility. */
+export const DAILY_QUEST_MAX_POINTS = 150;
+export const WEEKLY_QUEST_MAX_POINTS = 150;
 
 export const DAILY_QUEST_CHEST_REWARDS = {
   20: { label: "100 Gold", grant: { gold: 100 } },
@@ -27,32 +30,32 @@ export const QUEST_CHEST_REWARDS = DAILY_QUEST_CHEST_REWARDS;
 
 export const QUEST_TASK_DEFS = {
   dailies: [
-    { id: "d1", points: 8, rewardKey: "gold", rewardAmount: 100 },
-    { id: "d2", points: 8, rewardKey: "essence", rewardAmount: 15 },
-    { id: "d3", points: 6, rewardKey: "gold", rewardAmount: 80 },
-    { id: "d4", points: 8, rewardKey: "gold", rewardAmount: 50 },
-    { id: "d5", points: 6, rewardKey: "trainerXp", rewardAmount: 40 },
-    { id: "d6", points: 10, rewardKey: "gold", rewardAmount: 120 },
-    { id: "d7", points: 8, rewardKey: "essence", rewardAmount: 12 },
-    { id: "d8", points: 8, rewardKey: "trainerXp", rewardAmount: 30 },
-    { id: "d9", points: 8, rewardKey: "essence", rewardAmount: 10 },
+    { id: "d1", points: 15, rewardKey: "gold", rewardAmount: 100 },
+    { id: "d2", points: 15, rewardKey: "essence", rewardAmount: 15 },
+    { id: "d3", points: 10, rewardKey: "gold", rewardAmount: 80 },
+    { id: "d4", points: 10, rewardKey: "gold", rewardAmount: 50 },
+    { id: "d5", points: 10, rewardKey: "trainerXp", rewardAmount: 40 },
+    { id: "d6", points: 15, rewardKey: "gold", rewardAmount: 120 },
+    { id: "d7", points: 15, rewardKey: "essence", rewardAmount: 12 },
+    { id: "d8", points: 15, rewardKey: "trainerXp", rewardAmount: 30 },
+    { id: "d9", points: 10, rewardKey: "essence", rewardAmount: 10 },
     { id: "d10", points: 8, rewardKey: "gold", rewardAmount: 60 },
-    { id: "d11", points: 8, rewardKey: "gold", rewardAmount: 70 },
-    { id: "d12", points: 8, rewardKey: "essence", rewardAmount: 12 },
-    { id: "d13", points: 10, rewardKey: "gold", rewardAmount: 100 },
+    { id: "d11", points: 9, rewardKey: "gold", rewardAmount: 70 },
+    { id: "d12", points: 9, rewardKey: "essence", rewardAmount: 12 },
+    { id: "d13", points: 9, rewardKey: "gold", rewardAmount: 100 },
   ],
   weeklies: [
-    { id: "w1", points: 10, rewardKey: "gold", rewardAmount: 250 },
-    { id: "w2", points: 8, rewardKey: "essence", rewardAmount: 25 },
-    { id: "w3", points: 8, rewardKey: "shards", rewardAmount: 3 },
-    { id: "w4", points: 8, rewardKey: "gold", rewardAmount: 200 },
-    { id: "w5", points: 8, rewardKey: "essence", rewardAmount: 35 },
-    { id: "w6", points: 8, rewardKey: "trainerXp", rewardAmount: 80 },
-    { id: "w7", points: 10, rewardKey: "gold", rewardAmount: 350 },
+    { id: "w1", points: 20, rewardKey: "gold", rewardAmount: 250 },
+    { id: "w2", points: 15, rewardKey: "essence", rewardAmount: 25 },
+    { id: "w3", points: 15, rewardKey: "shards", rewardAmount: 3 },
+    { id: "w4", points: 15, rewardKey: "gold", rewardAmount: 200 },
+    { id: "w5", points: 15, rewardKey: "essence", rewardAmount: 35 },
+    { id: "w6", points: 15, rewardKey: "trainerXp", rewardAmount: 80 },
+    { id: "w7", points: 15, rewardKey: "gold", rewardAmount: 350 },
     { id: "w8", points: 8, rewardKey: "shards", rewardAmount: 2 },
     { id: "w9", points: 8, rewardKey: "gold", rewardAmount: 200 },
     { id: "w10", points: 8, rewardKey: "essence", rewardAmount: 30 },
-    { id: "w11", points: 10, rewardKey: "gold", rewardAmount: 400 },
+    { id: "w11", points: 8, rewardKey: "gold", rewardAmount: 400 },
     { id: "w12", points: 8, rewardKey: "trainerXp", rewardAmount: 60 },
   ],
   campaign: [
