@@ -14061,6 +14061,11 @@ async function fetchCloudSaveWithRetry() {
     for (let i = 0; i < waits.length; i++) {
         if (waits[i]) await delay(waits[i]);
         try {
+            if (typeof MonExAuth.hydrateCloudSave === "function") {
+                await MonExAuth.hydrateCloudSave().catch((err) => {
+                    console.warn("Cloud hydrate attempt failed:", err);
+                });
+            }
             const cloud = await Promise.race([
                 MonExAuth.loadCloudSave(),
                 delay(12000).then(() => {

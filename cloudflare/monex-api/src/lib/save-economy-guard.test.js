@@ -119,6 +119,31 @@ test("caps forged quest progress jumps per save", () => {
   assert.equal(out.questState.tasks.dailies[0].progress, 2);
 });
 
+test("caps forged quest points jumps per save", () => {
+  const existing = {
+    questState: {
+      grantedKeys: [],
+      dailyResetKey: "2026-07-13",
+      dailyPoints: 10,
+      weeklyPoints: 0,
+      tasks: { dailies: [], weeklies: [], campaign: [] },
+    },
+  };
+  const incoming = {
+    questState: {
+      grantedKeys: [],
+      dailyResetKey: "2026-07-13",
+      dailyPoints: 100,
+      weeklyPoints: 0,
+      dailyClaimedChests: [],
+      weeklyClaimedChests: [],
+      tasks: { dailies: [], weeklies: [], campaign: [] },
+    },
+  };
+  const out = reconcileQuestState(existing, incoming);
+  assert.equal(out.questState.dailyPoints, 35);
+});
+
 test("guardSavePayload applies all guards", () => {
   const existing = {
     money: 1000,

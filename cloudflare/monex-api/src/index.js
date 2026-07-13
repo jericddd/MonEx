@@ -53,6 +53,7 @@ import { claimQuestTask, claimQuestChest } from "./lib/quest-claim.js";
 import { purchaseShopItem } from "./lib/shop-purchase.js";
 import { collectResourceChest } from "./lib/resource-chest.js";
 import { hydrateCatchUserIntoState, persistCatchUserFromState } from "./lib/catch-user-store.js";
+import { hydrateUserCloudSave, lookupCatchUserReadOnly } from "./lib/hydrate-save.js";
 import { tryClaimTweetForProcessing, finalizeTweetProcessed, releaseTweetClaim } from "./lib/tweet-dedupe.js";
 import { appendMonballAudit } from "./lib/monball-audit.js";
 import {
@@ -739,46 +740,47 @@ async function handleRequest(request, env) {
         return json({ ok: false, error: "save_corrupt" }, 500, request, env);
       }
 
-      let save = loadedSave;
-      let accountFound = found;
-      if (found) {
-        const hydrated = await seedOrHydrateCloudSaveFromCatch(
+      const catchUser = await lookupCatchUserReadOnly(
+        env.MONEX_KV,
+        auth.session.xUserId,
+        auth.session.username,
+        starting
+      );
+      const monballs = resolveMergedMonballs(
+        catchUser,
+        loadedSave,
+        catchUser?.monballs ?? loadedSave?.monballs ?? starting
+      );
+      const save = { ...loadedSave, monballs };
+
+      return json(
+        { ok: true, found, save, user: { username: auth.session.username, xUserId: auth.session.xUserId } },
+        200,
+        request,
+        env
+      );
+    }
+
+    if (path === "/api/hydrate" && request.method === "POST") {
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      await enforceRateLimit(request, env, "hydrate", {
+        limit: 30,
+        windowSec: 60,
+        userId: auth.session.xUserId,
+      });
+      const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
+      try {
+        const result = await hydrateUserCloudSave(
           env.MONEX_KV,
           auth.session.xUserId,
           auth.session.username,
           starting
         );
-        if (hydrated.hydrated && hydrated.save) {
-          save = hydrated.save;
-        } else {
-          const monballs = await getAuthoritativeMonballs(
-            env.MONEX_KV,
-            auth.session.xUserId,
-            auth.session.username,
-            starting
-          );
-          save = { ...loadedSave, monballs };
-        }
-      } else {
-        const seeded = await seedOrHydrateCloudSaveFromCatch(
-          env.MONEX_KV,
-          auth.session.xUserId,
-          auth.session.username,
-          starting,
-          { requirePending: true }
-        );
-        if (seeded.hydrated && seeded.save) {
-          save = seeded.save;
-          accountFound = true;
-        }
+        return json(result, 200, request, env);
+      } catch (err) {
+        return json({ ok: false, error: err.message || "hydrate failed" }, 500, request, env);
       }
-
-      return json(
-        { ok: true, found: accountFound, save, user: { username: auth.session.username, xUserId: auth.session.xUserId } },
-        200,
-        request,
-        env
-      );
     }
 
     if (path === "/api/save" && request.method === "PUT") {
@@ -786,7 +788,7 @@ async function handleRequest(request, env) {
       if (!body) return json({ ok: false, error: "invalid_json" }, 400, request, env);
       const auth = await requireGameplay(request, env, body);
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
-      await enforceRateLimit(request, env, "save-put", { limit: 120, windowSec: 60 });
+      await enforceRateLimit(request, env, "save-put", { limit: 120, windowSec: 60, userId: auth.session.xUserId });
       const payload = buildSavePayload(body?.save || body, auth.session);
       const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
       const baseRevision = body?.baseRevision != null && Number.isFinite(Number(body.baseRevision))
@@ -926,7 +928,7 @@ async function handleRequest(request, env) {
       if (!body) return json({ ok: false, error: "invalid_json" }, 400, request, env);
       const auth = await requireGameplay(request, env, body);
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
-      await enforceRateLimit(request, env, "sync", { limit: 60, windowSec: 60 });
+      await enforceRateLimit(request, env, "sync", { limit: 60, windowSec: 60, userId: auth.session.xUserId });
       const username = auth.session.username;
       const xUserId = auth.session.xUserId;
       const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
@@ -1025,7 +1027,7 @@ async function handleRequest(request, env) {
     if (path === "/api/daily-login/claim" && request.method === "POST") {
       const auth = await requireSession(request, env.MONEX_KV);
       if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
-      await enforceRateLimit(request, env, "daily-login", { limit: 20, windowSec: 60 });
+      await enforceRateLimit(request, env, "daily-login", { limit: 20, windowSec: 60, userId: auth.session.xUserId });
       try {
         const result = await claimDailyLoginReward(env.MONEX_KV, auth.session);
         const status = result.ok ? 200 : result.error === "cooldown" ? 429 : 400;
@@ -1039,7 +1041,7 @@ async function handleRequest(request, env) {
       const body = await request.json().catch(() => ({}));
       const auth = await requireGameplay(request, env, body);
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
-      await enforceRateLimit(request, env, "quest-claim", { limit: 60, windowSec: 60 });
+      await enforceRateLimit(request, env, "quest-claim", { limit: 60, windowSec: 60, userId: auth.session.xUserId });
       const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
       const expectedRevision = body?.baseRevision != null && Number.isFinite(Number(body.baseRevision))
         ? Number(body.baseRevision)
@@ -1061,7 +1063,7 @@ async function handleRequest(request, env) {
       const body = await request.json().catch(() => ({}));
       const auth = await requireGameplay(request, env, body);
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
-      await enforceRateLimit(request, env, "quest-claim", { limit: 60, windowSec: 60 });
+      await enforceRateLimit(request, env, "quest-claim", { limit: 60, windowSec: 60, userId: auth.session.xUserId });
       const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
       const expectedRevision = body?.baseRevision != null && Number.isFinite(Number(body.baseRevision))
         ? Number(body.baseRevision)
@@ -1083,7 +1085,7 @@ async function handleRequest(request, env) {
       const body = await request.json().catch(() => ({}));
       const auth = await requireGameplay(request, env, body);
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
-      await enforceRateLimit(request, env, "shop-purchase", { limit: 60, windowSec: 60 });
+      await enforceRateLimit(request, env, "shop-purchase", { limit: 60, windowSec: 60, userId: auth.session.xUserId });
       const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
       const expectedRevision = body?.baseRevision != null && Number.isFinite(Number(body.baseRevision))
         ? Number(body.baseRevision)
@@ -1109,7 +1111,7 @@ async function handleRequest(request, env) {
       const body = await request.json().catch(() => ({}));
       const auth = await requireGameplay(request, env, body);
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
-      await enforceRateLimit(request, env, "resource-chest", { limit: 30, windowSec: 60 });
+      await enforceRateLimit(request, env, "resource-chest", { limit: 30, windowSec: 60, userId: auth.session.xUserId });
       const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
       const expectedRevision = body?.baseRevision != null && Number.isFinite(Number(body.baseRevision))
         ? Number(body.baseRevision)
@@ -1127,7 +1129,7 @@ async function handleRequest(request, env) {
       const body = await request.json().catch(() => ({}));
       const auth = await requireGameplay(request, env, body);
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
-      await enforceRateLimit(request, env, "mailbox-claim", { limit: 60, windowSec: 60 });
+      await enforceRateLimit(request, env, "mailbox-claim", { limit: 60, windowSec: 60, userId: auth.session.xUserId });
       const mailId = body?.mailId || body?.id || "";
       try {
         const result = await claimMailboxItem(env.MONEX_KV, auth.session, mailId);

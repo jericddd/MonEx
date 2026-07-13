@@ -135,7 +135,7 @@ describe("play page scripts (shared browser global scope)", () => {
       assert.equal(typeof windowStub.MonExGameSession[fn], "function", `MonExGameSession.${fn}`);
     }
     // Save revision API used for optimistic locking.
-    for (const fn of ["setSaveRevision", "getSaveRevision", "loadCloudSave", "scheduleCloudSave"]) {
+    for (const fn of ["setSaveRevision", "getSaveRevision", "loadCloudSave", "hydrateCloudSave", "scheduleCloudSave"]) {
       assert.equal(typeof windowStub.MonExAuth[fn], "function", `MonExAuth.${fn}`);
     }
   });

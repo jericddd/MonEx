@@ -28,6 +28,9 @@ export const MAX_SAVE_DELTA = {
 /** Max quest progress increase per save PUT (blocks progress: 9999 forgery). */
 export const MAX_QUEST_PROGRESS_DELTA = 12;
 
+/** Max quest points increase per save PUT. */
+export const MAX_QUEST_POINTS_DELTA = 25;
+
 /** Quest task goals mirrored from play/index.html (server enforcement). */
 export const QUEST_TASK_GOALS = {
   dailies: {
@@ -184,6 +187,14 @@ export function reconcileQuestState(existing, incoming) {
 
   const dailyPoints = clampInt(inc.dailyPoints ?? ex.dailyPoints ?? 0, 0, 100);
   const weeklyPoints = clampInt(inc.weeklyPoints ?? ex.weeklyPoints ?? 0, 0, 100);
+  const exDailyPoints = clampInt(ex.dailyPoints ?? 0, 0, 100);
+  const exWeeklyPoints = clampInt(ex.weeklyPoints ?? 0, 0, 100);
+  const cappedDailyPoints = dailyResetChanged
+    ? dailyPoints
+    : Math.min(dailyPoints, exDailyPoints + MAX_QUEST_POINTS_DELTA);
+  const cappedWeeklyPoints = weeklyResetChanged
+    ? weeklyPoints
+    : Math.min(weeklyPoints, exWeeklyPoints + MAX_QUEST_POINTS_DELTA);
 
   const dailyClaimed = [];
   for (const ms of inc.dailyClaimedChests || []) {
@@ -194,7 +205,7 @@ export function reconcileQuestState(existing, incoming) {
       dailyClaimed.push(milestone);
       continue;
     }
-    if (dailyPoints >= milestone) {
+    if (cappedDailyPoints >= milestone) {
       dailyClaimed.push(milestone);
       allowedKeys.add(key);
     }
@@ -213,7 +224,7 @@ export function reconcileQuestState(existing, incoming) {
       weeklyClaimed.push(milestone);
       continue;
     }
-    if (weeklyPoints >= milestone) {
+    if (cappedWeeklyPoints >= milestone) {
       weeklyClaimed.push(milestone);
       allowedKeys.add(key);
     }
@@ -228,8 +239,8 @@ export function reconcileQuestState(existing, incoming) {
     questState: {
       ...inc,
       tasks,
-      dailyPoints,
-      weeklyPoints,
+      dailyPoints: cappedDailyPoints,
+      weeklyPoints: cappedWeeklyPoints,
       dailyClaimedChests: [...new Set(dailyClaimed)].sort((a, b) => a - b),
       weeklyClaimedChests: [...new Set(weeklyClaimed)].sort((a, b) => a - b),
       grantedKeys: [...allowedKeys].slice(0, 120),
