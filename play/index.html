@@ -14149,7 +14149,8 @@ function pickNewerSaveScalar(local, cloud, field, fallback = 0) {
     const cloudTs = getSaveTimestamp(cloud);
     if (cloudTs > localTs) return Number(cloud[field]) || fallback;
     if (localTs > cloudTs) return Number(local[field]) || fallback;
-    return Math.max(Number(local[field]) || fallback, Number(cloud[field]) || fallback);
+    // Tie: prefer cloud revision to block merge-max inflation exploits.
+    return Number(cloud[field]) || fallback;
 }
 
 /** Monballs: on tie prefer the lower count — X spends cannot be resurrected by stale tabs. */
@@ -14184,22 +14185,10 @@ function countMonFingerprints(list) {
 }
 
 function mergeMonsterInventories(newerParty, newerBox, olderParty, olderBox) {
-    const newerAll = [...(newerParty || []), ...(newerBox || [])];
-    const olderAll = [...(olderParty || []), ...(olderBox || [])];
-    const newerCounts = countMonFingerprints(newerAll);
-    const olderCounts = countMonFingerprints(olderAll);
-    const box = [...(newerBox || [])];
-
-    olderCounts.forEach((oldCount, fp) => {
-        const newCount = newerCounts.get(fp) || 0;
-        if (oldCount <= newCount) return;
-        const extras = (olderBox || []).filter((mon) => monCollectionKey(mon) === fp);
-        for (let i = 0; i < oldCount - newCount; i++) {
-            if (extras[i]) box.push(extras[i]);
-        }
-    });
-
-    return { party: [...(newerParty || [])], box };
+    const localTs = getSaveTimestamp({ party: newerParty, updatedAt: null });
+    const cloudTs = getSaveTimestamp({ party: olderParty, updatedAt: null });
+    // On conflict merge, never re-add released mons from the older snapshot.
+    return { party: [...(newerParty || [])], box: [...(newerBox || [])] };
 }
 
 async function refreshMonballsFromServer() {
