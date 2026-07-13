@@ -8562,8 +8562,9 @@ const SHOP_ITEMS = [
 
 const DAILY_QUEST_MILESTONES = [20, 40, 60, 80, 100];
 const WEEKLY_QUEST_MILESTONES = [20, 40, 60, 80, 100];
-const DAILY_QUEST_MAX_POINTS = 100;
-const WEEKLY_QUEST_MAX_POINTS = 100;
+/** Soft chest track ends at 100; total earnable points exceed that so skipped quests still allow full chests. */
+const DAILY_QUEST_MAX_POINTS = 150;
+const WEEKLY_QUEST_MAX_POINTS = 150;
 
 const DAILY_QUEST_CHEST_REWARDS = {
     20:  { label: "100 Gold", grant: { gold: 100 } },
@@ -8596,15 +8597,25 @@ const QUEST_TASK_DEFS = {
         { id: "d6", track: "boss_win", goal: 1, desc: "Defeat 1 boss stage", points: 15, rewardKey: "gold", rewardAmount: 120 },
         { id: "d7", track: "gear_equip", goal: 2, desc: "Equip gear on 2 party members", points: 15, rewardKey: "essence", rewardAmount: 12 },
         { id: "d8", track: "daily_login", goal: 1, desc: "Claim your Daily Login mail", points: 15, rewardKey: "trainerXp", rewardAmount: 30 },
+        { id: "d9", track: "armory_forge", goal: 1, desc: "Enhance or synthesize gear once", points: 10, rewardKey: "essence", rewardAmount: 10 },
+        { id: "d10", track: "shop_buy", goal: 3, desc: "Buy 3 items from the Shop", points: 8, rewardKey: "gold", rewardAmount: 60 },
+        { id: "d11", track: "patrol_win", goal: 4, desc: "Win 4 patrol encounters", points: 9, rewardKey: "gold", rewardAmount: 70 },
+        { id: "d12", track: "mon_level_up", goal: 4, desc: "Level up party members 4 times", points: 9, rewardKey: "essence", rewardAmount: 12 },
+        { id: "d13", track: "adventure_win", goal: 5, desc: "Win 5 adventure battles", points: 9, rewardKey: "gold", rewardAmount: 100 },
     ],
     weeklies: [
-        { id: "w1", track: "adventure_win", goal: 8, desc: "Win 8 adventure battles", points: 20, rewardKey: "gold", rewardAmount: 250 },
-        { id: "w2", track: "patrol_win", goal: 8, desc: "Win 8 patrol encounters", points: 15, rewardKey: "essence", rewardAmount: 25 },
-        { id: "w3", track: "armory_forge", goal: 3, desc: "Enhance or synthesize gear 3 times", points: 15, rewardKey: "shards", rewardAmount: 3 },
-        { id: "w4", track: "boss_win", goal: 3, desc: "Defeat 3 boss stages", points: 15, rewardKey: "gold", rewardAmount: 200 },
-        { id: "w5", track: "gear_equip", goal: 8, desc: "Equip gear on 8 party members", points: 15, rewardKey: "essence", rewardAmount: 35 },
+        { id: "w1", track: "adventure_win", goal: 13, desc: "Win 13 adventure battles", points: 20, rewardKey: "gold", rewardAmount: 250 },
+        { id: "w2", track: "patrol_win", goal: 13, desc: "Win 13 patrol encounters", points: 15, rewardKey: "essence", rewardAmount: 25 },
+        { id: "w3", track: "armory_forge", goal: 5, desc: "Enhance or synthesize gear 5 times", points: 15, rewardKey: "shards", rewardAmount: 3 },
+        { id: "w4", track: "boss_win", goal: 5, desc: "Defeat 5 boss stages", points: 15, rewardKey: "gold", rewardAmount: 200 },
+        { id: "w5", track: "gear_equip", goal: 13, desc: "Equip gear on 13 party members", points: 15, rewardKey: "essence", rewardAmount: 35 },
         { id: "w6", track: "daily_login", goal: 5, desc: "Claim Daily Login mail 5 times", points: 15, rewardKey: "trainerXp", rewardAmount: 80 },
-        { id: "w7", track: "boss_win", goal: 5, desc: "Defeat 5 boss stages", points: 15, rewardKey: "gold", rewardAmount: 350 },
+        { id: "w7", track: "boss_win", goal: 8, desc: "Defeat 8 boss stages", points: 15, rewardKey: "gold", rewardAmount: 350 },
+        { id: "w8", track: "armory_forge", goal: 8, desc: "Enhance or synthesize gear 8 times", points: 8, rewardKey: "shards", rewardAmount: 2 },
+        { id: "w9", track: "shop_buy", goal: 10, desc: "Buy 10 items from the Shop", points: 8, rewardKey: "gold", rewardAmount: 200 },
+        { id: "w10", track: "mon_level_up", goal: 12, desc: "Level up party members 12 times", points: 8, rewardKey: "essence", rewardAmount: 30 },
+        { id: "w11", track: "adventure_win", goal: 20, desc: "Win 20 adventure battles", points: 8, rewardKey: "gold", rewardAmount: 400 },
+        { id: "w12", track: "resource_collect", goal: 5, desc: "Collect your resource chest 5 times", points: 8, rewardKey: "trainerXp", rewardAmount: 60 },
     ],
     campaign: [
         { id: "c1", track: "stage_reach", target: 10, goal: 1, desc: "Reach Chapter 1 Stage 10", points: 15, rewardKey: "monball", rewardAmount: 2 },
@@ -9518,10 +9529,11 @@ function renderDailyQuest() {
     const showMilestones = tab === "dailies" || tab === "weeklies";
     const milestoneTrack = tab === "weeklies" ? "weeklies" : "dailies";
     const trackPoints = getQuestPointsForTrack(milestoneTrack);
-    const trackMax = getQuestMaxPointsForTrack(milestoneTrack);
     const trackMilestones = getQuestMilestonesForTrack(milestoneTrack);
     const trackClaimed = getQuestClaimedChestsForTrack(milestoneTrack);
-    const fillPct = Math.min(100, (trackPoints / trackMax) * 100);
+    // Bar / chest positions stay on the 100-pt milestone scale; earnable total can exceed it.
+    const trackMilestoneCap = trackMilestones[trackMilestones.length - 1] || 100;
+    const fillPct = Math.min(100, (trackPoints / trackMilestoneCap) * 100);
     const chestsHtml = trackMilestones.map(ms => {
         const claimed = trackClaimed.includes(ms);
         const unlocked = trackPoints >= ms;

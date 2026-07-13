@@ -9,9 +9,17 @@ import {
 } from "./shop-items.js";
 import { generateShopGear } from "./shop-gear.js";
 import { LIMITS } from "./save-validate.js";
+import { QUEST_TASK_GOALS } from "./save-economy-guard.js";
 
 const MAX_CLAIM_RETRIES = 3;
 const MAX_SHOP_QTY = 20;
+
+/** Shop-buy quest task ids mirrored from play/index.html track "shop_buy". */
+const SHOP_BUY_TASKS = Object.freeze([
+  { tab: "dailies", id: "d3" },
+  { tab: "dailies", id: "d10" },
+  { tab: "weeklies", id: "w9" },
+]);
 
 function bumpShopBuyQuestProgress(questState, qty) {
   const qs = questState && typeof questState === "object" ? { ...questState } : {};
@@ -20,15 +28,20 @@ function bumpShopBuyQuestProgress(questState, qty) {
     weeklies: Array.isArray(qs.tasks?.weeklies) ? qs.tasks.weeklies.map((t) => ({ ...t })) : [],
     campaign: Array.isArray(qs.tasks?.campaign) ? qs.tasks.campaign.map((t) => ({ ...t })) : [],
   };
-  const idx = tasks.dailies.findIndex((t) => t?.id === "d3");
-  if (idx >= 0) {
-    const task = tasks.dailies[idx];
-    tasks.dailies[idx] = {
-      ...task,
-      progress: Math.min(1, (task.progress || 0) + Math.max(1, qty)),
-    };
-  } else {
-    tasks.dailies.push({ id: "d3", progress: Math.min(1, qty), claimed: false });
+  const add = Math.max(1, Math.floor(Number(qty) || 1));
+  for (const { tab, id } of SHOP_BUY_TASKS) {
+    const goal = QUEST_TASK_GOALS[tab]?.[id] ?? 1;
+    const list = tasks[tab];
+    const idx = list.findIndex((t) => t?.id === id);
+    if (idx >= 0) {
+      const task = list[idx];
+      list[idx] = {
+        ...task,
+        progress: Math.min(goal, (task.progress || 0) + add),
+      };
+    } else {
+      list.push({ id, progress: Math.min(goal, add), claimed: false });
+    }
   }
   return { ...qs, tasks };
 }

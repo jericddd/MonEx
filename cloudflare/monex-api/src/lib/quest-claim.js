@@ -1,5 +1,5 @@
 import { loadCloudSave, writeCloudSave, buildSavePayload } from "./save.js";
-import { QUEST_TASK_DEFS, DAILY_QUEST_MILESTONES, WEEKLY_QUEST_MILESTONES, questGrantKey, questChestGrantKey, buildGrantFromTaskDef, DAILY_QUEST_CHEST_REWARDS, WEEKLY_QUEST_CHEST_REWARDS } from "./quest-rewards.js";
+import { QUEST_TASK_DEFS, DAILY_QUEST_MILESTONES, WEEKLY_QUEST_MILESTONES, DAILY_QUEST_MAX_POINTS, WEEKLY_QUEST_MAX_POINTS, questGrantKey, questChestGrantKey, buildGrantFromTaskDef, DAILY_QUEST_CHEST_REWARDS, WEEKLY_QUEST_CHEST_REWARDS } from "./quest-rewards.js";
 import { QUEST_TASK_GOALS } from "./save-economy-guard.js";
 import { creditCatchMonballs, clampMonballs } from "./grant-monballs.js";
 import { reconcileMonballsForCloudSave } from "./save-reconcile.js";
@@ -99,8 +99,18 @@ export async function claimQuestTask(kv, session, { tab, taskId, expectedRevisio
 
   upsertTask(questState, tab, id, { claimed: true });
   questState.grantedKeys.push(grantKey);
-  if (tab === "dailies") questState.dailyPoints = (questState.dailyPoints || 0) + (def.points || 0);
-  if (tab === "weeklies") questState.weeklyPoints = (questState.weeklyPoints || 0) + (def.points || 0);
+  if (tab === "dailies") {
+    questState.dailyPoints = Math.min(
+      DAILY_QUEST_MAX_POINTS,
+      (questState.dailyPoints || 0) + (def.points || 0)
+    );
+  }
+  if (tab === "weeklies") {
+    questState.weeklyPoints = Math.min(
+      WEEKLY_QUEST_MAX_POINTS,
+      (questState.weeklyPoints || 0) + (def.points || 0)
+    );
+  }
 
   const monballsBefore = save.monballs || 0;
   let nextSave = applyGrantToSave(save, grant);
