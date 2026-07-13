@@ -9299,12 +9299,36 @@ function updateResourceChestWidget() {
     wrap.style.display = mainVisible ? "" : "none";
 }
 
+function refreshResourceChestModalLive() {
+    const el = document.getElementById("resource-chest-modal-content");
+    if (!el) return;
+    const timerEl = el.querySelector(".resource-chest-timer-value");
+    if (!timerEl) {
+        renderResourceChestModal();
+        return;
+    }
+    const preview = previewResourceChestRewards();
+    timerEl.textContent = `${formatResourceChestTimer(preview.elapsedMs)} / 24:00:00`;
+    const capEl = el.querySelector(".resource-chest-timer-cap");
+    if (capEl) {
+        capEl.textContent = preview.progress >= 1
+            ? "Chest is full — collect now!"
+            : "Keeps collecting offline (max 24h). Resets when you collect.";
+    }
+    const rewardVals = el.querySelectorAll(".rc-reward-val");
+    if (rewardVals[0]) rewardVals[0].textContent = `+${preview.gold}`;
+    if (rewardVals[1]) rewardVals[1].textContent = `+${preview.essence}`;
+    if (rewardVals[2]) rewardVals[2].textContent = `+${preview.trainerXp}`;
+    const collectBtn = el.querySelector(".resource-chest-collect-btn");
+    if (collectBtn) collectBtn.disabled = !preview.canCollect;
+}
+
 function startResourceChestTimer() {
     if (resourceChestTimerInterval) return;
     resourceChestTimerInterval = setInterval(() => {
         updateResourceChestWidget();
         if (document.getElementById("modal-resource-chest")?.classList.contains("open")) {
-            renderResourceChestModal();
+            refreshResourceChestModalLive();
         }
     }, RESOURCE_CHEST_TIMER_TICK_MS);
     bindResourceChestPersistence();
@@ -13684,7 +13708,7 @@ function renderLevelUpBtn(index, mon, cost, atCap, cap) {
     const costLine = `<span class="level-up-btn-cost">${currencyQty("gold", cost.gold, 12, goldClass)}${currencyQty("essence", cost.essence, 12, essenceClass)}</span>`;
     const inner = `<span class="level-up-btn-label">LEVEL UP</span>${costLine}`;
     if (hasGold && hasEssence) {
-        return `<button onclick="levelUpMonManual(${index})" class="green level-up-btn">${inner}</button>`;
+        return `<button onclick="event.stopPropagation(); levelUpMonManual(${index}, this)" class="green level-up-btn">${inner}</button>`;
     }
     return `<button class="green level-up-btn" disabled>${inner}</button>`;
 }
@@ -13941,7 +13965,10 @@ function breakFrozenOnHit(defender, damage) {
 
 function restartBurnGif(img) {
     if (!img) return;
-    img.src = DEBUFF_BURN_FX + "?t=" + Date.now();
+    const base = String(DEBUFF_BURN_FX || "").split("?")[0];
+    img.src = "";
+    void img.offsetWidth;
+    img.src = base;
 }
 
 function stopBurnGifLoop(side) {
@@ -15147,14 +15174,20 @@ function openItemBuyPopup(item) {
             refreshBuyPopup();
         }
     };
-    overlay.querySelector(".hub-popup-buy-btn").onclick = async () => {
-        if (!(await executeShopPurchase(item, qty))) {
-            showHubNotice("Not enough resources!<br>Need: " + formatCost(multiplyCost(item.cost, qty)), "CAN'T BUY", { html: true });
-            return;
-        }
-        overlay.remove();
-        const qtyLabel = qty > 1 ? " ×" + qty : "";
-        showHubNotice("Purchased " + item.name + qtyLabel + "!", "PURCHASED");
+    overlay.querySelector(".hub-popup-buy-btn").onclick = async (e) => {
+        const buyBtn = e.currentTarget;
+        const run = window.MonExClaimGuard?.runClaimOnce
+            ? (fn, opts) => MonExClaimGuard.runClaimOnce(`shop-buy:${item.id}`, fn, opts)
+            : async (fn) => fn();
+        await run(async () => {
+            if (!(await executeShopPurchase(item, qty))) {
+                showHubNotice("Not enough resources!<br>Need: " + formatCost(multiplyCost(item.cost, qty)), "CAN'T BUY", { html: true });
+                return;
+            }
+            overlay.remove();
+            const qtyLabel = qty > 1 ? " ×" + qty : "";
+            showHubNotice("Purchased " + item.name + qtyLabel + "!", "PURCHASED");
+        }, { button: buyBtn, loadingText: "BUYING...", resetOnError: true });
     };
 
     document.body.appendChild(overlay);
@@ -15171,24 +15204,42 @@ function buyMonball() {
 }
 
 // Spend KB's Onion + Gold to level a party member up by one (also fully heals it).
-function levelUpMonManual(index) {
+function levelUpMonManual(index, buttonEl) {
     const mon = party[index];
+    if (!mon) return;
     ensureMonReady(mon);
     const cap = getLevelCap(mon);
-    if (Math.floor(mon.level) >= cap) { alert(mon.name + " is at the max level for its rarity (" + cap + ").");
-        return; }
-    const cost = getLevelCost(mon);
-    if (money < cost.gold || essence < cost.essence) {
-        alert("Not enough materials!\nNeed: " + cost.gold + " Gold + " + cost.essence + " " + KBS_ONION_NAME + ".\nYou have: " + money + " Gold, " + essence + " " + KBS_ONION_NAME + ".");
+    if (Math.floor(mon.level) >= cap) {
+        showHubNotice(mon.name + " is at the max level for its rarity (" + cap + ").", "Max level");
         return;
     }
-    money -= cost.gold;
-    essence -= cost.essence;
-    levelUpMon(mon);
-    mon.current_hp = mon.max_hp; // leveling up fully heals
-    bumpQuestProgress("mon_level_up", 1);
-    void persistProgress();
-    updateUI();
+    const cost = getLevelCost(mon);
+    if (money < cost.gold || essence < cost.essence) {
+        showHubNotice(
+            "Not enough materials!<br>Need: " + cost.gold + " Gold + " + cost.essence + " " + KBS_ONION_NAME + ".<br>You have: " + money + " Gold, " + essence + " " + KBS_ONION_NAME + ".",
+            "Can't level up",
+            { html: true }
+        );
+        return;
+    }
+    const run = window.MonExClaimGuard?.runClaimOnce
+        ? (fn, opts) => MonExClaimGuard.runClaimOnce(`level-up:${index}`, fn, opts)
+        : async (fn) => fn();
+    return run(async () => {
+        const live = party[index];
+        if (!live) return;
+        ensureMonReady(live);
+        if (Math.floor(live.level) >= getLevelCap(live)) return;
+        const liveCost = getLevelCost(live);
+        if (money < liveCost.gold || essence < liveCost.essence) return;
+        money -= liveCost.gold;
+        essence -= liveCost.essence;
+        levelUpMon(live);
+        live.current_hp = live.max_hp;
+        bumpQuestProgress("mon_level_up", 1);
+        void persistProgress();
+        updateUI();
+    }, { button: buttonEl, loadingText: "..." });
 }
 
 function buyShopItem(itemId) {
@@ -15744,21 +15795,26 @@ function addToPartyFromBox(boxIndex) {
 }
 
 function swapPartyWithBox(partyIndex, boxIndex) {
-    if (!party[partyIndex] || !box[boxIndex]) return;
-    const incoming = box[boxIndex];
-    if (partyHasSpecies(incoming.name, partyIndex)) {
-        alert(`You already have ${incoming.name} in your party.\nOnly one of each species allowed.`);
-        return;
-    }
-    const temp = party[partyIndex];
-    party[partyIndex] = incoming;
-    box[boxIndex] = temp;
-    saveData();
-    updateUI();
-    closePartySwitchPicker();
-    if (battleScreen === "chapter" && document.getElementById("team-arrange")) {
-        renderTeamArrangement();
-    }
+    const run = window.MonExClaimGuard?.runClaimOnce
+        ? (fn) => MonExClaimGuard.runClaimOnce(`party-swap:${partyIndex}:${boxIndex}`, fn)
+        : async (fn) => fn();
+    return run(async () => {
+        if (!party[partyIndex] || !box[boxIndex]) return;
+        const incoming = box[boxIndex];
+        if (partyHasSpecies(incoming.name, partyIndex)) {
+            showHubNotice(`You already have ${incoming.name} in your party.\nOnly one of each species allowed.`, "Can't swap");
+            return;
+        }
+        const temp = party[partyIndex];
+        party[partyIndex] = incoming;
+        box[boxIndex] = temp;
+        saveData();
+        updateUI();
+        closePartySwitchPicker();
+        if (battleScreen === "chapter" && document.getElementById("team-arrange")) {
+            renderTeamArrangement();
+        }
+    });
 }
 
 function showConfirmModal(message, onConfirm, options = {}) {
@@ -16957,12 +17013,7 @@ async function finishPatrolBattleRewards(win, encounter) {
 
     restorePartyFullHp();
     showPatrolBattleResult(win, reward, encounter);
-    if (win) {
-        updateUI();
-        updateHeaderCurrencies();
-    } else {
-        saveData();
-    }
+    if (!win) saveData();
 }
 
 function showPatrolBattleResult(win, reward, encounter) {
@@ -17167,16 +17218,26 @@ window.onload = async function() {
     normalizeRailTabIconSizes();
     bindHeaderCurrencyTips();
     window.addEventListener("resize", scheduleRailTabIconNormalize);
+    let resumeSyncTimer = null;
     document.addEventListener("visibilitychange", () => {
         if (!currentUser) return;
         if (document.visibilityState === "visible") {
-            if (window.MonExGameSession?.pollSessionStatus) {
-                MonExGameSession.pollSessionStatus().catch(() => {});
-            }
-            if (isGameSessionPlayable()) {
+            if (resumeSyncTimer) return;
+            resumeSyncTimer = setTimeout(() => {
+                resumeSyncTimer = null;
+                if (!currentUser || document.visibilityState !== "visible") return;
+                if (window.MonExGameSession?.pollSessionStatus) {
+                    MonExGameSession.pollSessionStatus().catch(() => {});
+                }
+                if (!isGameSessionPlayable()) return;
                 refreshMonballsFromServer().catch(() => {});
-                syncXWildMons(true).catch(() => {});
-            }
+                // Defer wild sync so monball refresh + session poll settle first.
+                setTimeout(() => {
+                    if (document.visibilityState === "visible" && isGameSessionPlayable()) {
+                        syncXWildMons(true).catch(() => {});
+                    }
+                }, 400);
+            }, 150);
             return;
         }
         if (!window.MonExGameSession?.isSuperseded?.() && window.MonExGameSession?.sendHeartbeat) {
@@ -18301,12 +18362,7 @@ async function finishAdventureBattleRewards(win) {
 
     restorePartyFullHp();
     showBattleResult(win, reward);
-    if (win) {
-        updateUI();
-        updateHeaderCurrencies();
-    } else {
-        saveData();
-    }
+    if (!win) saveData();
 }
 
 function showBattleResult(win, reward) {
