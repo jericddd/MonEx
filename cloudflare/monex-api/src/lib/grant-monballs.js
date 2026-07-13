@@ -1,5 +1,9 @@
-import { loadState, resolveCatchUser, withUserSyncLock, userSyncLockKey } from "../kv-store.js";
-import { persistCatchUserFromState, hydrateCatchUserIntoState } from "./catch-user-store.js";
+import { withUserSyncLock, userSyncLockKey } from "../kv-store.js";
+import {
+  resolveCatchUserKv,
+  saveCatchUserRecord,
+  findCatchUserIdByUsername,
+} from "./catch-user-store.js";
 import { loadCloudSave, writeCloudSave, buildSavePayload } from "./save.js";
 import { appendMonballAudit } from "./monball-audit.js";
 
@@ -19,13 +23,12 @@ export async function creditCatchMonballs(kv, session, delta, startingMonballs =
   const amount = clampMonballs(delta);
   if (!amount || !session?.xUserId) return null;
   return withUserSyncLock(userSyncLockKey(session.xUserId, session.username), async () => {
-    const state = await loadState(kv);
-    const user = await hydrateCatchUserIntoState(kv, state, session.xUserId, session.username, startingMonballs);
+    const user = await resolveCatchUserKv(kv, session.xUserId, session.username, startingMonballs);
     if (!user) return null;
     const before = clampMonballs(user.monballs ?? 0);
     user.monballs = clampMonballs(before + amount);
     user.updatedAt = new Date().toISOString();
-    await persistCatchUserFromState(kv, state, session.xUserId);
+    await saveCatchUserRecord(kv, session.xUserId, user);
     await appendMonballAudit(kv, {
       xUserId: session.xUserId,
       username: session.username,
@@ -41,7 +44,6 @@ export async function creditCatchMonballs(kv, session, delta, startingMonballs =
 export function mergeMonballBalances(catchMonballs, saveMonballs) {
   const catchVal = clampMonballs(catchMonballs);
   const saveVal = clampMonballs(saveMonballs);
-  // Depleted catch pool must not resurrect from a stale cloud-save balance.
   if (catchVal === 0 && saveVal > 0) return 0;
   return clampMonballs(Math.max(catchVal, saveVal));
 }
@@ -49,14 +51,13 @@ export function mergeMonballBalances(catchMonballs, saveMonballs) {
 export async function alignCatchMonballsToMerged(kv, session, mergedMonballs, startingMonballs = 10) {
   const target = clampMonballs(mergedMonballs);
   if (!session?.xUserId) return target;
-  const state = await loadState(kv);
-  const user = await hydrateCatchUserIntoState(kv, state, session.xUserId, session.username, startingMonballs);
+  const user = await resolveCatchUserKv(kv, session.xUserId, session.username, startingMonballs);
   if (!user) return target;
   const current = clampMonballs(user.monballs ?? 0);
   if (current !== target) {
     user.monballs = target;
     user.updatedAt = new Date().toISOString();
-    await persistCatchUserFromState(kv, state, session.xUserId);
+    await saveCatchUserRecord(kv, session.xUserId, user);
     await appendMonballAudit(kv, {
       xUserId: session.xUserId,
       username: session.username,
@@ -67,13 +68,6 @@ export async function alignCatchMonballsToMerged(kv, session, mergedMonballs, st
     });
   }
   return target;
-}
-
-export function findUserIdInState(state, username) {
-  for (const [xUserId, user] of Object.entries(state?.users || {})) {
-    if (user?.username?.toLowerCase() === username) return xUserId;
-  }
-  return null;
 }
 
 async function findUserIdFromSessions(kv, username) {
@@ -124,8 +118,7 @@ export async function grantMonballs(kv, username, amount, startingMonballs = 10)
     throw new Error("username and positive amount required");
   }
 
-  const state = await loadState(kv);
-  let xUserId = findUserIdInState(state, target);
+  let xUserId = await findCatchUserIdByUsername(kv, target);
   if (!xUserId) xUserId = await findUserIdFromSessions(kv, target);
   if (!xUserId) xUserId = await findUserIdFromSaves(kv, target);
   if (!xUserId) throw new Error(`user @${target} not found`);
@@ -133,14 +126,13 @@ export async function grantMonballs(kv, username, amount, startingMonballs = 10)
   let catchBefore = 0;
   let catchAfter = 0;
   await withUserSyncLock(userSyncLockKey(xUserId, target), async () => {
-    const lockedState = await loadState(kv);
-    const user = await hydrateCatchUserIntoState(kv, lockedState, xUserId, target, startingMonballs);
+    const user = await resolveCatchUserKv(kv, xUserId, target, startingMonballs);
     if (!user) throw new Error(`catch user @${target} not found`);
     catchBefore = clampMonballs(user.monballs ?? 0);
     catchAfter = clampMonballs(catchBefore + grant);
     user.monballs = catchAfter;
     user.updatedAt = new Date().toISOString();
-    await persistCatchUserFromState(kv, lockedState, xUserId);
+    await saveCatchUserRecord(kv, xUserId, user);
   });
 
   const { found, save } = await loadCloudSave(kv, xUserId);

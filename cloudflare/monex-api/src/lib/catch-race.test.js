@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { withUserSyncLock } from "../kv-store.js";
 import { processMentionTweet } from "./process-mention.js";
+import { resolveCatchUserKv, saveCatchUserRecord } from "./catch-user-store.js";
 
 function makeKv(store = {}) {
   return {
@@ -11,18 +12,22 @@ function makeKv(store = {}) {
     async put(key, value) {
       store[key] = value;
     },
+    async delete(key) {
+      delete store[key];
+    },
   };
 }
 
 describe("catch spend race mitigation", () => {
   it("serializes two catch tweets for the same user under per-user lock", async () => {
     const kv = makeKv({
-      "monex:state": JSON.stringify({
-        processedTweetIds: [],
-        users: {
-          u1: { username: "daniel_freire15", monballs: 5, pendingMons: [], updatedAt: new Date(0).toISOString() },
-        },
+      "monex:catch-user:u1": JSON.stringify({
+        username: "daniel_freire15",
+        monballs: 5,
+        pendingMons: [],
+        updatedAt: new Date(0).toISOString(),
       }),
+      "monex:catch-username:daniel_freire15": "u1",
     });
 
     const tweetA = {
@@ -43,17 +48,15 @@ describe("catch spend race mitigation", () => {
     const results = [];
     await Promise.all([
       withUserSyncLock("daniel_freire15", async () => {
-        const { loadState, saveState } = await import("../kv-store.js");
-        const state = await loadState(kv);
-        const result = processMentionTweet(tweetA, "monexmonad", state, 10, "bot");
-        if (result.activity) await saveState(kv, state);
+        const user = await resolveCatchUserKv(kv, "u1", "Daniel_Freire15", 10);
+        const result = processMentionTweet(tweetA, "monexmonad", user, 10, "bot");
+        if (result.activity) await saveCatchUserRecord(kv, "u1", user);
         results.push(result);
       }),
       withUserSyncLock("daniel_freire15", async () => {
-        const { loadState, saveState } = await import("../kv-store.js");
-        const state = await loadState(kv);
-        const result = processMentionTweet(tweetB, "monexmonad", state, 10, "bot");
-        if (result.activity) await saveState(kv, state);
+        const user = await resolveCatchUserKv(kv, "u1", "Daniel_Freire15", 10);
+        const result = processMentionTweet(tweetB, "monexmonad", user, 10, "bot");
+        if (result.activity) await saveCatchUserRecord(kv, "u1", user);
         results.push(result);
       }),
     ]);

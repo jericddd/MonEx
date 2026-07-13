@@ -1,12 +1,8 @@
 import { processMentionTweet } from "./lib/process-mention.js";
 import { parseMention } from "./lib/parse-mention.js";
 import {
-  loadState,
-  wasProcessed,
   appendActivity,
   listActivities,
-  getPendingForSession,
-  syncPendingForSession,
   getPollSinceId,
   setPollSinceId,
   clearPollSinceId,
@@ -53,7 +49,12 @@ import { claimQuestTask, claimQuestChest } from "./lib/quest-claim.js";
 import { purchaseShopItem } from "./lib/shop-purchase.js";
 import { collectResourceChest } from "./lib/resource-chest.js";
 import { claimBattleReward } from "./lib/battle-reward.js";
-import { hydrateCatchUserIntoState, persistCatchUserFromState } from "./lib/catch-user-store.js";
+import {
+  resolveCatchUserKv,
+  saveCatchUserRecord,
+  getPendingForCatchUserKv,
+} from "./lib/catch-user-store.js";
+import { backfillPendingForCatchUser } from "./lib/backfill-pending.js";
 import { hydrateUserCloudSave, lookupCatchUserReadOnly } from "./lib/hydrate-save.js";
 import { tryClaimTweetForProcessing, finalizeTweetProcessed, releaseTweetClaim } from "./lib/tweet-dedupe.js";
 import { appendMonballAudit } from "./lib/monball-audit.js";
@@ -126,25 +127,23 @@ async function handleSimulate(body, env, request) {
   const starting = parseInt(env.STARTING_MONBALLS || "10", 10);
   const bot = env.BOT_USERNAME || "monexmonad";
 
-  const state = await loadState(env.MONEX_KV);
-  await hydrateCatchUserIntoState(env.MONEX_KV, state, authorId, username, starting);
+  const user = await resolveCatchUserKv(env.MONEX_KV, authorId, username, starting);
   const replyToBot = body?.replyToBot === true;
   const parsed = parseMention(text, bot, { replyToBot });
-  if (parsed.type === "catch") {
-    const user = state.users[authorId];
-    if (user && user.monballs < parsed.spend) user.monballs = starting;
+  if (parsed.type === "catch" && user && user.monballs < parsed.spend) {
+    user.monballs = starting;
   }
 
   const result = processMentionTweet(
     { id: tweetId, text, authorId, username, inReplyToUserId: replyToBot ? "bot" : null },
     bot,
-    state,
+    user,
     starting,
     replyToBot ? "bot" : null
   );
   if (result.activity) await appendActivity(env.MONEX_KV, result.activity);
   if (result.activity?.monballsLeft != null && authorId) {
-    await persistCatchUserFromState(env.MONEX_KV, state, authorId);
+    await saveCatchUserRecord(env.MONEX_KV, authorId, user);
     await appendMonballAudit(env.MONEX_KV, {
       xUserId: authorId,
       username,
@@ -255,18 +254,16 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
         return;
       }
 
-      let state = await loadState(env.MONEX_KV);
-      if (wasProcessed(state, tweet.id)) {
-        await finalizeTweetProcessed(env.MONEX_KV, tweet.id);
-        status.skipped.push({ id: tweet.id, reason: "already_processed_legacy" });
-        return;
-      }
-
-      await hydrateCatchUserIntoState(env.MONEX_KV, state, tweet.authorId, tweet.username, starting);
+      const user = await resolveCatchUserKv(
+        env.MONEX_KV,
+        tweet.authorId,
+        tweet.username,
+        starting
+      );
 
       let result;
       try {
-        result = processMentionTweet(tweet, bot, state, starting, botUser.id);
+        result = processMentionTweet(tweet, bot, user, starting, botUser.id);
       } catch (err) {
         await releaseTweetClaim(env.MONEX_KV, tweet.id);
         status.errors = status.errors || [];
@@ -275,7 +272,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       }
 
       if (result.activity) {
-        await persistCatchUserFromState(env.MONEX_KV, state, tweet.authorId);
+        await saveCatchUserRecord(env.MONEX_KV, tweet.authorId, user);
 
         const spend = result.activity.spend || 0;
         const balanceAfter = result.activity.monballsLeft;
@@ -310,13 +307,13 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
         status.activities += 1;
       } else if (result.skipReason) {
         status.skipped.push({ id: tweet.id, user: tweet.username, reason: result.skipReason });
-        if (state.users[tweet.authorId]) {
-          await persistCatchUserFromState(env.MONEX_KV, state, tweet.authorId);
+        if (user) {
+          await saveCatchUserRecord(env.MONEX_KV, tweet.authorId, user);
         }
       }
 
       if (env.ENABLE_X_REPLY === "1") {
-        const replyUser = state.users[tweet.authorId];
+        const replyUser = user;
         const dailyLimit = getDailyReplyLimitForUser(tweet.username, env);
         const usedToday = await getReplyCountToday(env.MONEX_KV, tweet.authorId, replyUser);
         const repliesLeftAfter = dailyLimit - usedToday - 1;
@@ -901,10 +898,8 @@ async function handleRequest(request, env) {
       const auth = await requireGameplay(request, env);
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
-      const state = await loadState(env.MONEX_KV);
-      await hydrateCatchUserIntoState(env.MONEX_KV, state, auth.session.xUserId, auth.session.username, starting);
-      const result = getPendingForSession(
-        state,
+      const result = await getPendingForCatchUserKv(
+        env.MONEX_KV,
         auth.session.xUserId,
         auth.session.username,
         starting
@@ -948,18 +943,16 @@ async function handleRequest(request, env) {
 
       if (xUserId) {
         syncResult = await withUserSyncLock(userSyncLockKey(xUserId, username), async () => {
-          const state = await loadState(env.MONEX_KV);
-          await hydrateCatchUserIntoState(env.MONEX_KV, state, xUserId, username, starting);
+          const catchUser = await resolveCatchUserKv(env.MONEX_KV, xUserId, username, starting);
           const { save } = await loadCloudSave(env.MONEX_KV, xUserId);
-          const result = backfillPendingForUser(state, {
-            xUserId,
+          const result = backfillPendingForCatchUser(catchUser, {
             username,
             save,
             partyMax,
             boxMax,
             startingMonballs: starting,
           });
-          await persistCatchUserFromState(env.MONEX_KV, state, xUserId);
+          await saveCatchUserRecord(env.MONEX_KV, xUserId, catchUser);
           if (result.ok && result.save) {
             await writeCloudSave(env.MONEX_KV, xUserId, result.save, { skipStaleCheck: true });
             await alignCatchMonballsToMerged(env.MONEX_KV, auth.session, result.monballs, starting);
@@ -967,26 +960,15 @@ async function handleRequest(request, env) {
           return result;
         });
       } else {
-        const state = await loadState(env.MONEX_KV);
-        const slots = syncPendingForSession(
-          state,
-          null,
-          username,
-          0,
-          0,
-          partyMax,
-          boxMax,
-          starting
-        );
-        await saveState(env.MONEX_KV, state);
         syncResult = {
-          ok: true,
-          added: slots.party.length + slots.box.length,
-          remaining: slots.remaining,
-          syncedParty: slots.party,
-          syncedBox: slots.box,
-          monballs: slots.monballs,
+          ok: false,
+          added: 0,
+          remaining: 0,
+          syncedParty: [],
+          syncedBox: [],
+          monballs: null,
           save: null,
+          reason: "login_required",
         };
       }
 

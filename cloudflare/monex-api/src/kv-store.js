@@ -51,6 +51,7 @@ export async function loadState(kv) {
   return safeJsonParse(raw, structuredClone(DEFAULT_STATE));
 }
 
+/** @deprecated Runtime catch users use monex:catch-user:{xUserId}. Ops/scripts only. */
 export async function saveState(kv, state) {
   if (state.processedTweetIds.length > 5000) {
     state.processedTweetIds = state.processedTweetIds.slice(-3000);

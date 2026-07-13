@@ -1,6 +1,6 @@
 import { runCatchSession, formatSkillsShort } from "./catch-engine.js";
 import { parseMention } from "./parse-mention.js";
-import { addPendingMons, resolveCatchUser } from "../kv-store.js";
+import { addPendingMons } from "../kv-store.js";
 import { makeActivityId } from "./activity-log.js";
 import { trySpendCatchMonballs } from "./catch-spend.js";
 
@@ -20,32 +20,32 @@ function summarizeResults(results) {
 /**
  * Process a mention — no X reply. Logs successful catch sessions to activity feed.
  */
-export function processMentionTweet(tweet, botUsername, state, startingMonballs, botUserId = null) {
+export function processMentionTweet(tweet, botUsername, user, startingMonballs, botUserId = null) {
   const replyToBot = botUserId != null && String(tweet.inReplyToUserId || "") === String(botUserId);
   const parsed = parseMention(tweet.text, botUsername, { replyToBot });
 
   if (parsed.type === "ignore") {
-    return { parsed, activity: null, state };
+    return { parsed, activity: null };
   }
 
   if (parsed.type === "invalid_denom") {
     return {
       parsed,
       activity: null,
-      state,
       skipReason: "invalid_denom",
     };
   }
 
   if (parsed.type === "catch") {
-    const user = resolveCatchUser(state, tweet.authorId, tweet.username, startingMonballs);
+    if (!user) {
+      return { parsed, activity: null, skipReason: "no_catch_user" };
+    }
 
     const spendResult = trySpendCatchMonballs(user, parsed.spend);
     if (!spendResult.ok) {
       return {
         parsed,
         activity: null,
-        state,
         skipReason: spendResult.reason || "insufficient",
         monballs: spendResult.before,
       };
@@ -71,8 +71,8 @@ export function processMentionTweet(tweet, botUsername, state, startingMonballs,
       at: new Date().toISOString(),
     };
 
-    return { parsed, activity, state, catchResults: results };
+    return { parsed, activity, catchResults: results };
   }
 
-  return { parsed, activity: null, state };
+  return { parsed, activity: null };
 }
