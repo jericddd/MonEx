@@ -25,8 +25,11 @@ test("listMonballPackages returns default 10/50/100 packs", () => {
     packages.map((p) => p.amount),
     [10, 50, 100]
   );
+  assert.deepEqual(
+    packages.map((p) => p.monexPrice),
+    [5000, 25000, 50000]
+  );
   assert.equal(packages[0].id, "mb_10");
-  assert.ok(packages.every((p) => typeof p.monexPrice === "number"));
 });
 
 test("listMonballPackages honors MONBALL_PACKAGES_JSON override", () => {
