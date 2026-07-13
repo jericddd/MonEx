@@ -136,6 +136,13 @@ function findLegacyUserByUsername(state, username, excludeUserId = null) {
   return null;
 }
 
+function copyReplyMetaFromLegacy(target, legacy) {
+  if (!legacy) return;
+  if (legacy.replyDay) target.replyDay = legacy.replyDay;
+  if (legacy.replyCount != null) target.replyCount = legacy.replyCount;
+  if (legacy.limitNoticeDay) target.limitNoticeDay = legacy.limitNoticeDay;
+}
+
 /** Resolve catch-state user by OAuth xUserId, merging legacy username-only rows. */
 export function resolveCatchUser(state, xUserId, username, startingMonballs = 10) {
   const uid = String(xUserId || "");
@@ -157,6 +164,7 @@ export function resolveCatchUser(state, xUserId, username, startingMonballs = 10
       pendingMons: [...(legacy.pendingMons || [])],
       updatedAt: legacy.updatedAt || new Date().toISOString(),
     };
+    copyReplyMetaFromLegacy(state.users[uid], legacy);
     if (legacyKey && legacyKey !== uid) delete state.users[legacyKey];
     return state.users[uid];
   }
@@ -178,6 +186,7 @@ export function resolveCatchUser(state, xUserId, username, startingMonballs = 10
       user.pendingMons = [...(user.pendingMons || []), ...legacy.pendingMons];
     }
     user.monballs = mergeMonballBalances(user.monballs ?? startingMonballs, legacy.monballs ?? startingMonballs);
+    copyReplyMetaFromLegacy(user, legacy);
     delete state.users[legacyKey];
   }
 

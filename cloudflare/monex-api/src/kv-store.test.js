@@ -42,6 +42,8 @@ describe("resolveCatchUser", () => {
         username: "jericddd",
         monballs: 4,
         pendingMons: [{ name: "Mouch", rarity: "Common", pendingId: "p_2" }],
+        replyDay: "2026-07-12",
+        replyCount: 2,
         updatedAt: "2026-01-01T00:00:00.000Z",
       },
     });
@@ -49,6 +51,8 @@ describe("resolveCatchUser", () => {
     const user = resolveCatchUser(state, "99999", "jericddd", 10);
     assert.equal(user.monballs, 4);
     assert.equal(user.pendingMons.length, 1);
+    assert.equal(user.replyDay, "2026-07-12");
+    assert.equal(user.replyCount, 2);
     assert.equal(state.users["99999"], user);
     assert.equal(state.users.sim_jericddd, undefined);
   });

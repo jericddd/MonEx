@@ -20,10 +20,14 @@ import {
   DEFAULT_PARTY_MAX,
   DEFAULT_BOX_MAX,
   getResetEpoch,
+} from "./kv-store.js";
+import {
   canSendReply,
   recordReplySent,
   getReplyCountToday,
-} from "./kv-store.js";
+  wasLimitNoticeSentToday,
+  markLimitNoticeSent,
+} from "./lib/reply-tracker.js";
 import { resolveBotUser, fetchMentions, fetchCatchMentionSearch, fetchCatchThreadSearch, mergeMentionTweets, assertXKeys, postReply } from "./lib/x-client.js";
 import { uploadTwitterMedia } from "./lib/x-media.js";
 import { getFirstCaughtMon } from "./lib/catch-card-core.js";
@@ -240,7 +244,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
     for (const tweet of tweets) {
       const lockKey = (tweet.username || tweet.authorId || "unknown").toLowerCase().replace("@", "");
       await withUserSyncLock(lockKey, async () => {
-      const state = await loadState(env.MONEX_KV);
+      let state = await loadState(env.MONEX_KV);
       if (wasProcessed(state, tweet.id)) {
         status.skipped.push({ id: tweet.id, reason: "already_processed" });
         return;
@@ -300,12 +304,16 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       }
 
       if (env.ENABLE_X_REPLY === "1") {
+        // hydrate/sync may have written monex:state — reload before reply quota.
+        state = await loadState(env.MONEX_KV);
+
         const dailyLimit = getDailyReplyLimitForUser(tweet.username, env);
         const replyUser = state.users[tweet.authorId];
-        const usedToday = replyUser ? getReplyCountToday(replyUser) : 0;
+        const usedToday = await getReplyCountToday(env.MONEX_KV, tweet.authorId, replyUser);
         const repliesLeftAfter = dailyLimit - usedToday - 1;
+        const mayReply = await canSendReply(env.MONEX_KV, tweet.authorId, dailyLimit, replyUser);
 
-        if (replyUser && canSendReply(replyUser, dailyLimit)) {
+        if (replyUser && mayReply) {
           const replyText = buildMentionReplyText(result, tweet, env, {
             dailyLimit,
             repliesLeftAfter,
@@ -328,9 +336,9 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
                 }
               }
               await postReply(env, replyText, tweet.id, mediaIds);
-              recordReplySent(replyUser);
+              await recordReplySent(env.MONEX_KV, tweet.authorId, replyUser);
               if (repliesLeftAfter <= 0) {
-                replyUser.limitNoticeDay = new Date().toISOString().slice(0, 10);
+                await markLimitNoticeSent(env.MONEX_KV, tweet.authorId);
               }
               status.replies += 1;
             } catch (err) {
@@ -338,9 +346,8 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
               status.replyErrors.push({ id: tweet.id, error: err.message || String(err) });
             }
           }
-        } else if (replyUser && result.activity && !canSendReply(replyUser, dailyLimit)) {
-          const today = new Date().toISOString().slice(0, 10);
-          if (replyUser.limitNoticeDay !== today) {
+        } else if (replyUser && result.activity && !mayReply) {
+          if (!(await wasLimitNoticeSentToday(env.MONEX_KV, tweet.authorId, replyUser))) {
             const notice = buildDailyLimitNoticeReply(
               tweet.username,
               dailyLimit,
@@ -348,7 +355,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
             );
             try {
               await postReply(env, notice, tweet.id);
-              replyUser.limitNoticeDay = today;
+              await markLimitNoticeSent(env.MONEX_KV, tweet.authorId);
               status.replies += 1;
             } catch (err) {
               status.replyErrors = status.replyErrors || [];
@@ -360,7 +367,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
             user: tweet.username,
             reason: "daily_reply_limit",
           });
-        } else if (replyUser && !canSendReply(replyUser, dailyLimit)) {
+        } else if (replyUser && !mayReply) {
           status.skipped.push({
             id: tweet.id,
             user: tweet.username,
