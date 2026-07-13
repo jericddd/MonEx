@@ -1,0 +1,70 @@
+name: Audit inventory inflation
+
+# Compare cloud save party+box counts vs activity-log catches for all users.
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: "Optional: single X username (without @). Leave empty to scan all saves."
+        required: false
+        default: ""
+      min_ratio:
+        description: "Flag when save_mons / activity_mons >= this ratio"
+        required: false
+        default: "2"
+      json:
+        description: "Output JSON report"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    name: Audit inventory vs activity
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Check Cloudflare secrets
+        run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN}" ]; then
+            echo "::error::Missing GitHub secret CLOUDFLARE_API_TOKEN"
+            exit 1
+          fi
+          if [ -z "${CLOUDFLARE_ACCOUNT_ID}" ]; then
+            echo "::error::Missing GitHub secret CLOUDFLARE_ACCOUNT_ID"
+            exit 1
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Run inventory inflation audit
+        working-directory: cloudflare/monex-api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          ARGS=()
+          if [ "${{ inputs.json }}" = "true" ]; then
+            ARGS+=("--json")
+          fi
+          if [ -n "${{ inputs.min_ratio }}" ]; then
+            ARGS+=("--min-ratio" "${{ inputs.min_ratio }}")
+          fi
+          if [ -n "${{ inputs.username }}" ]; then
+            ARGS+=("${{ inputs.username }}")
+          fi
+          node scripts/audit-inventory-inflation.mjs "${ARGS[@]}"
