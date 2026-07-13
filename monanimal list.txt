@@ -22,9 +22,27 @@ mikeweb
 bill
 keone
 
-uncommon, common, rare - static
-legendary - gif 
-mythic - 
+=== Card sprite rules (party/box/catch/activity) ===
+Source of truth: js/monanimal-sprites.js (+ cloudflare/monex-api/src/lib/monanimal-sprites.js)
+
+Common, Uncommon, Rare → static PNG (128x128/<species>.png)
+Legendary, Mythic → animated GIF when gifConfirmed in manifest; otherwise PNG with legendary-static shimmer badge
+Johnw → always johnw-idle.gif (special case)
+
+Display name renames: Moxy → Monhorse, Mondigrade → Pampam
+
+=== GIF confirmed (Legendary/Mythic cards animate) ===
+Molandak — generic .gif
+Chog — generic .gif
+Anago, Mouch, Moyaki, Moncock, Salmonad, Larvanad, Monhorse, Pampam — idle GIF (+ sceneIdle where noted)
+
+=== PNG-only until art deployed (gifConfirmed: false) ===
+Lyraffe, Mokadal, Monavara, Montiger, Mosferatu, Shramp, Spidermon
+When idle GIF art ships, set gifConfirmed: true in both manifest files.
+
+=== Battle / main scene ===
+Battle idle always tries GIF when species has one (rarity ignored).
+Main-scene AFK uses speciesHasSceneIdle (manifest sceneIdle flag).
 
 token integration
 trading fees 10% team, 50% mon buy, 40% monex buy

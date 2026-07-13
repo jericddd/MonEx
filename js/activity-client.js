@@ -323,6 +323,25 @@ function injectActivityUiStyles() {
     image-rendering: pixelated;
     display: block;
 }
+.activity-mon-sprite.mon-sprite--legendary-static {
+    position: relative;
+}
+.activity-mon-sprite.mon-sprite--legendary-static::after {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border-radius: 4px;
+    pointer-events: none;
+    box-shadow: inset 0 0 10px rgba(202, 138, 4, 0.4);
+    animation: activity-legendary-static-shimmer 2.4s ease-in-out infinite;
+}
+.activity-mon-sprite.mon-sprite--legendary-static.mon-sprite--mythic::after {
+    box-shadow: inset 0 0 10px rgba(159, 18, 57, 0.45);
+}
+@keyframes activity-legendary-static-shimmer {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 1; }
+}
 .activity-mon-card--box .activity-mon-name {
     font-family: "Press Start 2P", monospace;
     font-size: 7px;
@@ -537,9 +556,26 @@ function getActivityRarityClass(rarity) {
     return "rarity-" + String(rarity || "Common").toLowerCase();
 }
 
-function getActivityMonSprite(name) {
-    const display = getActivityMonDisplayName(name);
+function getActivityMonSprite(mon) {
+    const m = mon && typeof mon === "object" ? mon : { name: mon };
+    const api = typeof window !== "undefined" ? window.MonExMonSprites : null;
+    if (api?.getMonDisplaySpritePath) return api.getMonDisplaySpritePath(m);
+    const display = getActivityMonDisplayName(m.name);
     return `128x128/${String(display).toLowerCase()}.png`;
+}
+
+function getActivityMonSpriteFallback(mon) {
+    const m = mon && typeof mon === "object" ? mon : { name: mon };
+    const api = typeof window !== "undefined" ? window.MonExMonSprites : null;
+    if (api?.getMonDisplayFallbackPath) return api.getMonDisplayFallbackPath(m);
+    const display = getActivityMonDisplayName(m.name);
+    return `128x128/${String(display).toLowerCase()}.png`;
+}
+
+function getActivityMonSpriteClass(mon) {
+    const api = typeof window !== "undefined" ? window.MonExMonSprites : null;
+    if (api?.getMonSpriteExtraClass) return api.getMonSpriteExtraClass(mon);
+    return "";
 }
 
 function getActivityHouseIcon(name) {
@@ -688,13 +724,16 @@ function buildActivityMonCardHtml(mon, mode) {
     const name = getActivityMonDisplayName(mon.name);
     const rarity = mon.rarity || "Common";
     const rarityClass = getActivityRarityClass(rarity);
-    const sprite = getActivityMonSprite(mon.name);
+    const sprite = getActivityMonSprite(mon);
+    const spriteFallback = getActivityMonSpriteFallback(mon);
+    const spriteClass = getActivityMonSpriteClass(mon);
     const houseIcon = getActivityHouseIcon(mon.name);
+    const imgFallback = `this.onerror=null;this.src='${escapeActivityHtml(spriteFallback)}'`;
 
     if (mode === "mini") {
         return `<div class="activity-mon-card activity-mon-card--mini ${rarityClass}" aria-hidden="true">
-            <div class="activity-mon-sprite">
-                <img src="${escapeActivityHtml(sprite)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+            <div class="activity-mon-sprite ${spriteClass}">
+                <img src="${escapeActivityHtml(sprite)}" alt="" loading="lazy" onerror="${imgFallback}">
             </div>
             <div class="activity-mon-identity">
                 <div class="activity-mon-name">${escapeActivityHtml(name)}</div>
@@ -710,8 +749,8 @@ function buildActivityMonCardHtml(mon, mode) {
     return `<div class="activity-mon-card activity-mon-card--box ${rarityClass}">
         ${houseHtml}
         <div class="activity-mon-card-top">
-            <div class="activity-mon-sprite">
-                <img src="${escapeActivityHtml(sprite)}" alt="${escapeActivityHtml(name)}" loading="lazy" onerror="this.style.visibility='hidden'">
+            <div class="activity-mon-sprite ${spriteClass}">
+                <img src="${escapeActivityHtml(sprite)}" alt="${escapeActivityHtml(name)}" loading="lazy" onerror="${imgFallback}">
             </div>
             <div class="activity-mon-name">${escapeActivityHtml(name)}</div>
             <div class="activity-mon-rarity-row">
