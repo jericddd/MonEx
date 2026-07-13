@@ -14502,8 +14502,28 @@ async function loadData() {
         if (shouldPersistLocal) writeLocalSave(data);
         if (shouldSyncCloud) saveData();
     } else if (cloudFound === false) {
-        initNewPlayerDefaults();
-        saveData();
+        // Legacy pre-login catches: server may seed on GET, or /api/sync can backfill.
+        let loadedFromCatch = false;
+        try {
+            const added = await syncXWildMons(true);
+            if (added > 0 || party.length > 0 || box.length > 0) {
+                loadedFromCatch = true;
+            } else {
+                const retry = await fetchCloudSaveWithRetry();
+                if (retry.status === "ok" && retry.cloud.found && retry.cloud.save) {
+                    const hasMons = (retry.cloud.save.party?.length || 0) + (retry.cloud.save.box?.length || 0) > 0;
+                    if (hasMons) {
+                        applyLoadedSave(retry.cloud.save);
+                        writeLocalSave(retry.cloud.save);
+                        loadedFromCatch = true;
+                    }
+                }
+            }
+        } catch (_) {}
+        if (!loadedFromCatch) {
+            initNewPlayerDefaults();
+            saveData();
+        }
     } else if (!MonExAuth?.isLoggedIn?.()) {
         initNewPlayerDefaults();
     } else {
