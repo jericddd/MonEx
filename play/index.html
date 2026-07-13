@@ -15989,9 +15989,9 @@ async function refreshProfileReleases(opts = {}) {
         let items = releaseLog || [];
         if (MonExActivity.fetchReleases) {
             const data = await MonExActivity.fetchReleases(50, 1);
-            if (Array.isArray(data?.entries) && data.entries.length) {
-                items = data.entries;
-                releaseLog = data.entries;
+            if (Array.isArray(data?.entries)) {
+                items = mergeReleaseLogs(items, data.entries);
+                releaseLog = items;
             }
         }
         const sig = JSON.stringify(items.map((entry) => entry.id || `${entry.at}:${entry.name}:${entry.level}`));
