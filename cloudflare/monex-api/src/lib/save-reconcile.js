@@ -189,7 +189,8 @@ export async function seedOrHydrateCloudSaveFromCatch(
   kv,
   xUserId,
   username,
-  startingMonballs = 10
+  startingMonballs = 10,
+  { requirePending = false } = {}
 ) {
   if (!xUserId) return { hydrated: false, reason: "no_x_user_id" };
 
@@ -202,6 +203,10 @@ export async function seedOrHydrateCloudSaveFromCatch(
   const state = await loadState(kv);
   await hydrateCatchUserIntoState(kv, state, xUserId, uname, startingMonballs);
   const catchUser = state.users?.[xUserId];
+  const pendingCount = catchUser?.pendingMons?.length || 0;
+  if (requirePending && pendingCount === 0) {
+    return { hydrated: false, reason: "no_pending_catches" };
+  }
   const stub = validateAndSanitizeSave(
     {
       party: [],

@@ -47,7 +47,7 @@ import {
 } from "./lib/auth.js";
 import { loadCloudSave, writeCloudSave, buildSavePayload, preserveServerAuthoritativeFields } from "./lib/save.js";
 import { grantMonballs, alignCatchMonballsToMerged } from "./lib/grant-monballs.js";
-import { resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsAfterCatch, getAuthoritativeMonballs, hydrateCloudSaveWithCatchState, seedOrHydrateCloudSaveFromCatch } from "./lib/save-reconcile.js";
+import { resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsAfterCatch, getAuthoritativeMonballs, seedOrHydrateCloudSaveFromCatch } from "./lib/save-reconcile.js";
 import { guardSavePayload } from "./lib/save-economy-guard.js";
 import { claimQuestTask, claimQuestChest } from "./lib/quest-claim.js";
 import { purchaseShopItem } from "./lib/shop-purchase.js";
@@ -739,8 +739,9 @@ async function handleRequest(request, env) {
       }
 
       let save = loadedSave;
+      let accountFound = found;
       if (found) {
-        const hydrated = await hydrateCloudSaveWithCatchState(
+        const hydrated = await seedOrHydrateCloudSaveFromCatch(
           env.MONEX_KV,
           auth.session.xUserId,
           auth.session.username,
@@ -757,10 +758,22 @@ async function handleRequest(request, env) {
           );
           save = { ...loadedSave, monballs };
         }
+      } else {
+        const seeded = await seedOrHydrateCloudSaveFromCatch(
+          env.MONEX_KV,
+          auth.session.xUserId,
+          auth.session.username,
+          starting,
+          { requirePending: true }
+        );
+        if (seeded.hydrated && seeded.save) {
+          save = seeded.save;
+          accountFound = true;
+        }
       }
 
       return json(
-        { ok: true, found, save, user: { username: auth.session.username, xUserId: auth.session.xUserId } },
+        { ok: true, found: accountFound, save, user: { username: auth.session.username, xUserId: auth.session.xUserId } },
         200,
         request,
         env

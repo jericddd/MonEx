@@ -218,4 +218,29 @@ describe("seedOrHydrateCloudSaveFromCatch", () => {
     assert.equal(result.save.party[0].name, "Chog");
     assert.equal(result.save.monballs, 8);
   });
+
+  it("skips seeding when requirePending and no pending mons", async () => {
+    const store = {};
+    const kv = {
+      async get(key) {
+        return store[key] ?? null;
+      },
+      async put(key, value) {
+        store[key] = value;
+      },
+    };
+
+    store["monex:catch-user:u1"] = JSON.stringify({
+      username: "newbie",
+      monballs: 10,
+      pendingMons: [],
+      updatedAt: new Date().toISOString(),
+    });
+    store["monex:state"] = JSON.stringify({ processedTweetIds: [], users: {} });
+
+    const result = await seedOrHydrateCloudSaveFromCatch(kv, "u1", "newbie", 10, { requirePending: true });
+    assert.equal(result.hydrated, false);
+    assert.equal(result.reason, "no_pending_catches");
+    assert.equal(store["monex:save:u1"], undefined);
+  });
 });
