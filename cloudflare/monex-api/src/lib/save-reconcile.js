@@ -1,9 +1,13 @@
-import { loadState } from "../kv-store.js";
-import { hydrateCatchUserIntoState, persistCatchUserFromState } from "./catch-user-store.js";
+import {
+  resolveCatchUserKv,
+  lookupCatchUserKv,
+  saveCatchUserRecord,
+} from "./catch-user-store.js";
+import { backfillPendingForCatchUser } from "./backfill-pending.js";
 import { loadCloudSave, writeCloudSave } from "./save.js";
 import { clampMonballs, mergeMonballBalances } from "./grant-monballs.js";
 import { appendMonballAudit } from "./monball-audit.js";
-import { backfillPendingForUser, cleanUsername } from "./backfill-pending.js";
+import { cleanUsername } from "./backfill-pending.js";
 import { MAX_SAVE_DELTA } from "./save-economy-guard.js";
 import { validateAndSanitizeSave } from "./save-validate.js";
 
@@ -11,8 +15,7 @@ import { validateAndSanitizeSave } from "./save-validate.js";
  * Authoritative monball count across catch state and cloud save.
  */
 export async function getAuthoritativeMonballs(kv, xUserId, username, startingMonballs = 10) {
-  const state = await loadState(kv);
-  const catchUser = await hydrateCatchUserIntoState(kv, state, xUserId, username, startingMonballs);
+  const catchUser = await lookupCatchUserKv(kv, xUserId, username, startingMonballs);
   const { save } = await loadCloudSave(kv, xUserId);
   return resolveMergedMonballs(catchUser, save, catchUser?.monballs ?? 0);
 }
@@ -56,8 +59,7 @@ export async function reconcileMonballsForCloudSave(kv, session, payload, starti
   if (!session?.xUserId || !payload) return payload;
 
   const { save: existingSave } = await loadCloudSave(kv, session.xUserId);
-  const state = await loadState(kv);
-  const catchUser = await hydrateCatchUserIntoState(kv, state, session.xUserId, session.username, startingMonballs);
+  const catchUser = await lookupCatchUserKv(kv, session.xUserId, session.username, startingMonballs);
   const catchMonballs = clampMonballs(catchUser?.monballs ?? 0);
   const existingMonballs = clampMonballs(existingSave?.monballs ?? 0);
 
@@ -79,7 +81,6 @@ export async function reconcileMonballsForCloudSave(kv, session, payload, starti
     } else {
       const poolsDepleted = catchMonballs === 0 && existingMonballs === 0 && merged === 0;
       if (!poolsDepleted) {
-        // Cap client monball inflation per save (quest grants); block 9999 exploits.
         const maxAllowed = merged + MAX_SAVE_DELTA.monballs;
         merged = Math.min(Math.max(merged, incoming), maxAllowed);
       }
@@ -90,9 +91,8 @@ export async function reconcileMonballsForCloudSave(kv, session, payload, starti
   payload.monballs = merged;
 
   if (catchUser && catchMonballs !== merged) {
-    catchUser.monballs = merged;
-    catchUser.updatedAt = now;
-    await persistCatchUserFromState(kv, state, session.xUserId);
+    const nextCatchUser = { ...catchUser, monballs: merged, updatedAt: now };
+    await saveCatchUserRecord(kv, session.xUserId, nextCatchUser);
   }
 
   if (merged !== persistedMonballs) {
@@ -119,20 +119,15 @@ export async function reconcileMonballsForCloudSave(kv, session, payload, starti
  */
 export async function alignCatchMonballsToSave(kv, session, saveMonballs, startingMonballs = 10) {
   if (!session?.xUserId) return null;
-  const state = await loadState(kv);
-  const user = await hydrateCatchUserIntoState(kv, state, session.xUserId, session.username, startingMonballs);
+  const user = await resolveCatchUserKv(kv, session.xUserId, session.username, startingMonballs);
   if (!user) return null;
   const aligned = clampMonballs(saveMonballs ?? 0);
   user.monballs = aligned;
   user.updatedAt = new Date().toISOString();
-  await persistCatchUserFromState(kv, state, session.xUserId);
+  await saveCatchUserRecord(kv, session.xUserId, user);
   return aligned;
 }
 
-/**
- * Pick authoritative monballs when reconciling catch state vs cloud save.
- * Prefer catch when catch state was updated more recently (X wild activity).
- */
 /**
  * Move pending X catches into cloud save and align monballs — server-side so
  * inventory updates without waiting for the client /api/sync game-session gate.
@@ -150,15 +145,13 @@ export async function hydrateCloudSaveWithCatchState(
     return { hydrated: false, reason: "no_cloud_save" };
   }
 
-  const state = await loadState(kv);
-  await hydrateCatchUserIntoState(kv, state, xUserId, username, startingMonballs);
-  const result = backfillPendingForUser(state, {
-    xUserId,
+  const catchUser = await resolveCatchUserKv(kv, xUserId, username, startingMonballs);
+  const result = backfillPendingForCatchUser(catchUser, {
     username,
     save,
     startingMonballs,
   });
-  await persistCatchUserFromState(kv, state, xUserId);
+  await saveCatchUserRecord(kv, xUserId, catchUser);
 
   if (!result.ok || !result.save) {
     return { hydrated: false, reason: result.reason || "backfill_failed" };
@@ -200,9 +193,7 @@ export async function seedOrHydrateCloudSaveFromCatch(
   }
 
   const uname = cleanUsername(username);
-  const state = await loadState(kv);
-  await hydrateCatchUserIntoState(kv, state, xUserId, uname, startingMonballs);
-  const catchUser = state.users?.[xUserId];
+  const catchUser = await resolveCatchUserKv(kv, xUserId, uname, startingMonballs);
   const pendingCount = catchUser?.pendingMons?.length || 0;
   if (requirePending && pendingCount === 0) {
     return { hydrated: false, reason: "no_pending_catches" };
@@ -218,13 +209,12 @@ export async function seedOrHydrateCloudSaveFromCatch(
     { username: uname }
   );
 
-  const result = backfillPendingForUser(state, {
-    xUserId,
+  const result = backfillPendingForCatchUser(catchUser, {
     username: uname,
     save: stub,
     startingMonballs,
   });
-  await persistCatchUserFromState(kv, state, xUserId);
+  await saveCatchUserRecord(kv, xUserId, catchUser);
 
   if (!result.ok || !result.save) {
     return { hydrated: false, reason: result.reason || "seed_backfill_failed" };
@@ -261,7 +251,6 @@ export function resolveMergedMonballs(catchUser, save, catchMonballs) {
   if (catchTsValid && saveTsValid) {
     if (catchTs > saveTs) return catchVal;
     if (saveTs > catchTs) return saveVal;
-    // Equal timestamps: prefer catch pool (X wild spends are authoritative).
     return catchVal;
   }
   return mergeMonballBalances(catchVal, saveVal);

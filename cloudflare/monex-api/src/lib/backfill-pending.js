@@ -2,6 +2,7 @@ import {
   resolveCatchUser,
   syncPendingForSession,
 } from "../kv-store.js";
+import { syncPendingForCatchUser } from "./catch-user-store.js";
 import { resolveMergedMonballs } from "./save-reconcile.js";
 import { sanitizeMon, validateAndSanitizeSave } from "./save-validate.js";
 
@@ -111,12 +112,11 @@ export function applySyncedMonsToSave(save, partyMons, boxMons) {
 
 /**
  * Move catch-state pending mons into a cloud save and align Monballs.
- * Mutates catch state (pending queue + legacy merges) and returns the next save payload.
+ * Mutates catchUser.pendingMons and returns the next save payload.
  */
-export function backfillPendingForUser(
-  state,
+export function backfillPendingForCatchUser(
+  catchUser,
   {
-    xUserId,
     username,
     save,
     partyMax = GAME_PARTY_MAX,
@@ -127,7 +127,6 @@ export function backfillPendingForUser(
   } = {}
 ) {
   const uname = cleanUsername(username);
-  const catchUser = resolveCatchUser(state, xUserId, uname, startingMonballs);
   if (!catchUser) {
     return {
       ok: false,
@@ -146,15 +145,12 @@ export function backfillPendingForUser(
   const pendingBefore = catchUser.pendingMons?.length || 0;
   const effectivePartyCount = partyCount ?? save?.party?.length ?? 0;
   const effectiveBoxCount = boxCount ?? save?.box?.length ?? 0;
-  const slots = syncPendingForSession(
-    state,
-    xUserId,
-    uname,
+  const slots = syncPendingForCatchUser(
+    catchUser,
     effectivePartyCount,
     effectiveBoxCount,
     partyMax,
-    boxMax,
-    startingMonballs
+    boxMax
   );
 
   const applied = applySyncedMonsToSave(save, slots.party, slots.box);
@@ -181,4 +177,34 @@ export function backfillPendingForUser(
     syncedParty: slots.party,
     syncedBox: slots.box,
   };
+}
+
+/**
+ * Move catch-state pending mons into a cloud save and align Monballs.
+ * Mutates catch state (pending queue + legacy merges) and returns the next save payload.
+ */
+export function backfillPendingForUser(
+  state,
+  {
+    xUserId,
+    username,
+    save,
+    partyMax = GAME_PARTY_MAX,
+    boxMax = GAME_BOX_MAX,
+    startingMonballs = 10,
+    partyCount = null,
+    boxCount = null,
+  } = {}
+) {
+  const uname = cleanUsername(username);
+  const catchUser = resolveCatchUser(state, xUserId, uname, startingMonballs);
+  return backfillPendingForCatchUser(catchUser, {
+    username: uname,
+    save,
+    partyMax,
+    boxMax,
+    startingMonballs,
+    partyCount,
+    boxCount,
+  });
 }

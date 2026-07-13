@@ -171,22 +171,20 @@ X Catch (poll) ──► monex:state (catch pool, pendingMons)
 | **Description** | Edit `resourceChestLastCollectAt` in localStorage → collect full 24h chest repeatedly. |
 | **Fix** | Server `clampResourceChestTimestamp` — forward-only, max 24h jump. |
 
-### P0-13: Global `monex:state` RMW race — **OPEN (infra)**
+### P0-13: Global `monex:state` RMW race — **MITIGATED (runtime)**
 
 | | |
 |---|---|
 | **Description** | `withUserSyncLock` is per-isolate; `saveState` has no CAS. Cross-worker last-write-wins. |
-| **Root cause** | Single JSON blob `monex:state` for all users. |
-| **Files** | `kv-store.js`, `index.js` |
-| **Risk** | Data loss / cross-user clobber at scale. |
-| **Recommended** | Per-user catch keys or Durable Object per player. **Effort:** High. |
+| **Fix** | Runtime catch paths use `monex:catch-user:{xUserId}` + `monex:catch-username:{handle}` only. Poll, sync, grant, and reconcile no longer call `saveState`. Legacy `monex:state.users` lazy-migrates on first read. |
+| **Remaining** | Ops scripts may still read `monex:state` for bulk backfill. Full blob removal optional. |
 
-### P0-14: Tweet dedupe not atomic cross-isolate — **OPEN (infra)**
+### P0-14: Tweet dedupe not atomic cross-isolate — **FIXED**
 
 | | |
 |---|---|
-| **Description** | Two poll workers can process same tweet → duplicate activity (spend may fail second time). |
-| **Recommended** | KV `monex:processed:{tweetId}` with `put` if-not-exists or DO serialization. |
+| **Description** | Two poll workers can process same tweet → duplicate activity. |
+| **Fix** | `tryClaimTweetForProcessing` on `monex:processed:{tweetId}`; legacy `wasProcessed` check removed from poll. |
 
 ### P0-15: Pre-login catch → activity ✓ inventory ✗ — **OPEN (by design)**
 

@@ -1,6 +1,5 @@
 import { loadActivityLog } from "../kv-store.js";
-import { loadCatchUserRecord } from "./catch-user-store.js";
-import { lookupCatchUser, loadState } from "../kv-store.js";
+import { lookupCatchUserKv } from "./catch-user-store.js";
 import { loadCloudSave, writeCloudSave } from "./save.js";
 import {
   seedOrHydrateCloudSaveFromCatch,
@@ -11,19 +10,7 @@ import { cleanUsername } from "./backfill-pending.js";
 
 /** Read-only catch user for GET /api/save (no KV writes). */
 export async function lookupCatchUserReadOnly(kv, xUserId, username, startingMonballs = 10) {
-  const uid = String(xUserId || "").trim();
-  if (!uid) return null;
-  const record = await loadCatchUserRecord(kv, uid);
-  if (record) {
-    return {
-      username: record.username || username,
-      monballs: record.monballs,
-      pendingMons: record.pendingMons || [],
-      updatedAt: record.updatedAt,
-    };
-  }
-  const state = await loadState(kv);
-  return lookupCatchUser(state, uid, username, startingMonballs);
+  return lookupCatchUserKv(kv, xUserId, username, startingMonballs);
 }
 
 /** Recover mons from activity log when pending queue is empty (legacy auto-backfill). */
