@@ -12,6 +12,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { getDailyLoginDayKeyFromTimestamp } from "../src/lib/daily-reset.js";
+import { replyCountKey, todayUtcDay } from "../src/lib/reply-tracker.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -132,12 +133,18 @@ async function main() {
 
   let save = null;
   let audit = [];
+  let replyKvCount = null;
+  const replyDay = todayUtcDay();
   if (xUserId) {
     const saveRaw = await getValue(`${SAVE_PREFIX}${xUserId}`);
     if (saveRaw) save = JSON.parse(saveRaw);
     const auditRaw = await getValue(`${AUDIT_PREFIX}${xUserId}`);
     if (auditRaw) audit = JSON.parse(auditRaw);
+    const replyRaw = await getValue(replyCountKey(xUserId, replyDay));
+    replyKvCount = replyRaw != null ? Number.parseInt(replyRaw, 10) : 0;
   }
+
+  const primaryUser = userRows.find((r) => r.xUserId === xUserId)?.user || userRows[0]?.user || null;
 
   const catches = (activity.entries || [])
     .filter((e) => e.xUsername?.toLowerCase() === username && e.status === "success")
@@ -171,7 +178,19 @@ async function main() {
       monballs: user.monballs,
       pendingMons: user.pendingMons?.length ?? 0,
       updatedAt: user.updatedAt,
+      replyDay: user.replyDay || null,
+      replyCount: user.replyCount ?? null,
     })),
+    replyTracker: xUserId
+      ? {
+          dayUtc: replyDay,
+          kvCount: Number.isFinite(replyKvCount) ? replyKvCount : 0,
+          stateReplyDay: primaryUser?.replyDay || null,
+          stateReplyCount: primaryUser?.replyCount ?? null,
+          dailyLimit: 4,
+          repliesLeftAfterNext: Math.max(0, 4 - (Number.isFinite(replyKvCount) ? replyKvCount : 0) - 1),
+        }
+      : null,
     cloudSave: save
       ? {
           monballs: save.monballs,
@@ -214,6 +233,16 @@ async function main() {
   console.log("Catch state rows:");
   for (const row of report.catchState) {
     console.log(`  ${row.xUserId}: ${row.monballs} monballs, pending=${row.pendingMons}, updated=${row.updatedAt}`);
+    if (row.replyDay || row.replyCount != null) {
+      console.log(`    legacy reply state: day=${row.replyDay || "(none)"} count=${row.replyCount ?? 0}`);
+    }
+  }
+  if (report.replyTracker) {
+    console.log("");
+    console.log("Reply tracker (KV):");
+    console.log(`  day (UTC): ${report.replyTracker.dayUtc}`);
+    console.log(`  kvCount: ${report.replyTracker.kvCount}`);
+    console.log(`  footer after next reply: ${report.replyTracker.repliesLeftAfterNext}/${report.replyTracker.dailyLimit} left`);
   }
   if (report.cloudSave) {
     console.log("");

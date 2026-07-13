@@ -1,0 +1,73 @@
+name: Deploy Production Pages
+
+# Validates the live site bundle and requests a GitHub Pages rebuild for monexmonad.xyz.
+# Source: main branch / (root). Use after merging frontend claim-guard or UI fixes.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "home.html"
+      - "play/**"
+      - "js/**"
+      - "CNAME"
+      - "_headers"
+      - "scripts/prepare-pages-site.sh"
+      - ".github/workflows/deploy-production-pages.yml"
+      - ".github/workflows/validate-production-pages.yml"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: deploy-production-pages
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Validate production bundle
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: cloudflare/monex-api/package-lock.json
+
+      - name: Install API deps
+        working-directory: cloudflare/monex-api
+        run: npm ci
+
+      - name: Run API + client tests
+        working-directory: cloudflare/monex-api
+        run: npm test
+
+      - name: Prepare GitHub Pages bundle
+        run: bash scripts/prepare-pages-site.sh
+
+      - name: Verify claim-guard is wired
+        run: |
+          test -f pages-dist/js/claim-guard.js
+          grep -q 'claim-guard.js' pages-dist/index.html
+          grep -q 'claim-guard.js' pages-dist/home.html
+          grep -q 'claim-guard.js' pages-dist/play/index.html
+          echo "claim-guard present in production bundle"
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    name: Request GitHub Pages rebuild
+    steps:
+      - name: Trigger Pages rebuild
+        run: |
+          gh api repos/${{ github.repository }}/pages/builds -X POST
+          echo "Requested GitHub Pages rebuild for monexmonad.xyz"
+        env:
+          GH_TOKEN: ${{ github.token }}

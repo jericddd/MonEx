@@ -1,0 +1,52 @@
+name: Validate Production Pages
+
+# Ensures monexmonad.xyz bundle includes claim-guard and core entrypoints.
+# Live site deploys automatically from main (GitHub Pages legacy source).
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Validate production site bundle
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: cloudflare/monex-api/package-lock.json
+
+      - name: Install API deps
+        working-directory: cloudflare/monex-api
+        run: npm ci
+
+      - name: Run API + client tests
+        working-directory: cloudflare/monex-api
+        run: npm test
+
+      - name: Prepare GitHub Pages bundle
+        run: bash scripts/prepare-pages-site.sh
+
+      - name: Verify production bundle
+        run: |
+          test -f pages-dist/CNAME
+          test -f pages-dist/index.html
+          test -f pages-dist/home.html
+          test -f pages-dist/play/index.html
+          test -f pages-dist/js/claim-guard.js
+          grep -q 'claim-guard.js' pages-dist/index.html
+          grep -q 'claim-guard.js' pages-dist/home.html
+          grep -q 'claim-guard.js' pages-dist/play/index.html
+          grep -q 'MonExClaimGuard' pages-dist/js/claim-guard.js
+          echo "Production bundle OK — claim-guard wired for monexmonad.xyz"
