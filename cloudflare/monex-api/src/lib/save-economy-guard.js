@@ -26,7 +26,7 @@ export const MAX_SAVE_DELTA = {
 };
 
 /** Max quest progress increase per save PUT (blocks progress: 9999 forgery). */
-export const MAX_QUEST_PROGRESS_DELTA = 12;
+export const MAX_QUEST_PROGRESS_DELTA = 20;
 
 /** Max quest points increase per save PUT. */
 export const MAX_QUEST_POINTS_DELTA = 25;
@@ -35,9 +35,11 @@ export const MAX_QUEST_POINTS_DELTA = 25;
 export const QUEST_TASK_GOALS = {
   dailies: {
     d1: 2, d2: 2, d3: 1, d4: 2, d5: 1, d6: 1, d7: 2, d8: 1,
+    d9: 1, d10: 3, d11: 4, d12: 4, d13: 5,
   },
   weeklies: {
-    w1: 8, w2: 8, w3: 3, w4: 3, w5: 8, w6: 5, w7: 5,
+    w1: 13, w2: 13, w3: 5, w4: 5, w5: 13, w6: 5, w7: 8,
+    w8: 8, w9: 10, w10: 12, w11: 20, w12: 5,
   },
   campaign: {
     c1: 1, c2: 1, c3: 1, c4: 1, c5: 1, c6: 1, c7: 1,
