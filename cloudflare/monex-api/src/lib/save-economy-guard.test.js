@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   clampEconomyScalars,
   clampAdventureProgress,
+  clampTrainerRewardLevel,
   clampResourceChestTimestamp,
   reconcileQuestState,
   guardSavePayload,
@@ -142,6 +143,13 @@ test("caps forged quest points jumps per save", () => {
   };
   const out = reconcileQuestState(existing, incoming);
   assert.equal(out.questState.dailyPoints, 35);
+});
+
+test("caps trainer reward level jumps per save", () => {
+  const existing = { trainerRewardLevel: 5 };
+  const incoming = { trainerRewardLevel: 20 };
+  const out = clampTrainerRewardLevel(existing, incoming);
+  assert.equal(out.trainerRewardLevel, 8);
 });
 
 test("guardSavePayload applies all guards", () => {

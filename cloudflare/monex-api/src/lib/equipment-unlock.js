@@ -1,6 +1,6 @@
 /** Armory / equipment unlock — Chapter 2, Stage 9 (global progress 49). */
 
-const STAGES_PER_CHAPTER = 40;
+export const STAGES_PER_CHAPTER = 40;
 
 export const EQUIPMENT_UNLOCK_CHAPTER = 2;
 export const EQUIPMENT_UNLOCK_STAGE = 9;

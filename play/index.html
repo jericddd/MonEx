@@ -7549,6 +7549,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/quest-client.js?v=20260713b"></script>
 <script src="js/shop-client.js?v=20260713c"></script>
 <script src="js/resource-chest-client.js?v=20260713d"></script>
+<script src="js/battle-reward-client.js?v=20260713e"></script>
 <script src="js/mailbox-client.js?v=20260713a"></script>
 <script>
 // =====================================================
@@ -14315,10 +14316,7 @@ function mergeSaveSnapshots(local, cloud) {
     merged.monballs = pickNewerMonballsScalar(local, cloud);
     merged.monShards = pickNewerSaveScalar(local, cloud, "monShards");
     merged.trainerXp = pickNewerSaveScalar(local, cloud, "trainerXp");
-    merged.trainerRewardLevel = Math.max(
-        Number(local.trainerRewardLevel) || 1,
-        Number(cloud.trainerRewardLevel) || 1
-    );
+    merged.trainerRewardLevel = pickNewerSaveScalar(local, cloud, "trainerRewardLevel");
 
     const inv = mergeMonsterInventories(newer.party, newer.box, older.party, older.box);
     merged.party = inv.party;
@@ -16658,15 +16656,51 @@ function endPatrolBattle(win, player) {
     activeBattleMode = "patrol";
 
     const encounter = activePatrolEncounter || rollPatrolEncounter();
-    const reward = rollPatrolRewards(encounter, win);
-    if (win) {
+    void finishPatrolBattleRewards(win, encounter);
+}
+
+async function finishPatrolBattleRewards(win, encounter) {
+    let reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null };
+    if (win && typeof MonExBattle !== "undefined" && MonExAuth?.isLoggedIn?.()) {
+        const claimId = `patrol-${encounter?.id || "common"}-${patrolScanToken}-${adventureBattleToken}`;
+        try {
+            const result = await MonExBattle.claimBattleReward({
+                mode: "patrol",
+                win: true,
+                encounterId: encounter?.id,
+                claimId,
+            });
+            if (result.ok && result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(result.save);
+                reward = {
+                    gold: result.reward?.gold || 0,
+                    essence: result.reward?.essence || 0,
+                    shards: result.reward?.monShards || 0,
+                    trainerXp: result.reward?.trainerXp || 0,
+                    gear: result.reward?.gear || null,
+                };
+            } else {
+                console.warn("[patrol] server reward claim failed", result);
+            }
+        } catch (e) {
+            console.error("[patrol] reward claim error", e);
+        }
+    } else if (win) {
+        reward = rollPatrolRewards(encounter, true);
         grantBattleRewards(reward);
         bumpQuestProgress("patrol_win", 1);
+        await persistBattleReward();
     }
+
     restorePartyFullHp();
     showPatrolBattleResult(win, reward, encounter);
-    if (win) persistBattleReward();
-    else saveData();
+    if (win) {
+        updateUI();
+        updateHeaderCurrencies();
+    } else {
+        saveData();
+    }
 }
 
 function showPatrolBattleResult(win, reward, encounter) {
@@ -17941,9 +17975,36 @@ function endBattle(win, player) {
     setBattleFightingUI(false);
     isInAdventureBattle = false;
     clearAdventureBattleSession();
+    void finishAdventureBattleRewards(win);
+}
 
+async function finishAdventureBattleRewards(win) {
     let reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null };
-    if (win) {
+    if (win && typeof MonExBattle !== "undefined" && MonExAuth?.isLoggedIn?.()) {
+        const claimId = `adv-${currentChapter}-${currentStage}-${adventureBattleToken}`;
+        try {
+            const result = await MonExBattle.claimBattleReward({
+                mode: "adventure",
+                win: true,
+                claimId,
+            });
+            if (result.ok && result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(result.save);
+                reward = {
+                    gold: result.reward?.gold || 0,
+                    essence: result.reward?.essence || 0,
+                    shards: result.reward?.monShards || 0,
+                    trainerXp: result.reward?.trainerXp || 0,
+                    gear: result.reward?.gear || null,
+                };
+            } else {
+                console.warn("[adventure] server reward claim failed", result);
+            }
+        } catch (e) {
+            console.error("[adventure] reward claim error", e);
+        }
+    } else if (win) {
         const boss = isBossStage(currentStage);
         const mult = boss ? 2 : 1;
         const globalP = getGlobalAdventureProgress(currentChapter, currentStage);
@@ -17975,12 +18036,17 @@ function endBattle(win, player) {
         } else {
             currentStage++;
         }
+        await persistBattleReward();
     }
 
     restorePartyFullHp();
     showBattleResult(win, reward);
-    if (win) persistBattleReward();
-    else saveData();
+    if (win) {
+        updateUI();
+        updateHeaderCurrencies();
+    } else {
+        saveData();
+    }
 }
 
 function showBattleResult(win, reward) {
