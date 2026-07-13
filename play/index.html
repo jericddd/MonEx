@@ -9973,6 +9973,79 @@ const GIF_NATURAL_LOOP_PATHS = new Set([
 ]);
 const gifLoopMsCache = new Map();
 
+function listAttackAssetUrlsForMon(name) {
+    const n = String(name || "");
+    if (!n) return [];
+    const urls = new Set();
+    const idle = getSceneIdleDisplaySprite({ name: n });
+    if (idle) urls.add(idle);
+    urls.add(isJohnw(n) ? JOHNW_PNG_SPRITE : getMonPngPath(n));
+    if (isJohnw(n)) urls.add(JOHNW_SWING_SPRITE);
+    else if (isAnago(n)) ANAGO_SWING_SPRITES.forEach((u) => urls.add(u));
+    else if (isMoncock(n)) MONCOCK_SWING_SPRITES.forEach((u) => urls.add(u));
+    else if (isSalmonad(n)) SALMONAD_SWING_SPRITES.forEach((u) => urls.add(u));
+    else if (isLarvanad(n)) urls.add(LARVANAD_SWING_SPRITE);
+    else if (isPampam(n)) urls.add(PAMPAM_SWING_SPRITE);
+    else if (isChog(n)) CHOG_SWING_SPRITES.forEach((u) => urls.add(u));
+    else if (ATTACK_SPRITE_MAP[n]) urls.add(ATTACK_SPRITE_MAP[n]);
+    return [...urls];
+}
+
+function collectBattleCombatantAssetUrls(playerTeam, enemyTeam) {
+    const urls = new Set();
+    const addFighter = (f) => {
+        if (!f?.name) return;
+        if (f.sprite) urls.add(f.sprite);
+        listAttackAssetUrlsForMon(f.name).forEach((u) => urls.add(u));
+    };
+    (playerTeam || []).forEach(addFighter);
+    (enemyTeam || []).forEach(addFighter);
+    urls.add(BLOCK_FX_ICON);
+    urls.add(DEBUFF_BURN_FX);
+    return [...urls];
+}
+
+function assetUrlBase(url) {
+    return String(url || "").split("?")[0];
+}
+
+async function isAssetPreloaded(url) {
+    const base = assetUrlBase(url);
+    if (!_imagePreloadCache.has(base)) return false;
+    return _imagePreloadCache.get(base);
+}
+
+async function warmGifLoopTimingForPath(spritePath) {
+    const key = normalizeSpritePath(spritePath);
+    if (!key.endsWith(".gif") || gifLoopMsCache.has(key)) return;
+    const ok = await preloadImage(spritePath);
+    if (!ok) return;
+    const img = new Image();
+    img.decoding = "async";
+    await new Promise((resolve) => {
+        const done = () => resolve();
+        img.onload = async () => {
+            await measureGifLoopMs(img, spritePath);
+            done();
+        };
+        img.onerror = done;
+        img.src = assetUrlBase(spritePath);
+    });
+}
+
+async function warmBattleCombatantAssets(playerTeam, enemyTeam) {
+    const urls = collectBattleCombatantAssetUrls(playerTeam, enemyTeam);
+    await preloadImages(urls);
+    await Promise.all(
+        urls.filter((u) => usesGifNaturalLoop(u)).map((u) => warmGifLoopTimingForPath(u))
+    );
+}
+
+async function warmFighterAssets(fighter) {
+    if (!fighter?.name) return;
+    await warmBattleCombatantAssets([fighter], []);
+}
+
 function usesGifNaturalLoop(spritePath) {
     return GIF_NATURAL_LOOP_PATHS.has(normalizeSpritePath(spritePath));
 }
@@ -10535,42 +10608,57 @@ async function completeGifAttackReturn(atkSide, atk, attackPath, animStart) {
     await delay(120);
 }
 
-async function replayBattleAttackGif(side, src, name) {
-    const sprite = document.getElementById("sprite-" + side);
+async function paintBattleAttackSprite(sprite, src, side, name) {
     if (!sprite || !src) return;
     sprite.style.visibility = "visible";
     bindBattleImgFallback(sprite, name);
+    const base = assetUrlBase(src);
     if (!src.endsWith(".gif")) {
-        sprite.src = src;
+        sprite.src = base;
         applyBattleSpritePresentation(sprite, side, name, src);
         return;
     }
-    await new Promise(resolve => {
-        const url = src + "?t=" + Date.now();
-        const pre = new Image();
+    const preloaded = await isAssetPreloaded(src);
+    if (preloaded) {
+        sprite.src = "";
+        void sprite.offsetWidth;
+        sprite.src = base;
+        applyBattleSpritePresentation(sprite, side, name, src);
+        try {
+            if (sprite.decode) await sprite.decode();
+        } catch (_) { /* ignore */ }
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        return;
+    }
+    await new Promise((resolve) => {
+        const img = new Image();
+        img.decoding = "async";
         const finish = () => {
-            sprite.src = url;
-            requestAnimationFrame(() => {
-                applyBattleSpritePresentation(sprite, side, name, src);
-                requestAnimationFrame(resolve);
-            });
+            sprite.src = base;
+            applyBattleSpritePresentation(sprite, side, name, src);
+            requestAnimationFrame(() => requestAnimationFrame(resolve));
         };
-        pre.onload = finish;
-        pre.onerror = finish;
-        pre.src = url;
+        img.onload = finish;
+        img.onerror = finish;
+        img.src = base;
     });
+}
+
+async function replayBattleAttackGif(side, src, name) {
+    const sprite = document.getElementById("sprite-" + side);
+    await paintBattleAttackSprite(sprite, src, side, name);
 }
 
 function setBattleSprite(side, src, name, replayGif) {
     const sprite = document.getElementById("sprite-" + side);
     if (!sprite || !src) return;
+    if (replayGif && src.endsWith(".gif")) {
+        void paintBattleAttackSprite(sprite, src, side, name);
+        return;
+    }
     sprite.style.visibility = "visible";
     bindBattleImgFallback(sprite, name);
-    if (replayGif && src.endsWith(".gif")) {
-        sprite.src = src + "?t=" + Date.now();
-    } else {
-        sprite.src = src;
-    }
+    sprite.src = assetUrlBase(src);
     applyBattleSpritePresentation(sprite, side, name, src);
 }
 
@@ -17909,13 +17997,19 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     if (attackPath) {
         beginAttackAnim(atkSide);
         const dashDist = await measureMeleeDashDistance(atkSide, defSide);
-        await dashHorizontal(atkSide, dashDist, ATTACK_DASH_MS);
-        await replayBattleAttackGif(atkSide, attackPath, atk.name);
+        await Promise.all([
+            dashHorizontal(atkSide, dashDist, ATTACK_DASH_MS),
+            replayBattleAttackGif(atkSide, attackPath, atk.name),
+        ]);
         animStart = Date.now();
         const battleSprite = document.getElementById("sprite-" + atkSide);
         let hitMs = getBattleAttackHitAtMs(attackPath, atk.name);
         if (usesGifNaturalLoop(attackPath) && battleSprite) {
-            hitMs = Math.floor((await measureGifLoopMs(battleSprite, attackPath)) * 0.45);
+            const loopKey = normalizeSpritePath(attackPath);
+            const loopMs = gifLoopMsCache.has(loopKey)
+                ? gifLoopMsCache.get(loopKey)
+                : await measureGifLoopMs(battleSprite, attackPath);
+            hitMs = Math.floor(loopMs * 0.45);
         }
         await delayUntil(animStart, hitMs);
     } else {
@@ -18006,7 +18100,8 @@ async function runBattle(player, enemy, battleToken) {
     setFighter("enemy", enemy[ei]);
     renderTeam("player", player, pi);
     renderTeam("enemy", enemy, ei);
-    await delay(700);
+    const warmup = warmBattleCombatantAssets(player, enemy);
+    await Promise.all([delay(700), warmup]);
 
     let guard = 0;
     while (guard++ < 500) {
@@ -18037,6 +18132,7 @@ async function runBattle(player, enemy, battleToken) {
             ei++;
             if (ei >= enemy.length) return endBattle(true, player);
             setFighter("enemy", enemy[ei]);
+            void warmFighterAssets(enemy[ei]);
             renderStatusRow("player", P);
             renderTeam("enemy", enemy, ei);
             await slideIn("enemy");
@@ -18048,6 +18144,7 @@ async function runBattle(player, enemy, battleToken) {
             pi++;
             if (pi >= player.length) return endBattle(false, player);
             setFighter("player", player[pi]);
+            void warmFighterAssets(player[pi]);
             renderStatusRow("enemy", E);
             renderTeam("player", player, pi);
             await slideIn("player");
