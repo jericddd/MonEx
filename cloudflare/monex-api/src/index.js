@@ -17,6 +17,7 @@ import {
   setPollStatus,
   resetAllData,
   withUserSyncLock,
+  userSyncLockKey,
   DEFAULT_PARTY_MAX,
   DEFAULT_BOX_MAX,
   getResetEpoch,
@@ -50,6 +51,7 @@ import {
 import { loadCloudSave, writeCloudSave, buildSavePayload, preserveServerAuthoritativeFields } from "./lib/save.js";
 import { grantMonballs, alignCatchMonballsToMerged } from "./lib/grant-monballs.js";
 import { resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsAfterCatch, getAuthoritativeMonballs, hydrateCloudSaveWithCatchState } from "./lib/save-reconcile.js";
+import { guardSavePayload } from "./lib/save-economy-guard.js";
 import { appendMonballAudit } from "./lib/monball-audit.js";
 import {
   claimGameSession,
@@ -242,7 +244,7 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
     status.skipped = [];
 
     for (const tweet of tweets) {
-      const lockKey = (tweet.username || tweet.authorId || "unknown").toLowerCase().replace("@", "");
+      const lockKey = userSyncLockKey(tweet.authorId, tweet.username);
       await withUserSyncLock(lockKey, async () => {
       let state = await loadState(env.MONEX_KV);
       if (wasProcessed(state, tweet.id)) {
@@ -774,10 +776,22 @@ async function handleRequest(request, env) {
         : null;
       let saved;
       try {
+        const { save: existingSave, found: saveFound } = await loadCloudSave(env.MONEX_KV, auth.session.xUserId);
+        const currentRevision = Number.isFinite(Number(existingSave?.revision))
+          ? Math.max(0, Math.floor(Number(existingSave.revision)))
+          : 0;
+        if (saveFound && currentRevision > 0 && baseRevision == null) {
+          return json(
+            { ok: false, error: "revision_required", revision: currentRevision },
+            400,
+            request,
+            env
+          );
+        }
         // Server-authoritative fields (mailbox, daily-login cooldown) are never
         // taken from the client payload — only trusted endpoints mutate them.
-        const { save: existingSave } = await loadCloudSave(env.MONEX_KV, auth.session.xUserId);
         preserveServerAuthoritativeFields(payload, existingSave);
+        Object.assign(payload, guardSavePayload(existingSave, payload));
         await reconcileMonballsForCloudSave(env.MONEX_KV, auth.session, payload, starting);
         saved = await writeCloudSave(env.MONEX_KV, auth.session.xUserId, payload, {
           expectedRevision: baseRevision,
@@ -910,7 +924,7 @@ async function handleRequest(request, env) {
       };
 
       if (xUserId) {
-        syncResult = await withUserSyncLock(xUserId || username, async () => {
+        syncResult = await withUserSyncLock(userSyncLockKey(xUserId, username), async () => {
           const state = await loadState(env.MONEX_KV);
           const { save } = await loadCloudSave(env.MONEX_KV, xUserId);
           const result = backfillPendingForUser(state, {

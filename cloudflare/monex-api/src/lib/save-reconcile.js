@@ -3,6 +3,7 @@ import { loadCloudSave, writeCloudSave } from "./save.js";
 import { clampMonballs, mergeMonballBalances } from "./grant-monballs.js";
 import { appendMonballAudit } from "./monball-audit.js";
 import { backfillPendingForUser } from "./backfill-pending.js";
+import { MAX_SAVE_DELTA } from "./save-economy-guard.js";
 
 /**
  * Authoritative monball count across catch state and cloud save.
@@ -76,7 +77,9 @@ export async function reconcileMonballsForCloudSave(kv, session, payload, starti
     } else {
       const poolsDepleted = catchMonballs === 0 && existingMonballs === 0 && merged === 0;
       if (!poolsDepleted) {
-        merged = Math.max(merged, incoming);
+        // Cap client monball inflation per save (quest grants); block 9999 exploits.
+        const maxAllowed = merged + MAX_SAVE_DELTA.monballs;
+        merged = Math.min(Math.max(merged, incoming), maxAllowed);
       }
     }
   }

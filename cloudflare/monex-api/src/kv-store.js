@@ -17,9 +17,16 @@ export const DEFAULT_BOX_MAX = 500;
 
 const syncLocks = globalThis.__monexSyncLocks || (globalThis.__monexSyncLocks = new Map());
 
-/** Serialize pending-mon sync per username within this worker isolate. */
-export async function withUserSyncLock(username, fn) {
-  const key = (username || "").toLowerCase().replace("@", "");
+/** Normalize lock key — always prefer xUserId over username to avoid poll/sync races. */
+export function userSyncLockKey(xUserId, username) {
+  const uid = String(xUserId || "").trim();
+  if (uid) return uid;
+  return (username || "").toLowerCase().replace("@", "");
+}
+
+/** Serialize pending-mon sync per user within this worker isolate. */
+export async function withUserSyncLock(usernameOrKey, fn) {
+  const key = String(usernameOrKey || "").toLowerCase().replace("@", "");
   while (syncLocks.get(key)) await syncLocks.get(key);
   let release;
   const gate = new Promise((resolve) => {

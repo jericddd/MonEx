@@ -1,6 +1,6 @@
 import { runCatchSession, formatSkillsShort } from "./catch-engine.js";
 import { parseMention } from "./parse-mention.js";
-import { getUser, addPendingMons } from "./store.js";
+import { addPendingMons, resolveCatchUser } from "../kv-store.js";
 import { makeActivityId } from "./activity-log.js";
 import { trySpendCatchMonballs } from "./catch-spend.js";
 
@@ -38,7 +38,7 @@ export function processMentionTweet(tweet, botUsername, state, startingMonballs,
   }
 
   if (parsed.type === "catch") {
-    const user = getUser(state, tweet.authorId, tweet.username, startingMonballs);
+    const user = resolveCatchUser(state, tweet.authorId, tweet.username, startingMonballs);
 
     const spendResult = trySpendCatchMonballs(user, parsed.spend);
     if (!spendResult.ok) {
