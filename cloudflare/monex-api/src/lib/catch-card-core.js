@@ -99,10 +99,7 @@ export function getFirstCaughtMon(results) {
   return hit?.mon ?? null;
 }
 
-export function getMonSpritePath(name) {
-  const display = getMonDisplayName(name);
-  return `128x128/${String(display).toLowerCase()}.png`;
-}
+export { getMonDisplaySpritePath, getPngPath as getMonSpritePath } from "./monanimal-sprites.js";
 
 export function bytesToBase64(bytes) {
   let binary = "";

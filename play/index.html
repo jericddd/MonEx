@@ -197,6 +197,22 @@ body {
 .mon-card:hover .mon-sprite img {
     transform: scale(1.08);
 }
+.mon-sprite.mon-sprite--legendary-static::after {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border-radius: 4px;
+    pointer-events: none;
+    box-shadow: inset 0 0 12px rgba(202, 138, 4, 0.45);
+    animation: mon-sprite-legendary-static-shimmer 2.4s ease-in-out infinite;
+}
+.mon-sprite.mon-sprite--legendary-static.mon-sprite--mythic::after {
+    box-shadow: inset 0 0 12px rgba(159, 18, 57, 0.5);
+}
+@keyframes mon-sprite-legendary-static-shimmer {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 1; }
+}
 .mon-name {
     font-size: 17px;
     font-weight: 700;
@@ -7725,6 +7741,7 @@ body.cloud-load-blocked .game-shell {
 </div>
 
 <script src="js/daily-reset.js?v=20260711b"></script>
+<script src="js/monanimal-sprites.js?v=20260713a"></script>
 <script src="js/patrol-reset.js?v=20260711b"></script>
 <script src="js/mana-system.js?v=20260712a"></script>
 <script src="js/equipment-unlock.js?v=20260711c"></script>
@@ -9975,67 +9992,44 @@ const HERO_ASCENSION_GOLD_BASE = 2000;
 const HERO_ASCENSION_GOLD_STEP = 1500;
 const HERO_SKILL_UNLOCK_GOLD = 500;
 
-// ==================== HELPER FUNCTIONS ====================
+// ==================== HELPER FUNCTIONS (sprite paths via js/monanimal-sprites.js) ====================
+function _sprites() {
+    return window.MonExMonSprites;
+}
+
 function getMonPngPath(name) {
-    return `128x128/${getSpeciesSpriteKey(name)}.png`;
+    return _sprites()?.getPngPath(name) ?? `128x128/${getSpeciesSpriteKey(name)}.png`;
 }
 
 function getMonGifPath(name) {
-    return `128x128/${getSpeciesSpriteKey(name)}.gif`;
+    return _sprites()?.getGenericGifPath(name) ?? `128x128/${getSpeciesSpriteKey(name)}.gif`;
 }
 
 function getMonIdleGifPath(name) {
-    const lower = getSpeciesSpriteKey(name);
-    if (MON_LEGENDARY_GIF_OVERRIDES[lower]) return MON_LEGENDARY_GIF_OVERRIDES[lower];
-    return `128x128/${lower}-idle.gif`;
+    return _sprites()?.getIdleGifPath(name) ?? `128x128/${getSpeciesSpriteKey(name)}-idle.gif`;
 }
 
-const MON_LEGENDARY_GIF_OVERRIDES = {
-    moyaki: "128x128/main-moyaki.gif",
-    salmonad: "128x128/slamonad-idle.gif",
-};
-
-/** Species with a confirmed idle GIF for Legendary party/box cards (+ scene idle). */
-const MONS_WITH_IDLE_GIF = new Set([
-    "anago", "mouch", "moncock", "salmonad",
-    "larvanad", "monhorse", "pampam",
-]);
-
-/** Species with generic {name}.gif (no -idle file) for Legendary party/box cards. */
-const MONS_WITH_GENERIC_CARD_GIF = new Set(["molandak", "chog"]);
-
-/** Main-scene AFK idle — animate these between battles (not party/box rarity bypass). */
-const MONS_WITH_SCENE_IDLE_GIF = new Set(["larvanad", "monhorse", "pampam", "moyaki"]);
-
 function speciesHasLegendaryCardGif(name) {
-    const lower = getSpeciesSpriteKey(name);
-    return !!MON_LEGENDARY_GIF_OVERRIDES[lower]
-        || MONS_WITH_IDLE_GIF.has(lower)
-        || MONS_WITH_GENERIC_CARD_GIF.has(lower);
+    return _sprites()?.speciesHasLegendaryCardGif(name) ?? false;
 }
 
 function speciesHasIdleGifAsset(name) {
-    const lower = getSpeciesSpriteKey(name);
-    return !!MON_LEGENDARY_GIF_OVERRIDES[lower]
-        || MONS_WITH_IDLE_GIF.has(lower)
-        || MONS_WITH_SCENE_IDLE_GIF.has(lower);
+    return _sprites()?.speciesHasSceneIdle(name) ?? false;
 }
 
 function getMonLegendaryGifPath(name) {
-    if (!speciesHasLegendaryCardGif(name)) return null;
-    const lower = getSpeciesSpriteKey(name);
-    if (MON_LEGENDARY_GIF_OVERRIDES[lower]) return MON_LEGENDARY_GIF_OVERRIDES[lower];
-    if (MONS_WITH_IDLE_GIF.has(lower)) return getMonIdleGifPath(name);
-    return getMonGifPath(name);
+    return _sprites()?.getLegendaryCardGifPath(name) ?? null;
 }
 
 function isLegendaryOrAbove(rarity) {
+    if (_sprites()?.isLegendaryOrAbove) return _sprites().isLegendaryOrAbove(rarity);
     const rank = RARITY_ORDER.indexOf(rarity);
     const legRank = RARITY_ORDER.indexOf("Legendary");
     return rank >= legRank && rank >= 0;
 }
 
 function getMonAvatarPath(mon) {
+    if (_sprites()?.getMonDisplaySpritePath) return _sprites().getMonDisplaySpritePath(mon);
     const name = mon?.name || mon;
     const rarity = mon?.rarity;
     if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
@@ -10047,9 +10041,18 @@ function getMonAvatarPath(mon) {
 }
 
 function getMonAvatarFallbackPath(mon) {
+    if (_sprites()?.getMonDisplayFallbackPath) return _sprites().getMonDisplayFallbackPath(mon);
     const name = mon?.name || mon;
     if (isJohnw(name)) return JOHNW_PNG_SPRITE;
     return getMonPngPath(name);
+}
+
+function getMonSpriteExtraClass(mon) {
+    return _sprites()?.getMonSpriteExtraClass(mon) ?? "";
+}
+
+function preloadPartyBoxAvatars(mons) {
+    _sprites()?.preloadMonAvatars?.(mons);
 }
 
 // Battle idle: always use animated GIF when the species has one (rarity only affects party/box avatars).
@@ -10262,7 +10265,7 @@ function getSceneIdleAttackSpritePath(name) {
 }
 
 // Main-scene battle sprites: stable GIF idle for animated species, PNG for everyone else.
-// Party/box cards: Legendary+ uses GIF only when speciesHasLegendaryCardGif; otherwise PNG at all rarities.
+// Party/box cards use MonExMonSprites manifest (Legendary GIF when confirmed, else PNG).
 function getSceneIdleDisplaySprite(mon) {
     const name = mon?.name || mon;
     if (isJohnw(name)) return JOHNW_IDLE_SPRITE;
@@ -15207,7 +15210,7 @@ function renderMonCardInner(mon, index, location) {
         <div class="mon-card-chrome-info">${renderStatsInfo(mon)}</div>
     </div>
     <div class="mon-card-top">
-        <div class="mon-sprite">
+        <div class="mon-sprite ${getMonSpriteExtraClass(mon)}">
             <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
         </div>
         <div class="mon-card-identity">
@@ -17066,8 +17069,8 @@ function openGameModal(name) {
     if (!modal) return;
     modal.classList.add("open");
 
-    if (name === "party") { syncXWildMons(true); renderPartyGrid(); }
-    if (name === "box") { syncXWildMons(true); renderBox(); }
+    if (name === "party") { syncXWildMons(true); preloadPartyBoxAvatars(party); renderPartyGrid(); }
+    if (name === "box") { syncXWildMons(true); preloadPartyBoxAvatars(box); renderBox(); }
     if (name === "inventory") renderInventory();
     if (name === "armory") renderArmoryPane();
     if (name === "shop") renderShop();

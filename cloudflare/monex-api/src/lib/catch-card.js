@@ -1,6 +1,7 @@
 import { initWasm, Resvg } from "@resvg/resvg-wasm";
 import resvgWasm from "@resvg/resvg-wasm/index_bg.wasm";
-import { buildCatchCardSvg, bytesToBase64, getMonSpritePath } from "./catch-card-core.js";
+import { buildCatchCardSvg, bytesToBase64 } from "./catch-card-core.js";
+import { getMonDisplaySpritePath } from "./monanimal-sprites.js";
 import { buildResvgFontOptions, getCatchCardFonts } from "./catch-card-font.js";
 import { fetchSkillTiles } from "./catch-card-skills.js";
 
@@ -13,7 +14,7 @@ function ensureResvg() {
 
 async function fetchMonSpriteDataUri(mon, frontendOrigin) {
   const origin = (frontendOrigin || "https://monexmonad.xyz").replace(/\/$/, "");
-  const path = getMonSpritePath(mon.name);
+  const path = getMonDisplaySpritePath(mon);
   const res = await fetch(`${origin}/${path}`);
   if (!res.ok) throw new Error(`sprite fetch failed (${res.status}) for ${path}`);
   const bytes = new Uint8Array(await res.arrayBuffer());
