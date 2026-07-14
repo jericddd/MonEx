@@ -7811,7 +7811,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/monex-config.js?v=20260710a"></script>
 <script src="js/escape-html.js?v=20260710a"></script>
 <script src="js/activity-client.js?v=20260713b"></script>
-<script src="js/auth-client.js?v=20260714b"></script>
+<script src="js/auth-client.js?v=20260714c"></script>
 <script src="js/game-session-client.js?v=20260710a"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/quest-client.js?v=20260713b"></script>
@@ -14549,23 +14549,32 @@ function setAccountContext(user) {
 }
 
 function resolveTrainerProfileImageUrl(user) {
-    const fromUser = typeof MonExAuth !== "undefined" && MonExAuth.normalizeProfileImageUrl
-        ? MonExAuth.normalizeProfileImageUrl(user?.profileImageUrl)
-        : null;
-    if (fromUser) return fromUser;
-    if (typeof MonExAuth !== "undefined" && MonExAuth.getProfileImageUrl) {
-        return MonExAuth.getProfileImageUrl();
+    const raw = user?.profileImageUrl
+        || (typeof MonExAuth !== "undefined" ? readCachedUserProfileImageUrl() : null);
+    if (typeof MonExAuth !== "undefined" && MonExAuth.normalizeProfileImageUrl) {
+        return MonExAuth.normalizeProfileImageUrl(raw);
     }
-    return null;
+    return raw || null;
+}
+
+function readCachedUserProfileImageUrl() {
+    try {
+        const raw = localStorage.getItem("monex_user");
+        return raw ? JSON.parse(raw)?.profileImageUrl || null : null;
+    } catch {
+        return null;
+    }
 }
 
 function applyAvatarToElement(el, url, altText) {
+    if (typeof MonExAuth !== "undefined" && MonExAuth.applyProfileAvatar) {
+        MonExAuth.applyProfileAvatar(el, url, altText);
+        return;
+    }
     if (!el) return;
     if (url) {
         el.classList.add("has-image");
-        const safeUrl = typeof escapeHtml === "function" ? escapeHtml(url) : url;
-        const safeAlt = typeof escapeHtml === "function" ? escapeHtml(altText || "Trainer avatar") : (altText || "Trainer avatar");
-        el.innerHTML = `<img src="${safeUrl}" alt="${safeAlt}" referrerpolicy="no-referrer" decoding="async">`;
+        el.innerHTML = `<img src="${url}" alt="${altText || "Trainer avatar"}" referrerpolicy="no-referrer" decoding="async">`;
         return;
     }
     el.classList.remove("has-image");

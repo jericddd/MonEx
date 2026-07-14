@@ -742,7 +742,7 @@ startAutoPlay();
 <script src="js/escape-html.js?v=20260708b"></script>
 <script src="js/monanimal-sprites.js?v=20260713b"></script>
 <script src="js/activity-client.js?v=20260714a"></script>
-<script src="js/auth-client.js?v=20260714b"></script>
+<script src="js/auth-client.js?v=20260714c"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/mailbox-client.js?v=20260713a"></script>
 <script>
@@ -778,16 +778,19 @@ async function updateHeader() {
         `;
     } else {
         const safeName = typeof escapeHtml === "function" ? escapeHtml(displayName) : displayName;
-        const avatarUrl = typeof MonExAuth.getProfileImageUrl === "function" ? MonExAuth.getProfileImageUrl() : null;
-        const safeAvatarUrl = avatarUrl && typeof escapeHtml === "function" ? escapeHtml(avatarUrl) : avatarUrl;
-        const avatarHtml = safeAvatarUrl
-            ? `<span class="nav-user-avatar has-image"><img src="${safeAvatarUrl}" alt="" referrerpolicy="no-referrer" decoding="async"></span>`
-            : `<span class="nav-user-avatar"></span>`;
         nav.innerHTML = `
-            <span class="nav-user-chip">${avatarHtml}<span class="nav-user-name">${safeName}</span></span>
+            <span class="nav-user-chip">
+                <span class="nav-user-avatar" id="nav-user-avatar"></span>
+                <span class="nav-user-name">${safeName}</span>
+            </span>
             <button class="nav-btn" onclick="goToProfile()">PROFILE</button>
             <button class="nav-btn" onclick="logout()">LOGOUT</button>
         `;
+        const avatarEl = document.getElementById("nav-user-avatar");
+        const avatarUrl = typeof MonExAuth.getProfileImageUrl === "function" ? MonExAuth.getProfileImageUrl() : null;
+        if (avatarEl && typeof MonExAuth.applyProfileAvatar === "function") {
+            MonExAuth.applyProfileAvatar(avatarEl, avatarUrl, displayName);
+        }
     }
     refreshDailyLoginPanel();
 }
