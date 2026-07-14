@@ -192,9 +192,76 @@ function getXUserId() {
 
 function normalizeProfileImageUrl(url) {
   if (!url || typeof url !== "string") return null;
-  const trimmed = url.trim();
+  let trimmed = url.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("http://")) trimmed = `https://${trimmed.slice(7)}`;
   if (!/^https:\/\/(pbs|abs)\.twimg\.com\//i.test(trimmed)) return null;
-  return trimmed.replace(/_normal(\.(?:jpg|jpeg|png|webp))(?:\?|$)/i, "_400x400$1");
+  // Keep the URL X returned (_normal). Forcing _400x400 404s for some accounts.
+  return trimmed;
+}
+
+function profileImageFallbackUrls(url) {
+  const base = normalizeProfileImageUrl(url);
+  if (!base) return [];
+  const candidates = [];
+  const add = (candidate) => {
+    const normalized = normalizeProfileImageUrl(candidate);
+    if (normalized && !candidates.includes(normalized)) candidates.push(normalized);
+  };
+
+  add(base);
+
+  const match = base.match(
+    /^(https:\/\/(?:pbs|abs)\.twimg\.com\/.+?)(_(?:normal|400x400|bigger|mini|200x200))?(\.(?:jpg|jpeg|png|webp))(\?.*)?$/i
+  );
+  if (match) {
+    const [, prefix, , ext, query = ""] = match;
+    for (const size of ["_normal", "_400x400", "_bigger", ""]) {
+      add(`${prefix}${size}${ext}${query}`);
+    }
+  }
+
+  return candidates;
+}
+
+function applyProfileAvatar(el, url, altText) {
+  if (!el) return;
+  const candidates = profileImageFallbackUrls(url);
+  if (!candidates.length) {
+    el.classList.remove("has-image");
+    el.innerHTML = "";
+    el.removeAttribute("data-avatar-key");
+    return;
+  }
+
+  const key = candidates.join("|");
+  if (el.getAttribute("data-avatar-key") === key && el.querySelector("img")) {
+    return;
+  }
+
+  el.classList.add("has-image");
+  el.setAttribute("data-avatar-key", key);
+  el.innerHTML = "";
+
+  const img = document.createElement("img");
+  img.alt = altText || "Trainer avatar";
+  img.referrerPolicy = "no-referrer";
+  img.decoding = "async";
+
+  let index = 0;
+  img.addEventListener("error", () => {
+    index += 1;
+    if (index >= candidates.length) {
+      el.classList.remove("has-image");
+      el.innerHTML = "";
+      el.removeAttribute("data-avatar-key");
+      return;
+    }
+    img.src = candidates[index];
+  });
+
+  el.appendChild(img);
+  img.src = candidates[0];
 }
 
 function getProfileImageUrl() {
@@ -435,6 +502,8 @@ window.MonExAuth = {
   getXUserId,
   getProfileImageUrl,
   normalizeProfileImageUrl,
+  profileImageFallbackUrls,
+  applyProfileAvatar,
   loadCloudSave,
   hydrateCloudSave,
   scheduleCloudSave,
