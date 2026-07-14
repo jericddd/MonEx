@@ -1,0 +1,86 @@
+---
+description: Frozen save/sync integrity rules for MonEx — must follow before any change to persistence, release, recovery, party, box, or cloud save.
+alwaysApply: true
+---
+
+# MonEx Save & Sync Integrity (FROZEN)
+
+These rules are **non-negotiable** for any work touching saves, sync, release, party/box, activity recovery, or cloud persistence.
+
+## Product policy (locked)
+
+| # | Policy | Rule |
+|---|--------|------|
+| 1 | Save model | **Whole save for now.** One-action server APIs (release, catch, party swap) may be added later for critical mutations — do not build a second save system. |
+| 2 | Recovery | **Only for new or broken accounts** — first login, empty/partial box, or obvious missing catches. **Never** run full activity re-import on every Party/Box open or poll forever. |
+| 3 | Release connectivity | **Online only.** Release counts only after the server confirms. No offline release that syncs later. |
+| 4 | Multi-device | **Newest save wins** via monotonic **revision** — not `updatedAt` alone. |
+| 5 | Mon identity | **Every Mon gets a permanent unique instance ID** at creation/load. Never identify Mons by species name or array index alone. |
+| 6 | Release location | **Box only — never Party.** One Mon at a time (no bulk release unless explicitly requested later). |
+
+## Source of truth
+
+- Cloud/KV save is **authoritative**. Client and localStorage are caches.
+- After a successful server mutation, **apply the server-returned save** to client state.
+- Never fix persistence bugs by hiding Mons in the UI, client blacklists, timeouts, or refresh loops.
+
+## Single save pipeline
+
+- There is **one** cloud save pipeline. Do not add a conflicting second save system.
+- `play/index.html` `buildSavePayload()` and `js/auth-client.js` `buildSavePayload()` **must stay identical** in fields that affect gameplay.
+- Never silently drop: `party`, `box`, `releaseLog`, `releasedRecoveryIds`, quests, mailbox, economy fields, or revision metadata.
+
+## Release (Box only)
+
+- Use **`POST /api/release-mon`** via `MonExRelease.releaseMon()` — the only release mutation path.
+- Release by **`instanceId`** (or `wildPendingId` for X-caught Mons), never species or index alone.
+- **Await server success** before treating release as done.
+- **Roll back UI** and show an error if the server rejects or fails.
+- **Disable release button** and guard against duplicate requests while in flight.
+- Call **`MonExAuth.cancelPendingCloudSave()`** before release so stale autosaves cannot overwrite it.
+- Releasing one Mon of the same species must not remove another instance.
+
+## Background sync & recovery
+
+- Autosave, poll, hydrate, activity recovery, and tab refresh **must not restore** intentionally released Mons.
+- Maintain append-only **`releasedRecoveryIds`** and **`releaseLog`** on the server; merge never drops them.
+- **`stripReleasedMonsFromInventory`** (and activity recovery skip) must stay enforced on all write paths.
+- Ignore or reject client/sync responses that would re-add Mons in the release blocklist.
+- Stale full-save PUTs with a current `baseRevision` but old party/box **must not** overwrite newer release mutations.
+
+## Concurrency
+
+- All save writes use **revision / expectedRevision** where applicable.
+- Serialize per-user release mutations (server lock).
+- Autosave must push **fresh** state (`setLiveSaveProvider`) after awaiting in-flight saves — never push a captured stale snapshot with an updated revision.
+- Older in-flight saves lose to newer confirmed mutations.
+
+## Required files to inspect before save/sync changes
+
+- `play/index.html`
+- `js/auth-client.js`
+- `js/release-client.js`
+- `cloudflare/monex-api/src/lib/save.js`
+- `cloudflare/monex-api/src/lib/save-validate.js`
+- `cloudflare/monex-api/src/lib/save-economy-guard.js`
+- `cloudflare/monex-api/src/lib/release-mon.js`
+- `cloudflare/monex-api/src/lib/recover-activity-catches.js`
+- `cloudflare/monex-api/src/lib/hydrate-save.js`
+
+## Pre-merge checklist (mandatory for save/sync PRs)
+
+Before merging, confirm and **state in the PR** which test covers:
+
+1. Release a Mon → wait 60s → refresh `/play` → Mon stays gone.
+2. Release 5 Mons rapidly → none return after refresh.
+3. Two Mons same species → release one → the other remains.
+4. Failed release rolls back client without leaving server/client inconsistent.
+5. `npm test` in `cloudflare/monex-api` passes.
+
+## Debug logging (development only)
+
+When investigating persistence: `window.MONEX_DEBUG_RELEASE = true` (optional: `MONEX_DEBUG_SAVE = true`). Do not log full saves or sensitive user data in production.
+
+## One-line summary
+
+**Cloud save is truth; Box release is server-confirmed; recovery is for broken accounts only; background sync must never bring back a released Mon; stale saves always lose.**
