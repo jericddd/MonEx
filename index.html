@@ -53,6 +53,36 @@
         transform: translateY(-4px) scale(1.05);
     }
 
+    .nav-user-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-right: 10px;
+    }
+    .nav-user-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        overflow: hidden;
+        flex-shrink: 0;
+        background: linear-gradient(145deg, #c084fc, #7c3aed);
+        box-shadow: 0 2px 8px rgba(107, 33, 168, 0.35);
+    }
+    .nav-user-avatar.has-image {
+        background: #1a1028;
+    }
+    .nav-user-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .nav-user-name {
+        font-size: 12px;
+        color: #6B21A8;
+        font-weight: 700;
+    }
+
     .main-container {
         max-width: 1200px;
         margin: 20px auto 0;
@@ -712,7 +742,7 @@ startAutoPlay();
 <script src="js/escape-html.js?v=20260708b"></script>
 <script src="js/monanimal-sprites.js?v=20260713b"></script>
 <script src="js/activity-client.js?v=20260714a"></script>
-<script src="js/auth-client.js?v=20260708b"></script>
+<script src="js/auth-client.js?v=20260714b"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/mailbox-client.js?v=20260713a"></script>
 <script>
@@ -748,8 +778,13 @@ async function updateHeader() {
         `;
     } else {
         const safeName = typeof escapeHtml === "function" ? escapeHtml(displayName) : displayName;
+        const avatarUrl = typeof MonExAuth.getProfileImageUrl === "function" ? MonExAuth.getProfileImageUrl() : null;
+        const safeAvatarUrl = avatarUrl && typeof escapeHtml === "function" ? escapeHtml(avatarUrl) : avatarUrl;
+        const avatarHtml = safeAvatarUrl
+            ? `<span class="nav-user-avatar has-image"><img src="${safeAvatarUrl}" alt="" referrerpolicy="no-referrer" decoding="async"></span>`
+            : `<span class="nav-user-avatar"></span>`;
         nav.innerHTML = `
-            <span style="font-size:12px; color:#6B21A8; margin-right:10px;">${safeName}</span>
+            <span class="nav-user-chip">${avatarHtml}<span class="nav-user-name">${safeName}</span></span>
             <button class="nav-btn" onclick="goToProfile()">PROFILE</button>
             <button class="nav-btn" onclick="logout()">LOGOUT</button>
         `;

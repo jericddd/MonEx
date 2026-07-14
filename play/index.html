@@ -4080,6 +4080,17 @@ body.afk-layout .header-inner {
     border: none;
     box-shadow: 0 3px 12px rgba(124, 58, 237, 0.35), inset 0 -2px 0 rgba(0, 0, 0, 0.12);
     flex-shrink: 0;
+    overflow: hidden;
+}
+.header-avatar.has-image {
+    background: #1a1028;
+    box-shadow: 0 3px 12px rgba(124, 58, 237, 0.35);
+}
+.header-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 .header-trainer-block #trainer-name,
 .header-trainer #trainer-name {
@@ -6511,6 +6522,50 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     flex-wrap: wrap;
     justify-content: center;
 }
+.profile-trainer-identity {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border: 2px solid rgba(212, 160, 74, 0.45);
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.18);
+}
+.profile-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    overflow: hidden;
+    background: linear-gradient(145deg, #c084fc, #7c3aed);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+.profile-avatar.has-image {
+    background: #1a1028;
+}
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.profile-trainer-names {
+    min-width: 0;
+}
+.profile-trainer-display-name {
+    font-family: 'Lato', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff3dc;
+    line-height: 1.25;
+}
+.profile-trainer-username {
+    font-size: 12px;
+    color: #fbbf24;
+    margin-top: 4px;
+    font-weight: 700;
+}
 .profile-tab-btn {
     flex: 1;
     min-width: 96px;
@@ -7696,6 +7751,13 @@ body.cloud-load-blocked .game-shell {
                 <button type="button" class="hub-close-btn" onclick="closeGameModal('profile')" aria-label="Close profile">×</button>
                 <div class="profile-hub-body">
                     <div class="profile-panel">
+                        <div class="profile-trainer-identity" id="profile-trainer-identity">
+                            <div class="profile-avatar" id="profile-avatar"></div>
+                            <div class="profile-trainer-names">
+                                <div class="profile-trainer-display-name" id="profile-display-name">Trainer</div>
+                                <div class="profile-trainer-username" id="profile-username"></div>
+                            </div>
+                        </div>
                         <div class="profile-tabs-row" role="tablist" aria-label="Profile sections">
                             <button type="button" class="profile-tab-btn active" id="profile-tab-account" onclick="setProfileTab('account')">ACCOUNT</button>
                             <button type="button" class="profile-tab-btn" id="profile-tab-log" onclick="setProfileTab('log')">LOGS</button>
@@ -7749,7 +7811,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/monex-config.js?v=20260710a"></script>
 <script src="js/escape-html.js?v=20260710a"></script>
 <script src="js/activity-client.js?v=20260713b"></script>
-<script src="js/auth-client.js?v=20260710a"></script>
+<script src="js/auth-client.js?v=20260714b"></script>
 <script src="js/game-session-client.js?v=20260710a"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/quest-client.js?v=20260713b"></script>
@@ -14483,6 +14545,43 @@ function setAccountContext(user) {
         .replace(/^@/, "")
         .toLowerCase();
     currentXUserId = user.xUserId || (typeof MonExAuth !== "undefined" && MonExAuth.getXUserId ? MonExAuth.getXUserId() : null) || null;
+    updateTrainerAvatar(user);
+}
+
+function resolveTrainerProfileImageUrl(user) {
+    const fromUser = typeof MonExAuth !== "undefined" && MonExAuth.normalizeProfileImageUrl
+        ? MonExAuth.normalizeProfileImageUrl(user?.profileImageUrl)
+        : null;
+    if (fromUser) return fromUser;
+    if (typeof MonExAuth !== "undefined" && MonExAuth.getProfileImageUrl) {
+        return MonExAuth.getProfileImageUrl();
+    }
+    return null;
+}
+
+function applyAvatarToElement(el, url, altText) {
+    if (!el) return;
+    if (url) {
+        el.classList.add("has-image");
+        const safeUrl = typeof escapeHtml === "function" ? escapeHtml(url) : url;
+        const safeAlt = typeof escapeHtml === "function" ? escapeHtml(altText || "Trainer avatar") : (altText || "Trainer avatar");
+        el.innerHTML = `<img src="${safeUrl}" alt="${safeAlt}" referrerpolicy="no-referrer" decoding="async">`;
+        return;
+    }
+    el.classList.remove("has-image");
+    el.innerHTML = "";
+}
+
+function updateTrainerAvatar(user) {
+    const avatarUrl = resolveTrainerProfileImageUrl(user);
+    const displayName = user?.name || user?.username || currentUser || "Trainer";
+    const username = user?.username || currentUser || "";
+    applyAvatarToElement(document.querySelector(".header-avatar"), avatarUrl, `@${username || displayName}`);
+    applyAvatarToElement(document.getElementById("profile-avatar"), avatarUrl, `@${username || displayName}`);
+    const profileName = document.getElementById("profile-display-name");
+    const profileUser = document.getElementById("profile-username");
+    if (profileName) profileName.textContent = displayName;
+    if (profileUser) profileUser.textContent = username ? `@${username.replace(/^@/, "")}` : "";
 }
 
 function getSaveStorageKey() {
@@ -15174,6 +15273,7 @@ function updateUI() {
     try {
         document.body.classList.toggle("test-user-session", isStagingHost() && isTestUser());
         document.getElementById("trainer-name").innerText = currentUser ? "@" + currentUser.replace(/^@/, "") : "Trainer";
+        updateTrainerAvatar();
         updateHeaderCurrencies();
         updateArmoryRailVisibility();
     } catch (e) {
@@ -15991,6 +16091,7 @@ async function syncXWildMons(silent) {
 
 function renderProfile() {
     setProfileTab(profileActiveTab);
+    updateTrainerAvatar();
 
     const linked = document.getElementById("profile-x-linked");
     const manual = document.getElementById("profile-x-manual");
