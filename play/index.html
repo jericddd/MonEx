@@ -9320,8 +9320,8 @@ function normalizeQuestState(loaded) {
         grantedKeys: Array.isArray(loaded.grantedKeys)
             ? loaded.grantedKeys.map(k => String(k)).filter(Boolean).slice(0, 120)
             : [],
-        dailyResetKey: typeof loaded.dailyResetKey === "string" ? loaded.dailyResetKey : base.dailyResetKey,
-        weeklyResetKey: typeof loaded.weeklyResetKey === "string" ? loaded.weeklyResetKey : base.weeklyResetKey,
+        dailyResetKey: typeof loaded.dailyResetKey === "string" ? loaded.dailyResetKey : null,
+        weeklyResetKey: typeof loaded.weeklyResetKey === "string" ? loaded.weeklyResetKey : null,
         tasks,
     };
 }
@@ -9444,7 +9444,10 @@ function reconcileUngrantedQuestRewards(options = {}) {
 function ensureQuestResets() {
     const changed = applyQuestResetsToState(questState);
     syncCampaignQuestProgress();
-    if (changed) saveData();
+    if (changed) {
+        writeLocalSave(buildSavePayload());
+        saveData();
+    }
 }
 
 function getQuestTaskDef(tab, taskId) {
@@ -9932,6 +9935,9 @@ async function advanceQuestTask(taskId, buttonEl) {
         const grantKey = questGrantKey(tab, taskId);
         if (questState.grantedKeys?.includes(grantKey)) return;
         if (typeof MonExQuest !== "undefined" && MonExQuest.claimQuestTask) {
+            if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
+                MonExAuth.cancelPendingCloudSave();
+            }
             const result = await MonExQuest.claimQuestTask(tab, taskId);
             if (!result.ok) {
                 const msg = result.error === "progress_insufficient"
@@ -9946,8 +9952,9 @@ async function advanceQuestTask(taskId, buttonEl) {
             }
             if (result.save) {
                 applyLoadedSave(result.save);
-                writeLocalSave(result.save);
+                writeLocalSave(buildSavePayload());
             }
+            ensureQuestResets();
             renderDailyQuest();
             updateHeaderCurrencies();
             return;
@@ -9986,12 +9993,16 @@ async function claimQuestChest(milestone, buttonEl) {
         const grantKey = questChestGrantKey(track, milestone);
         if (questState.grantedKeys?.includes(grantKey)) return;
         if (typeof MonExQuest !== "undefined" && MonExQuest.claimQuestChest) {
+            if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
+                MonExAuth.cancelPendingCloudSave();
+            }
             const result = await MonExQuest.claimQuestChest(track, milestone);
             if (!result.ok) return;
             if (result.save) {
                 applyLoadedSave(result.save);
-                writeLocalSave(result.save);
+                writeLocalSave(buildSavePayload());
             }
+            ensureQuestResets();
             renderDailyQuest();
             updateHeaderCurrencies();
             return;
@@ -10049,6 +10060,9 @@ function renderDailyQuest() {
     const root = document.getElementById("daily-quest-content");
     if (!root) return;
 
+    if (window.MonExDailyReset?.msUntilNextDailyReset?.() <= 0) {
+        ensureQuestResets();
+    }
     ensureQuestResets();
     const tab = questState.tab;
     const tabTitles = { dailies: "DAILIES", weeklies: "WEEKLIES", campaign: "CAMPAIGN" };
@@ -14837,7 +14851,10 @@ function checkDailyReset() {
     const questBefore = questState.dailyResetKey;
     ensureQuestResets();
     if (questState.dailyResetKey !== questBefore) changed = true;
-    if (changed) saveData();
+    if (changed) {
+        writeLocalSave(buildSavePayload());
+        saveData();
+    }
 }
 
 function getPatrolDayKey() {
@@ -15230,6 +15247,22 @@ function pickNewerSaveScalar(local, cloud, field, fallback = 0) {
     return Number(cloud[field]) || fallback;
 }
 
+/** On load merge, never drop granted economy — keep the higher value from either side. */
+function pickMergedEconomyScalar(local, cloud, field, fallback = 0) {
+    return Math.max(
+        Number(pickNewerSaveScalar(local, cloud, field, fallback)) || 0,
+        Number(local?.[field]) || 0,
+        Number(cloud?.[field]) || 0
+    );
+}
+
+function localEconomyBehindCloud(local, cloud) {
+    if (!local || !cloud) return false;
+    return ["money", "essence", "monShards", "trainerXp"].some(
+        (field) => (Number(cloud[field]) || 0) > (Number(local[field]) || 0)
+    );
+}
+
 /** Monballs: on tie prefer the lower count — X spends cannot be resurrected by stale tabs. */
 function pickNewerMonballsScalar(local, cloud, fallback = 0) {
     const localTs = getSaveTimestamp(local);
@@ -15357,7 +15390,7 @@ window.handleCloudSaveConflict = function handleCloudSaveConflict(cloudSave) {
     // Prefer cloud whenever it is ahead on revision (or local is missing).
     if (cloudRev > localRev || !localData) {
         applyLoadedSave(cloudSave);
-        writeLocalSave(cloudSave);
+        writeLocalSave(buildSavePayload());
         if (typeof MonExAuth !== "undefined" && MonExAuth.setSaveRevision) {
             MonExAuth.setSaveRevision(cloudSave.revision);
         }
@@ -15371,7 +15404,7 @@ window.handleCloudSaveConflict = function handleCloudSaveConflict(cloudSave) {
     merged.party = [...(cloudSave.party || [])];
     merged.box = [...(cloudSave.box || [])];
     applyLoadedSave(merged);
-    writeLocalSave(merged);
+    writeLocalSave(buildSavePayload());
     reconcileUngrantedQuestRewards({ silent: true });
     updateUI();
 };
@@ -15383,11 +15416,11 @@ function mergeSaveSnapshots(local, cloud) {
     const older = cloudTs >= localTs ? local : cloud;
     const merged = { ...newer };
 
-    merged.money = pickNewerSaveScalar(local, cloud, "money");
-    merged.essence = pickNewerSaveScalar(local, cloud, "essence");
+    merged.money = pickMergedEconomyScalar(local, cloud, "money");
+    merged.essence = pickMergedEconomyScalar(local, cloud, "essence");
     merged.monballs = pickNewerMonballsScalar(local, cloud);
-    merged.monShards = pickNewerSaveScalar(local, cloud, "monShards");
-    merged.trainerXp = pickNewerSaveScalar(local, cloud, "trainerXp");
+    merged.monShards = pickMergedEconomyScalar(local, cloud, "monShards");
+    merged.trainerXp = pickMergedEconomyScalar(local, cloud, "trainerXp");
     merged.trainerRewardLevel = pickNewerSaveScalar(local, cloud, "trainerRewardLevel");
 
     // Inventory: keep the preferred (newer-by-clock) side only — no count-max,
@@ -15630,10 +15663,9 @@ async function loadData() {
             shouldSyncCloud = false;
         } else if (localRev > cloudRev) {
             data = mergeSaveSnapshots(localData, cloudData);
-            // Inventory stays from the newer-revision local preferred side in merge,
-            // but never inflate beyond cloud via append — merge is replace-only.
             shouldPersistLocal = true;
-            shouldSyncCloud = true;
+            // Do not push a high-revision local tab that regresses cloud economy.
+            shouldSyncCloud = !localEconomyBehindCloud(localData, cloudData);
         } else if (localTs > cloudTs) {
             // Same revision: keep cloud inventory; merge may update scalars from local.
             data = mergeSaveSnapshots(localData, cloudData);
@@ -15658,7 +15690,7 @@ async function loadData() {
             shouldPersistLocal = true;
             shouldSyncCloud = true;
         }
-        if (shouldPersistLocal) writeLocalSave(data);
+        if (shouldPersistLocal) writeLocalSave(buildSavePayload());
         if (shouldSyncCloud) saveData();
     } else if (cloudFound === false) {
         // Legacy pre-login catches: server may seed on GET, or /api/sync can backfill.
@@ -15673,7 +15705,7 @@ async function loadData() {
                     const hasMons = (retry.cloud.save.party?.length || 0) + (retry.cloud.save.box?.length || 0) > 0;
                     if (hasMons) {
                         applyLoadedSave(retry.cloud.save);
-                        writeLocalSave(retry.cloud.save);
+                        writeLocalSave(buildSavePayload());
                         loadedFromCatch = true;
                     }
                 }
@@ -18209,12 +18241,15 @@ function endPatrolBattle(win, player) {
 }
 
 async function claimServerBattleReward({ mode, encounterId, claimId, chapter, stage, logTag }) {
+    if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
+        MonExAuth.cancelPendingCloudSave();
+    }
     const claimFn = MonExBattle.claimBattleRewardWithRetry || MonExBattle.claimBattleReward;
     try {
         const result = await claimFn({ mode, win: true, encounterId, claimId, chapter, stage });
         if (result.ok && result.save) {
             applyLoadedSave(result.save);
-            writeLocalSave(result.save);
+            writeLocalSave(buildSavePayload());
             return {
                 gold: result.reward?.gold || 0,
                 essence: result.reward?.essence || 0,
@@ -18224,7 +18259,9 @@ async function claimServerBattleReward({ mode, encounterId, claimId, chapter, st
             };
         }
         console.warn(`[${logTag}] server reward claim failed`, result);
-        if (result.alreadyClaimed && result.reward) {
+        if (result.alreadyClaimed && result.save) {
+            applyLoadedSave(result.save);
+            writeLocalSave(buildSavePayload());
             return {
                 gold: result.reward?.gold || 0,
                 essence: result.reward?.essence || 0,
@@ -18249,6 +18286,7 @@ async function claimServerBattleReward({ mode, encounterId, claimId, chapter, st
 
 async function finishPatrolBattleRewards(win, encounter) {
     let reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null };
+    let rewardSynced = !win || !MonExAuth?.isLoggedIn?.();
     if (win && typeof MonExBattle !== "undefined" && MonExAuth?.isLoggedIn?.()) {
         const claimId = `patrol-${encounter?.id || "common"}-${patrolScanToken}-${adventureBattleToken}`;
         const serverReward = await claimServerBattleReward({
@@ -18257,7 +18295,12 @@ async function finishPatrolBattleRewards(win, encounter) {
             claimId,
             logTag: "patrol",
         });
-        if (serverReward) reward = serverReward;
+        if (serverReward) {
+            reward = serverReward;
+            rewardSynced = true;
+        } else {
+            rewardSynced = false;
+        }
     } else if (win && MonExAuth?.isLoggedIn?.()) {
         showHubNotice(
             "Battle reward API is unavailable. Refresh the page to sync rewards from the cloud.",
@@ -18271,11 +18314,12 @@ async function finishPatrolBattleRewards(win, encounter) {
     }
 
     restorePartyFullHp();
-    showPatrolBattleResult(win, reward, encounter);
+    showPatrolBattleResult(win, reward, encounter, { rewardSynced });
     if (!win) saveData();
 }
 
-function showPatrolBattleResult(win, reward, encounter) {
+function showPatrolBattleResult(win, reward, encounter, options = {}) {
+    const rewardSynced = options.rewardSynced !== false;
     battleScreen = "patrol-result";
     setAdventureHubMode(true);
     refreshAdventureModeHubBackground();
@@ -18284,7 +18328,9 @@ function showPatrolBattleResult(win, reward, encounter) {
     content.className = "battle-scene-ui cover-art-layer";
     const encounterLabel = encounter?.label || "Patrol encounter";
     const drops = win
-        ? `<div class="result-drops" style="margin:18px 0; font-size:15px;">
+        ? (!rewardSynced
+            ? `<p class="adv-desc" style="font-size:15px;margin:20px 0;">Patrol clear recorded, but rewards did not sync. Refresh to load your cloud save.</p>`
+            : `<div class="result-drops" style="margin:18px 0; font-size:15px;">
                <div style="font-size:12px;color:#86efac;margin-bottom:8px;">${escapeGearHtml(encounterLabel)}</div>
                <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("gold", 20)} <b>+${reward.gold}</b></div>
                <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("essence", 20)} <b>+${reward.essence}</b></div>
@@ -18292,7 +18338,7 @@ function showPatrolBattleResult(win, reward, encounter) {
                ${reward.gear ? `<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:6px 0;">&#9876;&#65039; Gear: <span class="equip-gear-icon-wrap" style="border-color:${getGearTierColor(reward.gear)};width:28px;height:28px;">${renderGearIconHtml(reward.gear, "gear-inv-icon")}</span> <b>${formatGearDisplayName(reward.gear)}</b></div>` : ""}
                <div>&#11088; Trainer XP <b>+${reward.trainerXp}</b></div>
                <div style="margin-top:8px; color:#666; font-size:13px;">Team restored to full HP.</div>
-           </div>`
+           </div>`)
         : `<p class="adv-desc" style="font-size:15px; margin:20px 0;">Patrol failed — team restored to full HP. Try again!</p>`;
     const scanAgainDisabled = remaining <= 0;
     content.innerHTML = `
@@ -19588,6 +19634,7 @@ function endBattle(win, player) {
 
 async function finishAdventureBattleRewards(win) {
     let reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null };
+    let rewardSynced = !win || !MonExAuth?.isLoggedIn?.();
     if (win && typeof MonExBattle !== "undefined" && MonExAuth?.isLoggedIn?.()) {
         const claimId = `adv-${currentChapter}-${currentStage}-${adventureBattleToken}`;
         const serverReward = await claimServerBattleReward({
@@ -19597,7 +19644,12 @@ async function finishAdventureBattleRewards(win) {
             stage: currentStage,
             logTag: "adventure",
         });
-        if (serverReward) reward = serverReward;
+        if (serverReward) {
+            reward = serverReward;
+            rewardSynced = true;
+        } else {
+            rewardSynced = false;
+        }
     } else if (win && MonExAuth?.isLoggedIn?.()) {
         showHubNotice(
             "Battle reward API is unavailable. Refresh the page to sync rewards from the cloud.",
@@ -19639,24 +19691,27 @@ async function finishAdventureBattleRewards(win) {
     }
 
     restorePartyFullHp();
-    showBattleResult(win, reward);
+    showBattleResult(win, reward, { rewardSynced });
     if (!win) saveData();
 }
 
-function showBattleResult(win, reward) {
+function showBattleResult(win, reward, options = {}) {
+    const rewardSynced = options.rewardSynced !== false;
     battleScreen = "result";
     refreshAdventureChapterBackground();
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui cover-art-layer";
     const drops = win
-        ? `<div class="result-drops" style="margin:18px 0; font-size:15px;">
+        ? (!rewardSynced
+            ? `<p class="adv-desc" style="font-size:15px;margin:20px 0;">Victory recorded, but rewards did not sync. Refresh to load your cloud save.</p>`
+            : `<div class="result-drops" style="margin:18px 0; font-size:15px;">
                <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("gold", 20)} <b>+${reward.gold}</b></div>
                <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("essence", 20)} <b>+${reward.essence}</b></div>
                ${reward.shards > 0 ? `<div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("shards", 20)} <b>+${reward.shards}</b></div>` : ""}
                ${reward.gear ? `<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:6px 0;">&#9876;&#65039; Gear: <span class="equip-gear-icon-wrap" style="border-color:${getGearTierColor(reward.gear)};width:28px;height:28px;">${renderGearIconHtml(reward.gear, "gear-inv-icon")}</span> <b>${formatGearDisplayName(reward.gear)}</b></div>` : ''}
                <div>&#11088; Trainer XP <b>+${reward.trainerXp}</b></div>
                <div style="margin-top:8px; color:#666; font-size:13px;">Materials added to your Inventory. Team restored to full HP.</div>
-           </div>`
+           </div>`)
         : `<p class="adv-desc" style="font-size:15px; margin:20px 0;">Your team was defeated. Everyone was restored to full HP — level up and try again!</p>`;
     content.innerHTML = `
         <div class="adventure-panel">

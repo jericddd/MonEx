@@ -3,6 +3,7 @@ import { QUEST_TASK_DEFS, DAILY_QUEST_MILESTONES, WEEKLY_QUEST_MILESTONES, DAILY
 import { QUEST_TASK_GOALS } from "./save-economy-guard.js";
 import { creditCatchMonballs, clampMonballs } from "./grant-monballs.js";
 import { reconcileMonballsForCloudSave } from "./save-reconcile.js";
+import { applyQuestResetsToState } from "./quest-reset.js";
 
 const MAX_CLAIM_RETRIES = 3;
 
@@ -74,6 +75,26 @@ async function persistQuestSave(kv, session, save, expectedRevision, startingMon
   }
 }
 
+async function ensureQuestStateCurrent(kv, session, save, expectedRevision, startingMonballs) {
+  let questState = normalizeQuestState(save);
+  let workingSave = save;
+  let revision = expectedRevision;
+  if (applyQuestResetsToState(questState, new Date())) {
+    const resetResult = await persistQuestSave(
+      kv,
+      session,
+      { ...workingSave, questState },
+      revision,
+      startingMonballs
+    );
+    if (!resetResult.ok) return { ok: false, ...resetResult };
+    workingSave = resetResult.save;
+    questState = normalizeQuestState(workingSave);
+    revision = workingSave.revision;
+  }
+  return { ok: true, save: workingSave, questState, expectedRevision: revision };
+}
+
 export async function claimQuestTask(kv, session, { tab, taskId, expectedRevision }, startingMonballs = 10) {
   const validTabs = ["dailies", "weeklies", "campaign"];
   if (!validTabs.includes(tab)) return { ok: false, error: "invalid_tab" };
@@ -85,8 +106,12 @@ export async function claimQuestTask(kv, session, { tab, taskId, expectedRevisio
   if (!def || goal == null) return { ok: false, error: "invalid_task" };
 
   const grantKey = questGrantKey(tab, id);
-  const { save } = await loadCloudSave(kv, session.xUserId);
-  const questState = normalizeQuestState(save);
+  const { save: loadedSave } = await loadCloudSave(kv, session.xUserId);
+  const ensured = await ensureQuestStateCurrent(kv, session, loadedSave, expectedRevision, startingMonballs);
+  if (!ensured.ok) return ensured;
+  const save = ensured.save;
+  let expectedRev = ensured.expectedRevision;
+  const questState = ensured.questState;
   const task = findTask(questState, tab, id);
   if (!task) return { ok: false, error: "task_not_found" };
   if (task.claimed || questState.grantedKeys.includes(grantKey)) {
@@ -116,7 +141,7 @@ export async function claimQuestTask(kv, session, { tab, taskId, expectedRevisio
   let nextSave = applyGrantToSave(save, grant);
   nextSave.questState = questState;
 
-  const result = await persistQuestSave(kv, session, nextSave, expectedRevision, startingMonballs);
+  const result = await persistQuestSave(kv, session, nextSave, expectedRev, startingMonballs);
   if (!result.ok) return result;
 
   if (grant.monballs) {
@@ -137,8 +162,12 @@ export async function claimQuestChest(kv, session, { track, milestone, expectedR
   if (!chest?.grant) return { ok: false, error: "no_reward" };
 
   const grantKey = questChestGrantKey(trackKey, ms);
-  const { save } = await loadCloudSave(kv, session.xUserId);
-  const questState = normalizeQuestState(save);
+  const { save: loadedSave } = await loadCloudSave(kv, session.xUserId);
+  const ensured = await ensureQuestStateCurrent(kv, session, loadedSave, expectedRevision, startingMonballs);
+  if (!ensured.ok) return ensured;
+  const save = ensured.save;
+  let expectedRev = ensured.expectedRevision;
+  const questState = ensured.questState;
   const points = trackKey === "weeklies" ? questState.weeklyPoints : questState.dailyPoints;
   const claimedList = trackKey === "weeklies" ? questState.weeklyClaimedChests : questState.dailyClaimedChests;
 
@@ -157,7 +186,7 @@ export async function claimQuestChest(kv, session, { track, milestone, expectedR
   let nextSave = applyGrantToSave(save, chest.grant);
   nextSave.questState = questState;
 
-  const result = await persistQuestSave(kv, session, nextSave, expectedRevision, startingMonballs);
+  const result = await persistQuestSave(kv, session, nextSave, expectedRev, startingMonballs);
   if (!result.ok) return result;
 
   if (chest.grant.monballs) {

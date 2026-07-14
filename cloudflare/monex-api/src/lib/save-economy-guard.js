@@ -152,7 +152,7 @@ export function reconcileQuestState(existing, incoming, options = {}) {
       campaign: (inc.tasks?.campaign || []).map((t) => ({ ...t })),
     },
   };
-  applyQuestResetsToState(qs, new Date(now), { repairDesync: false });
+  applyQuestResetsToState(qs, new Date(now), { repairDesync: true });
 
   const existingKeys = new Set(
     Array.isArray(ex.grantedKeys) ? ex.grantedKeys.map(String) : []

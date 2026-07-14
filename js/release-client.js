@@ -31,13 +31,14 @@
     if (res.status === 403 && data.error === "game_session_inactive") {
       window.MonExGameSession?.handleInactiveFromApi?.();
     }
-    if (res.status === 409 && data.error === "release_conflict" && data.save && MonExAuth.handleCloudSaveConflict) {
-      await MonExAuth.handleCloudSaveConflict(data.save);
+    if (res.status === 409 && data.error === "release_conflict" && data.save && typeof window.handleCloudSaveConflict === "function") {
+      window.handleCloudSaveConflict(data.save);
     }
-    if (data.save && MonExAuth.setSaveRevision) {
-      MonExAuth.setSaveRevision(data.save.revision);
+    const result = { ok: res.ok && data.ok, status: res.status, ...data };
+    if (result.ok && result.save && MonExAuth.setSaveRevision) {
+      MonExAuth.setSaveRevision(result.save.revision);
     }
-    return { ok: res.ok && data.ok, status: res.status, ...data };
+    return result;
   }
 
   window.MonExRelease = { releaseMon };
