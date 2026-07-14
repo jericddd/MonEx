@@ -431,6 +431,18 @@ function sanitizeQuestGrant(raw) {
   return Object.keys(grant).length ? grant : null;
 }
 
+function sanitizeQuestMonballPaidAmounts(raw) {
+  if (!raw || typeof raw !== "object") return {};
+  const out = {};
+  for (const [key, val] of Object.entries(raw)) {
+    const k = trimString(String(key), 64);
+    if (!k) continue;
+    const n = clampInt(val, 0, LIMITS.monballs);
+    if (n > 0) out[k] = n;
+  }
+  return out;
+}
+
 function sanitizeQuestState(raw) {
   if (!raw || typeof raw !== "object") return null;
   const tabs = ["dailies", "weeklies", "campaign"];
@@ -618,6 +630,7 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
     patrolScansDay: typeof input.patrolScansDay === "string" ? trimString(input.patrolScansDay, 32) || null : null,
     resourceChestLastCollectAt: sanitizeResourceChestTimestamp(input.resourceChestLastCollectAt, now),
     questState: sanitizeQuestState(input.questState),
+    questMonballPaidAmounts: sanitizeQuestMonballPaidAmounts(input.questMonballPaidAmounts),
     mailbox: sanitizeMailbox(input.mailbox),
     dailyLoginLastClaimAt: sanitizeDailyLoginLastClaimAt(input.dailyLoginLastClaimAt, now),
     releaseLog: sanitizeReleaseLog(input.releaseLog),

@@ -9090,7 +9090,7 @@ const QUEST_TASK_DEFS = {
         { id: "w12", track: "resource_collect", goal: 5, desc: "Collect your resource chest 5 times", points: 8, rewardKey: "trainerXp", rewardAmount: 60 },
     ],
     campaign: [
-        { id: "c1", track: "stage_reach", target: 10, goal: 1, desc: "Reach Chapter 1 Stage 10", points: 15, rewardKey: "monball", rewardAmount: 2 },
+        { id: "c1", track: "stage_reach", target: 10, goal: 1, desc: "Reach Chapter 1 Stage 10", points: 15, rewardKey: "monball", rewardAmount: 15 },
         { id: "c2", track: "stage_reach", target: 20, goal: 1, desc: "Reach Chapter 1 Stage 20", points: 15, rewardKey: "gold", rewardAmount: 250 },
         { id: "c3", track: "stage_reach", target: 40, goal: 1, desc: "Clear Chapter 1 (Stage 40)", points: 20, rewardKey: "shards", rewardAmount: 3 },
         { id: "c4", track: "stage_reach", target: 50, goal: 1, desc: "Reach Chapter 2 Stage 10", points: 15, rewardKey: "essence", rewardAmount: 30 },
@@ -9940,19 +9940,31 @@ async function advanceQuestTask(taskId, buttonEl) {
             }
             const result = await MonExQuest.claimQuestTask(tab, taskId);
             if (!result.ok) {
+                if (result.save) {
+                    applyLoadedSave(result.save);
+                    writeLocalSave(buildSavePayload());
+                    ensureQuestResets();
+                    renderDailyQuest();
+                    updateHeaderCurrencies();
+                }
                 const msg = result.error === "progress_insufficient"
                     ? "Complete this milestone first, then claim."
                     : result.error === "task_not_found"
                         ? "Quest not synced yet. Refresh /play and try again."
                         : result.error === "claim_conflict"
                             ? "Save conflict while claiming. Refresh and try again."
-                            : "Could not claim this quest reward.";
+                            : result.error === "monball_grant_failed"
+                                ? "Monball reward could not be saved. Try claiming again."
+                                : "Could not claim this quest reward.";
                 showHubNotice(msg, "Quest claim failed");
                 return;
             }
             if (result.save) {
                 applyLoadedSave(result.save);
                 writeLocalSave(buildSavePayload());
+            }
+            if (typeof refreshMonballsFromServer === "function") {
+                await refreshMonballsFromServer();
             }
             ensureQuestResets();
             renderDailyQuest();
@@ -10002,6 +10014,9 @@ async function claimQuestChest(milestone, buttonEl) {
                 applyLoadedSave(result.save);
                 writeLocalSave(buildSavePayload());
             }
+            if (typeof refreshMonballsFromServer === "function") {
+                await refreshMonballsFromServer();
+            }
             ensureQuestResets();
             renderDailyQuest();
             updateHeaderCurrencies();
@@ -10030,14 +10045,21 @@ async function claimQuestChest(milestone, buttonEl) {
     }, { button: buttonEl });
 }
 
+function getQuestRewardDisplay(def, tab) {
+    if (!def) return { amount: 0, iconKey: "gold" };
+    const iconKey = def.rewardKey === "shards" ? "shards" : def.rewardKey === "monball" ? "monball" : def.rewardKey;
+    const amount = tab === "campaign" ? (def.rewardAmount || 0) : def.points;
+    return { amount, iconKey };
+}
+
 function renderQuestTaskCard(task, tab) {
     const def = getQuestTaskDef(tab, task.id);
     if (!def) return "";
     const pct = Math.min(100, Math.round((task.progress / def.goal) * 100));
     const done = task.claimed;
     const canAdvance = !done && task.progress >= def.goal;
-    const rewardIconKey = def.rewardKey === "shards" ? "shards" : def.rewardKey === "monball" ? "monball" : def.rewardKey;
-    const rewardIcon = GAME_ICONS[rewardIconKey]?.src || GAME_ICONS.gold.src;
+    const rewardDisplay = getQuestRewardDisplay(def, tab);
+    const rewardIcon = GAME_ICONS[rewardDisplay.iconKey]?.src || GAME_ICONS.gold.src;
     const action = done
         ? `<span class="quest-completed-label">Completed</span>`
         : `<button type="button" class="quest-advance-btn" onclick="advanceQuestTask('${task.id}', this)" ${canAdvance ? "" : "disabled"}>Claim</button>`;
@@ -10045,7 +10067,7 @@ function renderQuestTaskCard(task, tab) {
         <div class="quest-task-card${done ? " is-done" : ""}">
             <div class="quest-task-reward">
                 <img src="${rewardIcon}" alt="">
-                <span>${def.points}</span>
+                <span>${rewardDisplay.amount}</span>
             </div>
             <div class="quest-task-body">
                 <p class="quest-task-desc">${def.desc}</p>
