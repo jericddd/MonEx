@@ -4,6 +4,7 @@ import {
   resolveMergedMonballs,
   reconcileMonballsForCloudSave,
   seedOrHydrateCloudSaveFromCatch,
+  syncSaveMonballsAfterCatch,
 } from "./save-reconcile.js";
 
 function makeKv(store = {}) {
@@ -217,6 +218,29 @@ describe("seedOrHydrateCloudSaveFromCatch", () => {
     assert.equal(result.save.party.length, 1);
     assert.equal(result.save.party[0].name, "Chog");
     assert.equal(result.save.monballs, 8);
+  });
+
+  it("syncSaveMonballsAfterCatch overwrites stale cloud save after X spend", async () => {
+    const kv = makeKv({
+      "monex:catch-user:u1": JSON.stringify({
+        username: "medusa6910",
+        monballs: 12,
+        pendingMons: [{ name: "Chog", rarity: "Uncommon" }],
+        updatedAt: new Date(3000).toISOString(),
+      }),
+      "monex:save:u1": JSON.stringify({
+        monballs: 13,
+        party: [],
+        box: [],
+        xHandle: "medusa6910",
+        updatedAt: new Date(5000).toISOString(),
+      }),
+    });
+
+    const left = await syncSaveMonballsAfterCatch(kv, "u1", "medusa6910", 12, 10, { spend: 1 });
+    assert.equal(left, 12);
+    const save = JSON.parse(await kv.get("monex:save:u1"));
+    assert.equal(save.monballs, 12);
   });
 
   it("skips seeding when requirePending and no pending mons", async () => {

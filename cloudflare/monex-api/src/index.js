@@ -288,22 +288,22 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
           meta: { pool: "catch", tweetId: tweet.id },
         });
 
-        const hydrated = await seedOrHydrateCloudSaveFromCatch(
+        await seedOrHydrateCloudSaveFromCatch(
           env.MONEX_KV,
           tweet.authorId,
           tweet.username,
           starting
         );
-        if (!hydrated.hydrated) {
-          await syncSaveMonballsAfterCatch(
-            env.MONEX_KV,
-            tweet.authorId,
-            tweet.username,
-            result.activity.monballsLeft,
-            starting,
-            { spend: result.activity.spend, tweetId: tweet.id }
-          );
-        }
+        // Always mirror post-catch balance into cloud save so stale client saves
+        // cannot resurrect spent monballs before the next X catch.
+        await syncSaveMonballsAfterCatch(
+          env.MONEX_KV,
+          tweet.authorId,
+          tweet.username,
+          result.activity.monballsLeft,
+          starting,
+          { spend: result.activity.spend, tweetId: tweet.id }
+        );
 
         await appendActivity(env.MONEX_KV, result.activity);
         status.activities += 1;

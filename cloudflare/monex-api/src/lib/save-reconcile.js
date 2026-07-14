@@ -157,7 +157,7 @@ export async function hydrateCloudSaveWithCatchState(
     return { hydrated: false, reason: result.reason || "backfill_failed" };
   }
 
-  const monballs = await getAuthoritativeMonballs(kv, xUserId, username, startingMonballs);
+  const monballs = clampMonballs(catchUser?.monballs ?? result.monballs ?? startingMonballs);
   const nextSave = {
     ...result.save,
     monballs,
