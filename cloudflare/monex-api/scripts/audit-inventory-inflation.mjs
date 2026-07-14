@@ -120,6 +120,9 @@ function countActivityMons(entries, username) {
 
 function classifyRow(row, minRatio) {
   const { saveMons, trueMons, ratio, excess } = row;
+  const deficit = Math.max(0, trueMons - saveMons);
+  if (trueMons > 0 && deficit >= 3) return "under_delivered";
+  if (trueMons > 0 && saveMons > 0 && ratio < 0.75) return "under_delivered";
   if (saveMons <= trueMons) return "ok";
   if (trueMons === 0 && saveMons > 0) return "save_without_activity";
   if (ratio >= minRatio || saveMons >= 100) return "likely_inflated";
@@ -187,6 +190,7 @@ async function main() {
 
   const flagged = rows.filter((r) => r.status === "likely_inflated" || r.status === "suspicious");
   const watch = rows.filter((r) => r.status === "minor_delta");
+  const underDelivered = rows.filter((r) => r.status === "under_delivered");
   const report = {
     generatedAt: new Date().toISOString(),
     minRatio,
@@ -197,9 +201,11 @@ async function main() {
       likelyInflated: rows.filter((r) => r.status === "likely_inflated").length,
       suspicious: rows.filter((r) => r.status === "suspicious").length,
       minorDelta: rows.filter((r) => r.status === "minor_delta").length,
+      underDelivered: underDelivered.length,
     },
     flagged,
     watch,
+    underDelivered,
     all: rows,
   };
 
@@ -212,7 +218,19 @@ async function main() {
   console.log(`Saves scanned: ${report.totals.savesScanned}`);
   console.log(`Flagged (ratio >= ${minRatio} or save >= 100 with excess): ${report.totals.flagged}`);
   console.log(`Watch (minor delta, excess <= 10 and ratio < 1.25): ${report.totals.minorDelta}`);
+  console.log(`Under-delivered (activity > save by 3+ or ratio < 0.75): ${report.totals.underDelivered}`);
   console.log("");
+
+  if (report.underDelivered.length) {
+    console.log("Under-delivered (run Recover activity catches workflow):");
+    for (const r of report.underDelivered) {
+      console.log(
+        `  @${r.username}  save=${r.saveMons}  activity=${r.trueMons}  missing=${r.trueMons - r.saveMons}`
+          + `  ratio=${r.ratio ?? "inf"}  (${r.activitySessions} X sessions)`
+      );
+    }
+    console.log("");
+  }
 
   if (report.watch.length) {
     console.log("Minor delta (likely old sync dupes — review if excess grows):");
@@ -226,7 +244,7 @@ async function main() {
   }
 
   if (!flagged.length) {
-    if (!report.watch.length) {
+    if (!report.watch.length && !report.underDelivered.length) {
       console.log("No inflated inventories detected at current thresholds.");
     }
     return;
@@ -242,7 +260,7 @@ async function main() {
   }
 
   console.log("");
-  console.log("Status key: likely_inflated=ratio>=min or save>=100 | suspicious=excess>10 or ratio>=1.25 | minor_delta=small excess");
+  console.log("Status key: likely_inflated=ratio>=min or save>=100 | suspicious=excess>10 or ratio>=1.25 | minor_delta=small excess | under_delivered=missing activity mons");
   console.log("");
   console.log("All saves (save vs activity):");
   for (const r of rows) {
