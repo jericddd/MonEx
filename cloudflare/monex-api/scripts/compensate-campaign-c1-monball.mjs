@@ -11,17 +11,11 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { cleanUsername } from "../src/lib/backfill-pending.js";
-import {
-  evaluateCampaignC1Compensation,
-  compensateCampaignC1Monball,
-} from "../src/lib/quest-compensation.js";
 import { validateAndSanitizeSave } from "../src/lib/save-validate.js";
+import { resolveProductionUser, normalizeUsername } from "./lib/resolve-production-user.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SAVE_PREFIX = "monex:save:";
-const SESSION_PREFIX = "monex:session:";
-const CATCH_USER_PREFIX = "monex:catch-user:";
+const ACTIVITY_KEY = "monex:activity";
 
 function readNamespaceId() {
   if (process.env.MONEX_KV_NAMESPACE_ID) return process.env.MONEX_KV_NAMESPACE_ID;
@@ -105,68 +99,42 @@ function makeKvAdapter() {
   };
 }
 
-async function findUserIdFromSessions(username) {
-  const keys = await listKeys(SESSION_PREFIX);
-  for (const key of keys) {
-    const raw = await getValue(key);
-    if (!raw) continue;
-    try {
-      const session = JSON.parse(raw);
-      if (session?.username?.toLowerCase() === username && session?.xUserId) {
-        return session.xUserId;
-      }
-    } catch {
-      /* skip */
-    }
-  }
-  return null;
-}
-
-async function findUserIdFromSaves(username) {
-  const keys = await listKeys(SAVE_PREFIX);
-  for (const key of keys) {
-    const raw = await getValue(key);
-    if (!raw) continue;
-    try {
-      const save = JSON.parse(raw);
-      const handle = String(save?.xHandle || "").toLowerCase().replace(/^@/, "");
-      if (handle === username) return key.slice(SAVE_PREFIX.length);
-    } catch {
-      /* skip */
-    }
-  }
-  return null;
-}
-
-async function resolveUser(username) {
-  const xUserId = (await findUserIdFromSessions(username)) || (await findUserIdFromSaves(username));
-  if (!xUserId) return null;
-  const saveRaw = await getValue(`${SAVE_PREFIX}${xUserId}`);
-  const save = saveRaw
-    ? validateAndSanitizeSave(JSON.parse(saveRaw), { username })
-    : validateAndSanitizeSave({}, { username });
-  return { xUserId, username, save };
+async function resolveUser(usernameArg, activityEntries = []) {
+  const resolved = await resolveProductionUser(getValue, listKeys, usernameArg, activityEntries);
+  if (!resolved?.xUserId) return null;
+  const save = resolved.save
+    ? validateAndSanitizeSave(resolved.save, { username: resolved.username })
+    : validateAndSanitizeSave({}, { username: resolved.username });
+  return {
+    xUserId: resolved.xUserId,
+    username: resolved.username,
+    save,
+    resolvedVia: resolved.resolvedVia,
+  };
 }
 
 function parseArgs(argv) {
   const args = argv.slice(2);
   const dryRun = args.includes("--dry-run");
   const usernameArg = args.find((arg) => !arg.startsWith("--")) || "";
-  const username = cleanUsername(usernameArg);
-  return { dryRun, username };
+  return { dryRun, usernameArg };
 }
 
 async function main() {
   requireEnv();
-  const { dryRun, username } = parseArgs(process.argv);
-  if (!username) {
+  const { dryRun, usernameArg } = parseArgs(process.argv);
+  if (!usernameArg) {
     console.error("Usage: node scripts/compensate-campaign-c1-monball.mjs [--dry-run] <x_username>");
     process.exit(1);
   }
 
-  const user = await resolveUser(username);
+  const activityRaw = await getValue(ACTIVITY_KEY);
+  const activityEntries = activityRaw ? JSON.parse(activityRaw).entries || [] : [];
+  const user = await resolveUser(usernameArg, activityEntries);
   if (!user) {
-    throw new Error(`User @${username} not found in production KV`);
+    throw new Error(
+      `User @${normalizeUsername(usernameArg)} not found in production KV (tried catch-username index, cloud save, session, activity log)`
+    );
   }
 
   const evaluation = evaluateCampaignC1Compensation(user.save);
@@ -181,6 +149,7 @@ async function main() {
         dryRun,
         username: user.username,
         xUserId: user.xUserId,
+        resolvedVia: user.resolvedVia,
         evaluation,
         applied: result.applied,
         reason: result.reason,
