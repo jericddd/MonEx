@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { validateAndSanitizeSave, sanitizeReleaseLog } from "./save-validate.js";
-import { mergeReleaseLog } from "./save-economy-guard.js";
+import { mergeReleaseLog, mergeReleasedRecoveryIds } from "./save-economy-guard.js";
 import { listReleaseLog } from "./release-log.js";
 
 test("sanitizeReleaseLog keeps valid release entries", () => {
@@ -91,6 +91,21 @@ test("validateAndSanitizeSave persists releaseLog", () => {
   });
   assert.equal(save.releaseLog.length, 1);
   assert.equal(save.releaseLog[0].source, "party");
+});
+
+test("mergeReleasedRecoveryIds is append-only", () => {
+  const merged = mergeReleasedRecoveryIds(
+    { releasedRecoveryIds: ["recovery_act_1_0"] },
+    { releasedRecoveryIds: ["recovery_act_1_0", "recovery_act_2_0"] }
+  );
+  assert.deepEqual(merged, ["recovery_act_1_0", "recovery_act_2_0"]);
+});
+
+test("validateAndSanitizeSave persists releasedRecoveryIds", () => {
+  const save = validateAndSanitizeSave({
+    releasedRecoveryIds: ["recovery_act_1_0", "", "recovery_act_1_0", "recovery_act_2_0"],
+  });
+  assert.deepEqual(save.releasedRecoveryIds, ["recovery_act_1_0", "recovery_act_2_0"]);
 });
 
 test("listReleaseLog paginates newest first", () => {

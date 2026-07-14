@@ -1,5 +1,5 @@
 import { generateSkills } from "./catch-engine.js";
-import { sanitizeMon, validateAndSanitizeSave } from "./save-validate.js";
+import { sanitizeMon, validateAndSanitizeSave, sanitizeReleaseLog, sanitizeReleasedRecoveryIds } from "./save-validate.js";
 import {
   cleanUsername,
   getWildPendingIds,
@@ -114,6 +114,28 @@ export function recoverySignatureForMon(raw) {
   return null;
 }
 
+/** Recovery keys blocked because the player intentionally released the mon. */
+export function getReleasedRecoveryIdSet(save) {
+  const released = new Set(sanitizeReleasedRecoveryIds(save?.releasedRecoveryIds));
+  for (const entry of sanitizeReleaseLog(save?.releaseLog)) {
+    if (entry.recoveryId) released.add(entry.recoveryId);
+    if (entry.instanceId) released.add(entry.instanceId);
+    const match = String(entry.recoveryId || "").match(/^recovery_(.+)_(\d+)$/);
+    if (match) {
+      released.add(`activity:${match[1]}:${match[2]}`);
+    }
+  }
+  return released;
+}
+
+export function isRecoveryIdReleased(save, raw) {
+  const released = getReleasedRecoveryIdSet(save);
+  if (raw.recoveryId && released.has(raw.recoveryId)) return true;
+  const sig = recoverySignatureForMon(raw);
+  if (sig && released.has(sig)) return true;
+  return false;
+}
+
 export function isMonAlreadyRecovered(save, raw, seenRecoveryIds) {
   if (raw.recoveryId && seenRecoveryIds.has(raw.recoveryId)) {
     return "already_recovered";
@@ -160,6 +182,10 @@ export function applyRecoveredMonsToSave(
     party.some((m) => m?.name === name) || box.some((m) => m?.name === name);
 
   for (const raw of recoveredMons || []) {
+    if (isRecoveryIdReleased(save, raw)) {
+      skipped.push({ ...raw, reason: "released_by_user" });
+      continue;
+    }
     const dupReason = isMonAlreadyRecovered({ party, box }, raw, seen) ||
       (activitySigs.has(recoverySignatureForMon(raw)) ? "already_from_activity" : null);
     if (dupReason) {

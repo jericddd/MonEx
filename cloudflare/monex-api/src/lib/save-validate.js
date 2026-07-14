@@ -78,6 +78,7 @@ export const LIMITS = {
   maxMana: 600,
   mailboxMax: 50,
   releaseLogMax: 200,
+  releasedRecoveryIdsMax: 500,
 };
 
 import {
@@ -364,6 +365,9 @@ export function sanitizeMon(raw) {
   } else if (typeof raw.pendingId === "string" && raw.pendingId.trim()) {
     mon.wildPendingId = trimString(raw.pendingId, 80);
   }
+  if (typeof raw.instanceId === "string" && raw.instanceId.trim()) {
+    mon.instanceId = trimString(raw.instanceId, 80);
+  }
 
   mon.max_mana = clampInt(computeMonMaxMana(mon), 1, LIMITS.maxMana);
 
@@ -536,7 +540,24 @@ function sanitizeReleaseEntry(raw) {
     shards: clampInt(raw.shards ?? 0, 0, LIMITS.monShards),
     source: raw.source === "party" ? "party" : "box",
   };
+  const recoveryId = trimString(raw.recoveryId, 80);
+  if (recoveryId) entry.recoveryId = recoveryId;
+  const instanceId = trimString(raw.instanceId, 80);
+  if (instanceId) entry.instanceId = instanceId;
   return entry;
+}
+
+export function sanitizeReleasedRecoveryIds(raw) {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set();
+  const rows = [];
+  for (const item of raw) {
+    const id = trimString(item, 80);
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    rows.push(id);
+  }
+  return rows.slice(0, LIMITS.releasedRecoveryIdsMax);
 }
 
 export function sanitizeReleaseLog(raw) {
@@ -600,6 +621,7 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
     mailbox: sanitizeMailbox(input.mailbox),
     dailyLoginLastClaimAt: sanitizeDailyLoginLastClaimAt(input.dailyLoginLastClaimAt, now),
     releaseLog: sanitizeReleaseLog(input.releaseLog),
+    releasedRecoveryIds: sanitizeReleasedRecoveryIds(input.releasedRecoveryIds),
     adventureBattleActive: false,
     revision: clampInt(input.revision ?? 0, 0, Number.MAX_SAFE_INTEGER),
     saveVersion: Number.isFinite(input.saveVersion) ? clampInt(input.saveVersion, 1, 999) : 1,

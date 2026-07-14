@@ -365,6 +365,8 @@ function buildSavePayload(state) {
     questState: state.questState,
     mailbox: state.mailbox,
     dailyLoginLastClaimAt: state.dailyLoginLastClaimAt,
+    releaseLog: state.releaseLog,
+    releasedRecoveryIds: state.releasedRecoveryIds,
     adventureBattleActive: !!state.adventureBattleActive,
     saveVersion: state.saveVersion ?? 1,
     updatedAt: state.updatedAt || new Date().toISOString(),
