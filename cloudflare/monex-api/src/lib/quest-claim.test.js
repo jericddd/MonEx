@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { claimQuestTask } from "./quest-claim.js";
 import { getDailyDayKey, getDailyWeekKey } from "./daily-reset.js";
+import { findUnpaidMonballQuestGrants, reconcileUnpaidMonballQuestGrants } from "./quest-monball-grants.js";
 
 function makeKv(store = {}) {
   return {
@@ -14,9 +15,128 @@ function makeKv(store = {}) {
   };
 }
 
+function baseCatchState(monballs = 0) {
+  return {
+    processedTweetIds: [],
+    users: {
+      u1: {
+        username: "trainer",
+        monballs,
+        pendingMons: [],
+        updatedAt: new Date().toISOString(),
+      },
+    },
+  };
+}
+
+function seedCatchUser(store, monballs = 0) {
+  store["monex:catch-user:u1"] = JSON.stringify({
+    username: "trainer",
+    monballs,
+    pendingMons: [],
+    updatedAt: new Date(1000).toISOString(),
+  });
+}
+
+test("claimQuestTask grants campaign monballs atomically", async () => {
+  const now = new Date();
+  const store = {
+    "monex:state": JSON.stringify({ processedTweetIds: [], users: {} }),
+    "monex:save:u1": JSON.stringify({
+      revision: 1,
+      money: 1000,
+      essence: 0,
+      monShards: 0,
+      trainerXp: 0,
+      monballs: 0,
+      party: [],
+      box: [],
+      questState: {
+        dailyResetKey: getDailyDayKey(now),
+        weeklyResetKey: getDailyWeekKey(now),
+        grantedKeys: [],
+        dailyPoints: 0,
+        weeklyPoints: 0,
+        dailyClaimedChests: [],
+        weeklyClaimedChests: [],
+        tasks: {
+          dailies: [],
+          weeklies: [],
+          campaign: [{ id: "c1", progress: 1, claimed: false }],
+        },
+      },
+      updatedAt: now.toISOString(),
+    }),
+  };
+  seedCatchUser(store, 0);
+  const kv = makeKv(store);
+
+  const result = await claimQuestTask(
+    kv,
+    { xUserId: "u1", username: "trainer" },
+    { tab: "campaign", taskId: "c1", expectedRevision: 1 },
+    0
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(result.grant.monballs, 15);
+  assert.equal(result.save.monballs, 15);
+  assert.equal(result.save.questState.tasks.campaign[0].claimed, true);
+  assert.equal(result.save.questMonballPaidAmounts["task:campaign:c1"], 15);
+
+  const catchRaw = JSON.parse(await kv.get("monex:catch-user:u1"));
+  assert.equal(catchRaw.monballs, 15);
+});
+
+test("reconcileUnpaidMonballQuestGrants backfills missing campaign monballs once", async () => {
+  const now = new Date();
+  const save = {
+    revision: 3,
+    monballs: 0,
+    party: [],
+    box: [],
+    questState: {
+      grantedKeys: ["task:campaign:c1"],
+      tasks: {
+        campaign: [{ id: "c1", progress: 1, claimed: true }],
+      },
+    },
+    updatedAt: now.toISOString(),
+  };
+  const store = {
+    "monex:state": JSON.stringify({ processedTweetIds: [], users: {} }),
+    "monex:save:u1": JSON.stringify(save),
+  };
+  seedCatchUser(store, 0);
+  const kv = makeKv(store);
+
+  const owed = findUnpaidMonballQuestGrants(save.questState, {});
+  assert.equal(owed.length, 1);
+  assert.equal(owed[0].amount, 15);
+
+  const reconciled = await reconcileUnpaidMonballQuestGrants(
+    kv,
+    { xUserId: "u1", username: "trainer" },
+    save,
+    10
+  );
+  assert.equal(reconciled.monballs, 15);
+  assert.equal(reconciled.questMonballPaidAmounts["task:campaign:c1"], 15);
+
+  const secondPass = await reconcileUnpaidMonballQuestGrants(
+    kv,
+    { xUserId: "u1", username: "trainer" },
+    reconciled,
+    10
+  );
+  assert.equal(secondPass.monballs, 15);
+  assert.equal(findUnpaidMonballQuestGrants(secondPass.questState, secondPass.questMonballPaidAmounts).length, 0);
+});
+
 test("claimQuestTask grants reward server-side when progress meets goal", async () => {
   const now = new Date();
   const kv = makeKv({
+    "monex:state": JSON.stringify(baseCatchState(10)),
     "monex:save:u1": JSON.stringify({
       revision: 1,
       money: 1000,
@@ -42,7 +162,6 @@ test("claimQuestTask grants reward server-side when progress meets goal", async 
       },
       updatedAt: now.toISOString(),
     }),
-    "monex:state": JSON.stringify({ processedTweetIds: [], users: {} }),
   });
 
   const result = await claimQuestTask(
@@ -62,9 +181,11 @@ test("claimQuestTask grants reward server-side when progress meets goal", async 
 test("claimQuestTask rejects insufficient progress", async () => {
   const now = new Date();
   const kv = makeKv({
+    "monex:state": JSON.stringify(baseCatchState(10)),
     "monex:save:u1": JSON.stringify({
       revision: 0,
       money: 0,
+      monballs: 10,
       questState: {
         dailyResetKey: getDailyDayKey(now),
         weeklyResetKey: getDailyWeekKey(now),
@@ -75,7 +196,6 @@ test("claimQuestTask rejects insufficient progress", async () => {
       box: [],
       updatedAt: now.toISOString(),
     }),
-    "monex:state": JSON.stringify({ processedTweetIds: [], users: {} }),
   });
 
   const result = await claimQuestTask(
@@ -92,6 +212,7 @@ test("claimQuestTask rejects insufficient progress", async () => {
 test("claimQuestTask resets stale daily bundle before validating claim", async () => {
   const today = getDailyDayKey(new Date());
   const kv = makeKv({
+    "monex:state": JSON.stringify(baseCatchState(10)),
     "monex:save:u1": JSON.stringify({
       revision: 1,
       money: 1000,
@@ -117,7 +238,6 @@ test("claimQuestTask resets stale daily bundle before validating claim", async (
       },
       updatedAt: new Date().toISOString(),
     }),
-    "monex:state": JSON.stringify({ processedTweetIds: [], users: {} }),
   });
 
   const result = await claimQuestTask(

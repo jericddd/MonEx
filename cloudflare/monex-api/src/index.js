@@ -44,6 +44,7 @@ import {
 import { loadCloudSave, writeCloudSave, buildSavePayload, preserveServerAuthoritativeFields } from "./lib/save.js";
 import { grantMonballs, alignCatchMonballsToMerged } from "./lib/grant-monballs.js";
 import { resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsAfterCatch, getAuthoritativeMonballs, seedOrHydrateCloudSaveFromCatch } from "./lib/save-reconcile.js";
+import { reconcileUnpaidMonballQuestGrants } from "./lib/quest-monball-grants.js";
 import { guardSavePayload } from "./lib/save-economy-guard.js";
 import { claimQuestTask, claimQuestChest } from "./lib/quest-claim.js";
 import { purchaseShopItem } from "./lib/shop-purchase.js";
@@ -760,12 +761,21 @@ async function handleRequest(request, env) {
         auth.session.username,
         starting
       );
+      let save = loadedSave;
+      if (found && loadedSave) {
+        save = await reconcileUnpaidMonballQuestGrants(
+          env.MONEX_KV,
+          auth.session,
+          loadedSave,
+          starting
+        );
+      }
       const monballs = resolveMergedMonballs(
         catchUser,
-        loadedSave,
-        catchUser?.monballs ?? loadedSave?.monballs ?? starting
+        save,
+        catchUser?.monballs ?? save?.monballs ?? starting
       );
-      const save = { ...loadedSave, monballs };
+      save = { ...save, monballs };
 
       return json(
         { ok: true, found, save, user: { username: auth.session.username, xUserId: auth.session.xUserId } },

@@ -1,9 +1,10 @@
 import { loadCloudSave, writeCloudSave, buildSavePayload } from "./save.js";
 import { QUEST_TASK_DEFS, DAILY_QUEST_MILESTONES, WEEKLY_QUEST_MILESTONES, DAILY_QUEST_MAX_POINTS, WEEKLY_QUEST_MAX_POINTS, questGrantKey, questChestGrantKey, buildGrantFromTaskDef, DAILY_QUEST_CHEST_REWARDS, WEEKLY_QUEST_CHEST_REWARDS } from "./quest-rewards.js";
 import { QUEST_TASK_GOALS } from "./save-economy-guard.js";
-import { creditCatchMonballs, clampMonballs } from "./grant-monballs.js";
-import { reconcileMonballsForCloudSave } from "./save-reconcile.js";
+import { clampMonballs } from "./grant-monballs.js";
+import { applyAuthoritativeMonballGrant } from "./save-reconcile.js";
 import { applyQuestResetsToState } from "./quest-reset.js";
+import { monballGrantFromTaskDef, recordMonballQuestGrantPaid } from "./quest-monball-grants.js";
 
 const MAX_CLAIM_RETRIES = 3;
 
@@ -14,7 +15,6 @@ function applyGrantToSave(save, grant) {
   if (grant.essence) out.essence = (out.essence || 0) + grant.essence;
   if (grant.monShards) out.monShards = (out.monShards || 0) + grant.monShards;
   if (grant.trainerXp) out.trainerXp = (out.trainerXp || 0) + grant.trainerXp;
-  if (grant.monballs) out.monballs = clampMonballs((out.monballs || 0) + grant.monballs);
   return out;
 }
 
@@ -53,6 +53,7 @@ function upsertTask(questState, tab, taskId, patch) {
 }
 
 async function persistQuestSave(kv, session, save, expectedRevision, startingMonballs, attempt = 0) {
+  const { reconcileMonballsForCloudSave } = await import("./save-reconcile.js");
   const now = Date.now();
   let payload = buildSavePayload(
     { ...save, updatedAt: new Date(now).toISOString() },
@@ -73,6 +74,32 @@ async function persistQuestSave(kv, session, save, expectedRevision, startingMon
     }
     throw err;
   }
+}
+
+async function finalizeMonballQuestGrant(kv, session, save, grantKey, monballAmount, startingMonballs, auditSource) {
+  const amount = clampMonballs(monballAmount);
+  if (!amount) return save;
+  let nextSave = await applyAuthoritativeMonballGrant(kv, session, amount, startingMonballs, auditSource);
+  nextSave = await recordMonballQuestGrantPaid(kv, session, nextSave, grantKey, amount, startingMonballs);
+  return nextSave;
+}
+
+async function rollbackFailedMonballClaim(kv, session, preClaimSave, persistedSave) {
+  const rollback = buildSavePayload(
+    {
+      ...persistedSave,
+      money: preClaimSave.money ?? 0,
+      essence: preClaimSave.essence ?? 0,
+      monShards: preClaimSave.monShards ?? 0,
+      trainerXp: preClaimSave.trainerXp ?? 0,
+      monballs: preClaimSave.monballs ?? persistedSave.monballs,
+      questState: normalizeQuestState(preClaimSave).questState,
+      questMonballPaidAmounts: preClaimSave.questMonballPaidAmounts,
+      updatedAt: new Date().toISOString(),
+    },
+    session
+  );
+  return writeCloudSave(kv, session.xUserId, rollback, { skipStaleCheck: true });
 }
 
 async function ensureQuestStateCurrent(kv, session, save, expectedRevision, startingMonballs) {
@@ -110,7 +137,7 @@ export async function claimQuestTask(kv, session, { tab, taskId, expectedRevisio
   const ensured = await ensureQuestStateCurrent(kv, session, loadedSave, expectedRevision, startingMonballs);
   if (!ensured.ok) return ensured;
   const save = ensured.save;
-  let expectedRev = ensured.expectedRevision;
+  const expectedRev = ensured.expectedRevision;
   const questState = ensured.questState;
   const task = findTask(questState, tab, id);
   if (!task) return { ok: false, error: "task_not_found" };
@@ -121,6 +148,7 @@ export async function claimQuestTask(kv, session, { tab, taskId, expectedRevisio
 
   const grant = buildGrantFromTaskDef(def);
   if (!grant) return { ok: false, error: "no_reward" };
+  const monballAmount = monballGrantFromTaskDef(def);
 
   upsertTask(questState, tab, id, { claimed: true });
   questState.grantedKeys.push(grantKey);
@@ -137,18 +165,36 @@ export async function claimQuestTask(kv, session, { tab, taskId, expectedRevisio
     );
   }
 
-  const monballsBefore = save.monballs || 0;
   let nextSave = applyGrantToSave(save, grant);
   nextSave.questState = questState;
 
   const result = await persistQuestSave(kv, session, nextSave, expectedRev, startingMonballs);
   if (!result.ok) return result;
 
-  if (grant.monballs) {
-    await creditCatchMonballs(kv, session, grant.monballs, startingMonballs, "quest_task_claim");
+  let finalSave = result.save;
+  if (monballAmount > 0) {
+    try {
+      finalSave = await finalizeMonballQuestGrant(
+        kv,
+        session,
+        finalSave,
+        grantKey,
+        monballAmount,
+        startingMonballs,
+        "quest_task_claim"
+      );
+    } catch (err) {
+      const rolledBack = await rollbackFailedMonballClaim(kv, session, save, result.save);
+      return {
+        ok: false,
+        error: "monball_grant_failed",
+        message: err?.message || String(err),
+        save: rolledBack,
+      };
+    }
   }
 
-  return { ok: true, grantKey, grant, save: result.save, alreadyClaimed: false };
+  return { ok: true, grantKey, grant, save: finalSave, alreadyClaimed: false };
 }
 
 export async function claimQuestChest(kv, session, { track, milestone, expectedRevision }, startingMonballs = 10) {
@@ -166,7 +212,7 @@ export async function claimQuestChest(kv, session, { track, milestone, expectedR
   const ensured = await ensureQuestStateCurrent(kv, session, loadedSave, expectedRevision, startingMonballs);
   if (!ensured.ok) return ensured;
   const save = ensured.save;
-  let expectedRev = ensured.expectedRevision;
+  const expectedRev = ensured.expectedRevision;
   const questState = ensured.questState;
   const points = trackKey === "weeklies" ? questState.weeklyPoints : questState.dailyPoints;
   const claimedList = trackKey === "weeklies" ? questState.weeklyClaimedChests : questState.dailyClaimedChests;
@@ -183,15 +229,35 @@ export async function claimQuestChest(kv, session, { track, milestone, expectedR
   }
   questState.grantedKeys.push(grantKey);
 
+  const monballAmount = clampMonballs(chest.grant.monballs || 0);
   let nextSave = applyGrantToSave(save, chest.grant);
   nextSave.questState = questState;
 
   const result = await persistQuestSave(kv, session, nextSave, expectedRev, startingMonballs);
   if (!result.ok) return result;
 
-  if (chest.grant.monballs) {
-    await creditCatchMonballs(kv, session, chest.grant.monballs, startingMonballs, "quest_chest_claim");
+  let finalSave = result.save;
+  if (monballAmount > 0) {
+    try {
+      finalSave = await finalizeMonballQuestGrant(
+        kv,
+        session,
+        finalSave,
+        grantKey,
+        monballAmount,
+        startingMonballs,
+        "quest_chest_claim"
+      );
+    } catch (err) {
+      const rolledBack = await rollbackFailedMonballClaim(kv, session, save, result.save);
+      return {
+        ok: false,
+        error: "monball_grant_failed",
+        message: err?.message || String(err),
+        save: rolledBack,
+      };
+    }
   }
 
-  return { ok: true, grantKey, grant: chest.grant, save: result.save, alreadyClaimed: false };
+  return { ok: true, grantKey, grant: chest.grant, save: finalSave, alreadyClaimed: false };
 }

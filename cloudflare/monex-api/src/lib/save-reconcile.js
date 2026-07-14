@@ -4,8 +4,8 @@ import {
   saveCatchUserRecord,
 } from "./catch-user-store.js";
 import { backfillPendingForCatchUser } from "./backfill-pending.js";
-import { loadCloudSave, writeCloudSave } from "./save.js";
-import { clampMonballs, mergeMonballBalances } from "./grant-monballs.js";
+import { loadCloudSave, writeCloudSave, buildSavePayload } from "./save.js";
+import { clampMonballs, mergeMonballBalances, creditCatchMonballs } from "./grant-monballs.js";
 import { appendMonballAudit } from "./monball-audit.js";
 import { cleanUsername } from "./backfill-pending.js";
 import { MAX_SAVE_DELTA } from "./save-economy-guard.js";
@@ -112,6 +112,30 @@ export async function reconcileMonballsForCloudSave(kv, session, payload, starti
   }
 
   return payload;
+}
+
+/**
+ * Server-authoritative monball credit — updates catch pool and cloud save together.
+ * Used by quest/mailbox grants so the client always receives the merged balance.
+ */
+export async function applyAuthoritativeMonballGrant(
+  kv,
+  session,
+  delta,
+  startingMonballs = 10,
+  auditSource = "monball_grant"
+) {
+  const amount = clampMonballs(delta);
+  if (!amount || !session?.xUserId) return null;
+
+  await creditCatchMonballs(kv, session, amount, startingMonballs, auditSource);
+  const { save } = await loadCloudSave(kv, session.xUserId);
+  const monballs = await getAuthoritativeMonballs(kv, session.xUserId, session.username, startingMonballs);
+  const nextSave = buildSavePayload(
+    { ...save, monballs, updatedAt: new Date().toISOString() },
+    session
+  );
+  return writeCloudSave(kv, session.xUserId, nextSave, { skipStaleCheck: true });
 }
 
 /**

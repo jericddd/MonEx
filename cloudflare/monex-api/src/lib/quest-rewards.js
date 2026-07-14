@@ -59,7 +59,7 @@ export const QUEST_TASK_DEFS = {
     { id: "w12", points: 8, rewardKey: "trainerXp", rewardAmount: 60 },
   ],
   campaign: [
-    { id: "c1", points: 15, rewardKey: "monball", rewardAmount: 2 },
+    { id: "c1", points: 15, rewardKey: "monball", rewardAmount: 15 },
     { id: "c2", points: 15, rewardKey: "gold", rewardAmount: 250 },
     { id: "c3", points: 20, rewardKey: "shards", rewardAmount: 3 },
     { id: "c4", points: 15, rewardKey: "essence", rewardAmount: 30 },
