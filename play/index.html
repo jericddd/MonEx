@@ -7803,14 +7803,14 @@ body.cloud-load-blocked .game-shell {
 </div>
 
 <script src="js/daily-reset.js?v=20260711b"></script>
-<script src="js/monanimal-sprites.js?v=20260713b"></script>
+<script src="js/monanimal-sprites.js?v=20260714d"></script>
 <script src="js/patrol-reset.js?v=20260711b"></script>
 <script src="js/mana-system.js?v=20260712a"></script>
 <script src="js/equipment-unlock.js?v=20260711c"></script>
 <script src="js/staging-banner.js?v=20260710a"></script>
 <script src="js/monex-config.js?v=20260710a"></script>
 <script src="js/escape-html.js?v=20260710a"></script>
-<script src="js/activity-client.js?v=20260713b"></script>
+<script src="js/activity-client.js?v=20260714d"></script>
 <script src="js/auth-client.js?v=20260714c"></script>
 <script src="js/game-session-client.js?v=20260710a"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
@@ -10107,6 +10107,28 @@ function getMonAvatarFallbackPath(mon) {
     const name = mon?.name || mon;
     if (isJohnw(name)) return JOHNW_PNG_SPRITE;
     return getMonPngPath(name);
+}
+
+function monAvatarImgAttrs(mon) {
+    const name = typeof escapeHtml === "function" ? escapeHtml(mon?.name || "") : (mon?.name || "");
+    const rarity = typeof escapeHtml === "function" ? escapeHtml(mon?.rarity || "") : (mon?.rarity || "");
+    return `data-mon-avatar="1" data-mon-name="${name}" data-mon-rarity="${rarity}" alt="${name}" decoding="async"`;
+}
+
+function bindMonAvatarImages(root) {
+    const scope = root || document;
+    scope.querySelectorAll("img[data-mon-avatar]").forEach((img) => {
+        const mon = { name: img.dataset.monName, rarity: img.dataset.monRarity || undefined };
+        if (_sprites()?.bindMonAvatarImg) {
+            _sprites().bindMonAvatarImg(img, mon);
+            return;
+        }
+        img.src = getMonAvatarPath(mon);
+        img.onerror = () => {
+            img.onerror = null;
+            img.src = getMonAvatarFallbackPath(mon);
+        };
+    });
 }
 
 function getMonSpriteExtraClass(mon) {
@@ -13793,7 +13815,7 @@ function renderHeroAscensionMainPickItem(entry) {
     const disabledCls = selected || canAscend ? "" : " is-disabled";
     return `<button type="button" class="hero-ascension-pick-item${selected ? " is-main" : ""}${disabledCls}" onclick="heroAscensionSelectMain('${location}', ${index})" title="${mon.name} · ${mon.rarity}${status ? " · " + status : ""}${selected ? " · Click to remove" : ""}">
         ${renderHeroAscensionLocTag(location)}
-        <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
+        <img ${monAvatarImgAttrs(mon)}>
         <span class="hero-asc-pick-name">${mon.name}</span>
         <span class="hero-ascension-dupes-badge">+${mon.ascensionStars || 0}</span>
     </button>`;
@@ -13804,7 +13826,7 @@ function renderHeroAscensionDupePickItem(entry) {
     const selected = heroAscensionDupeMons.includes(mon);
     return `<button type="button" class="hero-ascension-pick-item${selected ? " selected" : ""}" onclick="heroAscensionToggleDupe('${location}', ${index})" title="${mon.name} Lv.${Math.floor(mon.level)} · ${location}">
         ${renderHeroAscensionLocTag(location)}
-        <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
+        <img ${monAvatarImgAttrs(mon)}>
         <span class="hero-asc-pick-name">Lv.${Math.floor(mon.level)}</span>
     </button>`;
 }
@@ -13822,7 +13844,7 @@ function renderHeroAscensionPanel(container) {
     const required = main ? getHeroAscensionDupeRequirement(main.ascensionStars || 0) : null;
 
     const mainSlotInner = main
-        ? `<img src="${getMonAvatarPath(main)}" alt="${main.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(main)}'">
+        ? `<img ${monAvatarImgAttrs(main)}>
            <span class="hero-ascension-dupes-badge">+${main.ascensionStars || 0}</span>`
         : `<span style="font-size:22px;">+</span><span class="hero-ascension-dupes-badge">MAIN</span>`;
 
@@ -13833,7 +13855,7 @@ function renderHeroAscensionPanel(container) {
                 return `<div class="hero-ascension-main-slot" style="width:78px;height:78px;border-color:#d4a04a;opacity:0.5;"><span style="font-size:18px;">+</span></div>`;
             }
             return `<div class="hero-ascension-main-slot" style="width:78px;height:78px;border-color:#d4a04a;" title="${dupe.name}">
-                <img src="${getMonAvatarPath(dupe)}" alt="${dupe.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(dupe)}'">
+                <img ${monAvatarImgAttrs(dupe)}>
             </div>`;
         }).join('<span class="gear-synth-op">+</span>')
         : "";
@@ -13887,6 +13909,7 @@ function renderHeroAscensionPanel(container) {
             </div>
         </div>
     `;
+    bindMonAvatarImages(el);
 }
 
 function setArmoryTab(tab) {
@@ -15321,7 +15344,7 @@ function renderMonCardInner(mon, index, location) {
     </div>
     <div class="mon-card-top">
         <div class="mon-sprite ${getMonSpriteExtraClass(mon)}">
-            <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
+            <img ${monAvatarImgAttrs(mon)}>
         </div>
         <div class="mon-card-identity">
             <div class="mon-name">${mon.name}</div>
@@ -15373,6 +15396,7 @@ function renderPartyGrid() {
         empty.onclick = () => openPartyAddPicker();
         grid.appendChild(empty);
     }
+    bindMonAvatarImages(grid);
 }
 
 function renderMainScene() {
@@ -15455,6 +15479,7 @@ function renderBox() {
         content.appendChild(card);
         bindHubMonCardTips(card);
     });
+    bindMonAvatarImages(content);
 }
 
 // ==================== ACTIONS ====================
@@ -16369,7 +16394,7 @@ function renderPartySwitchAvatarCell(mon, onClick) {
     cell.className = `party-switch-avatar ${getRarityClass(mon.rarity)}`;
     cell.innerHTML = `
         <span class="party-switch-lv">Lv.${Math.floor(mon.level)}</span>
-        <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
+        <img ${monAvatarImgAttrs(mon)}>
         <div class="party-switch-hover-tip">
             <div class="party-switch-tip-name">${mon.name}</div>
             <span class="party-switch-tip-rarity ${getRarityClass(mon.rarity)}">${mon.rarity.toUpperCase()}</span>
@@ -16377,6 +16402,7 @@ function renderPartySwitchAvatarCell(mon, onClick) {
         </div>`;
     cell.onclick = onClick;
     bindPartySwitchTip(cell);
+    bindMonAvatarImages(cell);
     return cell;
 }
 
@@ -18009,7 +18035,7 @@ function renderTeamArrangement() {
         div.dataset.index = i;
         div.innerHTML = `
             <div class="team-slot-sprite">
-                <img src="${getMonAvatarPath(mon)}" alt="${mon.name}" onerror="this.onerror=null;this.src='${getMonAvatarFallbackPath(mon)}'">
+                <img ${monAvatarImgAttrs(mon)}>
             </div>
             <div style="text-align:center;">
                 <div class="team-slot-name">${mon.name}</div>
@@ -18047,6 +18073,7 @@ function renderTeamArrangement() {
 
         container.appendChild(div);
     });
+    bindMonAvatarImages(container);
 }
 
 function moveUp(index) {

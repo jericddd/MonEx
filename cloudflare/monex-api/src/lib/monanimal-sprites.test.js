@@ -4,6 +4,8 @@ import {
   getMonDisplaySpritePath,
   getLegendaryCardGifPath,
   getPngPath,
+  speciesHasSceneIdle,
+  getMonDisplaySpriteCandidates,
 } from "./monanimal-sprites.js";
 
 test("getMonDisplaySpritePath uses PNG for Common", () => {
@@ -42,4 +44,21 @@ test("getLegendaryCardGifPath returns null for unconfirmed species", () => {
 
 test("getPngPath resolves rename display names", () => {
   assert.equal(getPngPath("Moxy"), "128x128/monhorse.png");
+});
+
+test("speciesHasSceneIdle is false when idle GIF is not confirmed", () => {
+  assert.equal(speciesHasSceneIdle("Lyraffe"), false);
+  assert.equal(speciesHasSceneIdle("Spidermon"), false);
+});
+
+test("speciesHasSceneIdle is true when scene idle is confirmed", () => {
+  assert.equal(speciesHasSceneIdle("Anago"), true);
+  assert.equal(speciesHasSceneIdle("Monhorse"), true);
+});
+
+test("getMonDisplaySpriteCandidates always includes PNG fallback", () => {
+  const candidates = getMonDisplaySpriteCandidates({ name: "Lyraffe", rarity: "Legendary" });
+  assert.ok(candidates.includes("128x128/lyraffe.png"));
+  assert.equal(candidates[0], "128x128/lyraffe.png");
+  assert.ok(!candidates.includes("128x128/lyraffe-idle.gif"));
 });
