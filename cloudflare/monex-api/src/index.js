@@ -56,7 +56,11 @@ import {
   getPendingForCatchUserKv,
 } from "./lib/catch-user-store.js";
 import { backfillPendingForCatchUser } from "./lib/backfill-pending.js";
-import { hydrateUserCloudSave, lookupCatchUserReadOnly } from "./lib/hydrate-save.js";
+import {
+  hydrateUserCloudSave,
+  lookupCatchUserReadOnly,
+  recoverMissingMonsFromActivity,
+} from "./lib/hydrate-save.js";
 import { listReleaseLog } from "./lib/release-log.js";
 import { tryClaimTweetForProcessing, finalizeTweetProcessed, releaseTweetClaim } from "./lib/tweet-dedupe.js";
 import { appendMonballAudit } from "./lib/monball-audit.js";
@@ -288,12 +292,21 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
           meta: { pool: "catch", tweetId: tweet.id },
         });
 
-        await seedOrHydrateCloudSaveFromCatch(
+        const hydrated = await seedOrHydrateCloudSaveFromCatch(
           env.MONEX_KV,
           tweet.authorId,
           tweet.username,
           starting
         );
+        if (hydrated.save) {
+          await recoverMissingMonsFromActivity(
+            env.MONEX_KV,
+            tweet.authorId,
+            tweet.username,
+            hydrated.save,
+            starting
+          );
+        }
         // Always mirror post-catch balance into cloud save so stale client saves
         // cannot resurrect spent monballs before the next X catch.
         await syncSaveMonballsAfterCatch(
@@ -965,11 +978,27 @@ async function handleRequest(request, env) {
             startingMonballs: starting,
           });
           await saveCatchUserRecord(env.MONEX_KV, xUserId, catchUser);
+          let finalResult = result;
           if (result.ok && result.save) {
-            await writeCloudSave(env.MONEX_KV, xUserId, result.save, { skipStaleCheck: true });
-            await alignCatchMonballsToMerged(env.MONEX_KV, auth.session, result.monballs, starting);
+            const activityResult = await recoverMissingMonsFromActivity(
+              env.MONEX_KV,
+              xUserId,
+              username,
+              result.save,
+              starting
+            );
+            finalResult = {
+              ...result,
+              save: activityResult.recovered ? activityResult.save : result.save,
+              added: result.added + (activityResult.added?.length || 0),
+              monballs: (activityResult.recovered ? activityResult.save : result.save)?.monballs ?? result.monballs,
+            };
+            if (!activityResult.recovered) {
+              await writeCloudSave(env.MONEX_KV, xUserId, finalResult.save, { skipStaleCheck: true });
+            }
+            await alignCatchMonballsToMerged(env.MONEX_KV, auth.session, finalResult.monballs, starting);
           }
-          return result;
+          return finalResult;
         });
       } else {
         syncResult = {

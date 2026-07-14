@@ -200,7 +200,7 @@ async function main() {
     username,
     activityEntries: entries,
     save: { party: [], box: [], monballs: startingMonballs, xHandle: username },
-    caseSensitive: true,
+    caseSensitive: false,
     ...recoveryFilter,
   });
 
@@ -229,12 +229,14 @@ async function main() {
   }
 
   const catchMonballs = getCatchMonballs(state, cloud.xUserId, username, startingMonballs);
+  const invCount = (cloud.save?.party?.length || 0) + (cloud.save?.box?.length || 0);
   const result = recoverActivityCatchesForUser({
     username,
     activityEntries: entries,
     save: cloud.save,
     catchMonballs,
-    caseSensitive: true,
+    caseSensitive: false,
+    skipExistingSpecies: invCount > 0 && preview.recoverableCount > invCount,
     ...recoveryFilter,
   });
 
