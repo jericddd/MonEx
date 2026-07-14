@@ -5812,12 +5812,7 @@ body.afk-layout:has(.game-container.patrol-scan-active) > .game-container-bg {
     40% { filter: brightness(2.2); }
     100% { filter: brightness(1); }
 }
-.battle-sprite-loading {
-    position: absolute;
-    left: 50%;
-    bottom: 18%;
-    transform: translateX(-50%);
-    z-index: 18;
+.game-asset-loading {
     pointer-events: none;
     padding: 8px 14px;
     background: rgba(0, 0, 0, 0.68);
@@ -5828,9 +5823,40 @@ body.afk-layout:has(.game-container.patrol-scan-active) > .game-container-bg {
     visibility: hidden;
     transition: opacity 0.15s ease, visibility 0.15s ease;
 }
-.battle-sprite-loading.is-visible {
+.game-asset-loading.is-visible {
     opacity: 1;
     visibility: visible;
+}
+.game-asset-loading-text {
+    margin: 0;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    line-height: 1.6;
+    color: #fde68a;
+    text-align: center;
+    white-space: nowrap;
+}
+.game-asset-loading-dots {
+    display: inline-block;
+    width: 3ch;
+    text-align: left;
+}
+.play-boot-loading {
+    position: fixed;
+    left: 50%;
+    bottom: 28%;
+    transform: translateX(-50%);
+    z-index: 25000;
+}
+.game-container-stage.is-boot-loading {
+    pointer-events: none;
+}
+.battle-sprite-loading {
+    position: absolute;
+    left: 50%;
+    bottom: 18%;
+    transform: translateX(-50%);
+    z-index: 18;
 }
 .battle-sprite-loading-text {
     margin: 0;
@@ -7449,6 +7475,11 @@ body.cloud-load-blocked .game-shell {
 <img id="game-container-bg" class="game-container-bg" src="for%20result%20banner/mainscene_background.png" alt="" aria-hidden="true">
 
 <div class="game-shell">
+<div id="play-boot-loading" class="game-asset-loading play-boot-loading" aria-live="polite" aria-hidden="true">
+    <p class="game-asset-loading-text">
+        <span class="game-asset-loading-label">Loading game assets</span><span class="game-asset-loading-dots">...</span>
+    </p>
+</div>
 <div class="game-container main-scene-active">
     <header class="header" aria-label="Trainer status">
         <div class="header-inner">
@@ -8639,6 +8670,7 @@ function refreshAdventureChapterBackground() {
 }
 
 const _imagePreloadCache = new Map();
+let playStartupAssetsWarmed = false;
 
 function preloadImage(url) {
     if (!url) return Promise.resolve(false);
@@ -8661,6 +8693,7 @@ function preloadImages(urls) {
 }
 
 function warmCoreSceneAssets() {
+    if (playStartupAssetsWarmed) return Promise.resolve([]);
     return preloadImages([
         MAIN_SCENE_BG,
         BATTLE_HUB_BG,
@@ -8670,6 +8703,7 @@ function warmCoreSceneAssets() {
 }
 
 function warmBattleHubSceneAssets() {
+    if (playStartupAssetsWarmed) return Promise.resolve([]);
     const hubBtnUrls = (typeof BATTLE_HUB_MAIN_BUTTONS !== "undefined")
         ? BATTLE_HUB_MAIN_BUTTONS.map((btn) => btn.src)
         : [];
@@ -8682,6 +8716,7 @@ function warmBattleHubSceneAssets() {
 }
 
 function warmAdventureHubSceneAssets() {
+    if (playStartupAssetsWarmed) return Promise.resolve([]);
     return preloadImages([
         getAdventureModeHubBackgroundPath(),
         getChapterBackgroundPath(currentChapter),
@@ -8689,6 +8724,7 @@ function warmAdventureHubSceneAssets() {
 }
 
 function warmPatrolBattleAssets() {
+    if (playStartupAssetsWarmed) return Promise.resolve(true);
     return preloadImage(PATROL_OFFICE_BG);
 }
 
@@ -10470,65 +10506,141 @@ async function warmBattleCombatantAssets(playerTeam, enemyTeam) {
     );
 }
 
+function collectPlayStartupAssetUrls() {
+    const urls = new Set();
+    const add = (url) => { if (url) urls.add(url); };
+
+    add(MAIN_SCENE_BG);
+    add(BATTLE_HUB_BG);
+    add(getAdventureModeHubBackgroundPath());
+    add(PATROL_OFFICE_BG);
+    add(ADVENTURE_CHAPTER_PLACEHOLDER);
+    for (let ch = 1; ch <= CHAPTER_BG_MAX; ch++) add(getChapterBackgroundPath(ch));
+
+    if (typeof BATTLE_HUB_MAIN_BUTTONS !== "undefined") {
+        BATTLE_HUB_MAIN_BUTTONS.forEach((btn) => add(btn.src));
+    }
+    if (typeof BATTLE_HUB_TOWER_BUTTONS !== "undefined") {
+        BATTLE_HUB_TOWER_BUTTONS.forEach((btn) => add(btn.src));
+    }
+
+    ensureSceneIdleEnemies();
+    const heroes = party.slice(0, 3);
+    const enemies = sceneIdleEnemyTeam.slice(0, 3);
+    [...heroes, ...enemies].forEach((mon) => {
+        if (!mon?.name) return;
+        add(getSceneIdleDisplaySprite(mon));
+        listAttackAssetUrlsForMon(mon.name).forEach((u) => urls.add(u));
+    });
+
+    [...party, ...box].forEach((mon) => {
+        if (!mon?.name) return;
+        if (_sprites()?.getMonDisplaySpriteCandidates) {
+            _sprites().getMonDisplaySpriteCandidates(mon).forEach((u) => urls.add(u));
+        } else {
+            add(getMonPngPath(mon.name));
+            add(getMonIdleGifPath(mon.name));
+        }
+    });
+
+    add(BLOCK_FX_ICON);
+    add(DEBUFF_BURN_FX);
+    Object.values(HOUSES).forEach((house) => add(house.icon));
+
+    return [...urls];
+}
+
+let playStartupAssetsWarmed = false;
+
+async function warmPlayStartupAssets() {
+    if (playStartupAssetsWarmed) return;
+    const urls = collectPlayStartupAssetUrls();
+    await preloadImages(urls);
+    await Promise.all(
+        urls.filter((u) => usesGifNaturalLoop(u)).map((u) => warmGifLoopTimingForPath(u))
+    );
+    playStartupAssetsWarmed = true;
+}
+
 async function warmFighterAssets(fighter) {
     if (!fighter?.name) return;
     await warmBattleCombatantAssets([fighter], []);
 }
 
-const BATTLE_SPRITE_LOADING_SHOW_MS = 220;
-let battleSpriteLoadingToken = 0;
-let battleSpriteLoadingDotsTimer = null;
+const ASSET_LOADING_SHOW_MS = 220;
+let assetLoadingSeq = 0;
+let assetLoadingDotsTimer = null;
 
-function setBattleSpriteLoadingVisible(visible) {
-    const el = document.getElementById("battle-sprite-loading");
+function setAssetLoadingOverlay(overlayId, visible) {
+    const el = document.getElementById(overlayId);
     if (!el) return;
     el.classList.toggle("is-visible", !!visible);
     el.setAttribute("aria-hidden", visible ? "false" : "true");
-    if (visible) startBattleSpriteLoadingDots();
-    else stopBattleSpriteLoadingDots();
+    if (visible) startAssetLoadingDots(el.querySelector(".game-asset-loading-dots, .battle-sprite-loading-dots"));
+    else stopAssetLoadingDots();
 }
 
-function startBattleSpriteLoadingDots() {
-    stopBattleSpriteLoadingDots();
-    const dotsEl = document.querySelector(".battle-sprite-loading-dots");
+function startAssetLoadingDots(dotsEl) {
+    stopAssetLoadingDots();
     if (!dotsEl) return;
     const frames = [".", "..", "..."];
     let frame = 0;
     dotsEl.textContent = frames[frame];
-    battleSpriteLoadingDotsTimer = setInterval(() => {
+    assetLoadingDotsTimer = setInterval(() => {
         frame = (frame + 1) % frames.length;
         dotsEl.textContent = frames[frame];
     }, 420);
 }
 
-function stopBattleSpriteLoadingDots() {
-    if (battleSpriteLoadingDotsTimer) {
-        clearInterval(battleSpriteLoadingDotsTimer);
-        battleSpriteLoadingDotsTimer = null;
+function stopAssetLoadingDots() {
+    if (assetLoadingDotsTimer) {
+        clearInterval(assetLoadingDotsTimer);
+        assetLoadingDotsTimer = null;
     }
 }
 
-async function withBattleSpriteLoading(warmPromise, battleToken) {
-    const token = ++battleSpriteLoadingToken;
+async function withAssetLoadingIndicator(warmPromise, opts = {}) {
+    const overlayId = opts.overlayId || "play-boot-loading";
+    const showMs = opts.showMs ?? ASSET_LOADING_SHOW_MS;
+    const isCancelled = opts.isCancelled || null;
+    const token = ++assetLoadingSeq;
     let showTimer = null;
     let indicatorShown = false;
 
     const reveal = () => {
-        if (token !== battleSpriteLoadingToken || indicatorShown) return;
-        if (battleToken != null && battleToken !== adventureBattleToken) return;
+        if (token !== assetLoadingSeq || indicatorShown) return;
+        if (typeof isCancelled === "function" && isCancelled()) return;
         indicatorShown = true;
-        setBattleSpriteLoadingVisible(true);
+        setAssetLoadingOverlay(overlayId, true);
     };
 
-    showTimer = setTimeout(reveal, BATTLE_SPRITE_LOADING_SHOW_MS);
+    showTimer = setTimeout(reveal, showMs);
 
     try {
         await warmPromise;
     } finally {
         clearTimeout(showTimer);
-        if (token === battleSpriteLoadingToken) {
-            setBattleSpriteLoadingVisible(false);
+        if (token === assetLoadingSeq) {
+            setAssetLoadingOverlay(overlayId, false);
         }
+    }
+}
+
+async function withBattleSpriteLoading(warmPromise, battleToken) {
+    return withAssetLoadingIndicator(warmPromise, {
+        overlayId: "battle-sprite-loading",
+        isCancelled: () => battleToken != null && battleToken !== adventureBattleToken,
+    });
+}
+
+async function bootPlayStartupAssets() {
+    if (playStartupAssetsWarmed) return;
+    const stage = document.querySelector(".game-container-stage");
+    stage?.classList.add("is-boot-loading");
+    try {
+        await withAssetLoadingIndicator(warmPlayStartupAssets(), { overlayId: "play-boot-loading" });
+    } finally {
+        stage?.classList.remove("is-boot-loading");
     }
 }
 
@@ -17040,6 +17152,7 @@ async function checkLogin() {
         gameSessionBootLoaded = true;
         await refreshMonballsFromServer();
         await runPostLoginBootstrap();
+        await bootPlayStartupAssets();
         showMainScene();
     } catch (e) {
         console.error("checkLogin failed:", e);
@@ -17063,6 +17176,7 @@ async function checkLogin() {
             try {
                 await loadData();
                 if (cloudLoadFailed) {
+                    await bootPlayStartupAssets();
                     showMainScene();
                     return;
                 }
@@ -17070,6 +17184,7 @@ async function checkLogin() {
             } catch (inner) {
                 console.error("checkLogin fallback load failed:", inner);
                 showCloudLoadErrorModal();
+                await bootPlayStartupAssets();
                 showMainScene();
                 return;
             }
@@ -17078,6 +17193,7 @@ async function checkLogin() {
             } catch (inner) {
                 console.error("checkLogin fallback bootstrap failed:", inner);
             }
+            await bootPlayStartupAssets();
             showMainScene();
             return;
         }
@@ -17277,7 +17393,6 @@ function showMainScene() {
     updateResourceChestWidget();
     startResourceChestTimer();
     ensureCoverStagesSync();
-    void warmCoreSceneAssets();
 }
 
 function closeAllModals() {
@@ -17970,8 +18085,8 @@ async function waitWhilePaused(battleToken) {
 
 function closeBattleScene() {
     setBattleFightingUI(false);
-    battleSpriteLoadingToken++;
-    stopBattleSpriteLoadingDots();
+    assetLoadingSeq++;
+    stopAssetLoadingDots();
     setAdventureMode(false);
     setAdventureHubMode(false);
     setPatrolScanUI(false);
@@ -18320,9 +18435,9 @@ function renderBattleScene() {
             </div>
             <div class="fx-layer" id="fx-layer"></div>
             <div class="screen-flash" id="screen-flash"></div>
-            <div class="battle-sprite-loading" id="battle-sprite-loading" aria-live="polite" aria-hidden="true">
-                <p class="battle-sprite-loading-text">
-                    <span class="battle-sprite-loading-label">Loading sprite animation</span><span class="battle-sprite-loading-dots">...</span>
+            <div class="battle-sprite-loading game-asset-loading" id="battle-sprite-loading" aria-live="polite" aria-hidden="true">
+                <p class="game-asset-loading-text battle-sprite-loading-text">
+                    <span class="game-asset-loading-label">Loading sprite animation</span><span class="game-asset-loading-dots battle-sprite-loading-dots">...</span>
                 </p>
             </div>
         </div>
