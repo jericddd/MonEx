@@ -19,6 +19,7 @@ import {
   resolveProductionUser,
   normalizeUsername,
 } from "./lib/resolve-production-user.mjs";
+import { analyzeReleaseLogForSave } from "../src/lib/release-audit.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -208,6 +209,7 @@ async function main() {
 
   const campaignC1 = save?.questState?.tasks?.campaign?.find((t) => t?.id === "c1") || null;
   const questMonballPaid = save?.questMonballPaidAmounts?.["task:campaign:c1"] ?? null;
+  const releaseAudit = save ? analyzeReleaseLogForSave(save) : null;
 
   const report = {
     username,
@@ -268,6 +270,17 @@ async function main() {
           revision: save.revision,
         }
       : null,
+    releaseLog: releaseAudit
+      ? {
+          releaseLogCount: releaseAudit.releaseLogCount,
+          releasedRecoveryIdsCount: releaseAudit.releasedRecoveryIdsCount,
+          releasedRecoveryIds: releaseAudit.releasedRecoveryIds,
+          recentReleases: releaseAudit.recentReleases,
+          salvageTotalsFromLog: releaseAudit.salvageTotalsFromLog,
+          inventoryGhosts: releaseAudit.inventoryGhosts,
+          inventoryConsistent: releaseAudit.inventoryConsistent,
+        }
+      : null,
     catchHistory: catches,
     monballAudit: auditLedger,
     analysis: {
@@ -286,6 +299,9 @@ async function main() {
         catches.length >= 2
         && catches.some((c) => c.monballsLeft === 0)
         && auditLedger.some((a) => a.source === "mailbox_claim" && a.delta === 5),
+      releaseLogChecked: releaseAudit != null,
+      releasedMonGhostsInInventory: releaseAudit?.inventoryGhosts?.length ?? 0,
+      inventoryReleaseConsistent: releaseAudit?.inventoryConsistent ?? null,
     },
   };
 
@@ -311,6 +327,28 @@ async function main() {
     console.log(`  day (UTC): ${report.replyTracker.dayUtc}`);
     console.log(`  kvCount: ${report.replyTracker.kvCount}`);
     console.log(`  footer after next reply: ${report.replyTracker.repliesLeftAfterNext}/${report.replyTracker.dailyLimit} left`);
+  }
+  if (report.releaseLog) {
+    console.log("");
+    console.log("Release log:");
+    console.log(`  releases logged: ${report.releaseLog.releaseLogCount}`);
+    console.log(`  released recovery ids: ${report.releaseLog.releasedRecoveryIdsCount}`);
+    const salvage = report.releaseLog.salvageTotalsFromLog;
+    console.log(`  salvage totals (from log): gold=${salvage.gold}, essence=${salvage.essence}, shards=${salvage.shards}`);
+    if (report.releaseLog.recentReleases.length) {
+      console.log("  recent releases:");
+      for (const r of report.releaseLog.recentReleases.slice(0, 10)) {
+        console.log(`    ${r.at}  ${r.name} (${r.rarity} L${r.level})  +${r.gold}g +${r.essence}e +${r.shards}s  from ${r.source}`);
+      }
+    }
+    if (report.releaseLog.inventoryGhosts.length) {
+      console.log("  ⚠ Released mons still present in inventory (stale save):");
+      for (const g of report.releaseLog.inventoryGhosts) {
+        console.log(`    ${g.source}: ${g.name} blocked=${g.blockedKeys.join(",")}`);
+      }
+    } else if (report.releaseLog.releaseLogCount > 0 || report.releaseLog.releasedRecoveryIdsCount > 0) {
+      console.log("  ✓ No released mon ghosts in party/box");
+    }
   }
   if (report.cloudSave) {
     console.log("");
@@ -351,6 +389,9 @@ async function main() {
   if (report.analysis.likelyDailyLoginBetweenCatches) {
     console.log("  ⚠ Pattern matches: catch to 0, then mailbox_claim +5, then another catch.");
     console.log("    This is expected if Daily Login mail was claimed between sessions.");
+  }
+  if (report.analysis.releasedMonGhostsInInventory > 0) {
+    console.log(`  ⚠ ${report.analysis.releasedMonGhostsInInventory} released mon(s) reappear in inventory — investigate stale cloud save.`);
   }
 }
 
