@@ -431,6 +431,14 @@ function sanitizeQuestGrant(raw) {
   return Object.keys(grant).length ? grant : null;
 }
 
+export function sanitizeQuestOneTimeResetsApplied(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((entry) => String(entry || "").trim().slice(0, 64))
+    .filter(Boolean)
+    .slice(0, 32);
+}
+
 function sanitizeQuestMonballPaidAmounts(raw) {
   if (!raw || typeof raw !== "object") return {};
   const out = {};
@@ -631,6 +639,7 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
     resourceChestLastCollectAt: sanitizeResourceChestTimestamp(input.resourceChestLastCollectAt, now),
     questState: sanitizeQuestState(input.questState),
     questMonballPaidAmounts: sanitizeQuestMonballPaidAmounts(input.questMonballPaidAmounts),
+    questOneTimeResetsApplied: sanitizeQuestOneTimeResetsApplied(input.questOneTimeResetsApplied),
     mailbox: sanitizeMailbox(input.mailbox),
     dailyLoginLastClaimAt: sanitizeDailyLoginLastClaimAt(input.dailyLoginLastClaimAt, now),
     releaseLog: sanitizeReleaseLog(input.releaseLog),

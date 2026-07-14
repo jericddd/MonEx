@@ -5,6 +5,7 @@ import { clampMonballs } from "./grant-monballs.js";
 import { applyAuthoritativeMonballGrant } from "./save-reconcile.js";
 import { applyQuestResetsToState } from "./quest-reset.js";
 import { monballGrantFromTaskDef, recordMonballQuestGrantPaid } from "./quest-monball-grants.js";
+import { applyOneTimeDailyQuestResetIfNeeded } from "./quest-one-time-reset.js";
 
 const MAX_CLAIM_RETRIES = 3;
 
@@ -102,6 +103,14 @@ async function rollbackFailedMonballClaim(kv, session, preClaimSave, persistedSa
   return writeCloudSave(kv, session.xUserId, rollback, { skipStaleCheck: true });
 }
 
+async function ensureQuestSaveMigrations(kv, session, save, expectedRevision, startingMonballs) {
+  const { save: migrated, changed } = applyOneTimeDailyQuestResetIfNeeded(save);
+  if (!changed) return { ok: true, save, expectedRevision };
+  const result = await persistQuestSave(kv, session, migrated, expectedRevision, startingMonballs);
+  if (!result.ok) return result;
+  return { ok: true, save: result.save, expectedRevision: result.save.revision };
+}
+
 async function ensureQuestStateCurrent(kv, session, save, expectedRevision, startingMonballs) {
   let questState = normalizeQuestState(save);
   let workingSave = save;
@@ -134,7 +143,15 @@ export async function claimQuestTask(kv, session, { tab, taskId, expectedRevisio
 
   const grantKey = questGrantKey(tab, id);
   const { save: loadedSave } = await loadCloudSave(kv, session.xUserId);
-  const ensured = await ensureQuestStateCurrent(kv, session, loadedSave, expectedRevision, startingMonballs);
+  const migrated = await ensureQuestSaveMigrations(kv, session, loadedSave, expectedRevision, startingMonballs);
+  if (!migrated.ok) return migrated;
+  const ensured = await ensureQuestStateCurrent(
+    kv,
+    session,
+    migrated.save,
+    migrated.expectedRevision,
+    startingMonballs
+  );
   if (!ensured.ok) return ensured;
   const save = ensured.save;
   const expectedRev = ensured.expectedRevision;
@@ -209,7 +226,15 @@ export async function claimQuestChest(kv, session, { track, milestone, expectedR
 
   const grantKey = questChestGrantKey(trackKey, ms);
   const { save: loadedSave } = await loadCloudSave(kv, session.xUserId);
-  const ensured = await ensureQuestStateCurrent(kv, session, loadedSave, expectedRevision, startingMonballs);
+  const migrated = await ensureQuestSaveMigrations(kv, session, loadedSave, expectedRevision, startingMonballs);
+  if (!migrated.ok) return migrated;
+  const ensured = await ensureQuestStateCurrent(
+    kv,
+    session,
+    migrated.save,
+    migrated.expectedRevision,
+    startingMonballs
+  );
   if (!ensured.ok) return ensured;
   const save = ensured.save;
   const expectedRev = ensured.expectedRevision;

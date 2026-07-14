@@ -1,4 +1,4 @@
-import { validateAndSanitizeSave } from "./save-validate.js";
+import { validateAndSanitizeSave, sanitizeQuestOneTimeResetsApplied } from "./save-validate.js";
 import {
   mergeReleaseLog,
   mergeReleasedRecoveryIds,
@@ -63,6 +63,11 @@ export function preserveServerAuthoritativeFields(payload, existingSave) {
   const src = existingSave && typeof existingSave === "object" ? existingSave : {};
   payload.mailbox = Array.isArray(src.mailbox) ? src.mailbox : [];
   payload.dailyLoginLastClaimAt = src.dailyLoginLastClaimAt ?? null;
+  payload.questOneTimeResetsApplied = sanitizeQuestOneTimeResetsApplied(src.questOneTimeResetsApplied);
+  payload.questMonballPaidAmounts =
+    src.questMonballPaidAmounts && typeof src.questMonballPaidAmounts === "object"
+      ? src.questMonballPaidAmounts
+      : payload.questMonballPaidAmounts;
   return payload;
 }
 

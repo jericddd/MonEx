@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { claimQuestTask } from "./quest-claim.js";
 import { getDailyDayKey, getDailyWeekKey } from "./daily-reset.js";
 import { findUnpaidMonballQuestGrants, reconcileUnpaidMonballQuestGrants } from "./quest-monball-grants.js";
+import { DAILY_QUEST_FORCE_RESET_ID } from "./quest-one-time-reset.js";
 
 function makeKv(store = {}) {
   return {
@@ -160,6 +161,7 @@ test("claimQuestTask grants reward server-side when progress meets goal", async 
           campaign: [],
         },
       },
+      questOneTimeResetsApplied: [DAILY_QUEST_FORCE_RESET_ID],
       updatedAt: now.toISOString(),
     }),
   });

@@ -4,6 +4,10 @@
  */
 
 import { LIMITS, sanitizeReleaseLog, sanitizeReleasedRecoveryIds } from "./save-validate.js";
+import {
+  applyOneTimeDailyQuestResetIfNeeded,
+  overlayMigratedDailyQuestState,
+} from "./quest-one-time-reset.js";
 import { applyQuestResetsToState } from "./quest-reset.js";
 import {
   QUEST_TASK_DEFS,
@@ -387,7 +391,11 @@ export function stripReleasedMonsFromInventory(existing, incoming) {
  */
 export function guardSavePayload(existing, incoming, options = {}) {
   if (!incoming || typeof incoming !== "object") return incoming;
-  const ex = existing && typeof existing === "object" ? existing : {};
+  const now = options.now ?? Date.now();
+  let ex = existing && typeof existing === "object" ? existing : {};
+  const oneTimeReset = applyOneTimeDailyQuestResetIfNeeded(ex, new Date(now));
+  if (oneTimeReset.changed) ex = oneTimeReset.save;
+
   let out = { ...incoming };
   out = clampEconomyScalars(ex, out);
   out = clampAdventureProgress(ex, out);
@@ -399,6 +407,9 @@ export function guardSavePayload(existing, incoming, options = {}) {
   out.releaseLog = mergeReleaseLog(ex, out);
   out.releasedRecoveryIds = mergeReleasedRecoveryIds(ex, out);
   out = stripReleasedMonsFromInventory(ex, out);
+  if (oneTimeReset.changed) {
+    out = overlayMigratedDailyQuestState(ex, out);
+  }
   return out;
 }
 
