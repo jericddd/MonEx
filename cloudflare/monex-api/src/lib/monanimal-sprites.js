@@ -55,6 +55,30 @@ export function getLegendaryCardGifPath(name) {
   return null;
 }
 
+export function speciesHasSceneIdle(name) {
+  if (getSpeciesKey(name) === "johnw") return true;
+  const entry = getEntry(name);
+  return !!(entry?.sceneIdle && entry.gifConfirmed !== false);
+}
+
+export function getMonDisplaySpriteCandidates(mon) {
+  const name = mon?.name;
+  const rarity = mon?.rarity;
+  const candidates = [];
+  const add = (path) => {
+    if (path && !candidates.includes(path)) candidates.push(path);
+  };
+
+  add(getMonDisplaySpritePath(mon));
+  add(getPngPath(name));
+
+  const entry = getEntry(name);
+  if (entry?.genericGif && entry.gifConfirmed !== false) add(entry.genericGif);
+  if (entry?.idleGif && entry.gifConfirmed !== false) add(entry.idleGif);
+
+  return candidates;
+}
+
 /** Sprite path for catch cards and other server-rendered mon portraits. */
 export function getMonDisplaySpritePath(mon) {
   const name = mon?.name;

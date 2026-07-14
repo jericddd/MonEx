@@ -724,16 +724,14 @@ function buildActivityMonCardHtml(mon, mode) {
     const name = getActivityMonDisplayName(mon.name);
     const rarity = mon.rarity || "Common";
     const rarityClass = getActivityRarityClass(rarity);
-    const sprite = getActivityMonSprite(mon);
-    const spriteFallback = getActivityMonSpriteFallback(mon);
     const spriteClass = getActivityMonSpriteClass(mon);
     const houseIcon = getActivityHouseIcon(mon.name);
-    const imgFallback = `this.onerror=null;this.src='${escapeActivityHtml(spriteFallback)}'`;
+    const avatarAttrs = `data-mon-avatar="1" data-mon-name="${escapeActivityHtml(mon.name || "")}" data-mon-rarity="${escapeActivityHtml(rarity)}" decoding="async"`;
 
     if (mode === "mini") {
         return `<div class="activity-mon-card activity-mon-card--mini ${rarityClass}" aria-hidden="true">
             <div class="activity-mon-sprite ${spriteClass}">
-                <img src="${escapeActivityHtml(sprite)}" alt="" loading="lazy" onerror="${imgFallback}">
+                <img ${avatarAttrs} alt="" loading="lazy">
             </div>
             <div class="activity-mon-identity">
                 <div class="activity-mon-name">${escapeActivityHtml(name)}</div>
@@ -750,7 +748,7 @@ function buildActivityMonCardHtml(mon, mode) {
         ${houseHtml}
         <div class="activity-mon-card-top">
             <div class="activity-mon-sprite ${spriteClass}">
-                <img src="${escapeActivityHtml(sprite)}" alt="${escapeActivityHtml(name)}" loading="lazy" onerror="${imgFallback}">
+                <img ${avatarAttrs} alt="${escapeActivityHtml(name)}" loading="lazy">
             </div>
             <div class="activity-mon-name">${escapeActivityHtml(name)}</div>
             <div class="activity-mon-rarity-row">
@@ -1049,6 +1047,7 @@ function renderActivityTable(el, data, emptyMsg, opts = {}) {
         </thead>
         <tbody>${rows}</tbody>
     </table>`;
+    bindActivityMonAvatarImages(el);
     bindActivityTableClicks(el, entries, opts);
 }
 
@@ -1106,6 +1105,23 @@ function renderPagination(container, data, onPage) {
     });
 }
 
+function bindActivityMonAvatarImages(root) {
+    const scope = root || document;
+    const api = typeof window !== "undefined" ? window.MonExMonSprites : null;
+    scope.querySelectorAll("img[data-mon-avatar]").forEach((img) => {
+        const mon = { name: img.dataset.monName, rarity: img.dataset.monRarity || undefined };
+        if (api?.bindMonAvatarImg) {
+            api.bindMonAvatarImg(img, mon);
+            return;
+        }
+        img.src = getActivityMonSprite(mon);
+        img.onerror = () => {
+            img.onerror = null;
+            img.src = getActivityMonSpriteFallback(mon);
+        };
+    });
+}
+
 function renderActivityFeedElement(el, entries, emptyMsg, opts = {}) {
     if (!el) return;
     injectActivityUiStyles();
@@ -1116,6 +1132,7 @@ function renderActivityFeedElement(el, entries, emptyMsg, opts = {}) {
     el.innerHTML = entries.map((e, i) =>
         formatActivityEntryHtml(e, opts).replace('data-activity-idx="__IDX__"', `data-activity-idx="${i}"`)
     ).join("");
+    bindActivityMonAvatarImages(el);
     bindActivityFeedClicks(el, entries, opts);
 }
 

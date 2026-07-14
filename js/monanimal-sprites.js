@@ -103,7 +103,8 @@
   function speciesHasSceneIdle(name) {
     if (isJohnw(name)) return true;
     const entry = getEntry(name);
-    return !!(entry?.sceneIdle || entry?.idleGif);
+    // Only use scene idle GIFs that are confirmed deployed — idleGif alone is not enough.
+    return !!(entry?.sceneIdle && entry.gifConfirmed !== false);
   }
 
   function normalizeMon(mon) {
@@ -126,6 +127,60 @@
   function getMonDisplayFallbackPath(mon) {
     const m = normalizeMon(mon);
     return getPngPath(m.name);
+  }
+
+  function getMonDisplaySpriteCandidates(mon) {
+    const m = normalizeMon(mon);
+    const candidates = [];
+    const add = (path) => {
+      if (path && !candidates.includes(path)) candidates.push(path);
+    };
+
+    add(getMonDisplaySpritePath(m));
+    add(getPngPath(m.name));
+
+    const entry = getEntry(m.name);
+    if (entry?.genericGif && entry.gifConfirmed !== false) add(entry.genericGif);
+    if (entry?.idleGif && entry.gifConfirmed !== false) add(entry.idleGif);
+
+    if (isJohnw(m.name)) {
+      add(SPECIAL.johnw.png);
+      add(SPECIAL.johnw.idleGif);
+    }
+
+    return candidates;
+  }
+
+  function bindMonAvatarImg(img, mon) {
+    if (!img) return;
+    const candidates = getMonDisplaySpriteCandidates(mon);
+    if (!candidates.length) {
+      img.style.visibility = "hidden";
+      img.removeAttribute("src");
+      return;
+    }
+
+    const key = candidates.join("|");
+    if (img.dataset.avatarBound === key && img.getAttribute("src")) return;
+
+    img.dataset.avatarBound = key;
+    let index = 0;
+    const tryNext = () => {
+      if (index >= candidates.length) {
+        img.onerror = null;
+        img.style.visibility = "hidden";
+        img.removeAttribute("src");
+        img.removeAttribute("data-avatar-bound");
+        return;
+      }
+      img.style.visibility = "visible";
+      img.src = candidates[index];
+      index += 1;
+    };
+
+    img.onerror = tryNext;
+    index = 0;
+    tryNext();
   }
 
   function usesLegendaryStaticSprite(mon) {
@@ -183,6 +238,8 @@
     isJohnw,
     getMonDisplaySpritePath,
     getMonDisplayFallbackPath,
+    getMonDisplaySpriteCandidates,
+    bindMonAvatarImg,
     usesLegendaryStaticSprite,
     getMonSpriteExtraClass,
     preloadMonAvatars,
