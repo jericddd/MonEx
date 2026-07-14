@@ -5812,6 +5812,40 @@ body.afk-layout:has(.game-container.patrol-scan-active) > .game-container-bg {
     40% { filter: brightness(2.2); }
     100% { filter: brightness(1); }
 }
+.battle-sprite-loading {
+    position: absolute;
+    left: 50%;
+    bottom: 18%;
+    transform: translateX(-50%);
+    z-index: 18;
+    pointer-events: none;
+    padding: 8px 14px;
+    background: rgba(0, 0, 0, 0.68);
+    border: 2px solid rgba(107, 33, 168, 0.9);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+.battle-sprite-loading.is-visible {
+    opacity: 1;
+    visibility: visible;
+}
+.battle-sprite-loading-text {
+    margin: 0;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    line-height: 1.6;
+    color: #fde68a;
+    text-align: center;
+    white-space: nowrap;
+}
+.battle-sprite-loading-dots {
+    display: inline-block;
+    width: 3ch;
+    text-align: left;
+}
 #battle-content { flex: 1; width: 100%; min-height: 0; }
 #battle-content .battle-stage {
     position: absolute;
@@ -10439,6 +10473,63 @@ async function warmBattleCombatantAssets(playerTeam, enemyTeam) {
 async function warmFighterAssets(fighter) {
     if (!fighter?.name) return;
     await warmBattleCombatantAssets([fighter], []);
+}
+
+const BATTLE_SPRITE_LOADING_SHOW_MS = 220;
+let battleSpriteLoadingToken = 0;
+let battleSpriteLoadingDotsTimer = null;
+
+function setBattleSpriteLoadingVisible(visible) {
+    const el = document.getElementById("battle-sprite-loading");
+    if (!el) return;
+    el.classList.toggle("is-visible", !!visible);
+    el.setAttribute("aria-hidden", visible ? "false" : "true");
+    if (visible) startBattleSpriteLoadingDots();
+    else stopBattleSpriteLoadingDots();
+}
+
+function startBattleSpriteLoadingDots() {
+    stopBattleSpriteLoadingDots();
+    const dotsEl = document.querySelector(".battle-sprite-loading-dots");
+    if (!dotsEl) return;
+    const frames = [".", "..", "..."];
+    let frame = 0;
+    dotsEl.textContent = frames[frame];
+    battleSpriteLoadingDotsTimer = setInterval(() => {
+        frame = (frame + 1) % frames.length;
+        dotsEl.textContent = frames[frame];
+    }, 420);
+}
+
+function stopBattleSpriteLoadingDots() {
+    if (battleSpriteLoadingDotsTimer) {
+        clearInterval(battleSpriteLoadingDotsTimer);
+        battleSpriteLoadingDotsTimer = null;
+    }
+}
+
+async function withBattleSpriteLoading(warmPromise, battleToken) {
+    const token = ++battleSpriteLoadingToken;
+    let showTimer = null;
+    let indicatorShown = false;
+
+    const reveal = () => {
+        if (token !== battleSpriteLoadingToken || indicatorShown) return;
+        if (battleToken != null && battleToken !== adventureBattleToken) return;
+        indicatorShown = true;
+        setBattleSpriteLoadingVisible(true);
+    };
+
+    showTimer = setTimeout(reveal, BATTLE_SPRITE_LOADING_SHOW_MS);
+
+    try {
+        await warmPromise;
+    } finally {
+        clearTimeout(showTimer);
+        if (token === battleSpriteLoadingToken) {
+            setBattleSpriteLoadingVisible(false);
+        }
+    }
 }
 
 function usesGifNaturalLoop(spritePath) {
@@ -17879,6 +17970,8 @@ async function waitWhilePaused(battleToken) {
 
 function closeBattleScene() {
     setBattleFightingUI(false);
+    battleSpriteLoadingToken++;
+    stopBattleSpriteLoadingDots();
     setAdventureMode(false);
     setAdventureHubMode(false);
     setPatrolScanUI(false);
@@ -18147,7 +18240,12 @@ function makeEnemyTeam(chapter, stage) {
 }
 
 function start3v3Battle(playerParty, options = {}) {
+    void start3v3BattleAsync(playerParty, options);
+}
+
+async function start3v3BattleAsync(playerParty, options = {}) {
     adventureBattleToken++;
+    const battleToken = adventureBattleToken;
     isInAdventureBattle = true;
     battleScreen = "fight";
     markAdventureBattleSession();
@@ -18160,7 +18258,12 @@ function start3v3Battle(playerParty, options = {}) {
     const enemyTeam = options.enemyTeam || makeEnemyTeam(currentChapter, currentStage);
     renderBattleScene();
     setBattleFightingUI(true);
-    runBattle(playerTeam, enemyTeam, adventureBattleToken);
+    await withBattleSpriteLoading(
+        warmBattleCombatantAssets(playerTeam, enemyTeam),
+        battleToken
+    );
+    if (battleToken !== adventureBattleToken || !isInAdventureBattle) return;
+    runBattle(playerTeam, enemyTeam, battleToken);
 }
 
 function renderBattleScene() {
@@ -18217,6 +18320,11 @@ function renderBattleScene() {
             </div>
             <div class="fx-layer" id="fx-layer"></div>
             <div class="screen-flash" id="screen-flash"></div>
+            <div class="battle-sprite-loading" id="battle-sprite-loading" aria-live="polite" aria-hidden="true">
+                <p class="battle-sprite-loading-text">
+                    <span class="battle-sprite-loading-label">Loading sprite animation</span><span class="battle-sprite-loading-dots">...</span>
+                </p>
+            </div>
         </div>
     `;
     applyBattleStageChapterBackground(currentChapter);
@@ -18969,8 +19077,7 @@ async function runBattle(player, enemy, battleToken) {
     setFighter("enemy", enemy[ei]);
     renderTeam("player", player, pi);
     renderTeam("enemy", enemy, ei);
-    const warmup = warmBattleCombatantAssets(player, enemy);
-    await Promise.all([delay(700), warmup]);
+    await delay(700);
 
     let guard = 0;
     while (guard++ < 500) {
