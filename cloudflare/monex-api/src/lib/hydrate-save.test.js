@@ -60,16 +60,65 @@ test("recoverMissingMonsFromActivity skips when inventory already populated", as
   });
 
   const existing = {
-    party: [{ name: "Mouch", rarity: "Common", level: 1 }],
+    party: [
+      {
+        name: "Chog",
+        rarity: "Common",
+        level: 1,
+        wildPendingId: "recovery_act_legacy_0",
+        equipment: {},
+      },
+    ],
     box: [],
     monballs: 10,
   };
   const result = await recoverMissingMonsFromActivity(kv, "u1", "trainer", existing, 10);
   assert.equal(result.recovered, false);
   assert.equal(result.added.length, 0);
-  assert.equal(result.skippedReason, "inventory_populated");
   assert.equal(result.save.party.length, 1);
   assert.equal(store["monex:save:u1"], undefined);
+});
+
+test("recoverMissingMonsFromActivity backfills undelivered mons when inventory is partial", async () => {
+  const store = {};
+  const kv = makeKv(store);
+  store["monex:activity"] = JSON.stringify({
+    entries: [
+      {
+        id: "act_bulk",
+        xUsername: "Noajolouis",
+        status: "success",
+        at: "2026-07-13T23:52:55.829Z",
+        mons: [
+          { name: "Monhorse", rarity: "Common", skills: "★Slash" },
+          { name: "Moyaki", rarity: "Rare", skills: "★Flame" },
+          { name: "Chog", rarity: "Common", skills: "★Slash" },
+        ],
+      },
+      {
+        id: "act_single",
+        xUsername: "Noajolouis",
+        status: "success",
+        at: "2026-07-14T00:00:58.064Z",
+        mons: [{ name: "Mouch", rarity: "Uncommon", skills: "★Zap" }],
+      },
+    ],
+  });
+  store["monex:state"] = JSON.stringify({ processedTweetIds: [], users: {} });
+
+  const partial = {
+    party: [{ name: "Monhorse", rarity: "Common", level: 1, equipment: {} }],
+    box: [{ name: "Moyaki", rarity: "Rare", level: 1, equipment: {} }],
+    monballs: 10,
+    xHandle: "noajolouis",
+  };
+
+  const result = await recoverMissingMonsFromActivity(kv, "u1", "Noajolouis", partial, 10);
+  assert.equal(result.recovered, true);
+  assert.equal(result.added.length, 2);
+  const names = [...result.save.party, ...result.save.box].map((m) => m.name).sort();
+  assert.ok(names.includes("Chog"));
+  assert.ok(names.includes("Mouch"));
 });
 
 test("hydrate does not re-import activity on every call once inventory exists", async () => {
