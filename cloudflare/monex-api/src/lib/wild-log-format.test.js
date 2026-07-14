@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { describeWildLogCatch, describeWildLogBalance, resolveMonballsBefore } from "./wild-log-format.js";
+import { describeWildLogCatch, describeWildLogBalance } from "./wild-log-format.js";
 
 test("describeWildLogCatch simplifies single-catch rows", () => {
   assert.equal(describeWildLogCatch({ spend: 1, throws: 1, caughtCount: 1 }), "1 caught");
@@ -17,14 +17,11 @@ test("describeWildLogCatch shows bulk catch summary", () => {
   );
 });
 
-test("describeWildLogBalance shows before and after when recorded", () => {
+test("describeWildLogBalance shows remaining monballs only", () => {
   assert.equal(
     describeWildLogBalance({ monballsBefore: 13, monballsLeft: 12, spend: 1 }),
-    "13 → 12"
+    "12"
   );
-});
-
-test("describeWildLogBalance infers before for legacy rows", () => {
-  assert.equal(resolveMonballsBefore({ monballsLeft: 12, spend: 1 }), 13);
-  assert.equal(describeWildLogBalance({ monballsLeft: 12, spend: 1 }), "13 → 12");
+  assert.equal(describeWildLogBalance({ monballsLeft: 12, spend: 1 }), "12");
+  assert.equal(describeWildLogBalance({}), "—");
 });
