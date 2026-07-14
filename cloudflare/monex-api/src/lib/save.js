@@ -68,6 +68,10 @@ export function preserveServerAuthoritativeFields(payload, existingSave) {
     src.questMonballPaidAmounts && typeof src.questMonballPaidAmounts === "object"
       ? src.questMonballPaidAmounts
       : payload.questMonballPaidAmounts;
+  payload.accountCompensationsApplied =
+    src.accountCompensationsApplied && typeof src.accountCompensationsApplied === "object"
+      ? src.accountCompensationsApplied
+      : payload.accountCompensationsApplied;
   return payload;
 }
 

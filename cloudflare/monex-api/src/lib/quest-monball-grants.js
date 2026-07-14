@@ -110,6 +110,16 @@ export function monballGrantFromTaskDef(def) {
   return grant?.monballs ? Math.max(0, Math.floor(Number(grant.monballs) || 0)) : 0;
 }
 
+export function getMonballQuestPaidAmount(save, grantKey) {
+  return normalizePaidMap(save)[String(grantKey || "")] || 0;
+}
+
+export function isMonballQuestFullyPaid(save, grantKey, expectedAmount) {
+  const expected = Math.max(0, Math.floor(Number(expectedAmount) || 0));
+  if (!expected) return false;
+  return getMonballQuestPaidAmount(save, grantKey) >= expected;
+}
+
 export async function recordMonballQuestGrantPaid(kv, session, save, grantKey, amount, startingMonballs = 10) {
   const paid = Math.max(0, Math.floor(Number(amount) || 0));
   if (!paid || !grantKey) return save;

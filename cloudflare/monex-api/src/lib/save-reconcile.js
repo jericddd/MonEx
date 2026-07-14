@@ -5,7 +5,7 @@ import {
 } from "./catch-user-store.js";
 import { backfillPendingForCatchUser } from "./backfill-pending.js";
 import { loadCloudSave, writeCloudSave, buildSavePayload } from "./save.js";
-import { clampMonballs, mergeMonballBalances, creditCatchMonballs } from "./grant-monballs.js";
+import { clampMonballs, mergeMonballBalances, creditCatchMonballs, alignCatchMonballsToMerged } from "./grant-monballs.js";
 import { appendMonballAudit } from "./monball-audit.js";
 import { cleanUsername } from "./backfill-pending.js";
 import { MAX_SAVE_DELTA } from "./save-economy-guard.js";
@@ -135,6 +135,36 @@ export async function applyAuthoritativeMonballGrant(
     { ...save, monballs, updatedAt: new Date().toISOString() },
     session
   );
+  return writeCloudSave(kv, session.xUserId, nextSave, { skipStaleCheck: true });
+}
+
+/** Reverse a prior authoritative grant when a follow-up quest save fails. */
+export async function revertAuthoritativeMonballGrant(
+  kv,
+  session,
+  delta,
+  startingMonballs = 10,
+  auditSource = "monball_revert"
+) {
+  const amount = clampMonballs(delta);
+  if (!amount || !session?.xUserId) return null;
+
+  const current = await getAuthoritativeMonballs(kv, session.xUserId, session.username, startingMonballs);
+  const target = clampMonballs(current - amount);
+  await alignCatchMonballsToMerged(kv, session, target, startingMonballs);
+  const { save } = await loadCloudSave(kv, session.xUserId);
+  const nextSave = buildSavePayload(
+    { ...save, monballs: target, updatedAt: new Date().toISOString() },
+    session
+  );
+  await appendMonballAudit(kv, {
+    xUserId: session.xUserId,
+    username: session.username,
+    source: auditSource,
+    delta: target - current,
+    balanceAfter: target,
+    meta: { pool: "rollback", reverted: amount },
+  });
   return writeCloudSave(kv, session.xUserId, nextSave, { skipStaleCheck: true });
 }
 
