@@ -6617,10 +6617,12 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     background: linear-gradient(180deg, #3d2518 0%, #2a1810 100%);
     border: 3px solid #d4a04a;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 4px 0 #1a0f08;
-    max-width: 640px;
-    margin: 0 auto;
+    width: 100%;
+    max-width: none;
+    margin: 0;
     padding: 16px 18px 20px;
     color: #ffe8c8;
+    box-sizing: border-box;
 }
 .profile-tabs-row {
     display: flex;
@@ -6728,6 +6730,8 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
 }
 /* Logs tab — equal 50/50 split with independent scroll panels */
 #modal-profile:has(.profile-panel--logs) .game-modal-panel {
+    width: min(920px, 96vw);
+    max-width: min(920px, 96vw);
     height: min(88vh, 920px);
     max-height: min(88vh, 920px);
     display: flex;
@@ -6747,6 +6751,7 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     min-height: 0;
     display: flex;
     flex-direction: column;
+    width: 100%;
 }
 .profile-pane--log.active {
     display: flex;
@@ -7925,7 +7930,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/staging-banner.js?v=20260710a"></script>
 <script src="js/monex-config.js?v=20260710a"></script>
 <script src="js/escape-html.js?v=20260710a"></script>
-<script src="js/activity-client.js?v=20260714g"></script>
+<script src="js/activity-client.js?v=20260714h"></script>
 <script src="js/auth-client.js?v=20260714d"></script>
 <script src="js/release-client.js?v=20260714a"></script>
 <script src="js/game-session-client.js?v=20260710a"></script>
@@ -16678,6 +16683,8 @@ async function refreshProfileActivity(opts = {}) {
         MonExActivity.renderFeed(el, items, {
             emptyText: "No successful @monexmonad catches yet. Tweet @monexmonad catch 1 monanimal on X!",
             showUser: false,
+            gameTheme: true,
+            wideDetail: true,
         });
         el.dataset.profileActivityLoaded = "1";
     } catch (e) {
