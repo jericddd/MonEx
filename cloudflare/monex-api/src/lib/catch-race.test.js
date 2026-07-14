@@ -65,6 +65,7 @@ describe("catch spend race mitigation", () => {
     const failures = results.filter((r) => r.skipReason === "insufficient");
     assert.equal(successes.length, 1);
     assert.equal(failures.length, 1);
+    assert.equal(successes[0].activity.monballsBefore, 5);
     assert.equal(successes[0].activity.monballsLeft, 0);
   });
 });

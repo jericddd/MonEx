@@ -195,11 +195,16 @@ function injectActivityUiStyles() {
 .wild-log-table .col-num,
 .wild-log-table .col-time,
 .wild-log-table .col-user,
-.wild-log-table .col-spend,
-.wild-log-table .col-throws,
+.wild-log-table .col-catch,
 .wild-log-table .col-left {
     vertical-align: middle;
 }
+.wild-log-catch-ok { font-weight: 700; color: #166534; }
+.wild-log-catch-miss { font-weight: 700; color: #991b1b; }
+.wild-log-catch-partial { font-weight: 700; color: #1e3a8a; }
+.wild-log-catch-spend { color: rgba(61, 26, 8, 0.75); font-weight: 600; }
+.wild-log-catch-escaped { color: rgba(61, 26, 8, 0.65); font-size: 11px; font-weight: 600; }
+.wild-log-balance { font-weight: 700; color: #6B21A8; white-space: nowrap; }
 .wild-log-mini-cards {
     display: flex;
     flex-wrap: wrap;
@@ -768,6 +773,64 @@ function buildWildLogMiniCardsHtml(mons, totalCaught) {
     return `<div class="wild-log-mini-cards">${cards}${more}</div>`;
 }
 
+function describeWildLogCatch(entry) {
+    const spend = Math.max(0, Number(entry.spend) || 0);
+    const caught = Math.max(0, Number(entry.caughtCount) || 0);
+    const throws = Math.max(0, Number(entry.throws) || spend || 0);
+    const escaped = Math.max(0, Number(entry.escapedCount) || Math.max(0, throws - caught));
+
+    if (throws <= 1) return caught === 0 ? "0 caught" : "1 caught";
+    if (caught === throws) return `${caught} caught`;
+    const escapedPart = escaped ? ` (${escaped} escaped)` : "";
+    return spend ? `${spend} Monballs · ${caught}/${throws} caught${escapedPart}` : `${caught}/${throws} caught${escapedPart}`;
+}
+
+function resolveMonballsBefore(entry) {
+    const recorded = Number(entry.monballsBefore);
+    if (Number.isFinite(recorded)) return recorded;
+    const after = Number(entry.monballsLeft);
+    const spend = Math.max(0, Number(entry.spend) || 0);
+    if (Number.isFinite(after)) return after + spend;
+    return null;
+}
+
+function describeWildLogBalance(entry) {
+    const after = Number(entry.monballsLeft);
+    const before = resolveMonballsBefore(entry);
+    if (Number.isFinite(before) && Number.isFinite(after) && before !== after) {
+        return `${before} → ${after}`;
+    }
+    if (Number.isFinite(after)) return String(after);
+    return "—";
+}
+
+function formatWildLogCatchCell(entry) {
+    const spend = Math.max(0, Number(entry.spend) || 0);
+    const caught = Math.max(0, Number(entry.caughtCount) || 0);
+    const throws = Math.max(0, Number(entry.throws) || spend || 0);
+    const escaped = Math.max(0, Number(entry.escapedCount) || Math.max(0, throws - caught));
+
+    if (throws <= 1) {
+        if (caught === 0) return `<span class="wild-log-catch-miss">0 caught</span>`;
+        return `<span class="wild-log-catch-ok">1 caught</span>`;
+    }
+    if (caught === throws) {
+        return `<span class="wild-log-catch-ok">${escapeActivityHtml(String(caught))} caught</span>`;
+    }
+    const spendPart = spend
+        ? `<span class="wild-log-catch-spend">${escapeActivityHtml(String(spend))} Monballs</span> · `
+        : "";
+    const escapedPart = escaped
+        ? ` <span class="wild-log-catch-escaped">(${escapeActivityHtml(String(escaped))} escaped)</span>`
+        : "";
+    return `${spendPart}<span class="wild-log-catch-partial">${escapeActivityHtml(String(caught))}/${escapeActivityHtml(String(throws))} caught</span>${escapedPart}`;
+}
+
+function formatWildLogMonballsLeftCell(entry) {
+    const text = describeWildLogBalance(entry);
+    return `<span class="wild-log-balance">${escapeActivityHtml(text)}</span>`;
+}
+
 function formatActivityEntryHtml(entry, opts = {}) {
     const showUser = opts.showUser !== false;
     const time = escapeActivityHtml(new Date(entry.at).toLocaleString());
@@ -776,11 +839,11 @@ function formatActivityEntryHtml(entry, opts = {}) {
         ? mons.slice(0, 3).map((h) => `<span class="activity-rare">${escapeActivityHtml(h.rarity)}</span> ${escapeActivityHtml(h.name)}`).join(", ")
         : "no catches";
     const more = entry.caughtCount > 3 ? ` +${entry.caughtCount - 3} more` : "";
-    const userPart = showUser ? `<span class="activity-user">@${escapeActivityHtml(entry.xUsername)}</span> ` : "";
+    const userPart = showUser ? `<span class="activity-user">@${escapeActivityHtml(entry.xUsername)}</span> · ` : "";
     return `<div class="activity-item activity-item-clickable" role="button" tabindex="0" data-activity-idx="__IDX__">
-        ${userPart}spent <b>${escapeActivityHtml(entry.spend)}</b> Monballs → <b>${escapeActivityHtml(entry.caughtCount)}/${escapeActivityHtml(entry.throws)}</b> caught
+        ${userPart}${escapeActivityHtml(describeWildLogCatch(entry))}
         <div>${caught}${more}</div>
-        <div class="activity-meta">${time} · ${escapeActivityHtml(entry.monballsLeft)} Monballs left on X · tap for full log</div>
+        <div class="activity-meta">${time} · ${escapeActivityHtml(describeWildLogBalance(entry))} Monballs left on X · tap for full log</div>
     </div>`;
 }
 
@@ -823,8 +886,8 @@ function buildActivityDetailHtml(entry, opts = {}) {
         : "";
     return `
         <h3 class="activity-detail-title" id="activity-detail-title">CATCH SESSION</h3>
-        <p class="activity-detail-summary">${userLine}spent <b>${escapeActivityHtml(entry.spend)}</b> Monballs → <b>${escapeActivityHtml(entry.caughtCount)}/${escapeActivityHtml(entry.throws)}</b> caught</p>
-        <p class="activity-detail-meta">${time} · ${escapeActivityHtml(entry.monballsLeft)} Monballs left on X</p>
+        <p class="activity-detail-summary">${userLine}${escapeActivityHtml(describeWildLogCatch(entry))}</p>
+        <p class="activity-detail-meta">${time} · ${escapeActivityHtml(describeWildLogBalance(entry))} Monballs left on X</p>
         ${legacyNote}
         <h4 class="activity-detail-list-title">CAUGHT MONANIMALS (${displayCount})</h4>
         ${monRows}
@@ -1014,10 +1077,9 @@ function formatActivityTableRow(entry, rowNum, idx) {
         <td class="col-num">${rowNum}</td>
         <td class="col-time">${time}</td>
         <td class="col-user"><span class="activity-user">@${escapeActivityHtml(entry.xUsername)}</span></td>
-        <td class="col-spend"><b>${escapeActivityHtml(entry.spend)}</b></td>
-        <td class="col-throws">${escapeActivityHtml(entry.caughtCount)} / ${escapeActivityHtml(entry.throws)}</td>
+        <td class="col-catch">${formatWildLogCatchCell(entry)}</td>
         <td class="col-mons">${monsCell}</td>
-        <td class="col-left">${escapeActivityHtml(entry.monballsLeft)}</td>
+        <td class="col-left">${formatWildLogMonballsLeftCell(entry)}</td>
     </tr>`;
 }
 
@@ -1039,10 +1101,9 @@ function renderActivityTable(el, data, emptyMsg, opts = {}) {
                 <th>#</th>
                 <th>Time</th>
                 <th>Trainer</th>
-                <th>Monballs</th>
-                <th>Caught</th>
+                <th>Catch</th>
                 <th>Mons</th>
-                <th>Left on X</th>
+                <th>Monballs left</th>
             </tr>
         </thead>
         <tbody>${rows}</tbody>
