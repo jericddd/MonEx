@@ -731,12 +731,13 @@ function buildActivityMonCardHtml(mon, mode) {
     const rarityClass = getActivityRarityClass(rarity);
     const spriteClass = getActivityMonSpriteClass(mon);
     const houseIcon = getActivityHouseIcon(mon.name);
+    const sprite = getActivityMonSprite(mon);
     const avatarAttrs = `data-mon-avatar="1" data-mon-name="${escapeActivityHtml(mon.name || "")}" data-mon-rarity="${escapeActivityHtml(rarity)}" decoding="async"`;
 
     if (mode === "mini") {
         return `<div class="activity-mon-card activity-mon-card--mini ${rarityClass}" aria-hidden="true">
             <div class="activity-mon-sprite ${spriteClass}">
-                <img ${avatarAttrs} alt="" loading="lazy">
+                <img ${avatarAttrs} src="${escapeActivityHtml(sprite)}" alt="" loading="lazy">
             </div>
             <div class="activity-mon-identity">
                 <div class="activity-mon-name">${escapeActivityHtml(name)}</div>
@@ -753,7 +754,7 @@ function buildActivityMonCardHtml(mon, mode) {
         ${houseHtml}
         <div class="activity-mon-card-top">
             <div class="activity-mon-sprite ${spriteClass}">
-                <img ${avatarAttrs} alt="${escapeActivityHtml(name)}" loading="lazy">
+                <img ${avatarAttrs} src="${escapeActivityHtml(sprite)}" alt="${escapeActivityHtml(name)}" loading="lazy">
             </div>
             <div class="activity-mon-name">${escapeActivityHtml(name)}</div>
             <div class="activity-mon-rarity-row">
@@ -903,7 +904,10 @@ function openActivityDetail(entry, opts = {}) {
         panel.classList.toggle("activity-detail-panel--home", !!opts.homeTheme);
         panel.classList.toggle("activity-detail-panel--wide", !!opts.homeTheme);
     }
-    if (body) body.innerHTML = buildActivityDetailHtml(entry, opts);
+    if (body) {
+        body.innerHTML = buildActivityDetailHtml(entry, opts);
+        bindActivityMonAvatarImages(body);
+    }
     modal.hidden = false;
 }
 
