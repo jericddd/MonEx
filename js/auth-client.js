@@ -340,6 +340,17 @@ async function hydrateCloudSave() {
 let _saveTimer = null;
 let _saveInflight = null;
 let _pendingSaveState = null;
+let _liveSaveProvider = null;
+
+function setLiveSaveProvider(fn) {
+  _liveSaveProvider = typeof fn === "function" ? fn : null;
+}
+
+function cancelPendingCloudSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = null;
+  _pendingSaveState = null;
+}
 
 function buildSavePayload(state) {
   return {
@@ -429,15 +440,17 @@ async function pushCloudSave(payload) {
 }
 
 async function runCloudSavePush() {
-  const state = _pendingSaveState;
-  if (!state || !isLoggedIn()) return null;
-  _pendingSaveState = null;
-  const payload = buildSavePayload(state);
   if (_saveInflight) {
     try {
       await _saveInflight;
     } catch (_) {}
   }
+  if (!isLoggedIn()) return null;
+  const state = _pendingSaveState;
+  if (!state && !_liveSaveProvider) return null;
+  _pendingSaveState = null;
+  const payload = _liveSaveProvider ? _liveSaveProvider() : buildSavePayload(state);
+  if (!payload) return null;
   _saveInflight = pushCloudSave(payload)
     .then((result) => {
       if (result?.conflict && result.save && typeof window.handleCloudSaveConflict === "function") {
@@ -483,8 +496,9 @@ captureSessionFromUrl();
 
 if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden" && _pendingSaveState && isLoggedIn()) {
-      void flushCloudSave(_pendingSaveState);
+    if (document.visibilityState === "hidden" && isLoggedIn()) {
+      const payload = _liveSaveProvider ? _liveSaveProvider() : _pendingSaveState;
+      if (payload) void flushCloudSave(payload);
     }
   });
 }
@@ -510,6 +524,8 @@ window.MonExAuth = {
   hydrateCloudSave,
   scheduleCloudSave,
   flushCloudSave,
+  setLiveSaveProvider,
+  cancelPendingCloudSave,
   buildSavePayload,
   authHeaders,
   enforceServerResetEpoch,

@@ -7926,7 +7926,8 @@ body.cloud-load-blocked .game-shell {
 <script src="js/monex-config.js?v=20260710a"></script>
 <script src="js/escape-html.js?v=20260710a"></script>
 <script src="js/activity-client.js?v=20260714g"></script>
-<script src="js/auth-client.js?v=20260714c"></script>
+<script src="js/auth-client.js?v=20260714d"></script>
+<script src="js/release-client.js?v=20260714a"></script>
 <script src="js/game-session-client.js?v=20260710a"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/quest-client.js?v=20260713b"></script>
@@ -8956,6 +8957,20 @@ function mergeReleasedRecoveryIdLists(localRows, cloudRows) {
         merged.push(key);
     }
     return merged.slice(0, 500);
+}
+
+function filterReleasedMonsFromCollection() {
+    const released = getLocalReleasedRecoveryIdSet();
+    if (!released.size) return;
+    party = party.filter((mon) => !monPersistenceKeys(mon).some((k) => released.has(k)));
+    box = box.filter((mon) => !monPersistenceKeys(mon).some((k) => released.has(k)));
+}
+
+function monPersistenceKeys(mon) {
+    const keys = [];
+    if (mon?.instanceId) keys.push(mon.instanceId);
+    if (mon?.wildPendingId) keys.push(mon.wildPendingId);
+    return keys;
 }
 
 function getLocalReleasedRecoveryIdSet() {
@@ -15548,6 +15563,7 @@ function applyLoadedSave(data) {
     if (dedupePartySpecies()) saveData();
     migrateAllGear();
     sortBox();
+    filterReleasedMonsFromCollection();
 }
 
 async function loadData() {
@@ -15662,6 +15678,9 @@ async function loadData() {
         });
     }
     reconcileUngrantedQuestRewards({ silent: true });
+    if (typeof MonExAuth !== "undefined" && MonExAuth.setLiveSaveProvider) {
+        MonExAuth.setLiveSaveProvider(() => buildSavePayload());
+    }
     updateUI();
 }
 
@@ -16975,6 +16994,10 @@ function releaseFromBox(index) {
 
 async function executeMonRelease({ mon, index, source, instanceId, salvage }) {
     if (releaseInFlight) return;
+    if (source !== "box") {
+        showHubNotice("Mons can only be released from the Box.", "Release");
+        return;
+    }
     if (!mon || ensureMonInstanceId(mon) !== instanceId) {
         showHubNotice("That mon is no longer in your box.", "Release failed");
         renderBox();
@@ -17012,24 +17035,33 @@ async function executeMonRelease({ mon, index, source, instanceId, salvage }) {
         if (salvage.gold > 0) money += salvage.gold;
         if (salvage.essence > 0) essence += salvage.essence;
         if (salvage.shards > 0) monShards += salvage.shards;
-        recordRelease(mon, salvage, source);
         list.splice(index, 1);
         updateUI();
-        if (source === "box") renderBox();
-        else renderPartyGrid();
+        renderBox();
 
-        const result = await persistProgress({ flush: true });
-        if (result?.conflict) {
-            throw new Error("cloud save conflict");
+        if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
+            MonExAuth.cancelPendingCloudSave();
         }
-        if (result === null && typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
-            throw new Error("cloud save failed");
+
+        const releaseToken = `relreq_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const revBefore = typeof MonExAuth !== "undefined" && MonExAuth.getSaveRevision
+            ? MonExAuth.getSaveRevision()
+            : null;
+        debugReleaseLog("release requested", { instanceId, releaseToken, clientRevision: revBefore });
+
+        if (typeof MonExRelease === "undefined" || !MonExRelease.releaseMon) {
+            throw new Error("release API unavailable");
         }
+        const result = await MonExRelease.releaseMon(instanceId, releaseToken);
+        if (!result.ok || !result.save) {
+            throw new Error(result.error || "release failed");
+        }
+
+        applyLoadedSave(result.save);
+        writeLocalSave(result.save);
         debugReleaseLog("release API completed", {
             instanceId,
-            newSaveRevision: typeof MonExAuth !== "undefined" && MonExAuth.getSaveRevision
-                ? MonExAuth.getSaveRevision()
-                : null,
+            newSaveRevision: result.save.revision ?? null,
         });
         refreshProfileReleases({ force: true, silent: true });
     } catch (err) {
