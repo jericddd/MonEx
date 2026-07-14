@@ -28,6 +28,26 @@ export const QUEST_MILESTONES = DAILY_QUEST_MILESTONES;
 /** @deprecated Use DAILY_QUEST_CHEST_REWARDS */
 export const QUEST_CHEST_REWARDS = DAILY_QUEST_CHEST_REWARDS;
 
+/** Quest track → all task ids that share progress (mirrors play/index.html QUEST_TASK_DEFS track field). */
+export const QUEST_TRACK_TASKS = Object.freeze({
+  adventure_win: [
+    { tab: "dailies", id: "d1" },
+    { tab: "dailies", id: "d13" },
+    { tab: "weeklies", id: "w1" },
+    { tab: "weeklies", id: "w11" },
+  ],
+  patrol_win: [
+    { tab: "dailies", id: "d4" },
+    { tab: "dailies", id: "d11" },
+    { tab: "weeklies", id: "w2" },
+  ],
+  boss_win: [
+    { tab: "dailies", id: "d6" },
+    { tab: "weeklies", id: "w4" },
+    { tab: "weeklies", id: "w7" },
+  ],
+});
+
 export const QUEST_TASK_DEFS = {
   dailies: [
     { id: "d1", points: 15, rewardKey: "gold", rewardAmount: 100 },
