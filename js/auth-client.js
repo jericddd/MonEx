@@ -190,6 +190,17 @@ function getXUserId() {
   return readCachedUser()?.xUserId || "";
 }
 
+function normalizeProfileImageUrl(url) {
+  if (!url || typeof url !== "string") return null;
+  const trimmed = url.trim();
+  if (!/^https:\/\/(pbs|abs)\.twimg\.com\//i.test(trimmed)) return null;
+  return trimmed.replace(/_normal(\.(?:jpg|jpeg|png|webp))(?:\?|$)/i, "_400x400$1");
+}
+
+function getProfileImageUrl() {
+  return normalizeProfileImageUrl(readCachedUser()?.profileImageUrl);
+}
+
 async function ensureUser() {
   if (await enforceServerResetEpoch()) return null;
   const justCaptured = captureSessionFromUrl();
@@ -422,6 +433,8 @@ window.MonExAuth = {
   getDisplayName,
   getUsername,
   getXUserId,
+  getProfileImageUrl,
+  normalizeProfileImageUrl,
   loadCloudSave,
   hydrateCloudSave,
   scheduleCloudSave,
