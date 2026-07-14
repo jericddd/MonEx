@@ -9,6 +9,7 @@ import {
   buildCampaignCompletionId,
 } from "./battle-reward.js";
 import { writeCloudSave } from "./save.js";
+import { getDailyDayKey } from "./daily-reset.js";
 
 function makeKv(store = {}) {
   return {
@@ -177,6 +178,7 @@ test("claimBattleReward survives stale revision conflict via merge retry", async
 });
 
 test("claimBattleReward patrol win grants resources with stable completion id", async () => {
+  const patrolDay = getDailyDayKey();
   const store = {
     "monex:save:u1": JSON.stringify({
       revision: 1,
@@ -189,7 +191,7 @@ test("claimBattleReward patrol win grants resources with stable completion id", 
       monShards: 0,
       trainerXp: 0,
       gearInventory: [],
-      patrolScansDay: "2026-07-14",
+      patrolScansDay: patrolDay,
       patrolScansUsed: 2,
       questState: { tasks: { dailies: [], weeklies: [], campaign: [] } },
       updatedAt: new Date().toISOString(),
@@ -198,21 +200,195 @@ test("claimBattleReward patrol win grants resources with stable completion id", 
   };
   const kv = makeKv(store);
   const session = { xUserId: "u1", username: "trainer" };
+  const legacyId = `patrol:day-${patrolDay}:scan-2:common`;
 
   const result = await claimBattleReward(kv, session, {
     mode: "patrol",
     win: true,
     encounterId: "common",
-    claimId: "patrol:day-2026-07-14:scan-2:common",
+    claimId: legacyId,
     expectedRevision: 1,
   });
 
   assert.equal(result.ok, true);
   assert.equal(result.save.currentStage, 5);
+  assert.equal(result.save.patrolScansUsed, 2);
   assert.ok(result.reward.gold > 0);
-  assert.ok(result.save.accountBattleCompletions["patrol:day-2026-07-14:scan-2:common"]);
+  assert.ok(result.save.accountBattleCompletions[legacyId]);
   const d4 = result.save.questState.tasks.dailies.find((t) => t.id === "d4");
   assert.equal(d4?.progress, 1);
+});
+
+test("claimBattleReward patrol token win deducts attempt atomically with reward", async () => {
+  const patrolDay = getDailyDayKey();
+  const store = {
+    "monex:save:u1": JSON.stringify({
+      revision: 3,
+      currentChapter: 2,
+      currentStage: 5,
+      adventureGlobalBest: 45,
+      money: 100,
+      essence: 10,
+      monShards: 0,
+      trainerXp: 0,
+      gearInventory: [],
+      patrolScansDay: patrolDay,
+      patrolScansUsed: 4,
+      questState: { tasks: { dailies: [], weeklies: [], campaign: [] } },
+      updatedAt: new Date().toISOString(),
+    }),
+    "monex:state": JSON.stringify({ processedTweetIds: [], users: {} }),
+  };
+  const kv = makeKv(store);
+  const session = { xUserId: "u1", username: "trainer" };
+  const completionId = "patrol:token:abc-123";
+
+  const result = await claimBattleReward(kv, session, {
+    mode: "patrol",
+    win: true,
+    encounterId: "rare",
+    claimId: completionId,
+    expectedRevision: 3,
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.completionId, completionId);
+  assert.equal(result.save.patrolScansUsed, 5);
+  assert.ok(result.save.money > 100);
+  assert.ok(result.save.accountBattleCompletions[completionId]);
+
+  const dup = await claimBattleReward(kv, session, {
+    mode: "patrol",
+    win: true,
+    encounterId: "rare",
+    claimId: completionId,
+    expectedRevision: result.save.revision,
+  });
+  assert.equal(dup.alreadyClaimed, true);
+  assert.equal(dup.save.patrolScansUsed, 5);
+  assert.equal(dup.save.money, result.save.money);
+});
+
+test("claimBattleReward patrol token loss deducts attempt without reward", async () => {
+  const patrolDay = getDailyDayKey();
+  const store = {
+    "monex:save:u1": JSON.stringify({
+      revision: 1,
+      currentChapter: 1,
+      currentStage: 1,
+      adventureGlobalBest: 0,
+      money: 500,
+      essence: 0,
+      monShards: 0,
+      trainerXp: 0,
+      gearInventory: [],
+      patrolScansDay: patrolDay,
+      patrolScansUsed: 1,
+      questState: { tasks: { dailies: [], weeklies: [], campaign: [] } },
+      updatedAt: new Date().toISOString(),
+    }),
+    "monex:state": JSON.stringify({ processedTweetIds: [], users: {} }),
+  };
+  const kv = makeKv(store);
+  const session = { xUserId: "u1", username: "trainer" };
+  const completionId = "patrol:token:loss-1";
+
+  const result = await claimBattleReward(kv, session, {
+    mode: "patrol",
+    win: false,
+    encounterId: "common",
+    claimId: completionId,
+    expectedRevision: 1,
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.save.patrolScansUsed, 2);
+  assert.equal(result.save.money, 500);
+  assert.equal(result.reward.gold, 0);
+  assert.ok(result.save.accountBattleCompletions[completionId]);
+});
+
+test("claimBattleReward patrol token rejects when no attempts remain", async () => {
+  const patrolDay = getDailyDayKey();
+  const store = {
+    "monex:save:u1": JSON.stringify({
+      revision: 1,
+      currentChapter: 1,
+      currentStage: 1,
+      adventureGlobalBest: 0,
+      money: 0,
+      essence: 0,
+      monShards: 0,
+      trainerXp: 0,
+      gearInventory: [],
+      patrolScansDay: patrolDay,
+      patrolScansUsed: 50,
+      questState: { tasks: { dailies: [], weeklies: [], campaign: [] } },
+      updatedAt: new Date().toISOString(),
+    }),
+  };
+  const kv = makeKv(store);
+  const session = { xUserId: "u1", username: "trainer" };
+
+  const result = await claimBattleReward(kv, session, {
+    mode: "patrol",
+    win: true,
+    encounterId: "common",
+    claimId: "patrol:token:should-fail",
+    expectedRevision: 1,
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.error, "no_patrol_attempts");
+});
+
+test("claimBattleReward patrol token does not deduct attempt when save write fails", async () => {
+  const patrolDay = getDailyDayKey();
+  const store = {
+    "monex:save:u1": JSON.stringify({
+      revision: 1,
+      currentChapter: 1,
+      currentStage: 1,
+      adventureGlobalBest: 0,
+      money: 100,
+      essence: 0,
+      monShards: 0,
+      trainerXp: 0,
+      gearInventory: [],
+      patrolScansDay: patrolDay,
+      patrolScansUsed: 4,
+      questState: { tasks: { dailies: [], weeklies: [], campaign: [] } },
+      updatedAt: new Date().toISOString(),
+    }),
+    "monex:state": JSON.stringify({ processedTweetIds: [], users: {} }),
+  };
+  const kv = {
+    async get(key) {
+      return store[key] ?? null;
+    },
+    async put(key, value) {
+      if (key.startsWith("monex:save:")) {
+        throw new Error("simulated_kv_failure");
+      }
+      store[key] = value;
+    },
+  };
+  const session = { xUserId: "u1", username: "trainer" };
+
+  await assert.rejects(
+    () => claimBattleReward(kv, session, {
+      mode: "patrol",
+      win: true,
+      encounterId: "common",
+      claimId: "patrol:token:fail-write",
+      expectedRevision: 1,
+    }),
+    /simulated_kv_failure/,
+  );
+
+  const saved = JSON.parse(store["monex:save:u1"]);
+  assert.equal(saved.patrolScansUsed, 4);
+  assert.equal(saved.money, 100);
 });
 
 test("syncCampaignQuestProgress creates missing campaign tasks", async () => {

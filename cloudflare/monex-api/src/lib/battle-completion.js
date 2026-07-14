@@ -21,6 +21,20 @@ export function buildPatrolCompletionId(patrolScansDay, patrolScansUsed, encount
   return `patrol:day-${day}:scan-${scan}:${enc}`;
 }
 
+export function buildPatrolCompletionTokenId(token) {
+  const value = String(token || "").trim().slice(0, 64);
+  if (!value) return null;
+  return `patrol:token:${value}`.slice(0, COMPLETION_ID_MAX);
+}
+
+export function isPatrolTokenCompletionId(completionId) {
+  return String(completionId || "").startsWith("patrol:token:");
+}
+
+export function isLegacyPatrolScanCompletionId(completionId) {
+  return String(completionId || "").startsWith("patrol:day-");
+}
+
 export function parseLegacyAdventureClaimId(claimId) {
   const match = String(claimId || "").match(/^adv-(\d+)-(\d+)-/);
   if (!match) return null;
@@ -29,7 +43,9 @@ export function parseLegacyAdventureClaimId(claimId) {
 
 export function normalizeBattleCompletionId({ mode, claimId, chapter, stage, patrolScansDay, patrolScansUsed, encounterId } = {}) {
   const raw = String(claimId || "").trim();
-  if (raw.startsWith("campaign:chapter-") || raw.startsWith("patrol:day-")) return raw.slice(0, COMPLETION_ID_MAX);
+  if (raw.startsWith("campaign:chapter-") || raw.startsWith("patrol:day-") || raw.startsWith("patrol:token:")) {
+    return raw.slice(0, COMPLETION_ID_MAX);
+  }
 
   if (mode === "patrol") {
     if (raw.startsWith("patrol-")) {

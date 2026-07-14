@@ -8508,6 +8508,7 @@ let activePatrolEncounter = null;
 let patrolScansUsed = 0;
 let patrolScansDay = null;
 let patrolScanToken = 0;
+let activePatrolClaimToken = null;
 const PATROL_DAILY_MAX = 50;
 const BANNER_DIR = "for%20result%20banner";
 const BATTLE_BG_MENU = BANNER_DIR + "/battlebackground.jpg";
@@ -18186,6 +18187,13 @@ async function runPatrolScanSequence(encounter, scanToken) {
     startPatrolBattle(encounter);
 }
 
+function generatePatrolClaimToken() {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+        return crypto.randomUUID();
+    }
+    return `patrol_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function beginPatrolScan() {
     if (party.length < 3) {
         showHubNotice("You need at least 3 Monanimals in your party!", "Patrol");
@@ -18196,8 +18204,13 @@ function beginPatrolScan() {
         showHubNotice("No patrol scans left today. Resets at 00:00 UTC+8.", "Patrol");
         return;
     }
-    if (!isStagingTestUser()) patrolScansUsed++;
-    void persistProgress();
+    activePatrolClaimToken = generatePatrolClaimToken();
+    const loggedIn = MonExAuth?.isLoggedIn?.();
+    if (!isStagingTestUser() && !loggedIn) {
+        patrolScansUsed++;
+        void persistProgress();
+    }
+    if (loggedIn) isInAdventureBattle = true;
 
     void warmPatrolBattleAssets();
     const encounter = rollPatrolEncounter();
@@ -18271,7 +18284,7 @@ function endPatrolBattle(win, player) {
     void finishPatrolBattleRewards(win, encounter);
 }
 
-async function claimServerBattleReward({ mode, encounterId, claimId, chapter, stage, patrolScansDay, patrolScansUsed, logTag }) {
+async function claimServerBattleReward({ mode, win, encounterId, claimId, chapter, stage, patrolScansDay, patrolScansUsed, logTag }) {
     if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
         await MonExAuth.awaitCloudSaveIdle();
     } else if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
@@ -18281,7 +18294,7 @@ async function claimServerBattleReward({ mode, encounterId, claimId, chapter, st
     try {
         const result = await claimFn({
             mode,
-            win: true,
+            win: win !== false,
             encounterId,
             claimId,
             chapter,
@@ -18298,6 +18311,7 @@ async function claimServerBattleReward({ mode, encounterId, claimId, chapter, st
                 shards: result.reward?.monShards || 0,
                 trainerXp: result.reward?.trainerXp || 0,
                 gear: result.reward?.gear || null,
+                synced: true,
             };
         }
         console.warn(`[${logTag}] server reward claim failed`, result);
@@ -18310,17 +18324,23 @@ async function claimServerBattleReward({ mode, encounterId, claimId, chapter, st
                 shards: result.reward?.monShards || 0,
                 trainerXp: result.reward?.trainerXp || 0,
                 gear: result.reward?.gear || null,
+                synced: true,
             };
         }
+        const isPatrol = mode === "patrol";
         showHubNotice(
-            "Your win was saved, but rewards could not sync with the server. Refresh to pull the latest cloud save — your claim id is stored server-side and will not double-pay.",
-            "Reward sync failed"
+            isPatrol
+                ? "Patrol results could not sync with the server. Your attempt was not consumed — tap Retry on the result screen."
+                : "Your win was saved, but rewards could not sync with the server. Refresh to pull the latest cloud save — your claim id is stored server-side and will not double-pay.",
+            isPatrol ? "Patrol sync failed" : "Reward sync failed"
         );
     } catch (e) {
         console.error(`[${logTag}] reward claim error`, e);
         showHubNotice(
-            "Network error while claiming battle rewards. Refresh to sync from the cloud.",
-            "Reward sync failed"
+            mode === "patrol"
+                ? "Network error while syncing patrol results. Your attempt was not consumed — tap Retry."
+                : "Network error while claiming battle rewards. Refresh to sync from the cloud.",
+            mode === "patrol" ? "Patrol sync failed" : "Reward sync failed"
         );
     }
     return null;
@@ -18328,31 +18348,29 @@ async function claimServerBattleReward({ mode, encounterId, claimId, chapter, st
 
 async function finishPatrolBattleRewards(win, encounter) {
     let reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null };
-    let rewardSynced = !win || !MonExAuth?.isLoggedIn?.();
-    if (win && typeof MonExBattle !== "undefined" && MonExAuth?.isLoggedIn?.()) {
+    let rewardSynced = !MonExAuth?.isLoggedIn?.();
+    const claimToken = activePatrolClaimToken;
+    if (MonExAuth?.isLoggedIn?.()) {
         ensurePatrolDailyReset();
-        const claimId = MonExBattle.buildPatrolCompletionId
-            ? MonExBattle.buildPatrolCompletionId(patrolScansDay, patrolScansUsed, encounter?.id)
-            : `patrol-${encounter?.id || "common"}-${patrolScanToken}-${adventureBattleToken}`;
+        const claimId = MonExBattle.buildPatrolCompletionTokenId?.(claimToken)
+            || (MonExBattle.buildPatrolCompletionId
+                ? MonExBattle.buildPatrolCompletionId(patrolScansDay, patrolScansUsed, encounter?.id)
+                : `patrol-${encounter?.id || "common"}-${patrolScanToken}-${adventureBattleToken}`);
         const serverReward = await claimServerBattleReward({
             mode: "patrol",
+            win,
             encounterId: encounter?.id,
             claimId,
             patrolScansDay,
             patrolScansUsed,
-            logTag: "patrol",
+            logTag: win ? "patrol" : "patrol-loss",
         });
-        if (serverReward) {
-            reward = serverReward;
+        if (serverReward?.synced) {
+            if (win) reward = serverReward;
             rewardSynced = true;
         } else {
             rewardSynced = false;
         }
-    } else if (win && MonExAuth?.isLoggedIn?.()) {
-        showHubNotice(
-            "Battle reward API is unavailable. Refresh the page to sync rewards from the cloud.",
-            "Reward offline"
-        );
     } else if (win) {
         reward = rollPatrolRewards(encounter, true);
         grantBattleRewards(reward);
@@ -18360,23 +18378,30 @@ async function finishPatrolBattleRewards(win, encounter) {
         await persistBattleReward();
     }
 
+    activePatrolClaimToken = null;
     restorePartyFullHp();
-    showPatrolBattleResult(win, reward, encounter, { rewardSynced });
-    if (!win) saveData();
+    showPatrolBattleResult(win, reward, encounter, { rewardSynced, claimToken, encounterId: encounter?.id });
+    if (!win && !MonExAuth?.isLoggedIn?.()) saveData();
 }
 
 function showPatrolBattleResult(win, reward, encounter, options = {}) {
     const rewardSynced = options.rewardSynced !== false;
+    const claimToken = options.claimToken || null;
+    const encounterId = options.encounterId || encounter?.id || "common";
     battleScreen = "patrol-result";
     setAdventureHubMode(true);
+    isInAdventureBattle = false;
     refreshAdventureModeHubBackground();
     const remaining = getPatrolScansRemaining();
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui cover-art-layer";
     const encounterLabel = encounter?.label || "Patrol encounter";
+    const retryButton = (!rewardSynced && claimToken && MonExAuth?.isLoggedIn?.())
+        ? `<button type="button" class="adventure-start-btn patrol-scan-btn" onclick="retryPatrolBattleSync(${win ? "true" : "false"}, '${String(claimToken).replace(/'/g, "\\'")}', '${String(encounterId).replace(/'/g, "\\'")}')">RETRY SYNC</button>`
+        : "";
     const drops = win
         ? (!rewardSynced
-            ? `<p class="adv-desc" style="font-size:15px;margin:20px 0;">Patrol clear recorded, but rewards did not sync. Refresh to load your cloud save.</p>`
+            ? `<p class="adv-desc" style="font-size:15px;margin:20px 0;">Patrol clear recorded locally, but rewards did not sync. Retry to claim without losing another attempt.</p>${retryButton}`
             : `<div class="result-drops" style="margin:18px 0; font-size:15px;">
                <div style="font-size:12px;color:#86efac;margin-bottom:8px;">${escapeGearHtml(encounterLabel)}</div>
                <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("gold", 20)} <b>+${reward.gold}</b></div>
@@ -18386,7 +18411,7 @@ function showPatrolBattleResult(win, reward, encounter, options = {}) {
                <div>&#11088; Trainer XP <b>+${reward.trainerXp}</b></div>
                <div style="margin-top:8px; color:#666; font-size:13px;">Team restored to full HP.</div>
            </div>`)
-        : `<p class="adv-desc" style="font-size:15px; margin:20px 0;">Patrol failed — team restored to full HP. Try again!</p>`;
+        : `<p class="adv-desc" style="font-size:15px; margin:20px 0;">Patrol failed — team restored to full HP. Try again!</p>${!rewardSynced && claimToken && MonExAuth?.isLoggedIn?.() ? `<p class="adv-desc" style="font-size:14px;margin:12px 0;">Attempt sync failed — retry to record the scan.</p>${retryButton}` : ""}`;
     const scanAgainDisabled = remaining <= 0;
     content.innerHTML = `
         <div class="adventure-panel adventure-panel--hub-overlay">
@@ -18398,6 +18423,29 @@ function showPatrolBattleResult(win, reward, encounter, options = {}) {
             <button type="button" class="adventure-continue-btn" style="margin-top:8px;background:linear-gradient(180deg,#6b4426,#4a2e18);color:#ffe8c8;border-color:#8b5a2b;" onclick="openAdventureModePicker()">ADVENTURE MODES</button>
         </div>`;
     updateUI();
+}
+
+async function retryPatrolBattleSync(win, claimToken, encounterId) {
+    if (!claimToken || !MonExAuth?.isLoggedIn?.()) return;
+    ensurePatrolDailyReset();
+    activePatrolEncounter = activePatrolEncounter || PATROL_ENCOUNTER_TABLE.find((e) => e.id === encounterId) || null;
+    const claimId = MonExBattle.buildPatrolCompletionTokenId?.(claimToken)
+        || MonExBattle.buildPatrolCompletionId?.(patrolScansDay, patrolScansUsed, encounterId);
+    const serverReward = await claimServerBattleReward({
+        mode: "patrol",
+        win,
+        encounterId,
+        claimId,
+        patrolScansDay,
+        patrolScansUsed,
+        logTag: "patrol-retry",
+    });
+    if (serverReward?.synced) {
+        const reward = win
+            ? serverReward
+            : { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null };
+        showPatrolBattleResult(win, reward, activePatrolEncounter, { rewardSynced: true });
+    }
 }
 
 function openAdventureStagePrep() {
@@ -18439,6 +18487,8 @@ function requestLeaveBattle() {
         patrolScanToken++;
         setPatrolScanUI(false);
         document.querySelector(".game-container")?.classList.remove("patrol-scan-active");
+        isInAdventureBattle = false;
+        activePatrolClaimToken = null;
         openPatrolScreen();
         return;
     }

@@ -41,6 +41,12 @@
     return `patrol:day-${day}:scan-${scan}:${enc}`;
   }
 
+  function buildPatrolCompletionTokenId(token) {
+    const value = String(token || "").trim().slice(0, 64);
+    if (!value) return null;
+    return `patrol:token:${value}`.slice(0, 96);
+  }
+
   async function claimBattleReward({ mode, win, encounterId, claimId, chapter, stage, patrolScansDay, patrolScansUsed }) {
     if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
       await MonExAuth.awaitCloudSaveIdle();
@@ -50,7 +56,7 @@
       headers: MonExAuth.authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(claimBody({
         mode,
-        win,
+        win: win !== false,
         encounterId,
         claimId,
         chapter,
@@ -90,5 +96,6 @@
     claimBattleRewardWithRetry,
     buildCampaignCompletionId,
     buildPatrolCompletionId,
+    buildPatrolCompletionTokenId,
   };
 })();

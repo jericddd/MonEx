@@ -12,12 +12,20 @@ import {
   buildCampaignCompletionId,
   buildPatrolCompletionId,
   getCompletionFromSave,
+  isLegacyPatrolScanCompletionId,
+  isPatrolTokenCompletionId,
   logBattleCompletionEvent,
   mergeAccountBattleCompletions,
   normalizeBattleCompletionId,
   sanitizeAccountBattleCompletions,
 } from "./battle-completion.js";
 import { applyQuestResetsToState } from "./quest-reset.js";
+import {
+  applyPatrolDailyResetOnSave,
+  consumePatrolAttempt,
+  mergePatrolProgressOntoLatest,
+  syncLegacyPatrolScanCount,
+} from "./patrol-attempt.js";
 
 const MAX_CLAIM_RETRIES = 3;
 const CLAIM_PREFIX = "monex:battle-claim:";
@@ -179,7 +187,34 @@ export function mergeBattleClaimOntoLatest(latest, original, intended) {
     latest.accountBattleCompletions,
     intended.accountBattleCompletions
   );
+  const patrol = mergePatrolProgressOntoLatest(latest, original, intended);
+  merged.patrolScansUsed = patrol.patrolScansUsed;
+  merged.patrolScansDay = patrol.patrolScansDay;
   return merged;
+}
+
+function buildSaveAfterPatrolLoss(save, completionId) {
+  return {
+    ...save,
+    accountBattleCompletions: mergeAccountBattleCompletions(save.accountBattleCompletions, {
+      [completionId]: {
+        at: new Date().toISOString(),
+        mode: "patrol",
+        reward: { gold: 0, essence: 0, monShards: 0, trainerXp: 0, gear: null },
+      },
+    }),
+  };
+}
+
+function applyPatrolAttemptForClaim(save, completionId, now = Date.now()) {
+  const reset = applyPatrolDailyResetOnSave(save, now);
+  if (isPatrolTokenCompletionId(completionId)) {
+    return consumePatrolAttempt(reset, now);
+  }
+  if (isLegacyPatrolScanCompletionId(completionId)) {
+    return { ok: true, save: syncLegacyPatrolScanCount(reset, completionId, now) };
+  }
+  return consumePatrolAttempt(reset, now);
 }
 
 function buildSaveAfterBattleClaim(save, computed, battleMode, completionId, serializedReward) {
@@ -441,7 +476,7 @@ export async function claimBattleReward(
   startingMonballs = 10
 ) {
   const battleMode = mode === "patrol" ? "patrol" : "adventure";
-  if (!win) return { ok: false, error: "win_required" };
+  if (!win && battleMode !== "patrol") return { ok: false, error: "win_required" };
 
   const { save } = await loadCloudSave(kv, session.xUserId);
   const completionId = normalizeBattleCompletionId({
@@ -496,9 +531,33 @@ export async function claimBattleReward(
   }
 
   let computed;
+  let nextSave;
+  const emptyReward = { gold: 0, essence: 0, monShards: 0, trainerXp: 0, gear: null };
+
   if (battleMode === "patrol") {
-    computed = computePatrolReward(save, encounterId);
+    const attemptResult = applyPatrolAttemptForClaim(save, completionId);
+    if (!attemptResult.ok) {
+      logBattleCompletionEvent("battle_claim_rejected", {
+        xUserId: session.xUserId,
+        completionId,
+        error: attemptResult.error,
+        patrolScansUsed: attemptResult.save?.patrolScansUsed,
+        patrolScansDay: attemptResult.save?.patrolScansDay,
+      });
+      return attemptResult;
+    }
+
+    if (win) {
+      computed = computePatrolReward(attemptResult.save, encounterId);
+      const reward = computed.reward;
+      const serialized = serializeReward(reward);
+      nextSave = buildSaveAfterBattleClaim(attemptResult.save, computed, battleMode, completionId, serialized);
+    } else {
+      computed = { reward: emptyReward, encounterId: encounterId || "common" };
+      nextSave = buildSaveAfterPatrolLoss(attemptResult.save, completionId);
+    }
   } else {
+    if (!win) return { ok: false, error: "win_required" };
     const resolved = resolveBattleStageForClaim(save, { chapter, stage, claimId });
     if (!resolved.ok) {
       logBattleCompletionEvent("battle_claim_rejected", {
@@ -512,11 +571,13 @@ export async function claimBattleReward(
       return resolved;
     }
     computed = computeAdventureReward(resolved.saveForCompute);
+    const reward = computed.reward;
+    const serialized = serializeReward(reward);
+    nextSave = buildSaveAfterBattleClaim(save, computed, battleMode, completionId, serialized);
   }
 
   const reward = computed.reward;
   const serialized = serializeReward(reward);
-  const nextSave = buildSaveAfterBattleClaim(save, computed, battleMode, completionId, serialized);
 
   const revisionForWrite = Number.isFinite(Number(expectedRevision))
     ? Number(expectedRevision)
@@ -567,4 +628,4 @@ export async function claimBattleReward(
   };
 }
 
-export { buildCampaignCompletionId, buildPatrolCompletionId, normalizeBattleCompletionId };
+export { buildCampaignCompletionId, buildPatrolCompletionId, buildPatrolCompletionTokenId, normalizeBattleCompletionId } from "./battle-completion.js";
