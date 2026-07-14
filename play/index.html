@@ -7045,7 +7045,8 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     max-width: 220px;
     z-index: 30;
 }
-.quest-chest.has-hover-tip .hover-tip-desc .inline-currency {
+.quest-chest.has-hover-tip .hover-tip-desc .inline-currency,
+.hover-tip-float .hover-tip-desc .inline-currency {
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -7064,7 +7065,6 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     background: rgba(0, 0, 0, 0.12);
     min-height: 200px;
     max-height: min(42vh, 360px);
-    overflow-y: auto;
 }
 .quest-task-card {
     display: grid;
@@ -10110,12 +10110,13 @@ function renderDailyQuest() {
     root.innerHTML = `
         <div class="quest-refresh-bar">${refreshLabels[tab] || ""}</div>
         ${milestoneHtml}
-        <div class="quest-task-list">${tasksHtml}</div>
+        <div class="quest-task-list hub-scrollbar-panel">${tasksHtml}</div>
         <div class="quest-tabs">
             <button type="button" class="quest-tab-btn${tab === "dailies" ? " active" : ""}" onclick="switchQuestTab('dailies')">Dailies</button>
             <button type="button" class="quest-tab-btn${tab === "weeklies" ? " active" : ""}" onclick="switchQuestTab('weeklies')">Weeklies</button>
             <button type="button" class="quest-tab-btn${tab === "campaign" ? " active" : ""}" onclick="switchQuestTab('campaign')">Campaign</button>
         </div>`;
+    bindHoverFloatTips(root);
 }
 
 // Phase 3 — Equipment & Ascension
