@@ -22,23 +22,30 @@
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  async function claimBattleReward({ mode, win, encounterId, claimId }) {
+  function resolveClaimConflict(data) {
+    if (data?.save && typeof window.handleCloudSaveConflict === "function") {
+      window.handleCloudSaveConflict(data.save);
+    }
+  }
+
+  async function claimBattleReward({ mode, win, encounterId, claimId, chapter, stage }) {
     const res = await fetch(`${apiBase()}/api/battle/claim-reward`, {
       method: "POST",
       headers: MonExAuth.authHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify(claimBody({ mode, win, encounterId, claimId })),
+      body: JSON.stringify(claimBody({ mode, win, encounterId, claimId, chapter, stage })),
     });
     const data = await res.json().catch(() => ({}));
     if (res.status === 403 && data.error === "game_session_inactive") {
       window.MonExGameSession?.handleInactiveFromApi?.();
     }
-    if (res.status === 409 && data.error === "reward_conflict" && data.save && MonExAuth.handleCloudSaveConflict) {
-      await MonExAuth.handleCloudSaveConflict(data.save);
+    if (res.status === 409 && data.error === "reward_conflict" && data.save) {
+      resolveClaimConflict(data);
     }
-    if (data.save && MonExAuth.setSaveRevision) {
-      MonExAuth.setSaveRevision(data.save.revision);
+    const result = { ok: res.ok && data.ok, status: res.status, ...data };
+    if (result.ok && result.save && MonExAuth.setSaveRevision) {
+      MonExAuth.setSaveRevision(result.save.revision);
     }
-    return { ok: res.ok && data.ok, status: res.status, ...data };
+    return result;
   }
 
   async function claimBattleRewardWithRetry(params, options = {}) {
