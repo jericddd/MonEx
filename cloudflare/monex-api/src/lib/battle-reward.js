@@ -20,6 +20,8 @@ import {
   sanitizeAccountBattleCompletions,
 } from "./battle-completion.js";
 import { applyQuestResetsToState } from "./quest-reset.js";
+import { QUEST_TRACK_TASKS } from "./quest-rewards.js";
+import { QUEST_TASK_GOALS } from "./save-economy-guard.js";
 import {
   applyPatrolDailyResetOnSave,
   consumePatrolAttempt,
@@ -34,12 +36,6 @@ const CLAIM_TTL_SECONDS = 60 * 60 * 24;
 const PATROL_ENCOUNTER_IDS = new Set(["trash", "common", "uncommon", "rare"]);
 const PATROL_MULT = { trash: 0.65, common: 1, uncommon: 1.35, rare: 1.8 };
 const PATROL_GEAR_CHANCE = { trash: 0, common: 0.06, uncommon: 0.16, rare: 0.38 };
-
-const QUEST_TRACKS = {
-  adventure_win: { tabs: ["dailies", "weeklies"], taskIds: { dailies: "d1", weeklies: "w1" }, goals: { dailies: 2, weeklies: 8 } },
-  patrol_win: { tabs: ["dailies", "weeklies"], taskIds: { dailies: "d4", weeklies: "w2" }, goals: { dailies: 2, weeklies: 8 } },
-  boss_win: { tabs: ["dailies", "weeklies"], taskIds: { dailies: "d6", weeklies: "w4" }, goals: { dailies: 1, weeklies: 3 }, bossOnly: true },
-};
 
 const CAMPAIGN_STAGE_TARGETS = {
   c1: 10, c2: 20, c3: 40, c4: 50, c5: 80, c6: 81, c7: 120,
@@ -121,17 +117,16 @@ function upsertTask(questState, tab, taskId, patch) {
 }
 
 function bumpQuestTrack(questState, track, amount = 1, opts = {}) {
-  const def = QUEST_TRACKS[track];
-  if (!def || amount <= 0) return;
-  for (const tab of def.tabs) {
-    const taskId = def.taskIds[tab];
-    const goal = def.goals[tab];
-    if (!taskId || !goal) continue;
-    if (def.bossOnly && !opts.boss) continue;
-    const task = findTask(questState, tab, taskId);
+  const entries = QUEST_TRACK_TASKS[track];
+  if (!entries || amount <= 0) return;
+  if (track === "boss_win" && !opts.boss) return;
+  for (const { tab, id } of entries) {
+    const goal = QUEST_TASK_GOALS[tab]?.[id];
+    if (!goal) continue;
+    const task = findTask(questState, tab, id);
     if (task?.claimed) continue;
     const next = Math.min(goal, (task?.progress || 0) + amount);
-    upsertTask(questState, tab, taskId, { progress: next });
+    upsertTask(questState, tab, id, { progress: next });
   }
 }
 

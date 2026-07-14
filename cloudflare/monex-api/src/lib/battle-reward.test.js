@@ -78,6 +78,11 @@ test("claimBattleReward advances adventure stage and bumps quest progress", asyn
   assert.ok(result.reward.gold > 0);
   assert.ok(result.save.accountBattleCompletions["campaign:chapter-1:stage-1:first-clear"]);
 
+  const d1 = result.save.questState.tasks.dailies.find((t) => t.id === "d1");
+  assert.equal(d1?.progress, 1);
+  const d13 = result.save.questState.tasks.dailies.find((t) => t.id === "d13");
+  assert.equal(d13?.progress, 1);
+
   const dup = await claimBattleReward(kv, session, {
     mode: "adventure",
     win: true,
@@ -217,6 +222,8 @@ test("claimBattleReward patrol win grants resources with stable completion id", 
   assert.ok(result.save.accountBattleCompletions[legacyId]);
   const d4 = result.save.questState.tasks.dailies.find((t) => t.id === "d4");
   assert.equal(d4?.progress, 1);
+  const d11 = result.save.questState.tasks.dailies.find((t) => t.id === "d11");
+  assert.equal(d11?.progress, 1);
 });
 
 test("claimBattleReward patrol token win deducts attempt atomically with reward", async () => {
