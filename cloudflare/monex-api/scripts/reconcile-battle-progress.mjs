@@ -19,13 +19,16 @@ import {
   claimBattleReward,
   computeAdventureReward,
 } from "../src/lib/battle-reward.js";
-import { loadCloudSave, writeCloudSave, buildSavePayload } from "../src/lib/save.js";
+import { loadCloudSave } from "../src/lib/save.js";
 import {
   resolveProductionUser,
-  SAVE_PREFIX,
+  normalizeUsername,
+  countActivityForUsername,
+  findSimilarCatchUsernames,
 } from "./lib/resolve-production-user.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const ACTIVITY_KEY = "monex:activity";
 
 function readNamespaceId() {
   if (process.env.MONEX_KV_NAMESPACE_ID) return process.env.MONEX_KV_NAMESPACE_ID;
@@ -121,21 +124,28 @@ function findMissingCampaignRewards(save, chapter, stage) {
   if (ledger[completionId]) {
     return { eligible: false, reason: "completion_already_recorded", completionId };
   }
-  if ((save.adventureGlobalBest || 0) >= stage && chapter === 1) {
-    return { eligible: false, reason: "progress_already_at_or_beyond_stage", completionId };
-  }
-  if ((save.adventureGlobalBest || 0) < stage - 1) {
-    return { eligible: false, reason: "stage_not_reached", completionId, adventureGlobalBest: save.adventureGlobalBest };
+  const best = Number(save.adventureGlobalBest) || 0;
+  const targetGlobal = stage; // chapter 1: global progress equals stage number
+  if (best < targetGlobal - 1) {
+    return {
+      eligible: false,
+      reason: "stage_not_reached",
+      completionId,
+      adventureGlobalBest: best,
+      needsAtLeast: targetGlobal - 1,
+    };
   }
   const preview = computeAdventureReward({ ...save, currentChapter: chapter, currentStage: stage });
+  const moneyBefore = Number(save.money) || 0;
   return {
     eligible: true,
     completionId,
+    reason: best >= targetGlobal ? "ledger_missing_progress_present" : "missing_clear_and_reward",
     expectedReward: preview.reward,
-    moneyBefore: save.money,
-    moneyAfter: (save.money || 0) + (preview.reward.gold || 0),
-    adventureGlobalBestBefore: save.adventureGlobalBest,
-    adventureGlobalBestAfter: stage,
+    moneyBefore,
+    moneyAfter: moneyBefore + (preview.reward.gold || 0),
+    adventureGlobalBestBefore: best,
+    adventureGlobalBestAfter: targetGlobal,
   };
 }
 
@@ -145,10 +155,33 @@ async function main() {
   if (!args.username) throw new Error("username required");
 
   const kv = makeKvApi();
-  const user = await resolveProductionUser(getValue, listKeys, args.username, []);
+  const normalized = normalizeUsername(args.username);
+  const activityRaw = await getValue(ACTIVITY_KEY);
+  let activityEntries = [];
+  try {
+    activityEntries = activityRaw ? JSON.parse(activityRaw).entries || [] : [];
+  } catch {
+    activityEntries = [];
+  }
+
+  const user = await resolveProductionUser(getValue, listKeys, args.username, activityEntries);
   if (!user?.xUserId) {
-    console.log(JSON.stringify({ ok: false, error: "user_not_found", username: args.username }, null, 2));
-    process.exit(1);
+    const similar = await findSimilarCatchUsernames(listKeys, args.username);
+    const activityMatches = countActivityForUsername(activityEntries, args.username);
+    console.log(JSON.stringify({
+      ok: false,
+      error: "user_not_found",
+      username: args.username,
+      normalizedUsername: normalized,
+      activityCatchEntries: activityMatches,
+      similarCatchUsernames: similar,
+      hint: activityMatches > 0
+        ? "Handle appears in X catch activity but has no linked xUserId/save yet. Ask the player to log into /play once with X, then re-run."
+        : similar.length > 0
+          ? `No exact match. Did you mean: ${similar.join(", ")}?`
+          : "No KV record for this handle (catch index, cloud save, session, or activity). Player may need to log into /play with X first.",
+    }, null, 2));
+    return;
   }
 
   const session = { xUserId: user.xUserId, username: user.save?.xHandle || args.username };
@@ -158,7 +191,10 @@ async function main() {
   const report = {
     ok: true,
     username: args.username,
+    normalizedUsername: normalized,
     xUserId: user.xUserId,
+    resolvedVia: user.resolvedVia || [],
+    activityCatchEntries: countActivityForUsername(activityEntries, args.username),
     dryRun: args.dryRun,
     evaluation,
     revision: save.revision,

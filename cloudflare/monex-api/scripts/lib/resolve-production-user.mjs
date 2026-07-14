@@ -76,9 +76,36 @@ export async function findUserIdFromSaves(getValue, listKeys, username) {
 export function findUserIdFromActivityEntries(activityEntries, username) {
   const wanted = normalizeUsername(username);
   const matches = (activityEntries || [])
-    .filter((entry) => entry?.xUsername?.toLowerCase() === wanted && entry?.xUserId)
+    .filter((entry) => entry?.xUsername?.toLowerCase() === wanted)
     .sort((a, b) => Date.parse(b.at || "") - Date.parse(a.at || ""));
-  return matches[0]?.xUserId ? String(matches[0].xUserId) : null;
+  const withId = matches.find((entry) => entry?.xUserId);
+  return withId?.xUserId ? String(withId.xUserId) : null;
+}
+
+export function countActivityForUsername(activityEntries, username) {
+  const wanted = normalizeUsername(username);
+  return (activityEntries || []).filter((entry) => entry?.xUsername?.toLowerCase() === wanted).length;
+}
+
+export async function findSimilarCatchUsernames(listKeys, username, limit = 8) {
+  const wanted = normalizeUsername(username);
+  if (!wanted) return [];
+  const keys = await listKeys(CATCH_USERNAME_PREFIX);
+  const similar = [];
+  for (const key of keys) {
+    const handle = key.slice(CATCH_USERNAME_PREFIX.length);
+    if (!handle) continue;
+    if (handle.includes(wanted) || wanted.includes(handle)) {
+      similar.push(handle);
+    }
+  }
+  similar.sort((a, b) => {
+    const aExact = a === wanted ? -1 : 0;
+    const bExact = b === wanted ? -1 : 0;
+    if (aExact !== bExact) return aExact - bExact;
+    return a.localeCompare(b);
+  });
+  return [...new Set(similar)].slice(0, limit);
 }
 
 export async function resolveProductionUser(getValue, listKeys, username, activityEntries = []) {
@@ -103,6 +130,15 @@ export async function resolveProductionUser(getValue, listKeys, username, activi
   if (activityUserId) {
     sources.activity = activityUserId;
     if (!xUserId) xUserId = activityUserId;
+  }
+
+  // Activity log may list the handle before catch-username index exists.
+  if (!xUserId && countActivityForUsername(activityEntries, normalized) > 0) {
+    const fromCatchIndex = await findUserIdFromCatchUsernameIndex(getValue, normalized);
+    if (fromCatchIndex) {
+      sources.activityCatchIndex = fromCatchIndex;
+      xUserId = fromCatchIndex;
+    }
   }
 
   if (!xUserId) return null;
