@@ -1,34 +1,39 @@
 ---
-description: Frozen save/sync integrity rules for MonEx — must follow before any change to persistence, release, recovery, party, box, or cloud save.
+description: Frozen save/sync/reward integrity rules for MonEx — must follow before changes to persistence, release, recovery, rewards, quests, or cloud save.
 alwaysApply: true
 ---
 
-# MonEx Save & Sync Integrity (FROZEN)
+# MonEx Save, Sync & Reward Integrity (FROZEN)
 
-These rules are **non-negotiable** for any work touching saves, sync, release, party/box, activity recovery, or cloud persistence.
+These rules are **non-negotiable** for any work touching saves, sync, release, rewards, quests, party/box, activity recovery, or cloud persistence.
 
 ## Product policy (locked)
 
 | # | Policy | Rule |
 |---|--------|------|
-| 1 | Save model | **Whole save for now.** One-action server APIs (release, catch, party swap) may be added later for critical mutations — do not build a second save system. |
+| 1 | Save model | **Whole save for now.** One-action server APIs (release, catch, battle claim, quest claim) for critical mutations — do not build a second save system. |
 | 2 | Recovery | **Only for new or broken accounts** — first login, empty/partial box, or obvious missing catches. **Never** run full activity re-import on every Party/Box open or poll forever. |
 | 3 | Release connectivity | **Online only.** Release counts only after the server confirms. No offline release that syncs later. |
 | 4 | Multi-device | **Newest save wins** via monotonic **revision** — not `updatedAt` alone. |
 | 5 | Mon identity | **Every Mon gets a permanent unique instance ID** at creation/load. Never identify Mons by species name or array index alone. |
 | 6 | Release location | **Box only — never Party.** One Mon at a time (no bulk release unless explicitly requested later). |
+| 7 | Battle & quest grants | **Server claim APIs only** for rewards (battle win, quest task, chest, mailbox, shop). Logged-in users must not rely on local grant + autosave. |
+| 8 | Reward connectivity | **Online only.** A reward counts only after the server confirms and returns updated save. |
+| 9 | Campaign quest milestones | **Progress auto-updates on stage reach; reward requires manual Claim** in Daily Quest → Campaign. UI must not imply auto-grant. |
+| 10 | Victory / claim UX | **Never show success with zero rewards** when server claim failed. Show error and allow refresh/retry. |
 
 ## Source of truth
 
 - Cloud/KV save is **authoritative**. Client and localStorage are caches.
-- After a successful server mutation, **apply the server-returned save** to client state.
-- Never fix persistence bugs by hiding Mons in the UI, client blacklists, timeouts, or refresh loops.
+- After every successful server mutation (release, battle claim, quest claim, etc.), **apply the server-returned save** to client state and revision.
+- Never fix persistence or reward bugs by hiding items in the UI, client-only counters, timeouts, or refresh loops.
 
 ## Single save pipeline
 
 - There is **one** cloud save pipeline. Do not add a conflicting second save system.
 - `play/index.html` `buildSavePayload()` and `js/auth-client.js` `buildSavePayload()` **must stay identical** in fields that affect gameplay.
 - Never silently drop: `party`, `box`, `releaseLog`, `releasedRecoveryIds`, quests, mailbox, economy fields, or revision metadata.
+- **Full-save PUT is not a reward path** for logged-in users. Grants go through dedicated claim endpoints.
 
 ## Release (Box only)
 
@@ -40,47 +45,110 @@ These rules are **non-negotiable** for any work touching saves, sync, release, p
 - Call **`MonExAuth.cancelPendingCloudSave()`** before release so stale autosaves cannot overwrite it.
 - Releasing one Mon of the same species must not remove another instance.
 
+## Rewards & claims (frozen)
+
+### Server-authoritative grant paths (only these)
+
+| Action | Client | Server endpoint |
+|--------|--------|-----------------|
+| Adventure / patrol win | `MonExBattle.claimBattleReward*` | `POST /api/battle/claim-reward` |
+| Quest task (incl. campaign c1–c7) | `MonExQuest.claimQuestTask` | `POST /api/quest/claim-task` |
+| Quest chest | `MonExQuest.claimQuestChest` | `POST /api/quest/claim-chest` |
+| Release Mon | `MonExRelease.releaseMon` | `POST /api/release-mon` |
+| Mailbox / shop / chest / packages | respective `*-client.js` | respective `/api/*` claim routes |
+
+### After every successful claim
+
+1. `applyLoadedSave(result.save)`
+2. `writeLocalSave(result.save)`
+3. Update header currencies / quest UI from applied save
+4. `MonExAuth.setSaveRevision(result.save.revision)`
+
+### Before every claim mutation
+
+- Call **`MonExAuth.cancelPendingCloudSave()`** so stale debounced autosaves cannot overwrite the grant.
+
+### Revision conflict retry (mandatory pattern)
+
+- On `revision_conflict`, **re-apply the intended reward/progress delta** onto the latest cloud save.
+- **Never** retry by writing raw latest save and dropping the grant (battle rewards, quest claims, release).
+- Use merge helpers (e.g. `mergeBattleClaimOntoLatest`) — do not duplicate this pattern under a new name.
+
+### Context for battle claims
+
+- Adventure claims must send **chapter + stage** (or parse from `claimId` like `adv-{ch}-{st}-*`) so rewards are not computed from a load-sanitized stale playhead.
+- Validate stage is reachable: `globalProgress <= adventureGlobalBest + 1`.
+
+### Quest campaign milestones
+
+- Server **`syncCampaignQuestProgress`** must **upsert** missing campaign task rows — never skip because task is missing.
+- Client **`syncCampaignQuestProgress`** must create missing tasks the same way.
+- Failed quest claim must **show an error** — never silent `return` with no user feedback.
+
+### UI honesty (no fake success)
+
+- Logged-in battle win: **forbidden** to show VICTORY with all-zero drops when server claim failed.
+- **Forbidden** to grant gold/essence/XP locally for logged-in wins without server OK.
+- Idempotent `alreadyClaimed` responses must still display the reward from the receipt.
+
 ## Background sync & recovery
 
-- Autosave, poll, hydrate, activity recovery, and tab refresh **must not restore** intentionally released Mons.
+- Autosave, poll, hydrate, activity recovery, and tab refresh **must not restore** intentionally released Mons or undo confirmed grants.
 - Maintain append-only **`releasedRecoveryIds`** and **`releaseLog`** on the server; merge never drops them.
 - **`stripReleasedMonsFromInventory`** (and activity recovery skip) must stay enforced on all write paths.
-- Ignore or reject client/sync responses that would re-add Mons in the release blocklist.
-- Stale full-save PUTs with a current `baseRevision` but old party/box **must not** overwrite newer release mutations.
+- Ignore or reject client/sync responses that would re-add Mons in the release blocklist or revert confirmed server grants.
+- Stale full-save PUTs with a current `baseRevision` but old party/box/economy **must not** overwrite newer mutations.
 
 ## Concurrency
 
 - All save writes use **revision / expectedRevision** where applicable.
-- Serialize per-user release mutations (server lock).
+- Serialize per-user mutations that grant or remove inventory (release lock, sync lock).
 - Autosave must push **fresh** state (`setLiveSaveProvider`) after awaiting in-flight saves — never push a captured stale snapshot with an updated revision.
 - Older in-flight saves lose to newer confirmed mutations.
 
-## Required files to inspect before save/sync changes
+## Required files to inspect before save/sync/reward changes
 
-- `play/index.html`
-- `js/auth-client.js`
+- `play/index.html` — `finishAdventureBattleRewards`, `claimServerBattleReward`, `advanceQuestTask`, `applyLoadedSave`
+- `js/auth-client.js` — `buildSavePayload`, `setLiveSaveProvider`, `cancelPendingCloudSave`
+- `js/battle-reward-client.js`
+- `js/quest-client.js`
 - `js/release-client.js`
 - `cloudflare/monex-api/src/lib/save.js`
 - `cloudflare/monex-api/src/lib/save-validate.js`
 - `cloudflare/monex-api/src/lib/save-economy-guard.js`
+- `cloudflare/monex-api/src/lib/battle-reward.js`
+- `cloudflare/monex-api/src/lib/quest-claim.js`
 - `cloudflare/monex-api/src/lib/release-mon.js`
 - `cloudflare/monex-api/src/lib/recover-activity-catches.js`
 - `cloudflare/monex-api/src/lib/hydrate-save.js`
 
-## Pre-merge checklist (mandatory for save/sync PRs)
+## Pre-merge checklist (mandatory for save/sync/reward PRs)
 
-Before merging, confirm and **state in the PR** which test covers:
+Before merging, confirm and **state in the PR** which test covers each relevant item:
 
+**Release**
 1. Release a Mon → wait 60s → refresh `/play` → Mon stays gone.
 2. Release 5 Mons rapidly → none return after refresh.
 3. Two Mons same species → release one → the other remains.
 4. Failed release rolls back client without leaving server/client inconsistent.
-5. `npm test` in `cloudflare/monex-api` passes.
+
+**Rewards & sync**
+5. Win campaign stage → gold/essence in cloud save → refresh → still there.
+6. Win during active autosave → reward not lost to stale overwrite.
+7. Reach campaign milestone → quest shows claimable → Claim grants reward.
+8. Revision conflict during battle claim → reward delta preserved on retry.
+9. Failed battle/quest claim → user sees error, not silent zero-reward victory.
+
+**General**
+10. `npm test` in `cloudflare/monex-api` passes.
 
 ## Debug logging (development only)
 
-When investigating persistence: `window.MONEX_DEBUG_RELEASE = true` (optional: `MONEX_DEBUG_SAVE = true`). Do not log full saves or sensitive user data in production.
+- Release: `window.MONEX_DEBUG_RELEASE = true`
+- Save/autosave: `window.MONEX_DEBUG_SAVE = true`
+
+Do not log full saves or sensitive user data in production.
 
 ## One-line summary
 
-**Cloud save is truth; Box release is server-confirmed; recovery is for broken accounts only; background sync must never bring back a released Mon; stale saves always lose.**
+**Cloud save is truth; every grant uses a server claim API; apply server save after success; stale autosaves and conflict retries must never drop rewards or bring back released Mons.**
