@@ -5812,6 +5812,63 @@ body.afk-layout:has(.game-container.patrol-scan-active) > .game-container-bg {
     40% { filter: brightness(2.2); }
     100% { filter: brightness(1); }
 }
+.game-loading-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 30000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 24px;
+    box-sizing: border-box;
+    background: linear-gradient(180deg, #1a0a2e 0%, #0f0518 100%);
+    font-family: 'Press Start 2P', monospace;
+}
+.game-loading-screen[hidden] {
+    display: none;
+}
+.game-loading-title {
+    margin: 0;
+    font-size: 11px;
+    color: #e9d5ff;
+    letter-spacing: 0.04em;
+}
+.game-loading-status {
+    margin: 0;
+    font-size: 8px;
+    line-height: 1.6;
+    color: #fde68a;
+    text-align: center;
+    min-height: 2.8em;
+}
+.game-loading-progress-track {
+    width: min(320px, 88vw);
+    height: 12px;
+    border: 2px solid rgba(107, 33, 168, 0.85);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+.game-loading-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #6B21A8, #a855f7, #fde68a);
+    transition: width 0.2s ease-out;
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.55);
+}
+.game-loading-meta {
+    margin: 0;
+    font-size: 8px;
+    color: rgba(233, 213, 255, 0.9);
+    min-height: 1.2em;
+}
+.game-shell--loading {
+    visibility: hidden;
+    pointer-events: none;
+}
 .game-asset-loading {
     pointer-events: none;
     padding: 8px 14px;
@@ -5840,16 +5897,6 @@ body.afk-layout:has(.game-container.patrol-scan-active) > .game-container-bg {
     display: inline-block;
     width: 3ch;
     text-align: left;
-}
-.play-boot-loading {
-    position: fixed;
-    left: 50%;
-    bottom: 28%;
-    transform: translateX(-50%);
-    z-index: 25000;
-}
-.game-container-stage.is-boot-loading {
-    pointer-events: none;
 }
 .battle-sprite-loading {
     position: absolute;
@@ -7474,12 +7521,15 @@ body.cloud-load-blocked .game-shell {
 
 <img id="game-container-bg" class="game-container-bg" src="for%20result%20banner/mainscene_background.png" alt="" aria-hidden="true">
 
-<div class="game-shell">
-<div id="play-boot-loading" class="game-asset-loading play-boot-loading" aria-live="polite" aria-hidden="true">
-    <p class="game-asset-loading-text">
-        <span class="game-asset-loading-label">Loading game assets</span><span class="game-asset-loading-dots">...</span>
-    </p>
+<div id="game-loading-screen" class="game-loading-screen is-visible" aria-live="polite" aria-busy="true">
+    <p class="game-loading-title">MONEX</p>
+    <p class="game-loading-status" id="game-loading-status">Loading game assets…</p>
+    <div class="game-loading-progress-track" aria-hidden="true">
+        <div class="game-loading-progress-fill" id="game-loading-progress-fill"></div>
+    </div>
+    <p class="game-loading-meta" id="game-loading-meta">0%</p>
 </div>
+<div class="game-shell game-shell--loading">
 <div class="game-container main-scene-active">
     <header class="header" aria-label="Trainer status">
         <div class="header-inner">
@@ -7884,6 +7934,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/resource-chest-client.js?v=20260713d"></script>
 <script src="js/battle-reward-client.js?v=20260713e"></script>
 <script src="js/mailbox-client.js?v=20260713a"></script>
+<script src="js/game-asset-manager.js?v=20260714a"></script>
 <script>
 // =====================================================
 // MONEX - CLEAN ORGANIZED STRUCTURE
@@ -8670,11 +8721,14 @@ function refreshAdventureChapterBackground() {
 }
 
 const _imagePreloadCache = new Map();
-let playStartupAssetsWarmed = false;
 
-function preloadImage(url) {
+function preloadImage(url, fallbackUrl) {
     if (!url) return Promise.resolve(false);
-    if (_imagePreloadCache.has(url)) return _imagePreloadCache.get(url);
+    if (window.MonExGameAssets?.getImageLoadPromise) {
+        return MonExGameAssets.getImageLoadPromise(url, fallbackUrl);
+    }
+    const key = assetUrlBase(url);
+    if (_imagePreloadCache.has(key)) return _imagePreloadCache.get(key);
     const promise = new Promise((resolve) => {
         const img = new Image();
         img.decoding = "async";
@@ -8682,18 +8736,25 @@ function preloadImage(url) {
         img.onerror = () => resolve(false);
         img.src = url;
     });
-    _imagePreloadCache.set(url, promise);
+    _imagePreloadCache.set(key, promise);
     return promise;
 }
 
-function preloadImages(urls) {
+function preloadImages(urls, fallbacks) {
     const unique = [...new Set((urls || []).filter(Boolean))];
     if (!unique.length) return Promise.resolve([]);
-    return Promise.all(unique.map(preloadImage));
+    if (window.MonExGameAssets?.preloadImages) {
+        return MonExGameAssets.preloadImages(unique, fallbacks || {});
+    }
+    return Promise.all(unique.map((u) => preloadImage(u)));
+}
+
+function isPlayAssetsReady() {
+    return !!(window.MonExGameAssets?.isReady?.());
 }
 
 function warmCoreSceneAssets() {
-    if (playStartupAssetsWarmed) return Promise.resolve([]);
+    if (isPlayAssetsReady()) return Promise.resolve([]);
     return preloadImages([
         MAIN_SCENE_BG,
         BATTLE_HUB_BG,
@@ -8703,7 +8764,7 @@ function warmCoreSceneAssets() {
 }
 
 function warmBattleHubSceneAssets() {
-    if (playStartupAssetsWarmed) return Promise.resolve([]);
+    if (isPlayAssetsReady()) return Promise.resolve([]);
     const hubBtnUrls = (typeof BATTLE_HUB_MAIN_BUTTONS !== "undefined")
         ? BATTLE_HUB_MAIN_BUTTONS.map((btn) => btn.src)
         : [];
@@ -8716,7 +8777,7 @@ function warmBattleHubSceneAssets() {
 }
 
 function warmAdventureHubSceneAssets() {
-    if (playStartupAssetsWarmed) return Promise.resolve([]);
+    if (isPlayAssetsReady()) return Promise.resolve([]);
     return preloadImages([
         getAdventureModeHubBackgroundPath(),
         getChapterBackgroundPath(currentChapter),
@@ -8724,7 +8785,7 @@ function warmAdventureHubSceneAssets() {
 }
 
 function warmPatrolBattleAssets() {
-    if (playStartupAssetsWarmed) return Promise.resolve(true);
+    if (isPlayAssetsReady()) return Promise.resolve(true);
     return preloadImage(PATROL_OFFICE_BG);
 }
 
@@ -10476,6 +10537,9 @@ function assetUrlBase(url) {
 
 async function isAssetPreloaded(url) {
     const base = assetUrlBase(url);
+    if (window.MonExGameAssets?.isLoaded?.(url)) {
+        return MonExGameAssets.getImageLoadPromise(url);
+    }
     if (!_imagePreloadCache.has(base)) return false;
     return _imagePreloadCache.get(base);
 }
@@ -10506,10 +10570,19 @@ async function warmBattleCombatantAssets(playerTeam, enemyTeam) {
     );
 }
 
-function collectPlayStartupAssetUrls() {
-    const urls = new Set();
-    const add = (url) => { if (url) urls.add(url); };
+function collectGameAssetManifest() {
+    const images = new Set();
+    const fallbacks = {};
+    const add = (url, fallback) => {
+        if (!url) return;
+        images.add(url);
+        if (fallback) {
+            const key = MonExGameAssets?.normalizeUrl?.(url) || assetUrlBase(url);
+            fallbacks[key] = fallback;
+        }
+    };
 
+    // Backgrounds — MainScene, Battle hub, adventure chapters, patrol
     add(MAIN_SCENE_BG);
     add(BATTLE_HUB_BG);
     add(getAdventureModeHubBackgroundPath());
@@ -10517,6 +10590,16 @@ function collectPlayStartupAssetUrls() {
     add(ADVENTURE_CHAPTER_PLACEHOLDER);
     for (let ch = 1; ch <= CHAPTER_BG_MAX; ch++) add(getChapterBackgroundPath(ch));
 
+    // Shared UI — header currencies, rail tabs, resource chest
+    Object.values(GAME_ICONS).forEach((icon) => add(icon.src));
+    [
+        "dailyquest.png", "shop.png", "armory.png", "monball.png", "mailbox.png",
+        "profile.png", "party.png", "box.png", "inventory.png", "battle.png", "catch.png",
+        "collectresource.png",
+    ].forEach((file) => add(buttonTabIconSrc(file)));
+    add("game_icons/mailbox.png?v=1");
+
+    // Battle hub UI
     if (typeof BATTLE_HUB_MAIN_BUTTONS !== "undefined") {
         BATTLE_HUB_MAIN_BUTTONS.forEach((btn) => add(btn.src));
     }
@@ -10524,42 +10607,49 @@ function collectPlayStartupAssetUrls() {
         BATTLE_HUB_TOWER_BUTTONS.forEach((btn) => add(btn.src));
     }
 
+    // Skill + battle FX icons (party/box cards, battle meter)
+    Object.values(SKILL_ICON_MAP).forEach((file) => add(SKILL_ICON_DIR + file));
+    Object.values(SKILL_ELEMENT_ICON_FALLBACK).forEach((file) => add(SKILL_ICON_DIR + file));
+    add(BLOCK_FX_ICON);
+    add(DEBUFF_BURN_FX);
+    Object.values(HOUSES).forEach((house) => add(house.icon));
+
+    // Main-scene idle fighters (party + Johnw enemies)
     ensureSceneIdleEnemies();
     const heroes = party.slice(0, 3);
     const enemies = sceneIdleEnemyTeam.slice(0, 3);
     [...heroes, ...enemies].forEach((mon) => {
         if (!mon?.name) return;
-        add(getSceneIdleDisplaySprite(mon));
-        listAttackAssetUrlsForMon(mon.name).forEach((u) => urls.add(u));
+        add(getSceneIdleDisplaySprite(mon), getMonPngPath(mon.name));
+        listAttackAssetUrlsForMon(mon.name).forEach((u) => add(u, getMonPngPath(mon.name)));
+    });
+
+    // All species reachable this session — adventure enemies + owned mons
+    MONANIMAL_NAMES.forEach((name) => {
+        listAttackAssetUrlsForMon(name).forEach((u) => add(u, getMonPngPath(name)));
+        add(getSceneIdleDisplaySprite({ name }), getMonPngPath(name));
     });
 
     [...party, ...box].forEach((mon) => {
         if (!mon?.name) return;
         if (_sprites()?.getMonDisplaySpriteCandidates) {
-            _sprites().getMonDisplaySpriteCandidates(mon).forEach((u) => urls.add(u));
+            _sprites().getMonDisplaySpriteCandidates(mon).forEach((u) => add(u, getMonPngPath(mon.name)));
         } else {
             add(getMonPngPath(mon.name));
-            add(getMonIdleGifPath(mon.name));
+            add(getMonIdleGifPath(mon.name), getMonPngPath(mon.name));
         }
     });
 
-    add(BLOCK_FX_ICON);
-    add(DEBUFF_BURN_FX);
-    Object.values(HOUSES).forEach((house) => add(house.icon));
-
-    return [...urls];
+    return { images: [...images], fallbacks, audio: [] };
 }
 
-let playStartupAssetsWarmed = false;
-
-async function warmPlayStartupAssets() {
-    if (playStartupAssetsWarmed) return;
-    const urls = collectPlayStartupAssetUrls();
-    await preloadImages(urls);
+async function bootPlayStartupAssets() {
+    if (isPlayAssetsReady()) return;
+    const manifest = collectGameAssetManifest();
+    await MonExGameAssets.bootFromManifest(manifest);
     await Promise.all(
-        urls.filter((u) => usesGifNaturalLoop(u)).map((u) => warmGifLoopTimingForPath(u))
+        manifest.images.filter((u) => usesGifNaturalLoop(u)).map((u) => warmGifLoopTimingForPath(u))
     );
-    playStartupAssetsWarmed = true;
 }
 
 async function warmFighterAssets(fighter) {
@@ -10600,7 +10690,7 @@ function stopAssetLoadingDots() {
 }
 
 async function withAssetLoadingIndicator(warmPromise, opts = {}) {
-    const overlayId = opts.overlayId || "play-boot-loading";
+    const overlayId = opts.overlayId || "battle-sprite-loading";
     const showMs = opts.showMs ?? ASSET_LOADING_SHOW_MS;
     const isCancelled = opts.isCancelled || null;
     const token = ++assetLoadingSeq;
@@ -10631,17 +10721,6 @@ async function withBattleSpriteLoading(warmPromise, battleToken) {
         overlayId: "battle-sprite-loading",
         isCancelled: () => battleToken != null && battleToken !== adventureBattleToken,
     });
-}
-
-async function bootPlayStartupAssets() {
-    if (playStartupAssetsWarmed) return;
-    const stage = document.querySelector(".game-container-stage");
-    stage?.classList.add("is-boot-loading");
-    try {
-        await withAssetLoadingIndicator(warmPlayStartupAssets(), { overlayId: "play-boot-loading" });
-    } finally {
-        stage?.classList.remove("is-boot-loading");
-    }
 }
 
 function usesGifNaturalLoop(spritePath) {
