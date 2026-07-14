@@ -53,7 +53,13 @@ export function processMentionTweet(tweet, botUsername, user, startingMonballs, 
     const { throws, results } = runCatchSession(parsed.spend);
     const { caught, escaped, highlights, mons } = summarizeResults(results);
     const caughtMons = caught.map((r) => r.mon).slice(0, throws);
+    const pendingBefore = user.pendingMons.length;
     addPendingMons(user, caughtMons);
+    const pendingMonsAdded = user.pendingMons.slice(pendingBefore);
+    const monsWithIds = mons.slice(0, throws).map((row, index) => ({
+      ...row,
+      pendingId: pendingMonsAdded[index]?.pendingId || null,
+    }));
 
     const activity = {
       id: makeActivityId(),
@@ -65,14 +71,14 @@ export function processMentionTweet(tweet, botUsername, user, startingMonballs, 
       caughtCount: Math.min(caughtMons.length, throws),
       escapedCount: escaped.length,
       highlights,
-      mons: mons.slice(0, throws),
+      mons: monsWithIds,
       monballsBefore: spendResult.before,
       monballsLeft: spendResult.after,
       status: "success",
       at: new Date().toISOString(),
     };
 
-    return { parsed, activity, catchResults: results };
+    return { parsed, activity, catchResults: results, pendingMonsAdded };
   }
 
   return { parsed, activity: null };

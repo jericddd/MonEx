@@ -77,7 +77,7 @@ import {
   getSessionOpenedAtFromRequest,
   normalizeSessionOpenedAt,
 } from "./lib/game-session.js";
-import { backfillPendingForUser } from "./lib/backfill-pending.js";
+import { commitCatchTransaction, retryPendingCatchDeliveries } from "./lib/catch-commit.js";
 import {
   buildCorsHeaders,
   enforceRateLimit,
@@ -150,23 +150,13 @@ async function handleSimulate(body, env, request) {
     starting,
     replyToBot ? "bot" : null
   );
-  if (result.activity) await appendActivity(env.MONEX_KV, result.activity);
-  if (result.activity?.monballsLeft != null && authorId) {
-    await saveCatchUserRecord(env.MONEX_KV, authorId, user);
-    await appendMonballAudit(env.MONEX_KV, {
-      xUserId: authorId,
-      username,
-      source: "x_catch_spend",
-      delta: -(result.activity.spend || 0),
-      balanceAfter: result.activity.monballsLeft,
-      meta: { pool: "catch", tweetId },
+  if (result.activity) {
+    await commitCatchTransaction(env.MONEX_KV, {
+      tweet: { id: tweetId, authorId, username },
+      catchUser: user,
+      processResult: result,
+      startingMonballs: starting,
     });
-    await seedOrHydrateCloudSaveFromCatch(
-      env.MONEX_KV,
-      authorId,
-      username,
-      starting
-    );
   }
 
   return json(
@@ -281,48 +271,35 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
       }
 
       if (result.activity) {
-        await saveCatchUserRecord(env.MONEX_KV, tweet.authorId, user);
-
-        const spend = result.activity.spend || 0;
-        const balanceAfter = result.activity.monballsLeft;
-        await appendMonballAudit(env.MONEX_KV, {
-          xUserId: tweet.authorId,
-          username: tweet.username,
-          source: "x_catch_spend",
-          delta: -spend,
-          balanceBefore: balanceAfter + spend,
-          balanceAfter,
-          meta: { pool: "catch", tweetId: tweet.id },
-        });
-
-        const hydrated = await seedOrHydrateCloudSaveFromCatch(
-          env.MONEX_KV,
-          tweet.authorId,
-          tweet.username,
-          starting
-        );
-        if (hydrated.save) {
-          await recoverMissingMonsFromActivity(
-            env.MONEX_KV,
-            tweet.authorId,
-            tweet.username,
-            hydrated.save,
-            starting
-          );
+        try {
+          const committed = await commitCatchTransaction(env.MONEX_KV, {
+            tweet,
+            catchUser: user,
+            processResult: result,
+            startingMonballs: starting,
+          });
+          if (committed.activity) {
+            status.activities += 1;
+          }
+          if (committed.delivery) {
+            status.deliveries = status.deliveries || [];
+            status.deliveries.push({
+              tweetId: tweet.id,
+              catchId: committed.receipt?.catchId,
+              deliveryStatus: committed.delivery.deliveryStatus,
+              completionStatus: committed.delivery.completionStatus,
+            });
+          }
+        } catch (commitErr) {
+          status.errors = status.errors || [];
+          status.errors.push({
+            id: tweet.id,
+            error: commitErr.message || String(commitErr),
+            phase: "catch_commit",
+          });
+          await releaseTweetClaim(env.MONEX_KV, tweet.id);
+          return;
         }
-        // Always mirror post-catch balance into cloud save so stale client saves
-        // cannot resurrect spent monballs before the next X catch.
-        await syncSaveMonballsAfterCatch(
-          env.MONEX_KV,
-          tweet.authorId,
-          tweet.username,
-          result.activity.monballsLeft,
-          starting,
-          { spend: result.activity.spend, tweetId: tweet.id }
-        );
-
-        await appendActivity(env.MONEX_KV, result.activity);
-        status.activities += 1;
       } else if (result.skipReason) {
         status.skipped.push({ id: tweet.id, user: tweet.username, reason: result.skipReason });
         if (user) {
@@ -1018,37 +995,28 @@ async function handleRequest(request, env) {
 
       if (xUserId) {
         syncResult = await withUserSyncLock(userSyncLockKey(xUserId, username), async () => {
-          const catchUser = await resolveCatchUserKv(env.MONEX_KV, xUserId, username, starting);
-          const { save } = await loadCloudSave(env.MONEX_KV, xUserId);
-          const result = backfillPendingForCatchUser(catchUser, {
+          const retried = await retryPendingCatchDeliveries(
+            env.MONEX_KV,
+            xUserId,
             username,
-            save,
-            partyMax,
-            boxMax,
-            startingMonballs: starting,
-          });
-          await saveCatchUserRecord(env.MONEX_KV, xUserId, catchUser);
-          let finalResult = result;
-          if (result.ok && result.save) {
-            const activityResult = await recoverMissingMonsFromActivity(
-              env.MONEX_KV,
-              xUserId,
-              username,
-              result.save,
-              starting
-            );
-            finalResult = {
-              ...result,
-              save: activityResult.recovered ? activityResult.save : result.save,
-              added: result.added + (activityResult.added?.length || 0),
-              monballs: (activityResult.recovered ? activityResult.save : result.save)?.monballs ?? result.monballs,
-            };
-            if (!activityResult.recovered) {
-              await writeCloudSave(env.MONEX_KV, xUserId, finalResult.save, { skipStaleCheck: true });
+            starting,
+            {
+              partyMax,
+              boxMax,
+              partyCount: body?.partyCount,
+              boxCount: body?.boxCount,
             }
-            await alignCatchMonballsToMerged(env.MONEX_KV, auth.session, finalResult.monballs, starting);
-          }
-          return finalResult;
+          );
+          await alignCatchMonballsToMerged(env.MONEX_KV, auth.session, retried.monballs, starting);
+          return {
+            ok: retried.ok,
+            save: retried.save,
+            added: retried.added,
+            remaining: retried.remaining,
+            monballs: retried.monballs,
+            syncedParty: [],
+            syncedBox: [],
+          };
         });
       } else {
         syncResult = {
