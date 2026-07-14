@@ -142,7 +142,12 @@ export function activityMonToSaveMon(recovered) {
 export function applyRecoveredMonsToSave(
   save,
   recoveredMons,
-  { partyMax = GAME_PARTY_MAX, boxMax = GAME_BOX_MAX, replaceInventory = false } = {}
+  {
+    partyMax = GAME_PARTY_MAX,
+    boxMax = GAME_BOX_MAX,
+    replaceInventory = false,
+    skipExistingSpecies = false,
+  } = {}
 ) {
   const party = replaceInventory ? [] : [...(save?.party || [])];
   const box = replaceInventory ? [] : [...(save?.box || [])];
@@ -151,12 +156,18 @@ export function applyRecoveredMonsToSave(
   const skipped = [];
 
   const activitySigs = getExistingRecoverySignatures({ party, box });
+  const hasSpecies = (name) =>
+    party.some((m) => m?.name === name) || box.some((m) => m?.name === name);
 
   for (const raw of recoveredMons || []) {
     const dupReason = isMonAlreadyRecovered({ party, box }, raw, seen) ||
       (activitySigs.has(recoverySignatureForMon(raw)) ? "already_from_activity" : null);
     if (dupReason) {
       skipped.push({ ...raw, reason: dupReason });
+      continue;
+    }
+    if (skipExistingSpecies && raw?.name && hasSpecies(raw.name)) {
+      skipped.push({ ...raw, reason: "species_already_present" });
       continue;
     }
 
@@ -209,6 +220,7 @@ export function recoverActivityCatchesForUser({
   activityId = null,
   latestOnly = false,
   replaceInventory = false,
+  skipExistingSpecies = false,
 }) {
   const matched = filterActivityEntries(activityEntries, username, {
     caseSensitive,
@@ -217,7 +229,10 @@ export function recoverActivityCatchesForUser({
     latestOnly,
   });
   const recoverable = extractRecoverableMons(matched);
-  const applied = applyRecoveredMonsToSave(save, recoverable, { replaceInventory });
+  const applied = applyRecoveredMonsToSave(save, recoverable, {
+    replaceInventory,
+    skipExistingSpecies,
+  });
   const activityMonballs = latestMonballsFromActivity(matched);
   const monballs =
     activityMonballs ??

@@ -5,7 +5,7 @@ import {
   seedOrHydrateCloudSaveFromCatch,
   getAuthoritativeMonballs,
 } from "./save-reconcile.js";
-import { recoverActivityCatchesForUser } from "./recover-activity-catches.js";
+import { recoverActivityCatchesForUser, filterActivityEntries, extractRecoverableMons } from "./recover-activity-catches.js";
 import { cleanUsername } from "./backfill-pending.js";
 
 /** Read-only catch user for GET /api/save (no KV writes). */
@@ -13,26 +13,27 @@ export async function lookupCatchUserReadOnly(kv, xUserId, username, startingMon
   return lookupCatchUserKv(kv, xUserId, username, startingMonballs);
 }
 
-/** Recover mons from activity log only when cloud inventory is empty. */
+/**
+ * Backfill X Wild Log catches that never reached party/box.
+ * Skips mons already linked via wildPendingId / recovery ids (safe on repeat hydrate).
+ */
 export async function recoverMissingMonsFromActivity(kv, xUserId, username, save, startingMonballs = 10) {
   const uname = cleanUsername(username);
-  const invCount = (save?.party?.length || 0) + (save?.box?.length || 0);
-  // Never auto-import activity into an already-populated save. Doing so on every
-  // /api/hydrate refresh caused party/box to grow unboundedly (40→121→500).
-  // Ops recovery script still supports explicit backfill/replace.
-  if (invCount > 0) {
-    return { recovered: false, added: [], save, skippedReason: "inventory_populated" };
-  }
-
   const log = await loadActivityLog(kv);
+  const entries = log.entries || [];
+  const invCount = (save?.party?.length || 0) + (save?.box?.length || 0);
+  const recoverableCount = extractRecoverableMons(
+    filterActivityEntries(entries, uname, { caseSensitive: false })
+  ).length;
   const result = recoverActivityCatchesForUser({
     username: uname,
-    activityEntries: log.entries || [],
+    activityEntries: entries,
     save: save || {},
     caseSensitive: false,
+    skipExistingSpecies: invCount > 0 && recoverableCount > invCount,
   });
   if (!result.added?.length) {
-    return { recovered: false, added: [], save: result.save };
+    return { recovered: false, added: [], save: result.save || save || {} };
   }
   const monballs = await getAuthoritativeMonballs(kv, xUserId, uname, startingMonballs);
   const nextSave = {
