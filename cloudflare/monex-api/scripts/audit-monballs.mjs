@@ -13,6 +13,12 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { getDailyLoginDayKeyFromTimestamp } from "../src/lib/daily-reset.js";
 import { replyCountKey, todayUtcDay } from "../src/lib/reply-tracker.js";
+import {
+  CATCH_USER_PREFIX,
+  SAVE_PREFIX,
+  resolveProductionUser,
+  normalizeUsername,
+} from "./lib/resolve-production-user.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -30,8 +36,6 @@ const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
 const API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 const STATE_KEY = "monex:state";
 const ACTIVITY_KEY = "monex:activity";
-const SAVE_PREFIX = "monex:save:";
-const CATCH_USER_PREFIX = "monex:catch-user:";
 const AUDIT_PREFIX = "monex:monball-audit:";
 
 function requireEnv() {
@@ -43,6 +47,36 @@ function apiUrl(path) {
   return `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/storage/kv/namespaces/${NAMESPACE_ID}${path}`;
 }
 
+async function listKeys(prefix) {
+  const keys = [];
+  let cursor;
+  do {
+    const params = new URLSearchParams({ limit: "1000" });
+    if (prefix) params.set("prefix", prefix);
+    if (cursor) params.set("cursor", cursor);
+    const data = await cfFetch(`/keys?${params}`);
+    keys.push(...(data.result || []).map((k) => k.name));
+    cursor = data.result_info?.cursor;
+  } while (cursor);
+  return keys;
+}
+
+async function cfFetch(path, options = {}) {
+  const res = await fetch(apiUrl(path), {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${API_TOKEN}`,
+      ...options.headers,
+    },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.success === false) {
+    const msg = data.errors?.map((e) => e.message).join("; ") || res.statusText;
+    throw new Error(`Cloudflare API ${path}: ${msg}`);
+  }
+  return data;
+}
+
 async function getValue(key) {
   const res = await fetch(apiUrl(`/values/${encodeURIComponent(key)}`), {
     headers: { Authorization: `Bearer ${API_TOKEN}` },
@@ -50,17 +84,6 @@ async function getValue(key) {
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to read ${key}: ${res.statusText}`);
   return res.text();
-}
-
-function normalizeUsername(username) {
-  return String(username || "").toLowerCase().replace(/^@/, "").trim();
-}
-
-function findUserIdInState(state, username) {
-  for (const [xUserId, user] of Object.entries(state.users || {})) {
-    if (user?.username?.toLowerCase() === username) return xUserId;
-  }
-  return null;
 }
 
 function findAllUserRows(state, username) {
@@ -122,7 +145,7 @@ async function main() {
   }
   const username = normalizeUsername(usernameArg);
 
-  const [stateRaw, activityRaw, ..._] = await Promise.all([
+  const [stateRaw, activityRaw] = await Promise.all([
     getValue(STATE_KEY),
     getValue(ACTIVITY_KEY),
   ]);
@@ -130,22 +153,26 @@ async function main() {
   const state = stateRaw ? JSON.parse(stateRaw) : { users: {} };
   const activity = activityRaw ? JSON.parse(activityRaw) : { entries: [] };
   const userRows = findAllUserRows(state, username);
-  const xUserId = findUserIdInState(state, username);
 
-  let save = null;
-  let catchUser = null;
+  const resolved = await resolveProductionUser(getValue, listKeys, usernameArg, activity.entries || []);
+  const xUserId = resolved?.xUserId || null;
+
+  let save = resolved?.save || null;
+  let catchUser = resolved?.catchUser || null;
   let audit = [];
   let replyKvCount = null;
   const replyDay = todayUtcDay();
   if (xUserId) {
-    const [saveRaw, auditRaw, catchUserRaw] = await Promise.all([
-      getValue(`${SAVE_PREFIX}${xUserId}`),
-      getValue(`${AUDIT_PREFIX}${xUserId}`),
-      getValue(`${CATCH_USER_PREFIX}${xUserId}`),
-    ]);
-    if (saveRaw) save = JSON.parse(saveRaw);
+    const auditRaw = await getValue(`${AUDIT_PREFIX}${xUserId}`);
     if (auditRaw) audit = JSON.parse(auditRaw);
-    if (catchUserRaw) catchUser = JSON.parse(catchUserRaw);
+    if (!catchUser) {
+      const catchUserRaw = await getValue(`${CATCH_USER_PREFIX}${xUserId}`);
+      if (catchUserRaw) catchUser = JSON.parse(catchUserRaw);
+    }
+    if (!save) {
+      const saveRaw = await getValue(`${SAVE_PREFIX}${xUserId}`);
+      if (saveRaw) save = JSON.parse(saveRaw);
+    }
     const replyRaw = await getValue(replyCountKey(xUserId, replyDay));
     replyKvCount = replyRaw != null ? Number.parseInt(replyRaw, 10) : 0;
   }
@@ -179,18 +206,38 @@ async function main() {
     (m) => m.title === "Daily Login Reward" && m.claimedAt
   );
 
+  const campaignC1 = save?.questState?.tasks?.campaign?.find((t) => t?.id === "c1") || null;
+  const questMonballPaid = save?.questMonballPaidAmounts?.["task:campaign:c1"] ?? null;
+
   const report = {
     username,
+    displayUsername: resolved?.username || usernameArg,
     xUserId: xUserId || null,
+    resolvedVia: resolved?.resolvedVia || [],
+    sourceIds: resolved?.sourceIds || {},
     generatedAt: new Date().toISOString(),
-    catchState: userRows.map(({ xUserId: id, user }) => ({
-      xUserId: id,
-      monballs: user.monballs,
-      pendingMons: user.pendingMons?.length ?? 0,
-      updatedAt: user.updatedAt,
-      replyDay: user.replyDay || null,
-      replyCount: user.replyCount ?? null,
-    })),
+    catchState: [
+      ...userRows.map(({ xUserId: id, user }) => ({
+        xUserId: id,
+        source: "legacy_state",
+        monballs: user.monballs,
+        pendingMons: user.pendingMons?.length ?? 0,
+        updatedAt: user.updatedAt,
+        replyDay: user.replyDay || null,
+        replyCount: user.replyCount ?? null,
+      })),
+      ...(catchUser && xUserId && !userRows.some((r) => r.xUserId === xUserId)
+        ? [{
+            xUserId,
+            source: "catch_user_kv",
+            monballs: catchUser.monballs,
+            pendingMons: catchUser.pendingMons?.length ?? 0,
+            updatedAt: catchUser.updatedAt,
+            replyDay: catchUser.replyDay || null,
+            replyCount: catchUser.replyCount ?? null,
+          }]
+        : []),
+    ],
     replyTracker: xUserId
       ? {
           dayUtc: replyDay,
@@ -214,6 +261,9 @@ async function main() {
             createdAt: m.createdAt,
             claimedAt: m.claimedAt,
           })),
+          campaignC1Quest: campaignC1,
+          questMonballPaidC1: questMonballPaid,
+          questGrantedKeys: save.questState?.grantedKeys || [],
           updatedAt: save.updatedAt,
           revision: save.revision,
         }
