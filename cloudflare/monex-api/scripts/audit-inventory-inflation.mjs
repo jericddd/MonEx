@@ -119,12 +119,14 @@ function countActivityMons(entries, username) {
 }
 
 function classifyRow(row, minRatio) {
-  const { saveMons, trueMons, ratio } = row;
+  const { saveMons, trueMons, ratio, excess } = row;
   if (saveMons <= trueMons) return "ok";
   if (trueMons === 0 && saveMons > 0) return "save_without_activity";
   if (ratio >= minRatio || saveMons >= 100) return "likely_inflated";
-  if (saveMons > trueMons + 5) return "suspicious";
-  return "minor_delta";
+  // Small excess (+6–10) with ratio under 1.25 is often pre-fix hydrate/sync dupes.
+  if (excess > 10 || ratio >= 1.25) return "suspicious";
+  if (saveMons > trueMons) return "minor_delta";
+  return "ok";
 }
 
 async function main() {
@@ -159,8 +161,9 @@ async function main() {
     const saveMons = party + box;
     const activityStats = countActivityMons(entries, handle);
     const trueMons = activityStats.trueMons;
+    const excess = Math.max(0, saveMons - trueMons);
     const ratio = trueMons > 0 ? saveMons / trueMons : saveMons > 0 ? Infinity : 1;
-    const status = classifyRow({ saveMons, trueMons, ratio }, minRatio);
+    const status = classifyRow({ saveMons, trueMons, ratio, excess }, minRatio);
 
     rows.push({
       username: handle,
@@ -168,6 +171,7 @@ async function main() {
       party,
       box,
       saveMons,
+      excess,
       activitySessions: activityStats.sessions,
       activityCaughtReported: activityStats.caughtReported,
       activityRecoverableMons: activityStats.recoverableMons,
@@ -182,6 +186,7 @@ async function main() {
   rows.sort((a, b) => (b.ratio || 0) - (a.ratio || 0) || b.saveMons - a.saveMons);
 
   const flagged = rows.filter((r) => r.status === "likely_inflated" || r.status === "suspicious");
+  const watch = rows.filter((r) => r.status === "minor_delta");
   const report = {
     generatedAt: new Date().toISOString(),
     minRatio,
@@ -191,8 +196,10 @@ async function main() {
       flagged: flagged.length,
       likelyInflated: rows.filter((r) => r.status === "likely_inflated").length,
       suspicious: rows.filter((r) => r.status === "suspicious").length,
+      minorDelta: rows.filter((r) => r.status === "minor_delta").length,
     },
     flagged,
+    watch,
     all: rows,
   };
 
@@ -204,10 +211,24 @@ async function main() {
   console.log("Inventory inflation audit");
   console.log(`Saves scanned: ${report.totals.savesScanned}`);
   console.log(`Flagged (ratio >= ${minRatio} or save >= 100 with excess): ${report.totals.flagged}`);
+  console.log(`Watch (minor delta, excess <= 10 and ratio < 1.25): ${report.totals.minorDelta}`);
   console.log("");
 
+  if (report.watch.length) {
+    console.log("Minor delta (likely old sync dupes — review if excess grows):");
+    for (const r of report.watch) {
+      console.log(
+        `  @${r.username}  save=${r.saveMons}  activity=${r.trueMons}  excess=+${r.excess}`
+          + `  ratio=${r.ratio ?? "inf"}  (${r.activitySessions} X sessions)`
+      );
+    }
+    console.log("");
+  }
+
   if (!flagged.length) {
-    console.log("No inflated inventories detected at current thresholds.");
+    if (!report.watch.length) {
+      console.log("No inflated inventories detected at current thresholds.");
+    }
     return;
   }
 
@@ -215,17 +236,20 @@ async function main() {
   for (const r of flagged) {
     console.log(
       `  @${r.username}  save=${r.saveMons} (party ${r.party} + box ${r.box})`
-        + `  activity=${r.trueMons} (${r.activitySessions} sessions)`
+        + `  activity=${r.trueMons} (${r.activitySessions} sessions)  excess=+${r.excess}`
         + `  ratio=${r.ratio ?? "inf"}  status=${r.status}`
     );
   }
 
+  console.log("");
+  console.log("Status key: likely_inflated=ratio>=min or save>=100 | suspicious=excess>10 or ratio>=1.25 | minor_delta=small excess");
   console.log("");
   console.log("All saves (save vs activity):");
   for (const r of rows) {
     console.log(
       `  @${r.username.padEnd(18)} save=${String(r.saveMons).padStart(4)}`
         + `  activity=${String(r.trueMons).padStart(4)}`
+        + `  excess=${String(r.excess > 0 ? `+${r.excess}` : "0").padStart(4)}`
         + `  ratio=${String(r.ratio ?? "inf").padStart(6)}  ${r.status}`
     );
   }
