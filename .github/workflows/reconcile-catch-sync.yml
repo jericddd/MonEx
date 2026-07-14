@@ -1,0 +1,82 @@
+name: Reconcile catch sync
+
+# Audit and repair catch-log vs in-game inventory mismatches.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview only (no KV writes)"
+        type: boolean
+        default: true
+      username:
+        description: "Optional X username without @ (required unless all_users is checked)"
+        required: false
+      all_users:
+        description: "Scan every cloud save (requires explicit opt-in)"
+        type: boolean
+        default: false
+      confirm:
+        description: "Type PREVIEW to dry-run, or RECONCILE to apply"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    name: Reconcile catch log and inventory
+    steps:
+      - name: Confirm action
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ] && [ "${{ inputs.confirm }}" != "PREVIEW" ]; then
+            echo "::error::Dry-run requires confirm = PREVIEW"
+            exit 1
+          fi
+          if [ "${{ inputs.dry_run }}" != "true" ] && [ "${{ inputs.confirm }}" != "RECONCILE" ]; then
+            echo "::error::Apply requires confirm = RECONCILE"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check Cloudflare secrets
+        run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN}" ]; then
+            echo "::error::Missing GitHub secret CLOUDFLARE_API_TOKEN"
+            exit 1
+          fi
+          if [ -z "${CLOUDFLARE_ACCOUNT_ID}" ]; then
+            echo "::error::Missing GitHub secret CLOUDFLARE_ACCOUNT_ID"
+            exit 1
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Reconcile catch sync
+        working-directory: cloudflare/monex-api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          ARGS=()
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            ARGS+=(--dry-run)
+          fi
+          if [ "${{ inputs.all_users }}" = "true" ]; then
+            ARGS+=(--all-users)
+          elif [ -n "${{ inputs.username }}" ]; then
+            ARGS+=("${{ inputs.username }}")
+          else
+            echo "::error::Provide username or enable all_users"
+            exit 1
+          fi
+          node scripts/reconcile-catch-sync.mjs "${ARGS[@]}"

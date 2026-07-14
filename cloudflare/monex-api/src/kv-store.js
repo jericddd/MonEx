@@ -300,6 +300,9 @@ export async function saveActivityLog(kv, log) {
 
 export async function appendActivity(kv, entry) {
   const log = await loadActivityLog(kv);
+  if (entry?.tweetId && log.entries.some((e) => String(e.tweetId) === String(entry.tweetId))) {
+    return entry;
+  }
   log.entries.unshift(entry);
   await saveActivityLog(kv, log);
   return entry;
