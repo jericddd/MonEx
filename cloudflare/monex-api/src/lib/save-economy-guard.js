@@ -3,7 +3,7 @@
  * and invalid progression jumps while allowing legitimate per-save gameplay deltas.
  */
 
-import { LIMITS, sanitizeReleaseLog } from "./save-validate.js";
+import { LIMITS, sanitizeReleaseLog, sanitizeReleasedRecoveryIds } from "./save-validate.js";
 import { applyQuestResetsToState } from "./quest-reset.js";
 import {
   QUEST_TASK_DEFS,
@@ -333,6 +333,23 @@ export function mergeReleaseLog(existing, incoming) {
 }
 
 /**
+ * Append-only merge for released recovery ids. Once a mon is released, its
+ * recovery keys must never be re-imported from the activity log.
+ */
+export function mergeReleasedRecoveryIds(existing, incoming) {
+  const prior = sanitizeReleasedRecoveryIds(existing?.releasedRecoveryIds);
+  const next = sanitizeReleasedRecoveryIds(incoming?.releasedRecoveryIds);
+  const seen = new Set(prior);
+  const merged = [...prior];
+  for (const id of next) {
+    if (seen.has(id)) continue;
+    merged.push(id);
+    seen.add(id);
+  }
+  return merged.slice(0, LIMITS.releasedRecoveryIdsMax);
+}
+
+/**
  * Apply all server-side save guards before persist.
  */
 export function guardSavePayload(existing, incoming, options = {}) {
@@ -347,6 +364,7 @@ export function guardSavePayload(existing, incoming, options = {}) {
   out = clampInventoryGrowth(ex, out);
   out = clampInventoryShrink(ex, out);
   out.releaseLog = mergeReleaseLog(ex, out);
+  out.releasedRecoveryIds = mergeReleasedRecoveryIds(ex, out);
   return out;
 }
 

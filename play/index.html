@@ -8869,6 +8869,8 @@ let xHandle = "";
 let profileActivitySignature = "";
 let profileReleaseSignature = "";
 let releaseLog = [];
+let releasedRecoveryIds = [];
+let releaseInFlight = false;
 let profileActivityHandle = "";
 
 /** OAuth session @handle wins over a stale manual link in cloud/local save. */
@@ -8919,8 +8921,72 @@ function getWildPendingIds() {
     const ids = new Set();
     for (const mon of [...party, ...box]) {
         if (mon?.wildPendingId) ids.add(mon.wildPendingId);
+        if (mon?.instanceId) ids.add(mon.instanceId);
     }
     return ids;
+}
+
+function ensureMonInstanceId(mon) {
+    if (!mon) return null;
+    if (typeof mon.instanceId === "string" && mon.instanceId.trim()) return mon.instanceId;
+    const id = (typeof mon.wildPendingId === "string" && mon.wildPendingId.trim())
+        ? mon.wildPendingId.trim()
+        : `inst_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    mon.instanceId = id;
+    return id;
+}
+
+function collectReleaseRecoveryKeys(mon) {
+    const keys = new Set();
+    const instanceId = ensureMonInstanceId(mon);
+    if (instanceId) keys.add(instanceId);
+    if (mon?.wildPendingId && mon.wildPendingId !== instanceId) keys.add(mon.wildPendingId);
+    const match = String(mon?.wildPendingId || "").match(/^recovery_(.+)_(\d+)$/);
+    if (match) keys.add(`activity:${match[1]}:${match[2]}`);
+    return [...keys];
+}
+
+function mergeReleasedRecoveryIdLists(localRows, cloudRows) {
+    const seen = new Set();
+    const merged = [];
+    for (const id of [...(Array.isArray(localRows) ? localRows : []), ...(Array.isArray(cloudRows) ? cloudRows : [])]) {
+        const key = String(id || "").trim();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        merged.push(key);
+    }
+    return merged.slice(0, 500);
+}
+
+function getLocalReleasedRecoveryIdSet() {
+    const released = new Set(releasedRecoveryIds || []);
+    for (const entry of releaseLog || []) {
+        if (entry?.recoveryId) released.add(entry.recoveryId);
+        if (entry?.instanceId) released.add(entry.instanceId);
+        const match = String(entry.recoveryId || "").match(/^recovery_(.+)_(\d+)$/);
+        if (match) released.add(`activity:${match[1]}:${match[2]}`);
+    }
+    return released;
+}
+
+function saveWouldRestoreReleasedMon(save) {
+    if (!save || typeof save !== "object") return false;
+    const released = getLocalReleasedRecoveryIdSet();
+    if (!released.size) return false;
+    const currentIds = getWildPendingIds();
+    for (const mon of [...(save.party || []), ...(save.box || [])]) {
+        const id = mon?.wildPendingId || mon?.instanceId;
+        if (id && released.has(id) && !currentIds.has(id)) return true;
+    }
+    return false;
+}
+
+function debugReleaseLog(event, detail = {}) {
+    if (!window.MONEX_DEBUG_RELEASE && !window.MONEX_DEBUG_SAVE) return;
+    const rev = typeof MonExAuth !== "undefined" && MonExAuth.getSaveRevision
+        ? MonExAuth.getSaveRevision()
+        : null;
+    console.info("[monex-release]", event, { saveRevision: rev, ...detail });
 }
 const BOX_MAX = Infinity;
 
@@ -10149,6 +10215,8 @@ function formatReleaseSalvageMessage(salvage) {
 
 function recordRelease(mon, salvage, source = "box") {
     if (!mon) return;
+    const instanceId = ensureMonInstanceId(mon);
+    const recoveryId = mon.wildPendingId || null;
     const entry = {
         id: `rel_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         at: new Date().toISOString(),
@@ -10159,8 +10227,19 @@ function recordRelease(mon, salvage, source = "box") {
         essence: Math.max(0, Math.floor(salvage?.essence || 0)),
         shards: Math.max(0, Math.floor(salvage?.shards || 0)),
         source: source === "party" ? "party" : "box",
+        instanceId,
     };
+    if (recoveryId) entry.recoveryId = recoveryId;
     releaseLog = [entry, ...releaseLog].slice(0, 200);
+    const blocked = collectReleaseRecoveryKeys(mon);
+    const seen = new Set(releasedRecoveryIds);
+    for (const key of blocked) {
+        if (seen.has(key)) continue;
+        seen.add(key);
+        releasedRecoveryIds.push(key);
+    }
+    releasedRecoveryIds = releasedRecoveryIds.slice(0, 500);
+    debugReleaseLog("release recorded", { instanceId, recoveryId, blockedCount: blocked.length });
 }
 
 let gearInventory = [];
@@ -15055,6 +15134,7 @@ function buildSavePayload() {
         mailbox,
         dailyLoginLastClaimAt,
         releaseLog,
+        releasedRecoveryIds,
         saveVersion: 2,
         updatedAt: new Date().toISOString(),
     };
@@ -15210,15 +15290,26 @@ async function refreshMonballsFromServer() {
 }
 
 async function persistProgress(options = {}) {
-    if (!isGameSessionPlayable()) return;
+    if (!isGameSessionPlayable()) return null;
     const { flush = true } = options;
     saveData({ immediate: true });
     updateHeaderCurrencies();
     if (flush && typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
         try {
-            await flushSaveToCloud();
-        } catch (_) {}
+            debugReleaseLog("autosave started", {});
+            const result = await flushSaveToCloud();
+            debugReleaseLog("autosave completed", {
+                newSaveRevision: typeof MonExAuth !== "undefined" && MonExAuth.getSaveRevision
+                    ? MonExAuth.getSaveRevision()
+                    : null,
+            });
+            return result ?? null;
+        } catch (err) {
+            debugReleaseLog("autosave failed", { error: err?.message || String(err) });
+            throw err;
+        }
     }
+    return null;
 }
 
 window.handleCloudSaveConflict = function handleCloudSaveConflict(cloudSave) {
@@ -15372,6 +15463,7 @@ function mergeSaveSnapshots(local, cloud) {
 
     merged.updatedAt = new Date(Math.max(localTs, cloudTs, Date.now())).toISOString();
     merged.releaseLog = mergeReleaseLogs(local?.releaseLog, cloud?.releaseLog);
+    merged.releasedRecoveryIds = mergeReleasedRecoveryIdLists(local?.releasedRecoveryIds, cloud?.releasedRecoveryIds);
     return merged;
 }
 
@@ -15440,9 +15532,11 @@ function applyLoadedSave(data) {
     mailbox = Array.isArray(data.mailbox) ? data.mailbox : [];
     dailyLoginLastClaimAt = data.dailyLoginLastClaimAt || null;
     releaseLog = Array.isArray(data.releaseLog) ? data.releaseLog : [];
+    releasedRecoveryIds = mergeReleasedRecoveryIdLists(releasedRecoveryIds, data.releasedRecoveryIds);
 
     [...party, ...box].forEach((mon) => {
         try {
+            ensureMonInstanceId(mon);
             ensureMonReady(mon);
             GEAR_SLOTS.forEach(slot => {
                 if (mon.equipment?.[slot]) normalizeGear(mon.equipment[slot]);
@@ -15615,7 +15709,7 @@ function renderMonCardInner(mon, index, location) {
     const levelBtn = isParty ? renderLevelUpBtn(index, mon, cost, atCap, cap) : "";
     const footerBtns = isParty
         ? `<button onclick="event.stopPropagation(); openPartySwitchPicker(${index})">SWITCH</button>${levelBtn}`
-        : `<button onclick="event.stopPropagation(); openBoxSwitchPicker(${index})">SWITCH</button><button onclick="releaseFromBox(${index})" class="red">RELEASE</button>`;
+        : `<button onclick="event.stopPropagation(); openBoxSwitchPicker(${index})" ${releaseInFlight ? "disabled" : ""}>SWITCH</button><button onclick="releaseFromBox(${index})" class="red"${releaseInFlight ? " disabled" : ""}>RELEASE</button>`;
     const statusLine = isParty ? `<div class="mon-card-status">Ready for battle</div>` : "";
     const ascend = isParty ? renderAscendBtn(index, mon) : "";
 
@@ -16272,6 +16366,7 @@ function importWildMon(raw) {
         skills: raw.skills ? JSON.parse(JSON.stringify(raw.skills)) : [],
     };
     if (raw.pendingId) mon.wildPendingId = raw.pendingId;
+    ensureMonInstanceId(mon);
     ensureMonReady(mon);
     return mon;
 }
@@ -16346,9 +16441,27 @@ async function syncXWildMons(silent) {
                 let added = 0;
 
                 if (data.save) {
+                    if (releaseInFlight) {
+                        debugReleaseLog("sync response ignored", { reason: "release_in_flight" });
+                        break;
+                    }
+                    if (saveWouldRestoreReleasedMon(data.save)) {
+                        debugReleaseLog("stale response ignored", {
+                            reason: "would_restore_released_mon",
+                            syncResponseRevision: data.save.revision ?? null,
+                        });
+                        break;
+                    }
                     const beforeCount = party.length + box.length;
+                    const revBefore = typeof MonExAuth !== "undefined" && MonExAuth.getSaveRevision
+                        ? MonExAuth.getSaveRevision()
+                        : null;
                     applyLoadedSave(data.save);
                     writeLocalSave(data.save);
+                    debugReleaseLog("sync response applied", {
+                        syncResponseRevision: data.save.revision ?? null,
+                        priorRevision: revBefore,
+                    });
                     added = Math.max(Number(data.added) || 0, party.length + box.length - beforeCount);
                 } else {
                     added = applyWildSyncMonsLegacy(data);
@@ -16850,21 +16963,94 @@ function showConfirmModal(message, onConfirm, options = {}) {
     overlay.querySelector("#confirm-no").onclick = () => overlay.remove();
 }
 function releaseFromBox(index) {
+    if (releaseInFlight) return;
     const mon = box[index];
     if (!mon) return;
+    const instanceId = ensureMonInstanceId(mon);
     const salvage = getReleaseSalvage(mon);
     showConfirmModal(formatReleaseSalvageMessage(salvage), () => {
+        void executeMonRelease({ mon, index, source: "box", instanceId, salvage });
+    });
+}
+
+async function executeMonRelease({ mon, index, source, instanceId, salvage }) {
+    if (releaseInFlight) return;
+    if (!mon || ensureMonInstanceId(mon) !== instanceId) {
+        showHubNotice("That mon is no longer in your box.", "Release failed");
+        renderBox();
+        return;
+    }
+    const list = source === "party" ? party : box;
+    if (list[index] !== mon) {
+        const byId = list.findIndex((m) => m && ensureMonInstanceId(m) === instanceId);
+        if (byId < 0) {
+            showHubNotice("That mon is no longer in your collection.", "Release failed");
+            if (source === "box") renderBox();
+            else renderPartyGrid();
+            return;
+        }
+        index = byId;
+    }
+
+    releaseInFlight = true;
+    renderBox();
+    debugReleaseLog("release requested", { instanceId, source, index });
+
+    const snapshot = {
+        party: party.map((m) => m),
+        box: box.map((m) => m),
+        money,
+        essence,
+        monShards,
+        releaseLog: [...releaseLog],
+        releasedRecoveryIds: [...releasedRecoveryIds],
+        gearInventory: gearInventory.map((g) => g),
+    };
+
+    try {
         returnAllGearToInventory(mon);
         if (salvage.gold > 0) money += salvage.gold;
         if (salvage.essence > 0) essence += salvage.essence;
         if (salvage.shards > 0) monShards += salvage.shards;
-        recordRelease(mon, salvage, "box");
-        box.splice(index, 1);
-        void persistProgress();
+        recordRelease(mon, salvage, source);
+        list.splice(index, 1);
         updateUI();
-        renderBox();
+        if (source === "box") renderBox();
+        else renderPartyGrid();
+
+        const result = await persistProgress({ flush: true });
+        if (result?.conflict) {
+            throw new Error("cloud save conflict");
+        }
+        if (result === null && typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+            throw new Error("cloud save failed");
+        }
+        debugReleaseLog("release API completed", {
+            instanceId,
+            newSaveRevision: typeof MonExAuth !== "undefined" && MonExAuth.getSaveRevision
+                ? MonExAuth.getSaveRevision()
+                : null,
+        });
         refreshProfileReleases({ force: true, silent: true });
-    });
+    } catch (err) {
+        party = snapshot.party;
+        box = snapshot.box;
+        money = snapshot.money;
+        essence = snapshot.essence;
+        monShards = snapshot.monShards;
+        releaseLog = snapshot.releaseLog;
+        releasedRecoveryIds = snapshot.releasedRecoveryIds;
+        gearInventory = snapshot.gearInventory;
+        updateUI();
+        if (source === "box") renderBox();
+        else renderPartyGrid();
+        showHubNotice("Release could not be saved. Your mon was restored.", "Release failed");
+        debugReleaseLog("release failed", { instanceId, error: err?.message || String(err) });
+    } finally {
+        releaseInFlight = false;
+        if (source === "box") renderBox();
+        else renderPartyGrid();
+    }
 }
 
 // ==================== CATCH ====================
@@ -16879,6 +17065,7 @@ function createMonanimal(name, rarity, level) {
         ultimate: { ...skills[0] }
     };
     ensureMonReady(mon);
+    ensureMonInstanceId(mon);
     return mon;
 }
 

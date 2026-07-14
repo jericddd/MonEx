@@ -194,4 +194,34 @@ describe("recoverActivityCatchesForUser", () => {
     assert.equal(result.save.party.length + result.save.box.length, 2);
     assert.ok(!result.save.party.some((m) => m.level === 99));
   });
+
+  it("skips mons intentionally released by the player", () => {
+    const result = recoverActivityCatchesForUser({
+      username: "Lucci_Crypto",
+      activityEntries: sampleActivities,
+      save: {
+        party: [],
+        box: [],
+        monballs: 8,
+        xHandle: "Lucci_Crypto",
+        releasedRecoveryIds: ["recovery_act_2_0", "activity:act_2:0"],
+        releaseLog: [
+          {
+            id: "rel_1",
+            at: "2026-07-13T00:00:00.000Z",
+            name: "Shramp",
+            rarity: "Common",
+            level: 1,
+            recoveryId: "recovery_act_2_0",
+            instanceId: "recovery_act_2_0",
+            source: "box",
+          },
+        ],
+      },
+    });
+
+    assert.equal(result.added.length, 1);
+    assert.equal(result.added[0].name, "Mosferatu");
+    assert.equal(result.skipped.some((row) => row.reason === "released_by_user"), true);
+  });
 });
