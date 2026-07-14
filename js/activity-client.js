@@ -110,6 +110,9 @@ function injectActivityUiStyles() {
 .activity-detail-panel--home.activity-detail-panel--wide {
     width: min(960px, 96vw);
 }
+.activity-detail-panel--game.activity-detail-panel--wide {
+    width: min(920px, 96vw);
+}
 .activity-detail-close {
     position: absolute;
     top: 10px;
@@ -889,7 +892,8 @@ function openActivityDetail(entry, opts = {}) {
     const body = document.getElementById("activity-detail-body");
     if (panel) {
         panel.classList.toggle("activity-detail-panel--home", !!opts.homeTheme);
-        panel.classList.toggle("activity-detail-panel--wide", !!opts.homeTheme);
+        panel.classList.toggle("activity-detail-panel--game", !!opts.gameTheme);
+        panel.classList.toggle("activity-detail-panel--wide", !!(opts.wideDetail || opts.homeTheme || opts.gameTheme));
     }
     if (body) {
         body.innerHTML = buildActivityDetailHtml(entry, opts);
