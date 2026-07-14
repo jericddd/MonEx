@@ -1,4 +1,5 @@
 import { validateAndSanitizeSave, sanitizeQuestOneTimeResetsApplied } from "./save-validate.js";
+import { mergeAccountBattleCompletions } from "./battle-completion.js";
 import {
   mergeReleaseLog,
   mergeReleasedRecoveryIds,
@@ -72,6 +73,10 @@ export function preserveServerAuthoritativeFields(payload, existingSave) {
     src.accountCompensationsApplied && typeof src.accountCompensationsApplied === "object"
       ? src.accountCompensationsApplied
       : payload.accountCompensationsApplied;
+  payload.accountBattleCompletions = mergeAccountBattleCompletions(
+    src.accountBattleCompletions,
+    payload.accountBattleCompletions
+  );
   return payload;
 }
 

@@ -28,11 +28,36 @@
     }
   }
 
-  async function claimBattleReward({ mode, win, encounterId, claimId, chapter, stage }) {
+  function buildCampaignCompletionId(chapter, stage) {
+    const ch = Math.max(1, Math.floor(Number(chapter) || 1));
+    const st = Math.max(1, Math.floor(Number(stage) || 1));
+    return `campaign:chapter-${ch}:stage-${st}:first-clear`;
+  }
+
+  function buildPatrolCompletionId(patrolScansDay, patrolScansUsed, encounterId) {
+    const day = String(patrolScansDay || "unknown").trim().slice(0, 32) || "unknown";
+    const scan = Math.max(1, Math.floor(Number(patrolScansUsed) || 1));
+    const enc = String(encounterId || "common").trim().slice(0, 24) || "common";
+    return `patrol:day-${day}:scan-${scan}:${enc}`;
+  }
+
+  async function claimBattleReward({ mode, win, encounterId, claimId, chapter, stage, patrolScansDay, patrolScansUsed }) {
+    if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
+      await MonExAuth.awaitCloudSaveIdle();
+    }
     const res = await fetch(`${apiBase()}/api/battle/claim-reward`, {
       method: "POST",
       headers: MonExAuth.authHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify(claimBody({ mode, win, encounterId, claimId, chapter, stage })),
+      body: JSON.stringify(claimBody({
+        mode,
+        win,
+        encounterId,
+        claimId,
+        chapter,
+        stage,
+        patrolScansDay,
+        patrolScansUsed,
+      })),
     });
     const data = await res.json().catch(() => ({}));
     if (res.status === 403 && data.error === "game_session_inactive") {
@@ -60,5 +85,10 @@
     return last;
   }
 
-  window.MonExBattle = { claimBattleReward, claimBattleRewardWithRetry };
+  window.MonExBattle = {
+    claimBattleReward,
+    claimBattleRewardWithRetry,
+    buildCampaignCompletionId,
+    buildPatrolCompletionId,
+  };
 })();

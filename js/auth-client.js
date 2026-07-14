@@ -352,6 +352,15 @@ function cancelPendingCloudSave() {
   _pendingSaveState = null;
 }
 
+async function awaitCloudSaveIdle() {
+  cancelPendingCloudSave();
+  if (_saveInflight) {
+    try {
+      await _saveInflight;
+    } catch (_) {}
+  }
+}
+
 function buildSavePayload(state) {
   return {
     party: state.party,
@@ -526,6 +535,7 @@ window.MonExAuth = {
   flushCloudSave,
   setLiveSaveProvider,
   cancelPendingCloudSave,
+  awaitCloudSaveIdle,
   buildSavePayload,
   authHeaders,
   enforceServerResetEpoch,
