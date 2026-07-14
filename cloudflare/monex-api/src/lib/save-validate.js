@@ -431,6 +431,27 @@ function sanitizeQuestGrant(raw) {
   return Object.keys(grant).length ? grant : null;
 }
 
+export function sanitizeQuestOneTimeResetsApplied(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((entry) => String(entry || "").trim().slice(0, 64))
+    .filter(Boolean)
+    .slice(0, 32);
+}
+
+function sanitizeAccountCompensationsApplied(raw) {
+  if (!raw || typeof raw !== "object") return {};
+  const out = {};
+  for (const [key, val] of Object.entries(raw)) {
+    const id = String(key || "").trim().slice(0, 64);
+    if (!id || !val || typeof val !== "object") continue;
+    const amount = clampInt(val.amount, 0, LIMITS.monballs);
+    const at = typeof val.at === "string" ? trimString(val.at, 32) || null : null;
+    if (amount > 0) out[id] = { amount, at: at || null };
+  }
+  return out;
+}
+
 function sanitizeQuestMonballPaidAmounts(raw) {
   if (!raw || typeof raw !== "object") return {};
   const out = {};
@@ -631,6 +652,8 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
     resourceChestLastCollectAt: sanitizeResourceChestTimestamp(input.resourceChestLastCollectAt, now),
     questState: sanitizeQuestState(input.questState),
     questMonballPaidAmounts: sanitizeQuestMonballPaidAmounts(input.questMonballPaidAmounts),
+    questOneTimeResetsApplied: sanitizeQuestOneTimeResetsApplied(input.questOneTimeResetsApplied),
+    accountCompensationsApplied: sanitizeAccountCompensationsApplied(input.accountCompensationsApplied),
     mailbox: sanitizeMailbox(input.mailbox),
     dailyLoginLastClaimAt: sanitizeDailyLoginLastClaimAt(input.dailyLoginLastClaimAt, now),
     releaseLog: sanitizeReleaseLog(input.releaseLog),
