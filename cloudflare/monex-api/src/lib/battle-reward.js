@@ -122,11 +122,102 @@ function syncCampaignQuestProgress(questState, adventureGlobalBest) {
   const g = Math.max(0, Math.floor(Number(adventureGlobalBest) || 0));
   for (const [taskId, target] of Object.entries(CAMPAIGN_STAGE_TARGETS)) {
     const task = findTask(questState, "campaign", taskId);
-    if (!task || task.claimed) continue;
+    if (task?.claimed) continue;
     upsertTask(questState, "campaign", taskId, {
       progress: g >= target ? 1 : 0,
     });
   }
+}
+
+export function mergeBattleClaimOntoLatest(latest, original, intended) {
+  const merged = { ...latest };
+  const delta = (field) => (intended[field] || 0) - (original[field] || 0);
+  for (const field of ["money", "essence", "monShards", "trainerXp"]) {
+    const d = delta(field);
+    if (d !== 0) merged[field] = (latest[field] || 0) + d;
+  }
+
+  const latestGear = [...(latest.gearInventory || [])];
+  const intendedGear = intended.gearInventory || [];
+  const originalLen = (original.gearInventory || []).length;
+  for (let i = originalLen; i < intendedGear.length; i++) {
+    if (intendedGear[i]) latestGear.push(intendedGear[i]);
+  }
+  merged.gearInventory = latestGear.slice(0, LIMITS.gearInventoryMax);
+
+  if ((intended.adventureGlobalBest || 0) > (latest.adventureGlobalBest || 0)) {
+    merged.adventureGlobalBest = intended.adventureGlobalBest;
+    merged.highestStageCleared = intended.highestStageCleared;
+    merged.currentChapter = intended.currentChapter;
+    merged.currentStage = intended.currentStage;
+  }
+
+  const base = normalizeQuestState(latest);
+  const target = normalizeQuestState(intended);
+  applyQuestResetsToState(base);
+  for (const tab of ["dailies", "weeklies", "campaign"]) {
+    for (const task of target.tasks[tab] || []) {
+      const existing = findTask(base, tab, task.id);
+      if (existing?.claimed) continue;
+      upsertTask(base, tab, task.id, {
+        progress: Math.max(existing?.progress || 0, task.progress || 0),
+        claimed: existing?.claimed || false,
+      });
+    }
+  }
+  merged.questState = base;
+  return merged;
+}
+
+function buildSaveAfterBattleClaim(save, computed, battleMode) {
+  const reward = computed.reward;
+  let nextSave = applyRewardToSave(save, reward);
+  const questState = normalizeQuestState(nextSave);
+  applyQuestResetsToState(questState);
+
+  if (battleMode === "patrol") {
+    bumpQuestTrack(questState, "patrol_win", 1);
+  } else {
+    nextSave = advanceAdventureProgress(nextSave, computed.globalP);
+    bumpQuestTrack(questState, "adventure_win", 1);
+    if (computed.boss) bumpQuestTrack(questState, "boss_win", 1, { boss: true });
+    syncCampaignQuestProgress(questState, nextSave.adventureGlobalBest);
+  }
+
+  nextSave.questState = questState;
+  return nextSave;
+}
+
+function resolveBattleStageForClaim(save, { chapter, stage, claimId } = {}) {
+  let reqChapter = Number(chapter);
+  let reqStage = Number(stage);
+  if (!Number.isFinite(reqChapter) || !Number.isFinite(reqStage)) {
+    const match = String(claimId || "").match(/^adv-(\d+)-(\d+)-/);
+    if (match) {
+      reqChapter = Number(match[1]);
+      reqStage = Number(match[2]);
+    }
+  }
+  if (!Number.isFinite(reqChapter) || reqChapter < 1) {
+    reqChapter = Math.max(1, Math.floor(save.currentChapter || 1));
+  }
+  if (!Number.isFinite(reqStage) || reqStage < 1) {
+    reqStage = Math.max(1, Math.floor(save.currentStage || 1));
+  }
+
+  const best = Math.max(0, Math.floor(Number(save.adventureGlobalBest) || 0));
+  const reqGlobal = getGlobalAdventureProgress(reqChapter, reqStage);
+  if (reqGlobal > best + 1) {
+    return { ok: false, error: "stage_not_reachable" };
+  }
+  return {
+    ok: true,
+    saveForCompute: {
+      ...save,
+      currentChapter: reqChapter,
+      currentStage: reqStage,
+    },
+  };
 }
 
 export function computeAdventureReward(save) {
@@ -236,10 +327,23 @@ function serializeReward(reward) {
   };
 }
 
-async function persistBattleSave(kv, session, save, expectedRevision, startingMonballs, attempt = 0) {
+async function persistBattleSave(
+  kv,
+  session,
+  originalSave,
+  intendedSave,
+  expectedRevision,
+  startingMonballs,
+  attempt = 0
+) {
   const now = Date.now();
+  let saveToWrite = intendedSave;
+  if (attempt > 0) {
+    const { save: latest } = await loadCloudSave(kv, session.xUserId);
+    saveToWrite = mergeBattleClaimOntoLatest(latest, originalSave, intendedSave);
+  }
   let payload = buildSavePayload(
-    { ...save, updatedAt: new Date(now).toISOString() },
+    { ...saveToWrite, updatedAt: new Date(now).toISOString() },
     session,
     { now }
   );
@@ -249,8 +353,20 @@ async function persistBattleSave(kv, session, save, expectedRevision, startingMo
     return { ok: true, save: written };
   } catch (err) {
     if (err?.code === "revision_conflict" && attempt < MAX_CLAIM_RETRIES) {
+      const currentRevision = err.currentRevision ?? err.existingSave?.revision;
       const { save: latest } = await loadCloudSave(kv, session.xUserId);
-      return persistBattleSave(kv, session, latest, latest.revision, startingMonballs, attempt + 1);
+      const nextRevision = Number.isFinite(Number(currentRevision))
+        ? Number(currentRevision)
+        : latest.revision;
+      return persistBattleSave(
+        kv,
+        session,
+        originalSave,
+        intendedSave,
+        nextRevision,
+        startingMonballs,
+        attempt + 1
+      );
     }
     if (err?.code === "revision_conflict") {
       return { ok: false, error: "reward_conflict", save: err.existingSave };
@@ -262,7 +378,7 @@ async function persistBattleSave(kv, session, save, expectedRevision, startingMo
 export async function claimBattleReward(
   kv,
   session,
-  { mode, win, encounterId, claimId, expectedRevision },
+  { mode, win, encounterId, claimId, expectedRevision, chapter, stage },
   startingMonballs = 10
 ) {
   const battleMode = mode === "patrol" ? "patrol" : "adventure";
@@ -286,26 +402,22 @@ export async function claimBattleReward(
   if (battleMode === "patrol") {
     computed = computePatrolReward(save, encounterId);
   } else {
-    computed = computeAdventureReward(save);
+    const resolved = resolveBattleStageForClaim(save, { chapter, stage, claimId });
+    if (!resolved.ok) return resolved;
+    computed = computeAdventureReward(resolved.saveForCompute);
   }
 
   const reward = computed.reward;
-  let nextSave = applyRewardToSave(save, reward);
-  const questState = normalizeQuestState(nextSave);
-  applyQuestResetsToState(questState);
+  const nextSave = buildSaveAfterBattleClaim(save, computed, battleMode);
 
-  if (battleMode === "patrol") {
-    bumpQuestTrack(questState, "patrol_win", 1);
-  } else {
-    nextSave = advanceAdventureProgress(nextSave, computed.globalP);
-    bumpQuestTrack(questState, "adventure_win", 1);
-    if (computed.boss) bumpQuestTrack(questState, "boss_win", 1, { boss: true });
-    syncCampaignQuestProgress(questState, nextSave.adventureGlobalBest);
-  }
-
-  nextSave.questState = questState;
-
-  const result = await persistBattleSave(kv, session, nextSave, expectedRevision, startingMonballs);
+  const result = await persistBattleSave(
+    kv,
+    session,
+    save,
+    nextSave,
+    expectedRevision,
+    startingMonballs
+  );
   if (!result.ok) return result;
 
   const serialized = serializeReward(reward);

@@ -1242,6 +1242,8 @@ async function handleRequest(request, env) {
           win: body?.win === true,
           encounterId: body?.encounterId,
           claimId: body?.claimId,
+          chapter: body?.chapter,
+          stage: body?.stage,
           expectedRevision,
         }, starting);
         const status = result.ok

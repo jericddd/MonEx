@@ -9453,14 +9453,25 @@ function getQuestTaskDef(tab, taskId) {
 
 function syncCampaignQuestProgress() {
     const g = Math.max(0, adventureGlobalBest || 0);
-    const tasks = questState.tasks.campaign || [];
+    if (!questState.tasks.campaign) questState.tasks.campaign = [];
+    let changed = false;
     QUEST_TASK_DEFS.campaign.forEach(def => {
-        const task = tasks.find(t => t.id === def.id);
-        if (!task || task.claimed) return;
+        let task = questState.tasks.campaign.find(t => t.id === def.id);
+        if (task?.claimed) return;
+        if (!task) {
+            task = { id: def.id, progress: 0, claimed: false };
+            questState.tasks.campaign.push(task);
+            changed = true;
+        }
         if (def.track === "stage_reach") {
-            task.progress = g >= def.target ? def.goal : 0;
+            const next = g >= def.target ? def.goal : 0;
+            if (task.progress !== next) {
+                task.progress = next;
+                changed = true;
+            }
         }
     });
+    if (changed) saveData();
 }
 
 function bumpQuestProgress(track, amount = 1, opts = {}) {
@@ -9922,7 +9933,17 @@ async function advanceQuestTask(taskId, buttonEl) {
         if (questState.grantedKeys?.includes(grantKey)) return;
         if (typeof MonExQuest !== "undefined" && MonExQuest.claimQuestTask) {
             const result = await MonExQuest.claimQuestTask(tab, taskId);
-            if (!result.ok) return;
+            if (!result.ok) {
+                const msg = result.error === "progress_insufficient"
+                    ? "Complete this milestone first, then claim."
+                    : result.error === "task_not_found"
+                        ? "Quest not synced yet. Refresh /play and try again."
+                        : result.error === "claim_conflict"
+                            ? "Save conflict while claiming. Refresh and try again."
+                            : "Could not claim this quest reward.";
+                showHubNotice(msg, "Quest claim failed");
+                return;
+            }
             if (result.save) {
                 applyLoadedSave(result.save);
                 writeLocalSave(result.save);
@@ -18186,10 +18207,10 @@ function endPatrolBattle(win, player) {
     void finishPatrolBattleRewards(win, encounter);
 }
 
-async function claimServerBattleReward({ mode, encounterId, claimId, logTag }) {
+async function claimServerBattleReward({ mode, encounterId, claimId, chapter, stage, logTag }) {
     const claimFn = MonExBattle.claimBattleRewardWithRetry || MonExBattle.claimBattleReward;
     try {
-        const result = await claimFn({ mode, win: true, encounterId, claimId });
+        const result = await claimFn({ mode, win: true, encounterId, claimId, chapter, stage });
         if (result.ok && result.save) {
             applyLoadedSave(result.save);
             writeLocalSave(result.save);
@@ -18202,6 +18223,15 @@ async function claimServerBattleReward({ mode, encounterId, claimId, logTag }) {
             };
         }
         console.warn(`[${logTag}] server reward claim failed`, result);
+        if (result.alreadyClaimed && result.reward) {
+            return {
+                gold: result.reward?.gold || 0,
+                essence: result.reward?.essence || 0,
+                shards: result.reward?.monShards || 0,
+                trainerXp: result.reward?.trainerXp || 0,
+                gear: result.reward?.gear || null,
+            };
+        }
         showHubNotice(
             "Your win was saved, but rewards could not sync with the server. Refresh to pull the latest cloud save — your claim id is stored server-side and will not double-pay.",
             "Reward sync failed"
@@ -19562,6 +19592,8 @@ async function finishAdventureBattleRewards(win) {
         const serverReward = await claimServerBattleReward({
             mode: "adventure",
             claimId,
+            chapter: currentChapter,
+            stage: currentStage,
             logTag: "adventure",
         });
         if (serverReward) reward = serverReward;
