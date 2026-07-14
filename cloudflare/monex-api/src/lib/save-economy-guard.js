@@ -349,6 +349,39 @@ export function mergeReleasedRecoveryIds(existing, incoming) {
   return merged.slice(0, LIMITS.releasedRecoveryIdsMax);
 }
 
+function monPersistenceKeys(mon) {
+  const keys = [];
+  if (typeof mon?.instanceId === "string" && mon.instanceId.trim()) keys.push(mon.instanceId.trim());
+  if (typeof mon?.wildPendingId === "string" && mon.wildPendingId.trim()) keys.push(mon.wildPendingId.trim());
+  return keys;
+}
+
+function buildReleasedIdSet(existing, incoming) {
+  const released = new Set(mergeReleasedRecoveryIds(existing, incoming));
+  for (const entry of mergeReleaseLog(existing, incoming)) {
+    if (entry.recoveryId) released.add(entry.recoveryId);
+    if (entry.instanceId) released.add(entry.instanceId);
+    const match = String(entry.recoveryId || "").match(/^recovery_(.+)_(\d+)$/);
+    if (match) released.add(`activity:${match[1]}:${match[2]}`);
+  }
+  return released;
+}
+
+/**
+ * Stale full-save PUTs must never re-add Mons the player already released.
+ * Strip any inventory member whose persistence keys appear in the release blocklist.
+ */
+export function stripReleasedMonsFromInventory(existing, incoming) {
+  const released = buildReleasedIdSet(existing, incoming);
+  if (!released.size) return incoming;
+  const keepMon = (mon) => !monPersistenceKeys(mon).some((key) => released.has(key));
+  return {
+    ...incoming,
+    party: (incoming?.party || []).filter(keepMon),
+    box: (incoming?.box || []).filter(keepMon),
+  };
+}
+
 /**
  * Apply all server-side save guards before persist.
  */
@@ -365,6 +398,7 @@ export function guardSavePayload(existing, incoming, options = {}) {
   out = clampInventoryShrink(ex, out);
   out.releaseLog = mergeReleaseLog(ex, out);
   out.releasedRecoveryIds = mergeReleasedRecoveryIds(ex, out);
+  out = stripReleasedMonsFromInventory(ex, out);
   return out;
 }
 

@@ -1,4 +1,9 @@
 import { validateAndSanitizeSave } from "./save-validate.js";
+import {
+  mergeReleaseLog,
+  mergeReleasedRecoveryIds,
+  stripReleasedMonsFromInventory,
+} from "./save-economy-guard.js";
 
 const SAVE_PREFIX = "monex:save:";
 const saveWriteLocks = globalThis.__monexSaveWriteLocks || (globalThis.__monexSaveWriteLocks = new Map());
@@ -123,6 +128,13 @@ async function writeCloudSaveUnlocked(kv, xUserId, payload, options = {}) {
       err.existingSave = validateAndSanitizeSave(existing, {}, options);
       throw err;
     }
+  }
+
+  if (existing) {
+    const exSan = validateAndSanitizeSave(existing, {}, options);
+    payload.releaseLog = mergeReleaseLog(exSan, payload);
+    payload.releasedRecoveryIds = mergeReleasedRecoveryIds(exSan, payload);
+    payload = stripReleasedMonsFromInventory(exSan, payload);
   }
 
   payload.revision = currentRevision + 1;

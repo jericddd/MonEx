@@ -50,6 +50,7 @@ import { purchaseShopItem } from "./lib/shop-purchase.js";
 import { listMonballPackages, purchaseMonballPackage, publicPackageView } from "./lib/monball-packages.js";
 import { collectResourceChest } from "./lib/resource-chest.js";
 import { claimBattleReward } from "./lib/battle-reward.js";
+import { releaseMonFromBox } from "./lib/release-mon.js";
 import {
   resolveCatchUserKv,
   saveCatchUserRecord,
@@ -870,6 +871,43 @@ async function handleRequest(request, env) {
         }));
       } catch (_) {}
       return json({ ok: true, savedAt: saved.updatedAt, save: saved, revision: saved.revision }, 200, request, env);
+    }
+
+    if (path === "/api/release-mon" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const auth = await requireGameplay(request, env, body);
+      if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
+      await enforceRateLimit(request, env, "release-mon", { limit: 60, windowSec: 60, userId: auth.session.xUserId });
+      const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
+      const expectedRevision = body?.baseRevision != null && Number.isFinite(Number(body.baseRevision))
+        ? Number(body.baseRevision)
+        : undefined;
+      const instanceId = String(body?.instanceId || "").trim();
+      try {
+        const result = await withUserSyncLock(
+          userSyncLockKey(auth.session.xUserId, auth.session.username),
+          () => releaseMonFromBox(
+            env.MONEX_KV,
+            auth.session,
+            {
+              instanceId,
+              expectedRevision,
+              releaseToken: body?.releaseToken || null,
+            },
+            starting
+          )
+        );
+        const status = result.ok
+          ? 200
+          : result.error === "instance_id_required" || result.error === "mon_not_in_box"
+            ? 400
+            : result.error === "mon_not_found"
+              ? 404
+              : 409;
+        return json(result, status, request, env);
+      } catch (err) {
+        return json({ ok: false, error: err.message || "release failed" }, 500, request, env);
+      }
     }
 
     if (path === "/api/activity" && request.method === "GET") {
