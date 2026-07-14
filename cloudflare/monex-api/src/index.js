@@ -1217,15 +1217,20 @@ async function handleRequest(request, env) {
         ? Number(body.baseRevision)
         : undefined;
       try {
-        const result = await claimBattleReward(env.MONEX_KV, auth.session, {
-          mode: body?.mode,
-          win: body?.win === true,
-          encounterId: body?.encounterId,
-          claimId: body?.claimId,
-          chapter: body?.chapter,
-          stage: body?.stage,
-          expectedRevision,
-        }, starting);
+        const result = await withUserSyncLock(
+          userSyncLockKey(auth.session.xUserId, auth.session.username),
+          () => claimBattleReward(env.MONEX_KV, auth.session, {
+            mode: body?.mode,
+            win: body?.win === true,
+            encounterId: body?.encounterId,
+            claimId: body?.claimId,
+            chapter: body?.chapter,
+            stage: body?.stage,
+            patrolScansDay: body?.patrolScansDay,
+            patrolScansUsed: body?.patrolScansUsed,
+            expectedRevision,
+          }, starting)
+        );
         const status = result.ok
           ? 200
           : result.error === "win_required" || result.error === "claim_id_required"

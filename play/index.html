@@ -15170,7 +15170,9 @@ function saveData(options = {}) {
     if (!isGameSessionPlayable()) return;
     const payload = buildSavePayload();
     scheduleLocalSave(payload, options.immediate === true);
-    if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+    // Never push cloud autosaves during an active battle — pre-victory snapshots
+    // raced server claim-reward and rolled back rewards/progress (Ch.1-26 bug).
+    if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn() && !isInAdventureBattle) {
         MonExAuth.scheduleCloudSave(payload);
     }
 }
@@ -18269,13 +18271,24 @@ function endPatrolBattle(win, player) {
     void finishPatrolBattleRewards(win, encounter);
 }
 
-async function claimServerBattleReward({ mode, encounterId, claimId, chapter, stage, logTag }) {
-    if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
+async function claimServerBattleReward({ mode, encounterId, claimId, chapter, stage, patrolScansDay, patrolScansUsed, logTag }) {
+    if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
+        await MonExAuth.awaitCloudSaveIdle();
+    } else if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
         MonExAuth.cancelPendingCloudSave();
     }
     const claimFn = MonExBattle.claimBattleRewardWithRetry || MonExBattle.claimBattleReward;
     try {
-        const result = await claimFn({ mode, win: true, encounterId, claimId, chapter, stage });
+        const result = await claimFn({
+            mode,
+            win: true,
+            encounterId,
+            claimId,
+            chapter,
+            stage,
+            patrolScansDay,
+            patrolScansUsed,
+        });
         if (result.ok && result.save) {
             applyLoadedSave(result.save);
             writeLocalSave(buildSavePayload());
@@ -18317,11 +18330,16 @@ async function finishPatrolBattleRewards(win, encounter) {
     let reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null };
     let rewardSynced = !win || !MonExAuth?.isLoggedIn?.();
     if (win && typeof MonExBattle !== "undefined" && MonExAuth?.isLoggedIn?.()) {
-        const claimId = `patrol-${encounter?.id || "common"}-${patrolScanToken}-${adventureBattleToken}`;
+        ensurePatrolDailyReset();
+        const claimId = MonExBattle.buildPatrolCompletionId
+            ? MonExBattle.buildPatrolCompletionId(patrolScansDay, patrolScansUsed, encounter?.id)
+            : `patrol-${encounter?.id || "common"}-${patrolScanToken}-${adventureBattleToken}`;
         const serverReward = await claimServerBattleReward({
             mode: "patrol",
             encounterId: encounter?.id,
             claimId,
+            patrolScansDay,
+            patrolScansUsed,
             logTag: "patrol",
         });
         if (serverReward) {
@@ -19665,7 +19683,9 @@ async function finishAdventureBattleRewards(win) {
     let reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null };
     let rewardSynced = !win || !MonExAuth?.isLoggedIn?.();
     if (win && typeof MonExBattle !== "undefined" && MonExAuth?.isLoggedIn?.()) {
-        const claimId = `adv-${currentChapter}-${currentStage}-${adventureBattleToken}`;
+        const claimId = MonExBattle.buildCampaignCompletionId
+            ? MonExBattle.buildCampaignCompletionId(currentChapter, currentStage)
+            : `adv-${currentChapter}-${currentStage}-${adventureBattleToken}`;
         const serverReward = await claimServerBattleReward({
             mode: "adventure",
             claimId,

@@ -8,6 +8,15 @@ import {
   isEquipmentUnlocked,
   STAGES_PER_CHAPTER,
 } from "./equipment-unlock.js";
+import {
+  buildCampaignCompletionId,
+  buildPatrolCompletionId,
+  getCompletionFromSave,
+  logBattleCompletionEvent,
+  mergeAccountBattleCompletions,
+  normalizeBattleCompletionId,
+  sanitizeAccountBattleCompletions,
+} from "./battle-completion.js";
 import { applyQuestResetsToState } from "./quest-reset.js";
 
 const MAX_CLAIM_RETRIES = 3;
@@ -166,10 +175,14 @@ export function mergeBattleClaimOntoLatest(latest, original, intended) {
     }
   }
   merged.questState = base;
+  merged.accountBattleCompletions = mergeAccountBattleCompletions(
+    latest.accountBattleCompletions,
+    intended.accountBattleCompletions
+  );
   return merged;
 }
 
-function buildSaveAfterBattleClaim(save, computed, battleMode) {
+function buildSaveAfterBattleClaim(save, computed, battleMode, completionId, serializedReward) {
   const reward = computed.reward;
   let nextSave = applyRewardToSave(save, reward);
   const questState = normalizeQuestState(nextSave);
@@ -185,6 +198,13 @@ function buildSaveAfterBattleClaim(save, computed, battleMode) {
   }
 
   nextSave.questState = questState;
+  nextSave.accountBattleCompletions = mergeAccountBattleCompletions(save.accountBattleCompletions, {
+    [completionId]: {
+      at: new Date().toISOString(),
+      mode: battleMode,
+      reward: serializedReward,
+    },
+  });
   return nextSave;
 }
 
@@ -334,13 +354,22 @@ async function persistBattleSave(
   intendedSave,
   expectedRevision,
   startingMonballs,
-  attempt = 0
+  attempt = 0,
+  logContext = {}
 ) {
   const now = Date.now();
   let saveToWrite = intendedSave;
   if (attempt > 0) {
     const { save: latest } = await loadCloudSave(kv, session.xUserId);
     saveToWrite = mergeBattleClaimOntoLatest(latest, originalSave, intendedSave);
+    logBattleCompletionEvent("battle_claim_retry_merge", {
+      xUserId: session.xUserId,
+      attempt,
+      completionId: logContext.completionId,
+      revisionBefore: latest.revision,
+      moneyBefore: latest.money,
+      moneyAfter: saveToWrite.money,
+    });
   }
   let payload = buildSavePayload(
     { ...saveToWrite, updatedAt: new Date(now).toISOString() },
@@ -348,8 +377,25 @@ async function persistBattleSave(
     { now }
   );
   await reconcileMonballsForCloudSave(kv, session, payload, startingMonballs);
+  const effectiveRevision = expectedRevision != null && Number.isFinite(Number(expectedRevision))
+    ? Number(expectedRevision)
+    : undefined;
   try {
-    const written = await writeCloudSave(kv, session.xUserId, payload, { expectedRevision });
+    const written = await writeCloudSave(kv, session.xUserId, payload, {
+      expectedRevision: effectiveRevision,
+    });
+    logBattleCompletionEvent("battle_claim_persist_ok", {
+      xUserId: session.xUserId,
+      completionId: logContext.completionId,
+      attempt,
+      baseRevision: effectiveRevision,
+      revision: written.revision,
+      moneyBefore: originalSave.money,
+      moneyAfter: written.money,
+      adventureGlobalBestBefore: originalSave.adventureGlobalBest,
+      adventureGlobalBestAfter: written.adventureGlobalBest,
+      endpoint: "POST /api/battle/claim-reward",
+    });
     return { ok: true, save: written };
   } catch (err) {
     if (err?.code === "revision_conflict" && attempt < MAX_CLAIM_RETRIES) {
@@ -358,6 +404,13 @@ async function persistBattleSave(
       const nextRevision = Number.isFinite(Number(currentRevision))
         ? Number(currentRevision)
         : latest.revision;
+      logBattleCompletionEvent("battle_claim_revision_conflict", {
+        xUserId: session.xUserId,
+        completionId: logContext.completionId,
+        attempt,
+        expectedRevision: effectiveRevision,
+        currentRevision: nextRevision,
+      });
       return persistBattleSave(
         kv,
         session,
@@ -365,10 +418,16 @@ async function persistBattleSave(
         intendedSave,
         nextRevision,
         startingMonballs,
-        attempt + 1
+        attempt + 1,
+        logContext
       );
     }
     if (err?.code === "revision_conflict") {
+      logBattleCompletionEvent("battle_claim_persist_failed", {
+        xUserId: session.xUserId,
+        completionId: logContext.completionId,
+        error: "reward_conflict",
+      });
       return { ok: false, error: "reward_conflict", save: err.existingSave };
     }
     throw err;
@@ -378,60 +437,134 @@ async function persistBattleSave(
 export async function claimBattleReward(
   kv,
   session,
-  { mode, win, encounterId, claimId, expectedRevision, chapter, stage },
+  { mode, win, encounterId, claimId, expectedRevision, chapter, stage, patrolScansDay, patrolScansUsed },
   startingMonballs = 10
 ) {
   const battleMode = mode === "patrol" ? "patrol" : "adventure";
-  const id = String(claimId || "").trim();
-  if (!id) return { ok: false, error: "claim_id_required" };
   if (!win) return { ok: false, error: "win_required" };
 
-  const receiptKey = claimKey(session.xUserId, id);
+  const { save } = await loadCloudSave(kv, session.xUserId);
+  const completionId = normalizeBattleCompletionId({
+    mode: battleMode,
+    claimId,
+    chapter,
+    stage,
+    patrolScansDay: patrolScansDay ?? save.patrolScansDay,
+    patrolScansUsed: patrolScansUsed ?? save.patrolScansUsed,
+    encounterId,
+  });
+  if (!completionId) return { ok: false, error: "claim_id_required" };
+
+  const ledgerHit = getCompletionFromSave(save, completionId);
+  if (ledgerHit) {
+    logBattleCompletionEvent("battle_claim_idempotent", {
+      xUserId: session.xUserId,
+      completionId,
+      source: "accountBattleCompletions",
+    });
+    return {
+      ok: true,
+      alreadyClaimed: true,
+      completionId,
+      reward: ledgerHit.reward,
+      save,
+    };
+  }
+
+  const receiptKey = claimKey(session.xUserId, completionId);
   const prior = await kv.get(receiptKey);
   if (prior) {
     try {
       const parsed = JSON.parse(prior);
-      if (parsed?.save) return { ok: true, alreadyClaimed: true, reward: parsed.reward, save: parsed.save };
+      if (parsed?.save) {
+        logBattleCompletionEvent("battle_claim_idempotent", {
+          xUserId: session.xUserId,
+          completionId,
+          source: "kv_receipt",
+        });
+        return {
+          ok: true,
+          alreadyClaimed: true,
+          completionId,
+          reward: parsed.reward,
+          save: parsed.save,
+        };
+      }
     } catch {
       /* continue */
     }
   }
 
-  const { save } = await loadCloudSave(kv, session.xUserId);
   let computed;
   if (battleMode === "patrol") {
     computed = computePatrolReward(save, encounterId);
   } else {
     const resolved = resolveBattleStageForClaim(save, { chapter, stage, claimId });
-    if (!resolved.ok) return resolved;
+    if (!resolved.ok) {
+      logBattleCompletionEvent("battle_claim_rejected", {
+        xUserId: session.xUserId,
+        completionId,
+        error: resolved.error,
+        adventureGlobalBest: save.adventureGlobalBest,
+        chapter,
+        stage,
+      });
+      return resolved;
+    }
     computed = computeAdventureReward(resolved.saveForCompute);
   }
 
   const reward = computed.reward;
-  const nextSave = buildSaveAfterBattleClaim(save, computed, battleMode);
+  const serialized = serializeReward(reward);
+  const nextSave = buildSaveAfterBattleClaim(save, computed, battleMode, completionId, serialized);
+
+  const revisionForWrite = Number.isFinite(Number(expectedRevision))
+    ? Number(expectedRevision)
+    : Number.isFinite(Number(save.revision))
+      ? Number(save.revision)
+      : undefined;
+
+  logBattleCompletionEvent("battle_claim_begin", {
+    xUserId: session.xUserId,
+    completionId,
+    mode: battleMode,
+    chapter: computed.chapter ?? chapter,
+    stage: computed.stage ?? stage,
+    encounterId: computed.encounterId ?? encounterId,
+    baseRevision: revisionForWrite,
+    moneyBefore: save.money,
+    rewardGold: serialized.gold,
+    rewardEssence: serialized.essence,
+    adventureGlobalBestBefore: save.adventureGlobalBest,
+    adventureGlobalBestAfter: nextSave.adventureGlobalBest,
+  });
 
   const result = await persistBattleSave(
     kv,
     session,
     save,
     nextSave,
-    expectedRevision,
-    startingMonballs
+    revisionForWrite,
+    startingMonballs,
+    0,
+    { completionId }
   );
-  if (!result.ok) return result;
+  if (!result.ok) return { ...result, completionId };
 
-  const serialized = serializeReward(reward);
   await kv.put(
     receiptKey,
-    JSON.stringify({ reward: serialized, save: result.save, at: new Date().toISOString() }),
+    JSON.stringify({ reward: serialized, save: result.save, completionId, at: new Date().toISOString() }),
     { expirationTtl: CLAIM_TTL_SECONDS }
   );
 
   return {
     ok: true,
     mode: battleMode,
+    completionId,
     reward: serialized,
     save: result.save,
     alreadyClaimed: false,
   };
 }
+
+export { buildCampaignCompletionId, buildPatrolCompletionId, normalizeBattleCompletionId };

@@ -5,6 +5,11 @@
 
 import { LIMITS, sanitizeReleaseLog, sanitizeReleasedRecoveryIds } from "./save-validate.js";
 import {
+  mergeAccountBattleCompletions,
+  maxAdventureGlobalFromCompletions,
+  sanitizeAccountBattleCompletions,
+} from "./battle-completion.js";
+import {
   applyOneTimeDailyQuestResetIfNeeded,
   overlayMigratedDailyQuestState,
 } from "./quest-one-time-reset.js";
@@ -387,6 +392,29 @@ export function stripReleasedMonsFromInventory(existing, incoming) {
 }
 
 /**
+ * Battle completion ledger and adventure progress cannot regress on client PUT.
+ */
+export function preserveBattleCompletionState(existing, incoming) {
+  const ex = existing && typeof existing === "object" ? existing : {};
+  const inc = incoming && typeof incoming === "object" ? incoming : {};
+  const mergedCompletions = mergeAccountBattleCompletions(ex.accountBattleCompletions, inc.accountBattleCompletions);
+  const floorGlobal = maxAdventureGlobalFromCompletions(mergedCompletions);
+  let out = {
+    ...inc,
+    accountBattleCompletions: mergedCompletions,
+  };
+
+  const beforeBest = clampInt(ex.adventureGlobalBest ?? 0, 0, 99_999);
+  const rawBest = clampInt(inc.adventureGlobalBest ?? beforeBest, 0, 99_999);
+  const minBest = Math.max(beforeBest, floorGlobal);
+  if (rawBest < minBest) {
+    out.adventureGlobalBest = minBest;
+  }
+
+  return out;
+}
+
+/**
  * Apply all server-side save guards before persist.
  */
 export function guardSavePayload(existing, incoming, options = {}) {
@@ -397,6 +425,7 @@ export function guardSavePayload(existing, incoming, options = {}) {
   if (oneTimeReset.changed) ex = oneTimeReset.save;
 
   let out = { ...incoming };
+  out = preserveBattleCompletionState(ex, out);
   out = clampEconomyScalars(ex, out);
   out = clampAdventureProgress(ex, out);
   out = clampTrainerRewardLevel(ex, out);

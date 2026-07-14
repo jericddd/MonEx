@@ -1,5 +1,6 @@
 /** Server-side save validation — mirrors client game limits (Phase 1 security). */
 
+import { sanitizeAccountBattleCompletions } from "./battle-completion.js";
 import {
   DAILY_QUEST_MAX_POINTS,
   WEEKLY_QUEST_MAX_POINTS,
@@ -654,6 +655,7 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
     questMonballPaidAmounts: sanitizeQuestMonballPaidAmounts(input.questMonballPaidAmounts),
     questOneTimeResetsApplied: sanitizeQuestOneTimeResetsApplied(input.questOneTimeResetsApplied),
     accountCompensationsApplied: sanitizeAccountCompensationsApplied(input.accountCompensationsApplied),
+    accountBattleCompletions: sanitizeAccountBattleCompletions(input.accountBattleCompletions),
     mailbox: sanitizeMailbox(input.mailbox),
     dailyLoginLastClaimAt: sanitizeDailyLoginLastClaimAt(input.dailyLoginLastClaimAt, now),
     releaseLog: sanitizeReleaseLog(input.releaseLog),

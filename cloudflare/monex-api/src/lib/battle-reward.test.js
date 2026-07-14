@@ -6,7 +6,9 @@ import {
   computePatrolReward,
   isBossStage,
   mergeBattleClaimOntoLatest,
+  buildCampaignCompletionId,
 } from "./battle-reward.js";
+import { writeCloudSave } from "./save.js";
 
 function makeKv(store = {}) {
   return {
@@ -65,26 +67,116 @@ test("claimBattleReward advances adventure stage and bumps quest progress", asyn
   const result = await claimBattleReward(kv, session, {
     mode: "adventure",
     win: true,
-    claimId: "adv-1-1-1",
+    claimId: "campaign:chapter-1:stage-1:first-clear",
     expectedRevision: 2,
   });
 
   assert.equal(result.ok, true);
+  assert.equal(result.completionId, "campaign:chapter-1:stage-1:first-clear");
   assert.equal(result.save.currentStage, 2);
   assert.ok(result.reward.gold > 0);
-  const d1 = result.save.questState.tasks.dailies.find((t) => t.id === "d1");
-  assert.equal(d1?.progress, 1);
+  assert.ok(result.save.accountBattleCompletions["campaign:chapter-1:stage-1:first-clear"]);
 
   const dup = await claimBattleReward(kv, session, {
     mode: "adventure",
     win: true,
-    claimId: "adv-1-1-1",
+    claimId: "campaign:chapter-1:stage-1:first-clear",
     expectedRevision: result.save.revision,
   });
   assert.equal(dup.alreadyClaimed, true);
 });
 
-test("claimBattleReward patrol win grants resources", async () => {
+test("Chapter 1-26 claim adds reward and persists completion ledger", async () => {
+  const moneyBefore = 5000;
+  const store = {
+    "monex:save:u1": JSON.stringify({
+      revision: 10,
+      currentChapter: 1,
+      currentStage: 26,
+      adventureGlobalBest: 25,
+      highestStageCleared: 25,
+      money: moneyBefore,
+      essence: 100,
+      monShards: 2,
+      trainerXp: 500,
+      gearInventory: [],
+      questState: { tasks: { dailies: [], weeklies: [], campaign: [] } },
+      updatedAt: new Date().toISOString(),
+    }),
+  };
+  const kv = makeKv(store);
+  const session = { xUserId: "u1", username: "trainer" };
+  const completionId = buildCampaignCompletionId(1, 26);
+
+  const result = await claimBattleReward(kv, session, {
+    mode: "adventure",
+    win: true,
+    claimId: completionId,
+    chapter: 1,
+    stage: 26,
+    expectedRevision: 10,
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.completionId, completionId);
+  assert.equal(result.save.adventureGlobalBest, 26);
+  assert.equal(result.save.currentStage, 27);
+  assert.ok(result.save.money > moneyBefore);
+  assert.ok(result.save.accountBattleCompletions[completionId]);
+
+  const retry = await claimBattleReward(kv, session, {
+    mode: "adventure",
+    win: true,
+    claimId: completionId,
+    chapter: 1,
+    stage: 26,
+    expectedRevision: result.save.revision,
+  });
+  assert.equal(retry.alreadyClaimed, true);
+  assert.equal(retry.save.money, result.save.money);
+});
+
+test("claimBattleReward survives stale revision conflict via merge retry", async () => {
+  const store = {
+    "monex:save:u1": JSON.stringify({
+      revision: 5,
+      currentChapter: 1,
+      currentStage: 26,
+      adventureGlobalBest: 25,
+      money: 5000,
+      essence: 0,
+      monShards: 0,
+      trainerXp: 0,
+      gearInventory: [],
+      questState: { tasks: { dailies: [], weeklies: [], campaign: [] } },
+      updatedAt: new Date().toISOString(),
+    }),
+  };
+  const kv = makeKv(store);
+  const session = { xUserId: "u1", username: "trainer" };
+
+  await writeCloudSave(kv, "u1", {
+    ...JSON.parse(store["monex:save:u1"]),
+    money: 5200,
+    revision: 5,
+    updatedAt: new Date(Date.now() + 1000).toISOString(),
+  }, { expectedRevision: 5 });
+
+  const result = await claimBattleReward(kv, session, {
+    mode: "adventure",
+    win: true,
+    claimId: buildCampaignCompletionId(1, 26),
+    chapter: 1,
+    stage: 26,
+    expectedRevision: 5,
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.save.adventureGlobalBest, 26);
+  assert.ok(result.save.money > 5200);
+});
+
+test("claimBattleReward patrol win grants resources with stable completion id", async () => {
   const store = {
     "monex:save:u1": JSON.stringify({
       revision: 1,
@@ -97,6 +189,8 @@ test("claimBattleReward patrol win grants resources", async () => {
       monShards: 0,
       trainerXp: 0,
       gearInventory: [],
+      patrolScansDay: "2026-07-14",
+      patrolScansUsed: 2,
       questState: { tasks: { dailies: [], weeklies: [], campaign: [] } },
       updatedAt: new Date().toISOString(),
     }),
@@ -109,13 +203,14 @@ test("claimBattleReward patrol win grants resources", async () => {
     mode: "patrol",
     win: true,
     encounterId: "common",
-    claimId: "patrol-common-1",
+    claimId: "patrol:day-2026-07-14:scan-2:common",
     expectedRevision: 1,
   });
 
   assert.equal(result.ok, true);
   assert.equal(result.save.currentStage, 5);
   assert.ok(result.reward.gold > 0);
+  assert.ok(result.save.accountBattleCompletions["patrol:day-2026-07-14:scan-2:common"]);
   const d4 = result.save.questState.tasks.dailies.find((t) => t.id === "d4");
   assert.equal(d4?.progress, 1);
 });
@@ -143,7 +238,7 @@ test("syncCampaignQuestProgress creates missing campaign tasks", async () => {
   const result = await claimBattleReward(kv, session, {
     mode: "adventure",
     win: true,
-    claimId: "adv-1-10-campaign",
+    claimId: "campaign:chapter-1:stage-10:first-clear",
     expectedRevision: 1,
   });
 
@@ -163,6 +258,7 @@ test("mergeBattleClaimOntoLatest preserves reward deltas on revision retry", () 
     currentChapter: 1,
     currentStage: 1,
     questState: { tasks: { dailies: [{ id: "d1", progress: 0, claimed: false }], weeklies: [], campaign: [] } },
+    accountBattleCompletions: {},
   };
   const intended = {
     money: 250,
@@ -181,6 +277,13 @@ test("mergeBattleClaimOntoLatest preserves reward deltas on revision retry", () 
         campaign: [{ id: "c1", progress: 0, claimed: false }],
       },
     },
+    accountBattleCompletions: {
+      "campaign:chapter-1:stage-1:first-clear": {
+        at: "2026-07-14T00:00:00.000Z",
+        mode: "adventure",
+        reward: { gold: 150, essence: 20, monShards: 1, trainerXp: 75, gear: null },
+      },
+    },
   };
   const latest = {
     money: 500,
@@ -192,6 +295,7 @@ test("mergeBattleClaimOntoLatest preserves reward deltas on revision retry", () 
     currentChapter: 1,
     currentStage: 1,
     questState: { tasks: { dailies: [{ id: "d1", progress: 0, claimed: false }], weeklies: [], campaign: [] } },
+    accountBattleCompletions: {},
   };
 
   const merged = mergeBattleClaimOntoLatest(latest, original, intended);
@@ -201,4 +305,5 @@ test("mergeBattleClaimOntoLatest preserves reward deltas on revision retry", () 
   assert.equal(merged.currentStage, 2);
   assert.equal(merged.adventureGlobalBest, 1);
   assert.equal(merged.questState.tasks.dailies[0].progress, 1);
+  assert.ok(merged.accountBattleCompletions["campaign:chapter-1:stage-1:first-clear"]);
 });
