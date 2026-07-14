@@ -9,6 +9,7 @@ import {
   maxAdventureGlobalFromCompletions,
   sanitizeAccountBattleCompletions,
 } from "./battle-completion.js";
+import { preservePatrolProgress } from "./patrol-attempt.js";
 import {
   applyOneTimeDailyQuestResetIfNeeded,
   overlayMigratedDailyQuestState,
@@ -394,7 +395,7 @@ export function stripReleasedMonsFromInventory(existing, incoming) {
 /**
  * Battle completion ledger and adventure progress cannot regress on client PUT.
  */
-export function preserveBattleCompletionState(existing, incoming) {
+export function preserveBattleCompletionState(existing, incoming, now = Date.now()) {
   const ex = existing && typeof existing === "object" ? existing : {};
   const inc = incoming && typeof incoming === "object" ? incoming : {};
   const mergedCompletions = mergeAccountBattleCompletions(ex.accountBattleCompletions, inc.accountBattleCompletions);
@@ -411,6 +412,8 @@ export function preserveBattleCompletionState(existing, incoming) {
     out.adventureGlobalBest = minBest;
   }
 
+  out = preservePatrolProgress(ex, out, now);
+
   return out;
 }
 
@@ -425,7 +428,7 @@ export function guardSavePayload(existing, incoming, options = {}) {
   if (oneTimeReset.changed) ex = oneTimeReset.save;
 
   let out = { ...incoming };
-  out = preserveBattleCompletionState(ex, out);
+  out = preserveBattleCompletionState(ex, out, options.now ?? Date.now());
   out = clampEconomyScalars(ex, out);
   out = clampAdventureProgress(ex, out);
   out = clampTrainerRewardLevel(ex, out);
