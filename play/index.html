@@ -5829,6 +5829,20 @@ body.afk-layout:has(.game-container.patrol-scan-active) > .game-container-bg {
 .game-loading-screen[hidden] {
     display: none;
 }
+.game-loading-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+.game-loading-mascot {
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
+}
 .game-loading-title {
     margin: 0;
     font-size: 11px;
@@ -7527,7 +7541,20 @@ body.cloud-load-blocked .game-shell {
 <img id="game-container-bg" class="game-container-bg" src="for%20result%20banner/mainscene_background.png" alt="" aria-hidden="true">
 
 <div id="game-loading-screen" class="game-loading-screen is-visible" aria-live="polite" aria-busy="true">
-    <p class="game-loading-title">MONEX</p>
+    <div class="game-loading-brand">
+        <img
+            class="game-loading-mascot"
+            src="128x128/chog-idle.gif"
+            alt=""
+            aria-hidden="true"
+            width="96"
+            height="96"
+            decoding="async"
+            fetchpriority="high"
+            onerror="this.onerror=null;this.src='128x128/chog.gif';"
+        >
+        <p class="game-loading-title">MONEX</p>
+    </div>
     <p class="game-loading-status" id="game-loading-status">Loading game assets…</p>
     <div class="game-loading-progress-track" aria-hidden="true">
         <div class="game-loading-progress-fill" id="game-loading-progress-fill"></div>
