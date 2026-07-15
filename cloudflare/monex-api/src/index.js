@@ -46,6 +46,7 @@ import { grantMonballs, alignCatchMonballsToMerged } from "./lib/grant-monballs.
 import { resolveMergedMonballs, reconcileMonballsForCloudSave, syncSaveMonballsAfterCatch, getAuthoritativeMonballs, seedOrHydrateCloudSaveFromCatch } from "./lib/save-reconcile.js";
 import { reconcileUnpaidMonballQuestGrants } from "./lib/quest-monball-grants.js";
 import { reconcileOneTimeDailyQuestReset } from "./lib/quest-one-time-reset.js";
+import { ensureCloudSaveQuestResets } from "./lib/quest-save-reset.js";
 import { guardSavePayload } from "./lib/save-economy-guard.js";
 import { claimQuestTask, claimQuestChest } from "./lib/quest-claim.js";
 import { purchaseShopItem } from "./lib/shop-purchase.js";
@@ -759,6 +760,7 @@ async function handleRequest(request, env) {
           starting
         );
         save = await reconcileOneTimeDailyQuestReset(env.MONEX_KV, auth.session, save);
+        save = await ensureCloudSaveQuestResets(env.MONEX_KV, auth.session, save, starting);
       }
       const monballs = resolveMergedMonballs(
         catchUser,

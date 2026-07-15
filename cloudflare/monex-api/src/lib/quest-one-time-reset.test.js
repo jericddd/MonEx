@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   DAILY_QUEST_FORCE_RESET_ID,
+  DAILY_QUEST_UTC8_RESET_ID,
   applyOneTimeDailyQuestResetIfNeeded,
   hasAppliedQuestOneTimeReset,
   reconcileOneTimeDailyQuestReset,
@@ -59,7 +60,7 @@ test("applyOneTimeDailyQuestResetIfNeeded clears today's dailies but preserves c
   assert.equal(next.money, 5000);
 });
 
-test("applyOneTimeDailyQuestResetIfNeeded runs only once per account", () => {
+test("applyOneTimeDailyQuestResetIfNeeded runs only once per reset id", () => {
   const now = new Date("2026-07-15T04:00:00.000Z");
   const first = applyOneTimeDailyQuestResetIfNeeded(
     {
@@ -81,6 +82,33 @@ test("applyOneTimeDailyQuestResetIfNeeded runs only once per account", () => {
   assert.equal(second.changed, false);
   assert.equal(second.save.questState.tasks.dailies[0].progress, 2);
   assert.equal(second.save.questState.tasks.dailies[0].claimed, true);
+});
+
+test("second one-time reset id forces fresh dailies for already-migrated accounts", () => {
+  const now = new Date("2026-07-16T04:00:00.000Z");
+  const save = {
+    questOneTimeResetsApplied: [DAILY_QUEST_FORCE_RESET_ID],
+    questState: {
+      dailyResetKey: getDailyDayKey(now),
+      weeklyResetKey: "2026-W29",
+      dailyPoints: 40,
+      weeklyPoints: 0,
+      dailyClaimedChests: [20],
+      weeklyClaimedChests: [],
+      grantedKeys: ["task:dailies:d1", "chest:dailies:20"],
+      tasks: {
+        dailies: [{ id: "d1", progress: 2, claimed: true }],
+        weeklies: [],
+        campaign: [],
+      },
+    },
+  };
+  const { save: next, changed } = applyOneTimeDailyQuestResetIfNeeded(save, now);
+  assert.equal(changed, true);
+  assert.equal(hasAppliedQuestOneTimeReset(next, DAILY_QUEST_UTC8_RESET_ID), true);
+  assert.equal(next.questState.dailyPoints, 0);
+  assert.deepEqual(next.questState.dailyClaimedChests, []);
+  assert.equal(next.questState.tasks.dailies.every((task) => task.progress === 0 && !task.claimed), true);
 });
 
 test("regular daily reset still runs on the next UTC+8 day after one-time reset", () => {

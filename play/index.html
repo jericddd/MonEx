@@ -8494,7 +8494,7 @@ body.cloud-load-blocked .game-shell {
     </div>
 </div>
 
-<script src="js/daily-reset.js?v=20260711b"></script>
+<script src="js/daily-reset.js?v=20260716a"></script>
 <script src="js/monanimal-sprites.js?v=20260714d"></script>
 <script src="js/patrol-reset.js?v=20260711b"></script>
 <script src="js/mana-system.js?v=20260712a"></script>
@@ -16507,7 +16507,10 @@ function mergeSaveSnapshots(local, cloud) {
 
     const localQuest = normalizeQuestState(local.questState);
     const cloudQuest = normalizeQuestState(cloud.questState);
+    applyQuestResetsToState(localQuest);
+    applyQuestResetsToState(cloudQuest);
     const questMerged = normalizeQuestState(newer.questState);
+    applyQuestResetsToState(questMerged);
     const tiePrefersCloud = saveTiePrefersCloud(local, cloud);
     questMerged.grantedKeys = tiePrefersCloud
         ? [...(cloudQuest.grantedKeys || [])]

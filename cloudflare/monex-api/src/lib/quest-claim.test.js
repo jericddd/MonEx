@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { claimQuestTask, claimQuestChest } from "./quest-claim.js";
 import { getDailyDayKey, getDailyWeekKey } from "./daily-reset.js";
 import { findUnpaidMonballQuestGrants, reconcileUnpaidMonballQuestGrants } from "./quest-monball-grants.js";
-import { DAILY_QUEST_FORCE_RESET_ID } from "./quest-one-time-reset.js";
+import { QUEST_ONE_TIME_DAILY_RESET_IDS } from "./quest-one-time-reset.js";
 
 function makeKv(store = {}) {
   return {
@@ -161,7 +161,7 @@ test("claimQuestTask grants reward server-side when progress meets goal", async 
           campaign: [],
         },
       },
-      questOneTimeResetsApplied: [DAILY_QUEST_FORCE_RESET_ID],
+      questOneTimeResetsApplied: [...QUEST_ONE_TIME_DAILY_RESET_IDS],
       updatedAt: now.toISOString(),
     }),
   });
@@ -238,7 +238,7 @@ test("claimQuestTask retries claim payload after revision conflict instead of dr
           campaign: [],
         },
       },
-      questOneTimeResetsApplied: [DAILY_QUEST_FORCE_RESET_ID],
+      questOneTimeResetsApplied: [...QUEST_ONE_TIME_DAILY_RESET_IDS],
       updatedAt: now.toISOString(),
     }),
   });
@@ -326,7 +326,7 @@ test("claimQuestChest completes milestone when monball was paid but chest not ma
         tasks: { dailies: [], weeklies: [], campaign: [] },
       },
       questMonballPaidAmounts: { "chest:dailies:60": 1 },
-      questOneTimeResetsApplied: [DAILY_QUEST_FORCE_RESET_ID],
+      questOneTimeResetsApplied: [...QUEST_ONE_TIME_DAILY_RESET_IDS],
       updatedAt: now.toISOString(),
     }),
   };

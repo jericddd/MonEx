@@ -6,10 +6,23 @@ import { sanitizeQuestOneTimeResetsApplied } from "./save-validate.js";
 /** Runs once per account when this fix deploys — forces a fresh daily quest bundle for today. */
 export const DAILY_QUEST_FORCE_RESET_ID = "daily_quest_force_reset_2026-07-15";
 
+/** Second pass — UTC+8 midnight rollover fix (Jul 16 2026). */
+export const DAILY_QUEST_UTC8_RESET_ID = "daily_quest_utc8_reset_20260716";
+
+export const QUEST_ONE_TIME_DAILY_RESET_IDS = [
+  DAILY_QUEST_FORCE_RESET_ID,
+  DAILY_QUEST_UTC8_RESET_ID,
+];
+
 export { sanitizeQuestOneTimeResetsApplied };
 
 export function hasAppliedQuestOneTimeReset(save, resetId = DAILY_QUEST_FORCE_RESET_ID) {
   return sanitizeQuestOneTimeResetsApplied(save?.questOneTimeResetsApplied).includes(resetId);
+}
+
+function nextPendingOneTimeResetId(save) {
+  const applied = sanitizeQuestOneTimeResetsApplied(save?.questOneTimeResetsApplied);
+  return QUEST_ONE_TIME_DAILY_RESET_IDS.find((id) => !applied.includes(id)) || null;
 }
 
 /**
@@ -18,7 +31,8 @@ export function hasAppliedQuestOneTimeReset(save, resetId = DAILY_QUEST_FORCE_RE
  */
 export function applyOneTimeDailyQuestResetIfNeeded(save, now = new Date()) {
   if (!save || typeof save !== "object") return { save, changed: false };
-  if (hasAppliedQuestOneTimeReset(save)) return { save, changed: false };
+  const pendingId = nextPendingOneTimeResetId(save);
+  if (!pendingId) return { save, changed: false };
 
   const questState =
     save.questState && typeof save.questState === "object"
@@ -28,7 +42,7 @@ export function applyOneTimeDailyQuestResetIfNeeded(save, now = new Date()) {
 
   applyDailyQuestReset(questState, now);
   const applied = sanitizeQuestOneTimeResetsApplied(save.questOneTimeResetsApplied);
-  applied.push(DAILY_QUEST_FORCE_RESET_ID);
+  applied.push(pendingId);
 
   return {
     save: {
@@ -53,7 +67,8 @@ export async function reconcileOneTimeDailyQuestReset(kv, session, save, now = n
 }
 
 export function overlayMigratedDailyQuestState(existingSave, outgoingSave) {
-  if (!hasAppliedQuestOneTimeReset(existingSave)) return outgoingSave;
+  const applied = sanitizeQuestOneTimeResetsApplied(existingSave?.questOneTimeResetsApplied);
+  if (!QUEST_ONE_TIME_DAILY_RESET_IDS.some((id) => applied.includes(id))) return outgoingSave;
   const exQs = existingSave.questState;
   const outQs = outgoingSave?.questState;
   if (!exQs || !outQs || typeof exQs !== "object" || typeof outQs !== "object") {
