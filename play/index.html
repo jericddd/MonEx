@@ -19789,7 +19789,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
 
     const attackPath = getAttackSpritePath(atk.name);
     let animStart = 0;
-    const defenderCanDodge = !isUlt && !hasStatus(def, "stun");
+    const defenderCanDodge = !hasStatus(def, "stun");
     const defenderCanBlock = !hasStatus(def, "stun");
     if (attackPath) {
         beginAttackAnim(atkSide);
@@ -19817,7 +19817,14 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     if (effDodge > 0 && Math.random() * 100 < effDodge) {
         await playDodgeEvade(defSide);
         showDamage(defSide, 0, "miss");
-        finishTurn();
+        if (isUlt) {
+            tickStatusDurations(atk);
+            updateBars(atkSide, atk);
+            renderStatusRow(atkSide, atk);
+            renderStatusRow(defSide, def);
+        } else {
+            finishTurn();
+        }
         if (attackPath) await completeGifAttackReturn(atkSide, atk, attackPath, animStart);
         else { await delay(250); await recoil(atkSide); await delay(120); }
         return;
