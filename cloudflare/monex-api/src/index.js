@@ -3,6 +3,7 @@ import { parseMention } from "./lib/parse-mention.js";
 import {
   appendActivity,
   listActivities,
+  assignPersonalLogNumbers,
   getPollSinceId,
   setPollSinceId,
   clearPollSinceId,
@@ -922,10 +923,15 @@ async function handleRequest(request, env) {
       const auth = await requireGameplay(request, env);
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       const username = auth.session.username;
-      const limit = parseBoundedInt(url.searchParams.get("limit"), { fallback: 30, min: 1, max: 50 });
+      const limit = parseBoundedInt(url.searchParams.get("limit"), { fallback: 50, min: 1, max: 150 });
       const page = parseBoundedInt(url.searchParams.get("page"), { fallback: 1, min: 1, max: 9999 });
       const result = await listActivities(env.MONEX_KV, { limit, page, username, successOnly: true });
-      const entries = await enrichActivityEntriesWithReceipts(env.MONEX_KV, result.entries || []);
+      const enriched = await enrichActivityEntriesWithReceipts(env.MONEX_KV, result.entries || []);
+      const entries = assignPersonalLogNumbers(enriched, {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      });
       return json({ ok: true, username, ...result, entries }, 200, request, env);
     }
 
