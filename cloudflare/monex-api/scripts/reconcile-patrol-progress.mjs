@@ -69,8 +69,12 @@ async function cfFetch(path, options = {}) {
 }
 
 async function getValue(key) {
-  const data = await cfFetch(`/values/${encodeURIComponent(key)}`);
-  return data.result ?? null;
+  const res = await fetch(apiUrl(`/values/${encodeURIComponent(key)}`), {
+    headers: { Authorization: `Bearer ${API_TOKEN}` },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Failed to read ${key}: ${res.statusText}`);
+  return res.text();
 }
 
 async function putValue(key, value) {
