@@ -72,6 +72,49 @@ test("computeCatchReceiptStatus marks delivered when wildPendingIds present", ()
   assert.equal(status.mons[0].destination, "party");
 });
 
+test("computeCatchReceiptStatus clears stale delivered flags when mons left save", () => {
+  const receipt = buildCatchReceipt({
+    tweet: { id: "t1", authorId: "u1", username: "trainer" },
+    activity: {
+      id: "act1",
+      spend: 1,
+      throws: 1,
+      caughtCount: 1,
+      monballsBefore: 5,
+      monballsLeft: 4,
+      at: "2026-07-15T00:00:00.000Z",
+    },
+    pendingMonsAdded: [{ pendingId: "p_a", name: "Chog", rarity: "Common", skills: [] }],
+  });
+  receipt.mons[0].delivered = true;
+  const status = computeCatchReceiptStatus(receipt, { party: [], box: [] }, { pendingMons: [] });
+  assert.equal(status.deliveryStatus, "failed");
+  assert.equal(status.mons[0].delivered, false);
+});
+
+test("computeCatchReceiptStatus accepts recovery_* inventory alias", () => {
+  const receipt = buildCatchReceipt({
+    tweet: { id: "t2", authorId: "u1", username: "trainer" },
+    activity: {
+      id: "act_1",
+      spend: 1,
+      throws: 1,
+      caughtCount: 1,
+      monballsBefore: 5,
+      monballsLeft: 4,
+      at: "2026-07-15T00:00:00.000Z",
+    },
+    pendingMonsAdded: [{ pendingId: "p_a", name: "Chog", rarity: "Common", skills: [] }],
+  });
+  const status = computeCatchReceiptStatus(
+    receipt,
+    { party: [], box: [{ name: "Chog", wildPendingId: "recovery_act_1_0" }] },
+    { pendingMons: [] }
+  );
+  assert.equal(status.deliveryStatus, "delivered");
+  assert.equal(status.mons[0].delivered, true);
+});
+
 test("commitCatchTransaction is idempotent per tweetId", async () => {
   const store = {
     "monex:activity": JSON.stringify({ entries: [] }),
