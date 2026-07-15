@@ -4453,13 +4453,62 @@ body.afk-layout .currency-pill .currency-tip {
         opacity: 0;
     }
 }
-.resource-chest-btn.collect-pop {
+.resource-chest-btn.collect-pop,
+.collect-burst-pop {
     animation: resource-chest-collect-pop 0.42s ease-out;
 }
 @keyframes resource-chest-collect-pop {
     0% { transform: translateY(0) scale(1); }
     35% { transform: translateY(2px) scale(0.9); }
     100% { transform: translateY(0) scale(1); }
+}
+.collect-fx-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10050;
+}
+.collect-burst-origin {
+    position: absolute;
+    width: 0;
+    height: 0;
+}
+.collect-burst-particle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform: translate(-50%, -50%) scale(0.35);
+    image-rendering: pixelated;
+    object-fit: contain;
+    opacity: 1;
+    animation: collect-burst 0.82s cubic-bezier(0.2, 0.75, 0.3, 1) forwards;
+}
+.collect-burst-particle.xp-particle {
+    filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.85));
+}
+.collect-burst-particle.shard-particle {
+    filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.85));
+}
+.collect-burst-particle.level-up-arrow-particle {
+    width: auto;
+    height: auto;
+    image-rendering: auto;
+    font-family: 'Press Start 2P', monospace;
+    color: #86efac;
+    text-shadow: 0 0 8px rgba(34, 197, 94, 0.85);
+    line-height: 1;
+    filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.55));
+}
+@keyframes collect-burst {
+    0% {
+        transform: translate(-50%, -50%) scale(0.35) rotate(0deg);
+        opacity: 1;
+    }
+    70% { opacity: 1; }
+    100% {
+        transform: translate(calc(-50% + var(--cb-tx)), calc(-50% + var(--cb-ty))) scale(1) rotate(var(--cb-rot));
+        opacity: 0;
+    }
 }
 .resource-chest-btn {
     position: relative;
@@ -10028,44 +10077,147 @@ function rollResourceChestGear(chapter) {
     return rollGearDrop(chapter, Math.random() < 0.2);
 }
 
-function playResourceChestCollectFx(preview) {
-    const wrap = document.getElementById("resource-chest-wrap");
-    const btn = document.getElementById("resource-chest-btn");
-    const layer = document.getElementById("resource-chest-fx-layer");
-    if (!wrap || !btn || !layer) return;
+function ensureCollectFxLayer() {
+    let layer = document.getElementById("collect-fx-layer");
+    if (!layer) {
+        layer = document.createElement("div");
+        layer.id = "collect-fx-layer";
+        layer.className = "collect-fx-layer";
+        layer.setAttribute("aria-hidden", "true");
+        document.body.appendChild(layer);
+    }
+    return layer;
+}
 
-    layer.innerHTML = "";
-    const rewardScale = Math.min(1.4, 0.65 + preview.progress * 0.75);
-    const count = Math.max(12, Math.round(15 * rewardScale));
-    const particleIcons = [GAME_ICONS.gold, GAME_ICONS.essence, GAME_ICONS.trainerXp];
-    for (let i = 0; i < count; i++) {
-        const icon = particleIcons[i % particleIcons.length];
-        const particle = document.createElement("img");
-        particle.className = "resource-chest-particle"
-            + (icon === GAME_ICONS.trainerXp ? " xp-particle" : "")
-            + (icon === GAME_ICONS.essence ? " shard-particle" : "");
-        particle.src = icon.src;
-        particle.alt = "";
-        const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.55;
+function burstEntryForIconKey(key) {
+    const map = {
+        gold: { icon: GAME_ICONS.gold, className: "" },
+        essence: { icon: GAME_ICONS.essence, className: "shard-particle" },
+        shards: { icon: GAME_ICONS.shards, className: "shard-particle" },
+        monball: { icon: GAME_ICONS.monball, className: "" },
+        trainerXp: { icon: GAME_ICONS.trainerXp, className: "xp-particle" },
+    };
+    return map[key] || null;
+}
+
+function buildGrantBurstEntries(grant) {
+    if (!grant) return [];
+    const entries = [];
+    if (grant.gold > 0) entries.push(burstEntryForIconKey("gold"));
+    if (grant.essence > 0) entries.push(burstEntryForIconKey("essence"));
+    if (grant.monShards > 0) entries.push(burstEntryForIconKey("shards"));
+    if (grant.monballs > 0) entries.push(burstEntryForIconKey("monball"));
+    if (grant.trainerXp > 0) entries.push(burstEntryForIconKey("trainerXp"));
+    return entries.filter((entry) => entry?.icon);
+}
+
+function playCollectBurstPop(popEl) {
+    if (!popEl) return;
+    popEl.classList.remove("collect-burst-pop", "collect-pop");
+    void popEl.offsetWidth;
+    popEl.classList.add("collect-burst-pop");
+    setTimeout(() => popEl.classList.remove("collect-burst-pop", "collect-pop"), 450);
+}
+
+function playCollectBurstFx(options = {}) {
+    const {
+        anchorEl,
+        entries = [],
+        count,
+        scale = 1,
+        popEl,
+        mode = "icons",
+    } = options;
+    if (!anchorEl) return;
+
+    const layer = ensureCollectFxLayer();
+    const rect = anchorEl.getBoundingClientRect();
+    const origin = document.createElement("div");
+    origin.className = "collect-burst-origin";
+    origin.style.left = `${rect.left + rect.width / 2}px`;
+    origin.style.top = `${rect.top + rect.height / 2}px`;
+    layer.appendChild(origin);
+
+    const rewardScale = Math.max(0.65, Math.min(1.45, scale));
+    const particleCount = count ?? Math.max(10, Math.round(14 * rewardScale));
+    const usableEntries = mode === "icons" ? entries.filter((entry) => entry?.icon) : [];
+
+    for (let i = 0; i < particleCount; i++) {
+        const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.55;
         const dist = (42 + Math.random() * 58) * rewardScale;
         const tx = Math.cos(angle) * dist;
         const ty = Math.sin(angle) * dist - (18 + Math.random() * 22);
         const rot = (Math.random() - 0.5) * 280;
-        const size = (16 + Math.random() * 14) * rewardScale * (icon === GAME_ICONS.trainerXp ? 1.08 : 1);
-        particle.style.width = size + "px";
-        particle.style.height = size + "px";
-        particle.style.setProperty("--rc-tx", tx + "px");
-        particle.style.setProperty("--rc-ty", ty + "px");
-        particle.style.setProperty("--rc-rot", rot + "deg");
-        particle.style.animationDelay = Math.round(Math.random() * 90) + "ms";
-        layer.appendChild(particle);
+
+        let particle;
+        if (mode === "arrow") {
+            particle = document.createElement("span");
+            particle.className = "collect-burst-particle level-up-arrow-particle";
+            particle.textContent = "▲";
+            particle.style.fontSize = `${12 + Math.random() * 10}px`;
+        } else {
+            if (!usableEntries.length) break;
+            const entry = usableEntries[i % usableEntries.length];
+            particle = document.createElement("img");
+            particle.className = "collect-burst-particle" + (entry.className ? ` ${entry.className}` : "");
+            particle.src = entry.icon.src;
+            particle.alt = "";
+            const size = (16 + Math.random() * 14) * rewardScale * (entry.className === "xp-particle" ? 1.08 : 1);
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+        }
+
+        particle.style.setProperty("--cb-tx", `${tx}px`);
+        particle.style.setProperty("--cb-ty", `${ty}px`);
+        particle.style.setProperty("--cb-rot", `${rot}deg`);
+        particle.style.animationDelay = `${Math.round(Math.random() * 90)}ms`;
+        origin.appendChild(particle);
     }
 
-    btn.classList.remove("collect-pop");
-    void btn.offsetWidth;
-    btn.classList.add("collect-pop");
-    setTimeout(() => btn.classList.remove("collect-pop"), 450);
-    setTimeout(() => { layer.innerHTML = ""; }, 950);
+    playCollectBurstPop(popEl || anchorEl);
+    setTimeout(() => origin.remove(), 950);
+}
+
+function playQuestRewardBurstFx(anchorEl, grant, scale = 1) {
+    const entries = buildGrantBurstEntries(grant);
+    if (!entries.length) return;
+    playCollectBurstFx({ anchorEl, entries, scale, popEl: anchorEl });
+}
+
+function playLevelUpBurstFx(anchorEl) {
+    playCollectBurstFx({
+        anchorEl,
+        mode: "arrow",
+        count: 12,
+        scale: 1.05,
+        popEl: anchorEl,
+    });
+}
+
+function playReleaseSalvageBurstFx(anchorEl, salvage) {
+    const grant = {
+        gold: salvage?.gold || 0,
+        essence: salvage?.essence || 0,
+        monShards: salvage?.shards || 0,
+    };
+    playQuestRewardBurstFx(anchorEl, grant, 0.95);
+}
+
+function playResourceChestCollectFx(preview) {
+    const btn = document.getElementById("resource-chest-btn");
+    if (!btn) return;
+    const rewardScale = Math.min(1.4, 0.65 + preview.progress * 0.75);
+    playCollectBurstFx({
+        anchorEl: btn,
+        entries: [
+            burstEntryForIconKey("gold"),
+            burstEntryForIconKey("essence"),
+            burstEntryForIconKey("trainerXp"),
+        ],
+        count: Math.max(12, Math.round(15 * rewardScale)),
+        scale: rewardScale,
+        popEl: btn,
+    });
 }
 
 function collectResourceChest(buttonEl) {
@@ -10298,6 +10450,7 @@ async function advanceQuestTask(taskId, buttonEl) {
             if (typeof refreshMonballsFromServer === "function") {
                 await refreshMonballsFromServer();
             }
+            playQuestRewardBurstFx(buttonEl, buildQuestGrantFromDef(def));
             ensureQuestResets();
             renderDailyQuest();
             updateHeaderCurrencies();
@@ -10313,6 +10466,7 @@ async function advanceQuestTask(taskId, buttonEl) {
             task.claimed = false;
             return;
         }
+        playQuestRewardBurstFx(buttonEl, grant);
         const track = tab === "weeklies" ? "weeklies" : "dailies";
         const nextPoints = getQuestPointsForTrack(track) + def.points;
         setQuestPointsForTrack(track, nextPoints);
@@ -10360,6 +10514,7 @@ async function claimQuestChest(milestone, buttonEl) {
             if (typeof refreshMonballsFromServer === "function") {
                 await refreshMonballsFromServer();
             }
+            playQuestRewardBurstFx(buttonEl, chest.grant, 1.05);
             ensureQuestResets();
             renderDailyQuest();
             updateHeaderCurrencies();
@@ -10382,6 +10537,7 @@ async function claimQuestChest(milestone, buttonEl) {
             }
             return;
         }
+        playQuestRewardBurstFx(buttonEl, chest.grant, 1.05);
         saveData();
         renderDailyQuest();
         await persistQuestClaim();
@@ -16447,6 +16603,7 @@ function renderBox() {
         ensureMonReady(mon);
         const card = document.createElement("div");
         card.className = `mon-card ${getRarityClass(mon.rarity)}`;
+        card.dataset.boxIndex = String(i);
         card.innerHTML = renderMonCardInner(mon, i, "box");
         content.appendChild(card);
         bindHubMonCardTips(card);
@@ -16883,6 +17040,7 @@ function levelUpMonManual(index, buttonEl) {
         levelUpMon(live);
         live.current_hp = live.max_hp;
         bumpQuestProgress("mon_level_up", 1);
+        playLevelUpBurstFx(buttonEl || document.querySelector(`#party-grid .mon-card:nth-child(${index + 1})`));
         await persistProgress();
         updateUI();
     }, { button: buttonEl, loadingText: "..." });
@@ -17633,11 +17791,13 @@ function releaseFromBox(index) {
     const instanceId = ensureMonInstanceId(mon);
     const salvage = getReleaseSalvage(mon);
     showConfirmModal(formatReleaseSalvageMessage(salvage), () => {
-        void executeMonRelease({ mon, index, source: "box", instanceId, salvage });
+        const anchorEl = document.querySelector(`#box-content .mon-card[data-box-index="${index}"]`)
+            || document.getElementById("box-content");
+        void executeMonRelease({ mon, index, source: "box", instanceId, salvage, anchorEl });
     });
 }
 
-async function executeMonRelease({ mon, index, source, instanceId, salvage }) {
+async function executeMonRelease({ mon, index, source, instanceId, salvage, anchorEl }) {
     if (releaseInFlight) return;
     if (source !== "box") {
         showHubNotice("Mons can only be released from the Box.", "Release");
@@ -17659,6 +17819,8 @@ async function executeMonRelease({ mon, index, source, instanceId, salvage }) {
         }
         index = byId;
     }
+
+    playReleaseSalvageBurstFx(anchorEl, salvage);
 
     releaseInFlight = true;
     renderBox();
