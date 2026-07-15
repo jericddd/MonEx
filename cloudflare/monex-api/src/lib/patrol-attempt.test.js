@@ -8,6 +8,7 @@ import {
   parsePatrolScanFromCompletionId,
   preservePatrolProgress,
   syncLegacyPatrolScanCount,
+  grantPatrolAttemptsOnSave,
 } from "./patrol-attempt.js";
 
 test("applyPatrolDailyResetOnSave resets usage on new day", () => {
@@ -68,4 +69,26 @@ test("syncLegacyPatrolScanCount aligns server usage with legacy client id", () =
 
 test("getPatrolScansRemaining returns remaining attempts", () => {
   assert.equal(getPatrolScansRemaining({ patrolScansUsed: 48 }), 2);
+});
+
+test("grantPatrolAttemptsOnSave reduces used count up to requested amount", () => {
+  const result = grantPatrolAttemptsOnSave(
+    { patrolScansDay: "2026-07-14", patrolScansUsed: 18 },
+    10,
+    Date.parse("2026-07-14T12:00:00.000Z")
+  );
+  assert.equal(result.granted, 10);
+  assert.equal(result.afterUsed, 8);
+  assert.equal(result.afterRemaining, 42);
+});
+
+test("grantPatrolAttemptsOnSave cannot grant below zero used", () => {
+  const result = grantPatrolAttemptsOnSave(
+    { patrolScansDay: "2026-07-14", patrolScansUsed: 3 },
+    10,
+    Date.parse("2026-07-14T12:00:00.000Z")
+  );
+  assert.equal(result.granted, 3);
+  assert.equal(result.afterUsed, 0);
+  assert.equal(result.afterRemaining, 50);
 });
