@@ -8492,7 +8492,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/release-client.js?v=20260714a"></script>
 <script src="js/game-session-client.js?v=20260710a"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
-<script src="js/quest-client.js?v=20260713b"></script>
+<script src="js/quest-client.js?v=20260715c"></script>
 <script src="js/shop-client.js?v=20260715b"></script>
 <script src="js/resource-chest-client.js?v=20260713d"></script>
 <script src="js/battle-reward-client.js?v=20260713e"></script>
@@ -10608,6 +10608,15 @@ function switchQuestTab(tab) {
     renderDailyQuest();
 }
 
+async function syncSaveBeforeAuthoritativeClaim() {
+    if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return;
+    if (MonExAuth.awaitCloudSaveIdle) await MonExAuth.awaitCloudSaveIdle();
+    saveData({ immediate: true });
+    if (typeof flushSaveToCloud === "function") {
+        await flushSaveToCloud();
+    }
+}
+
 async function advanceQuestTask(taskId, buttonEl) {
     const tab = questState.tab;
     const run = window.MonExClaimGuard?.runClaimOnce
@@ -10619,13 +10628,15 @@ async function advanceQuestTask(taskId, buttonEl) {
         const task = tasks.find(t => t.id === taskId);
         const def = getQuestTaskDef(tab, taskId);
         if (!task || !def || task.claimed || task.progress < def.goal) return;
-        const grantKey = questGrantKey(tab, taskId);
-        if (questState.grantedKeys?.includes(grantKey)) return;
         if (typeof MonExQuest !== "undefined" && MonExQuest.claimQuestTask) {
-            if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
-                MonExAuth.cancelPendingCloudSave();
+            await syncSaveBeforeAuthoritativeClaim();
+            let result = await MonExQuest.claimQuestTask(tab, taskId);
+            if (!result.ok && result.error === "claim_conflict" && result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(buildSavePayload());
+                ensureQuestResets();
+                result = await MonExQuest.claimQuestTask(tab, taskId);
             }
-            const result = await MonExQuest.claimQuestTask(tab, taskId);
             if (!result.ok) {
                 if (result.save) {
                     applyLoadedSave(result.save);
@@ -10653,7 +10664,9 @@ async function advanceQuestTask(taskId, buttonEl) {
             if (typeof refreshMonballsFromServer === "function") {
                 await refreshMonballsFromServer();
             }
-            playQuestRewardBurstFx(buttonEl, buildQuestGrantFromDef(def));
+            if (!result.alreadyClaimed) {
+                playQuestRewardBurstFx(buttonEl, buildQuestGrantFromDef(def));
+            }
             ensureQuestResets();
             renderDailyQuest();
             updateHeaderCurrencies();
@@ -10693,11 +10706,22 @@ async function claimQuestChest(milestone, buttonEl) {
         if (!chest) return;
         const grantKey = questChestGrantKey(track, milestone);
         if (typeof MonExQuest !== "undefined" && MonExQuest.claimQuestChest) {
-            if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
-                MonExAuth.cancelPendingCloudSave();
+            await syncSaveBeforeAuthoritativeClaim();
+            let result = await MonExQuest.claimQuestChest(track, milestone);
+            if (!result.ok && result.error === "claim_conflict" && result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(buildSavePayload());
+                ensureQuestResets();
+                result = await MonExQuest.claimQuestChest(track, milestone);
             }
-            const result = await MonExQuest.claimQuestChest(track, milestone);
             if (!result.ok) {
+                if (result.save) {
+                    applyLoadedSave(result.save);
+                    writeLocalSave(buildSavePayload());
+                    ensureQuestResets();
+                    renderDailyQuest();
+                    updateHeaderCurrencies();
+                }
                 const msg = result.error === "points_insufficient"
                     ? "Not enough quest points on the server yet. Refresh /play to sync, then try again."
                     : result.error === "claim_conflict"
@@ -10717,7 +10741,9 @@ async function claimQuestChest(milestone, buttonEl) {
             if (typeof refreshMonballsFromServer === "function") {
                 await refreshMonballsFromServer();
             }
-            playQuestRewardBurstFx(buttonEl, chest.grant, 1.05);
+            if (!result.alreadyClaimed) {
+                playQuestRewardBurstFx(buttonEl, chest.grant, 1.05);
+            }
             ensureQuestResets();
             renderDailyQuest();
             updateHeaderCurrencies();

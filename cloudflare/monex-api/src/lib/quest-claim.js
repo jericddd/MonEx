@@ -71,7 +71,7 @@ async function persistQuestSave(kv, session, save, expectedRevision, startingMon
   } catch (err) {
     if (err?.code === "revision_conflict" && attempt < MAX_CLAIM_RETRIES) {
       const { save: latest } = await loadCloudSave(kv, session.xUserId);
-      return persistQuestSave(kv, session, latest, latest.revision, startingMonballs, attempt + 1);
+      return persistQuestSave(kv, session, save, latest.revision, startingMonballs, attempt + 1);
     }
     if (err?.code === "revision_conflict") {
       return { ok: false, error: "claim_conflict", save: err.existingSave };

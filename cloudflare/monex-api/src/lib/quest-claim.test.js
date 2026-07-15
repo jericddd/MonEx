@@ -211,6 +211,51 @@ test("claimQuestTask rejects insufficient progress", async () => {
   assert.equal(result.error, "progress_insufficient");
 });
 
+test("claimQuestTask retries claim payload after revision conflict instead of dropping grant", async () => {
+  const now = new Date();
+  const kv = makeKv({
+    "monex:state": JSON.stringify(baseCatchState(10)),
+    "monex:save:u1": JSON.stringify({
+      revision: 5,
+      money: 1000,
+      essence: 0,
+      monShards: 0,
+      trainerXp: 0,
+      monballs: 10,
+      party: [],
+      box: [],
+      questState: {
+        dailyResetKey: getDailyDayKey(now),
+        weeklyResetKey: getDailyWeekKey(now),
+        grantedKeys: [],
+        dailyPoints: 0,
+        weeklyPoints: 0,
+        dailyClaimedChests: [],
+        weeklyClaimedChests: [],
+        tasks: {
+          dailies: [{ id: "d1", progress: 2, claimed: false }],
+          weeklies: [],
+          campaign: [],
+        },
+      },
+      questOneTimeResetsApplied: [DAILY_QUEST_FORCE_RESET_ID],
+      updatedAt: now.toISOString(),
+    }),
+  });
+
+  const result = await claimQuestTask(
+    kv,
+    { xUserId: "u1", username: "trainer" },
+    { tab: "dailies", taskId: "d1", expectedRevision: 4 },
+    10
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(result.save.money, 1100);
+  assert.equal(result.save.questState.tasks.dailies[0].claimed, true);
+  assert.ok(result.save.questState.grantedKeys.includes("task:dailies:d1"));
+});
+
 test("claimQuestTask resets stale daily bundle before validating claim", async () => {
   const today = getDailyDayKey(new Date());
   const kv = makeKv({
