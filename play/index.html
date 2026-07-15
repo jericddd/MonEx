@@ -15565,9 +15565,18 @@ async function onGameSessionActive() {
                 fromRevision: currentRevision,
                 toRevision: cloudRevision,
             });
-            applyLoadedSave(cloud.save);
-            writeLocalSave(cloud.save);
-            updateUI();
+            const localData = readLocalSaveData();
+            const merged = reconcileSaveWithLocalMonProgress(cloud.save, localData);
+            if (typeof window.handleCloudSaveConflict === "function") {
+                window.handleCloudSaveConflict(merged);
+            } else {
+                applyLoadedSave(merged);
+                writeLocalSave(buildSavePayload());
+                updateUI();
+            }
+            if (localData && localMonProgressAhead(localData, merged.party, merged.box)) {
+                void persistProgress();
+            }
         }
     } catch (_) {}
 }
@@ -15815,6 +15824,20 @@ function localMonProgressAhead(localData, partyList, boxList) {
     return false;
 }
 
+function reconcileSaveWithLocalMonProgress(saveData, localData) {
+    if (!saveData) return saveData;
+    if (!localData) return saveData;
+    const merged = { ...saveData };
+    const inv = mergeMonProgressOntoInventories(merged.party, merged.box, localData.party, localData.box);
+    merged.party = inv.party;
+    merged.box = inv.box;
+    if (localMonProgressAhead(localData, merged.party, merged.box)) {
+        merged.money = Math.min(Number(localData.money) || 0, Number(merged.money) || 0);
+        merged.essence = Math.min(Number(localData.essence) || 0, Number(merged.essence) || 0);
+    }
+    return merged;
+}
+
 async function refreshMonballsFromServer() {
     if (!currentUser || typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return null;
     if (!isGameSessionPlayable()) return null;
@@ -15896,13 +15919,7 @@ window.handleCloudSaveConflict = function handleCloudSaveConflict(cloudSave) {
     }
 
     if (localData) {
-        const inv = mergeMonProgressOntoInventories(merged.party, merged.box, localData.party, localData.box);
-        merged.party = inv.party;
-        merged.box = inv.box;
-        if (localMonProgressAhead(localData, merged.party, merged.box)) {
-            merged.money = Math.min(Number(localData.money) || 0, Number(merged.money) || 0);
-            merged.essence = Math.min(Number(localData.essence) || 0, Number(merged.essence) || 0);
-        }
+        merged = reconcileSaveWithLocalMonProgress(merged, localData);
     }
 
     applyLoadedSave(merged);
@@ -16163,9 +16180,9 @@ async function loadData() {
         const cloudTs = getSaveTimestamp(cloudData);
 
         if (cloudRev > localRev) {
-            data = cloudData;
+            data = reconcileSaveWithLocalMonProgress(cloudData, localData);
             shouldPersistLocal = true;
-            shouldSyncCloud = false;
+            shouldSyncCloud = localMonProgressAhead(localData, data.party, data.box);
         } else if (localRev > cloudRev) {
             data = mergeSaveSnapshots(localData, cloudData);
             shouldPersistLocal = true;
@@ -16176,8 +16193,9 @@ async function loadData() {
             data = mergeSaveSnapshots(localData, cloudData);
             data.party = [...(cloudData.party || [])];
             data.box = [...(cloudData.box || [])];
+            data = reconcileSaveWithLocalMonProgress(data, localData);
             shouldPersistLocal = true;
-            shouldSyncCloud = false;
+            shouldSyncCloud = localMonProgressAhead(localData, data.party, data.box);
         } else {
             data = cloudData;
             shouldPersistLocal = true;
