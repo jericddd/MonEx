@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.*
+!.env.example
+dist/
+.wrangler/
+coverage/
+*.log
+
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+contracts/lib/
+
+bot/node_modules/

@@ -1,0 +1,19 @@
+name = "catchcard-bot"
+main = "src/index.js"
+compatibility_date = "2025-08-15"
+compatibility_flags = ["nodejs_compat"]
+
+[[kv_namespaces]]
+binding = "CATCHCARD_KV"
+id = "00000000000000000000000000000000"
+
+[vars]
+BOT_USERNAME = "catchcard"
+MONAD_CHAIN_ID = "10143"
+MONAD_EXPLORER = "https://testnet.monadexplorer.com/tx"
+# Set contract + secrets in dashboard or wrangler secret put
+# CATCHCARD_CONTRACT = "0x..."
+# ENABLE_X_POLL = "0"
+# ENABLE_X_REPLY = "0"
+
+crons = ["*/30 * * * *"]
