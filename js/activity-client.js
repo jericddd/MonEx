@@ -73,6 +73,14 @@ function injectActivityUiStyles() {
     padding-right: 8px;
     border-radius: 6px;
 }
+.profile-catch-log-num {
+    font-family: "Press Start 2P", monospace;
+    font-size: 8px;
+    line-height: 1.5;
+    color: #6B21A8;
+    margin: 0 0 6px;
+    letter-spacing: 0.02em;
+}
 .activity-row-clickable:hover td {
     background: rgba(250, 245, 255, 0.95) !important;
 }
@@ -887,8 +895,17 @@ function formatWildLogMonballsLeftCell(entry) {
     return `<span class="wild-log-balance">${escapeActivityHtml(text)}</span>`;
 }
 
+function formatPersonalLogNumberLabel(entry, opts = {}) {
+    const num = Number(entry?.personalLogNumber);
+    if (!Number.isFinite(num) || num < 1) return "";
+    if (!opts.showPersonalLogNumber && entry.personalLogNumber == null) return "";
+    return `<div class="profile-catch-log-num">log #${escapeActivityHtml(String(num))}</div>`;
+}
+
 function formatActivityEntryHtml(entry, opts = {}) {
     const showUser = opts.showUser !== false;
+    const showClaim = !!opts.showClaim;
+    const logNumLine = formatPersonalLogNumberLabel(entry, opts);
     const time = escapeActivityHtml(new Date(entry.at).toLocaleString());
     const mons = getActivityMons(entry);
     const caught = mons.length
@@ -896,10 +913,23 @@ function formatActivityEntryHtml(entry, opts = {}) {
         : "no catches";
     const more = entry.caughtCount > 3 ? ` +${entry.caughtCount - 3} more` : "";
     const userPart = showUser ? `<span class="activity-user">@${escapeActivityHtml(entry.xUsername)}</span> · ` : "";
+    const tweetId = escapeActivityHtml(entry.tweetId || "");
+    let claimRow = "";
+    if (showClaim && entry.tweetId) {
+        if (entry.claimable || entry.completionStatus === "pending") {
+            claimRow = `<div class="profile-activity-claim-row">
+                <button type="button" class="profile-claim-btn" data-catch-tweet-id="${tweetId}" onclick="event.stopPropagation(); claimProfileCatch(this.getAttribute('data-catch-tweet-id'), this)">CLAIM</button>
+                <span class="profile-activity-pending">Tap to claim Monballs + mons</span>
+            </div>`;
+        } else if (entry.claimed || entry.completionStatus === "completed") {
+            claimRow = `<div class="profile-activity-claim-row"><span class="profile-activity-claimed">CLAIMED</span></div>`;
+        }
+    }
     return `<div class="activity-item activity-item-clickable" role="button" tabindex="0" data-activity-idx="__IDX__">
-        ${userPart}${escapeActivityHtml(describeWildLogCatch(entry))}
+        ${logNumLine}${userPart}${escapeActivityHtml(describeWildLogCatch(entry))}
         <div>${caught}${more}</div>
         <div class="activity-meta">${time} · ${escapeActivityHtml(describeWildLogBalance(entry))} Monballs left on X · tap for full log</div>
+        ${claimRow}
     </div>`;
 }
 
@@ -940,8 +970,12 @@ function buildActivityDetailHtml(entry, opts = {}) {
     const escapedLine = entry.escapedCount > 0
         ? `<div class="activity-detail-escaped">${entry.escapedCount} Monanimal${entry.escapedCount === 1 ? "" : "s"} escaped.</div>`
         : "";
+    const logNum = Number(entry.personalLogNumber);
+    const logTitle = Number.isFinite(logNum) && logNum >= 1
+        ? `CATCH SESSION · LOG #${logNum}`
+        : "CATCH SESSION";
     return `
-        <h3 class="activity-detail-title" id="activity-detail-title">CATCH SESSION</h3>
+        <h3 class="activity-detail-title" id="activity-detail-title">${escapeActivityHtml(logTitle)}</h3>
         <p class="activity-detail-summary">${userLine}${escapeActivityHtml(describeWildLogCatch(entry))}</p>
         <p class="activity-detail-meta">${time} · ${escapeActivityHtml(describeWildLogBalance(entry))} Monballs left on X</p>
         ${legacyNote}
@@ -1259,8 +1293,11 @@ function renderActivityFeedElement(el, entries, emptyMsg, opts = {}) {
 
 window.MonExActivity = {
     fetchMine: async (username, limit, page) => {
-        const data = await fetchPersonalActivity(username, limit, page);
+        const data = await fetchPersonalActivity(username, limit || 50, page || 1);
         return data.entries || [];
+    },
+    fetchMineData: async (username, limit, page) => {
+        return fetchPersonalActivity(username, limit || 50, page || 1);
     },
     fetchReleases: async (limit, page) => {
         return fetchPersonalReleases(limit, page);

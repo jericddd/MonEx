@@ -49,13 +49,13 @@ describe("catch spend race mitigation", () => {
     await Promise.all([
       withUserSyncLock("daniel_freire15", async () => {
         const user = await resolveCatchUserKv(kv, "u1", "Daniel_Freire15", 10);
-        const result = processMentionTweet(tweetA, "monexmonad", user, 10, "bot");
+        const result = processMentionTweet(tweetA, "monexmonad", user, 10, "bot", { deliveryModel: "legacy" });
         if (result.activity) await saveCatchUserRecord(kv, "u1", user);
         results.push(result);
       }),
       withUserSyncLock("daniel_freire15", async () => {
         const user = await resolveCatchUserKv(kv, "u1", "Daniel_Freire15", 10);
-        const result = processMentionTweet(tweetB, "monexmonad", user, 10, "bot");
+        const result = processMentionTweet(tweetB, "monexmonad", user, 10, "bot", { deliveryModel: "legacy" });
         if (result.activity) await saveCatchUserRecord(kv, "u1", user);
         results.push(result);
       }),

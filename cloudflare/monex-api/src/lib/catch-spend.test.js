@@ -1,6 +1,23 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { trySpendCatchMonballs } from "./catch-spend.js";
+import { trySpendCatchMonballs, validateCatchMonballsAvailable } from "./catch-spend.js";
+
+describe("validateCatchMonballsAvailable", () => {
+  it("validates without mutating user monballs", () => {
+    const user = { monballs: 10, pendingMons: [] };
+    const result = validateCatchMonballsAvailable(user, 5, 10);
+    assert.equal(result.ok, true);
+    assert.equal(result.after, 5);
+    assert.equal(user.monballs, 10);
+  });
+
+  it("rejects when wallet balance is insufficient", () => {
+    const user = { monballs: 10, pendingMons: [] };
+    const result = validateCatchMonballsAvailable(user, 5, 2);
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, "insufficient");
+  });
+});
 
 describe("trySpendCatchMonballs", () => {
   it("deducts monballs when balance is sufficient", () => {

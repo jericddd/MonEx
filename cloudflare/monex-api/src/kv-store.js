@@ -324,8 +324,9 @@ export async function listActivities(kv, { limit = 40, page = 1, username = null
   const totalPages = Math.max(1, Math.ceil(total / safeLimit));
   const pageNum = Math.min(Math.max(1, safePage), totalPages);
   const offset = (pageNum - 1) * safeLimit;
+  const entries = rows.slice(offset, offset + safeLimit);
   return {
-    entries: rows.slice(offset, offset + safeLimit),
+    entries,
     total,
     page: pageNum,
     limit: safeLimit,

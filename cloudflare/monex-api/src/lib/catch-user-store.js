@@ -80,6 +80,7 @@ export async function saveCatchUserRecord(kv, xUserId, user) {
     replyDay: user.replyDay,
     replyCount: user.replyCount,
     limitNoticeDay: user.limitNoticeDay,
+    personalCatchLogSeq: user.personalCatchLogSeq,
   };
   await kv.put(catchUserKey(uid), JSON.stringify(record));
   const uname = cleanCatchUsername(user.username);
