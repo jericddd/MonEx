@@ -6502,6 +6502,175 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
 .shop-monball-pack-grid {
     margin: 0;
 }
+.shop-monex-section--gold {
+    margin-top: 14px;
+    border-color: rgba(250, 204, 21, 0.62);
+    background:
+        linear-gradient(160deg, rgba(255, 230, 120, 0.16) 0%, transparent 42%),
+        linear-gradient(180deg, rgba(82, 56, 18, 0.94) 0%, rgba(32, 20, 6, 0.97) 100%);
+}
+.shop-monex-section--gold .shop-monex-heading {
+    color: #fde68a;
+    text-shadow:
+        0 0 14px rgba(250, 204, 21, 0.65),
+        0 1px 0 rgba(0, 0, 0, 0.45);
+}
+.gold-pack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 4px 0 0;
+}
+.gold-pack-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 10px 12px;
+    border: 2px solid rgba(234, 179, 8, 0.55);
+    border-radius: 10px;
+    background:
+        linear-gradient(160deg, rgba(255, 240, 160, 0.12) 0%, transparent 38%),
+        linear-gradient(180deg, #6b5220 0%, #3d3010 55%, #2a2008 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 230, 160, 0.22),
+        inset 0 -4px 12px rgba(0, 0, 0, 0.22),
+        0 4px 0 #1a1206;
+    cursor: pointer;
+    text-align: center;
+    color: #fef3c7;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+    position: relative;
+    overflow: hidden;
+}
+.gold-pack-card:hover {
+    border-color: #fde047;
+    transform: translateY(-1px);
+}
+.gold-pack-card.is-selected {
+    border-color: #fef08a;
+    box-shadow:
+        inset 0 0 0 1px rgba(254, 240, 138, 0.45),
+        0 0 0 2px rgba(234, 179, 8, 0.35),
+        0 4px 0 #1a1206;
+}
+.gold-pack-card--featured {
+    grid-column: 1 / -1;
+    max-width: 420px;
+    justify-self: center;
+    width: 100%;
+    padding: 18px 14px 16px;
+    border-width: 3px;
+    border-color: #fbbf24;
+    background:
+        radial-gradient(ellipse 80% 70% at 50% 0%, rgba(255, 230, 120, 0.28), transparent 62%),
+        linear-gradient(160deg, rgba(255, 240, 180, 0.18) 0%, transparent 40%),
+        linear-gradient(180deg, #8a6418 0%, #5c4010 48%, #3d2808 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 240, 200, 0.45),
+        inset 0 -6px 18px rgba(0, 0, 0, 0.28),
+        0 0 0 1px rgba(255, 220, 100, 0.25),
+        0 0 24px rgba(251, 191, 36, 0.35),
+        0 6px 0 #2a1808;
+    animation: gold-pack-featured-glow 2.4s ease-in-out infinite;
+}
+.gold-pack-card--featured::before {
+    content: "";
+    position: absolute;
+    inset: -40% -60%;
+    background: linear-gradient(
+        118deg,
+        transparent 38%,
+        rgba(255, 255, 255, 0.06) 46%,
+        rgba(255, 240, 180, 0.22) 50%,
+        rgba(255, 255, 255, 0.08) 54%,
+        transparent 62%
+    );
+    pointer-events: none;
+    animation: shop-monex-gloss-sweep 4s ease-in-out infinite;
+}
+.gold-pack-card--featured:hover,
+.gold-pack-card--featured.is-selected {
+    border-color: #fff7cc;
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 248, 210, 0.55),
+        0 0 0 2px rgba(255, 220, 100, 0.5),
+        0 0 32px rgba(251, 191, 36, 0.55),
+        0 6px 0 #2a1808;
+}
+.gold-pack-card__badge {
+    position: absolute;
+    top: 8px;
+    right: -28px;
+    transform: rotate(32deg);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    line-height: 1.3;
+    letter-spacing: 0.04em;
+    color: #2a1500;
+    background: linear-gradient(180deg, #ffe566 0%, #f59e0b 100%);
+    border: 1px solid #fff8dc;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    padding: 4px 32px;
+    pointer-events: none;
+    z-index: 2;
+}
+.gold-pack-icon {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+}
+.gold-pack-card--featured .gold-pack-icon {
+    width: 56px;
+    height: 56px;
+}
+.gold-pack-amount {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    line-height: 1.45;
+    color: #fef08a;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+.gold-pack-card--featured .gold-pack-amount {
+    font-size: 10px;
+    color: #fff7cc;
+}
+.gold-pack-price {
+    font-family: 'Lato', system-ui, sans-serif;
+    font-size: 11px;
+    color: rgba(254, 243, 199, 0.92);
+}
+.gold-pack-price span {
+    font-weight: 700;
+    color: #fde68a;
+}
+.gold-pack-buy {
+    margin-top: 2px;
+}
+.gold-pack-card--featured .gold-pack-buy {
+    font-size: 8px;
+    padding: 10px 14px;
+}
+@keyframes gold-pack-featured-glow {
+    0%, 100% {
+        box-shadow:
+            inset 0 1px 0 rgba(255, 240, 200, 0.45),
+            inset 0 -6px 18px rgba(0, 0, 0, 0.28),
+            0 0 0 1px rgba(255, 220, 100, 0.25),
+            0 0 18px rgba(251, 191, 36, 0.28),
+            0 6px 0 #2a1808;
+    }
+    50% {
+        box-shadow:
+            inset 0 1px 0 rgba(255, 240, 200, 0.45),
+            inset 0 -6px 18px rgba(0, 0, 0, 0.28),
+            0 0 0 1px rgba(255, 220, 100, 0.35),
+            0 0 32px rgba(251, 191, 36, 0.48),
+            0 6px 0 #2a1808;
+    }
+}
 .shop-main--monex {
     position: relative;
     overflow: hidden;
@@ -6587,6 +6756,31 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
         0 0 18px rgba(255, 190, 60, 0.35),
         0 4px 0 #1a0f06;
 }
+.shop-main--monex .gold-pack-card {
+    border-color: rgba(255, 210, 80, 0.7);
+    background:
+        linear-gradient(160deg, rgba(255, 240, 180, 0.12) 0%, transparent 38%),
+        linear-gradient(180deg, #7a5a20 0%, #4a3810 55%, #302008 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 230, 160, 0.28),
+        inset 0 -4px 12px rgba(0, 0, 0, 0.25),
+        0 4px 0 #1a0f06;
+}
+.shop-main--monex .gold-pack-card.is-selected {
+    border-color: #fff1a8;
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 240, 180, 0.5),
+        0 0 0 2px rgba(255, 200, 60, 0.45),
+        0 0 18px rgba(255, 190, 60, 0.35),
+        0 4px 0 #1a0f06;
+}
+.shop-main--monex .gold-pack-card--featured {
+    border-color: #fde047;
+    background:
+        radial-gradient(ellipse 85% 65% at 50% -5%, rgba(255, 230, 120, 0.32), transparent 60%),
+        linear-gradient(160deg, rgba(255, 240, 180, 0.2) 0%, transparent 40%),
+        linear-gradient(180deg, #a87818 0%, #705010 48%, #4a3010 100%);
+}
 @keyframes shop-monex-gloss-sweep {
     0%, 100% {
         transform: translateX(-10%) skewX(-14deg);
@@ -6600,6 +6794,12 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
 @media (max-width: 520px) {
     .monball-pack-grid {
         grid-template-columns: 1fr;
+    }
+    .gold-pack-grid {
+        grid-template-columns: 1fr;
+    }
+    .gold-pack-card--featured {
+        max-width: none;
     }
     .shop-monball-cta {
         flex-direction: column;
@@ -8290,7 +8490,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/game-session-client.js?v=20260710a"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/quest-client.js?v=20260713b"></script>
-<script src="js/shop-client.js?v=20260713f"></script>
+<script src="js/shop-client.js?v=20260715b"></script>
 <script src="js/resource-chest-client.js?v=20260713d"></script>
 <script src="js/battle-reward-client.js?v=20260713e"></script>
 <script src="js/mailbox-client.js?v=20260713a"></script>
@@ -16685,10 +16885,12 @@ function renderBox() {
 
 // ==================== ACTIONS ====================
 const MONEX_TOKEN_COMING_SOON_HTML =
-    "$MONEX token integration coming soon.<br>Monballs are sold in fixed packages priced in $MONEX.";
+    "$MONEX token integration coming soon.<br>Monballs and Gold are sold in fixed packages priced in $MONEX.";
 
 let _monballPackagesCache = null;
 let _monballPackagesCacheAt = 0;
+let _goldPackagesCache = null;
+let _goldPackagesCacheAt = 0;
 const MONBALL_PACKAGES_CACHE_MS = 60_000;
 
 function isMonballPurchaseItem(item) {
@@ -16709,6 +16911,25 @@ function showMonballComingSoonNotice(pkg) {
     showHubNotice(MONEX_TOKEN_COMING_SOON_HTML, "COMING SOON", { html: true });
 }
 
+function showGoldComingSoonNotice(pkg) {
+    if (pkg && Number.isFinite(Number(pkg.monexPrice))) {
+        const gold = Math.floor(Number(pkg.gold) || 0);
+        const price = Number(pkg.monexPrice);
+        showHubNotice(
+            `${gold.toLocaleString()} Gold — <strong>${price.toLocaleString()} $MONEX</strong><br>$MONEX payment integration coming soon.`,
+            "COMING SOON",
+            { html: true }
+        );
+        return;
+    }
+    showHubNotice(MONEX_TOKEN_COMING_SOON_HTML, "COMING SOON", { html: true });
+}
+
+function formatGoldAmount(amount) {
+    const n = Math.floor(Number(amount) || 0);
+    return `${n.toLocaleString()} Gold`;
+}
+
 function formatMonexPrice(price) {
     const n = Number(price);
     if (!Number.isFinite(n)) return "— $MONEX";
@@ -16727,6 +16948,22 @@ async function fetchMonballPackages({ force = false } = {}) {
     if (result.ok && Array.isArray(result.packages)) {
         _monballPackagesCache = result;
         _monballPackagesCacheAt = now;
+    }
+    return result;
+}
+
+async function fetchGoldPackages({ force = false } = {}) {
+    const now = Date.now();
+    if (!force && _goldPackagesCache && now - _goldPackagesCacheAt < MONBALL_PACKAGES_CACHE_MS) {
+        return _goldPackagesCache;
+    }
+    if (typeof MonExShop === "undefined" || !MonExShop.listGoldPackages) {
+        return { ok: false, packages: [], currency: "MONEX", error: "shop_offline" };
+    }
+    const result = await MonExShop.listGoldPackages();
+    if (result.ok && Array.isArray(result.packages)) {
+        _goldPackagesCache = result;
+        _goldPackagesCacheAt = now;
     }
     return result;
 }
@@ -16945,6 +17182,29 @@ function renderMonballPackageCards(packages, selectedId, currency) {
     }).join("");
 }
 
+function renderGoldPackageCards(packages, selectedId, currency) {
+    const goldIcon = GAME_ICONS.gold?.src || "game_icons/gold.png";
+    const cur = currency || "MONEX";
+    return packages.map((pkg) => {
+        const selected = pkg.id === selectedId ? " is-selected" : "";
+        const featured = pkg.featured ? " gold-pack-card--featured" : "";
+        const gold = Math.floor(Number(pkg.gold) || 0);
+        const priceNum = Number(pkg.monexPrice);
+        const price = Number.isFinite(priceNum)
+            ? `${priceNum.toLocaleString()} $${cur}`
+            : `— $${cur}`;
+        const badge = pkg.featured ? `<span class="gold-pack-card__badge">MEGA PACK</span>` : "";
+        return `
+            <div class="gold-pack-card${featured}${selected}" data-gold-package-id="${pkg.id}" role="button" tabindex="0" aria-pressed="${pkg.id === selectedId ? "true" : "false"}">
+                ${badge}
+                <img class="gold-pack-icon" src="${goldIcon}" alt="">
+                <div class="gold-pack-amount">${formatGoldAmount(gold)}</div>
+                <div class="gold-pack-price">Price: <span>${price}</span></div>
+                <button type="button" class="hub-popup-btn hub-popup-btn-primary gold-pack-buy" data-buy-gold-package="${pkg.id}">BUY</button>
+            </div>`;
+    }).join("");
+}
+
 async function executeMonballPackagePurchase(pkg) {
     const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
     if (!loggedIn) {
@@ -16960,6 +17220,32 @@ async function executeMonballPackagePurchase(pkg) {
     }
     await flushSaveToCloud();
     const result = await MonExShop.purchaseMonballPackage(pkg.id);
+    if (result.ok && result.save) {
+        applyLoadedSave(result.save);
+        writeLocalSave(result.save);
+        bumpQuestProgress("shop_buy", 1);
+        updateUI();
+        if (typeof renderShop === "function") renderShop();
+        return result;
+    }
+    return result;
+}
+
+async function executeGoldPackagePurchase(pkg) {
+    const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
+    if (!loggedIn) {
+        showHubNotice("Log in with X to buy Gold packages.", "LOGIN REQUIRED");
+        return { ok: false, error: "login_required" };
+    }
+    if (typeof MonExShop === "undefined" || !MonExShop.purchaseGoldPackage) {
+        showHubNotice("Shop sync is unavailable. Refresh the page and try again.", "Shop offline");
+        return { ok: false, error: "shop_offline" };
+    }
+    if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
+        await MonExAuth.awaitCloudSaveIdle();
+    }
+    await flushSaveToCloud();
+    const result = await MonExShop.purchaseGoldPackage(pkg.id);
     if (result.ok && result.save) {
         applyLoadedSave(result.save);
         writeLocalSave(result.save);
@@ -17008,6 +17294,48 @@ function bindMonballPackageCardInteractions(container, packages, { onSelect, onP
                 }
                 if (result.error === "login_required" || result.error === "shop_offline") return;
                 showHubNotice(result.message || "Could not complete MonBall package purchase.", "Shop error");
+            }, { button: btn, loadingText: "BUYING...", resetOnError: true });
+        };
+    });
+}
+
+function bindGoldPackageCardInteractions(container, packages, { onSelect, onPurchaseSuccess } = {}) {
+    if (!container) return;
+    container.querySelectorAll(".gold-pack-card").forEach((card) => {
+        const id = card.getAttribute("data-gold-package-id");
+        card.onclick = (e) => {
+            if (e.target.closest("[data-buy-gold-package]")) return;
+            onSelect?.(id);
+        };
+        card.onkeydown = (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect?.(id);
+            }
+        };
+    });
+    container.querySelectorAll("[data-buy-gold-package]").forEach((btn) => {
+        btn.onclick = async (e) => {
+            e.stopPropagation();
+            const packageId = btn.getAttribute("data-buy-gold-package");
+            const pkg = packages.find((p) => p.id === packageId);
+            if (!pkg) return;
+            onSelect?.(packageId);
+            const run = window.MonExClaimGuard?.runClaimOnce
+                ? (fn, opts) => MonExClaimGuard.runClaimOnce(`gold-pack:${packageId}`, fn, opts)
+                : async (fn) => fn();
+            await run(async () => {
+                const result = await executeGoldPackagePurchase(pkg);
+                if (result.ok) {
+                    onPurchaseSuccess?.(pkg, result);
+                    return;
+                }
+                if (result.error === "monex_payment_required" || result.error === "monex_payment_unverified") {
+                    showGoldComingSoonNotice(result.package || pkg);
+                    return;
+                }
+                if (result.error === "login_required" || result.error === "shop_offline") return;
+                showHubNotice(result.message || "Could not complete Gold package purchase.", "Shop error");
             }, { button: btn, loadingText: "BUYING...", resetOnError: true });
         };
     });
@@ -17160,46 +17488,78 @@ async function renderShopMonexPackages(grid) {
     grid.innerHTML = `
         <div class="shop-monex-section" style="grid-column:1/-1;">
             <p class="shop-monex-heading">✦ MONBALL PACKAGES ✦</p>
-            <p class="monball-pack-status shop-monex-status">Loading packages…</p>
+            <p class="monball-pack-status shop-monex-status shop-monex-status--monball">Loading packages…</p>
             <div class="monball-pack-grid shop-monball-pack-grid" aria-live="polite"></div>
+        </div>
+        <div class="shop-monex-section shop-monex-section--gold" style="grid-column:1/-1;">
+            <p class="shop-monex-heading">✦ GOLD PACKAGES ✦</p>
+            <p class="monball-pack-status shop-monex-status shop-monex-status--gold">Loading packages…</p>
+            <div class="gold-pack-grid shop-gold-pack-grid" aria-live="polite"></div>
         </div>`;
 
-    const packGrid = grid.querySelector(".shop-monball-pack-grid");
-    const statusEl = grid.querySelector(".shop-monex-status");
-    const result = await fetchMonballPackages();
+    const monballGrid = grid.querySelector(".shop-monball-pack-grid");
+    const goldGrid = grid.querySelector(".shop-gold-pack-grid");
+    const monballStatusEl = grid.querySelector(".shop-monex-status--monball");
+    const goldStatusEl = grid.querySelector(".shop-monex-status--gold");
+
+    const [monballResult, goldResult] = await Promise.all([
+        fetchMonballPackages(),
+        fetchGoldPackages(),
+    ]);
 
     if (grid.dataset.monexRenderToken !== String(renderToken) || shopActiveCategory !== "monex") return;
 
-    const packages = Array.isArray(result.packages) ? result.packages : [];
-    const currency = result.currency || "MONEX";
+    const monballPackages = Array.isArray(monballResult.packages) ? monballResult.packages : [];
+    const goldPackages = Array.isArray(goldResult.packages) ? goldResult.packages : [];
+    const currency = monballResult.currency || goldResult.currency || "MONEX";
 
-    if (!result.ok || !packages.length) {
-        if (statusEl) statusEl.textContent = "Could not load MonBall packages. Try again shortly.";
-        if (packGrid) packGrid.innerHTML = "";
-        return;
-    }
-
-    if (statusEl) statusEl.textContent = "Fixed packages · priced in $MONEX";
-
-    let selectedId = packages[0].id;
-
-    function setSelected(id) {
-        selectedId = id;
-        packGrid.querySelectorAll(".monball-pack-card").forEach((card) => {
-            const on = card.getAttribute("data-package-id") === selectedId;
-            card.classList.toggle("is-selected", on);
-            card.setAttribute("aria-pressed", on ? "true" : "false");
+    if (!monballResult.ok || !monballPackages.length) {
+        if (monballStatusEl) monballStatusEl.textContent = "Could not load MonBall packages. Try again shortly.";
+        if (monballGrid) monballGrid.innerHTML = "";
+    } else {
+        if (monballStatusEl) monballStatusEl.textContent = "Fixed packages · priced in $MONEX";
+        let monballSelectedId = monballPackages[0].id;
+        function setMonballSelected(id) {
+            monballSelectedId = id;
+            monballGrid.querySelectorAll(".monball-pack-card").forEach((card) => {
+                const on = card.getAttribute("data-package-id") === monballSelectedId;
+                card.classList.toggle("is-selected", on);
+                card.setAttribute("aria-pressed", on ? "true" : "false");
+            });
+        }
+        monballGrid.innerHTML = renderMonballPackageCards(monballPackages, monballSelectedId, currency);
+        bindMonballPackageCardInteractions(monballGrid, monballPackages, {
+            onSelect: setMonballSelected,
+            onPurchaseSuccess: (pkg) => {
+                showHubNotice(`Purchased ${Math.floor(pkg.amount)} MonBalls!`, "PURCHASED");
+            },
         });
+        setMonballSelected(monballSelectedId);
     }
 
-    packGrid.innerHTML = renderMonballPackageCards(packages, selectedId, currency);
-    bindMonballPackageCardInteractions(packGrid, packages, {
-        onSelect: setSelected,
-        onPurchaseSuccess: (pkg) => {
-            showHubNotice(`Purchased ${Math.floor(pkg.amount)} MonBalls!`, "PURCHASED");
-        },
-    });
-    setSelected(selectedId);
+    if (!goldResult.ok || !goldPackages.length) {
+        if (goldStatusEl) goldStatusEl.textContent = "Could not load Gold packages. Try again shortly.";
+        if (goldGrid) goldGrid.innerHTML = "";
+    } else {
+        if (goldStatusEl) goldStatusEl.textContent = "400 Gold per 1,000 $MONEX · fixed packages";
+        let goldSelectedId = goldPackages[0].id;
+        function setGoldSelected(id) {
+            goldSelectedId = id;
+            goldGrid.querySelectorAll(".gold-pack-card").forEach((card) => {
+                const on = card.getAttribute("data-gold-package-id") === goldSelectedId;
+                card.classList.toggle("is-selected", on);
+                card.setAttribute("aria-pressed", on ? "true" : "false");
+            });
+        }
+        goldGrid.innerHTML = renderGoldPackageCards(goldPackages, goldSelectedId, currency);
+        bindGoldPackageCardInteractions(goldGrid, goldPackages, {
+            onSelect: setGoldSelected,
+            onPurchaseSuccess: (pkg) => {
+                showHubNotice(`Purchased ${formatGoldAmount(pkg.gold)}!`, "PURCHASED");
+            },
+        });
+        setGoldSelected(goldSelectedId);
+    }
 }
 
 function renderShop() {

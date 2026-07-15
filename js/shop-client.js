@@ -95,9 +95,50 @@
     return { ok: res.ok && data.ok, status: res.status, ...data };
   }
 
+  async function listGoldPackages() {
+    const headers = { Accept: "application/json" };
+    if (typeof MonExAuth !== "undefined" && MonExAuth.authHeaders) {
+      Object.assign(headers, MonExAuth.authHeaders());
+    }
+    const res = await fetch(`${apiBase()}/api/shop/gold-packages`, {
+      method: "GET",
+      headers,
+    });
+    const data = await res.json().catch(() => ({}));
+    return {
+      ok: res.ok && data.ok,
+      status: res.status,
+      currency: data.currency || "MONEX",
+      packages: Array.isArray(data.packages) ? data.packages : [],
+      ...data,
+    };
+  }
+
+  async function purchaseGoldPackage(packageId, paymentProof) {
+    if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
+      await MonExAuth.awaitCloudSaveIdle();
+    }
+    const payload = purchaseBody({ packageId });
+    if (paymentProof) payload.paymentProof = paymentProof;
+    const res = await fetch(`${apiBase()}/api/shop/gold-packages/purchase`, {
+      method: "POST",
+      headers: MonExAuth.authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 403 && data.error === "game_session_inactive") {
+      window.MonExGameSession?.handleInactiveFromApi?.();
+    }
+    const conflictHandled = applyPurchaseConflict(res, data);
+    syncPurchaseRevision(res, data, conflictHandled);
+    return { ok: res.ok && data.ok, status: res.status, ...data };
+  }
+
   window.MonExShop = {
     purchaseShopItem,
     listMonballPackages,
     purchaseMonballPackage,
+    listGoldPackages,
+    purchaseGoldPackage,
   };
 })();
