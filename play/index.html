@@ -16343,6 +16343,30 @@ function localMonProgressAhead(localData, partyList, boxList) {
     return false;
 }
 
+/** Local moved mons between party/box that cloud save does not reflect yet (stale layout). */
+function localHasUnsyncedPartyBoxMoves(local, cloud) {
+    if (!local || !cloud) return false;
+    const cloudPartyKeys = new Set((cloud.party || []).map(monProgressKey).filter(Boolean));
+    const cloudBoxKeys = new Set((cloud.box || []).map(monProgressKey).filter(Boolean));
+    for (const mon of local.party || []) {
+        const key = monProgressKey(mon);
+        if (key && !cloudPartyKeys.has(key) && cloudBoxKeys.has(key)) return true;
+    }
+    for (const mon of local.box || []) {
+        const key = monProgressKey(mon);
+        if (key && !cloudBoxKeys.has(key) && cloudPartyKeys.has(key)) return true;
+    }
+    return false;
+}
+
+function resolvePartyMonIndex(index, expectedKey) {
+    if (!expectedKey) return index;
+    const atIndex = party[index];
+    if (atIndex && monProgressKey(atIndex) === expectedKey) return index;
+    const found = party.findIndex((mon) => monProgressKey(mon) === expectedKey);
+    return found >= 0 ? found : index;
+}
+
 function reconcileSaveWithLocalMonProgress(saveData, localData) {
     if (!saveData) return saveData;
     if (!localData) return saveData;
@@ -16398,7 +16422,9 @@ function mergeInventoryWithMaxProgress(local, cloud) {
         ? true
         : !local?.party && !local?.box
             ? false
-            : localTs >= cloudTs || localMonProgressAhead(local, cloud?.party, cloud?.box);
+            : localTs >= cloudTs
+                || localMonProgressAhead(local, cloud?.party, cloud?.box)
+                || localHasUnsyncedPartyBoxMoves(local, cloud);
     const comp = preferLocal
         ? { party: [...(local?.party || [])], box: [...(local?.box || [])] }
         : { party: [...(cloud?.party || [])], box: [...(cloud?.box || [])] };
@@ -17638,9 +17664,11 @@ function levelUpMonManual(index, buttonEl) {
         ? (fn, opts) => MonExClaimGuard.runClaimOnce(`level-up:${index}`, fn, opts)
         : async (fn) => fn();
     return run(async () => {
+        const expectedKey = monProgressKey(mon);
         await syncSaveBeforeGameplayMutation();
+        index = resolvePartyMonIndex(index, expectedKey);
         const live = party[index];
-        if (!live) return;
+        if (!live || (expectedKey && monProgressKey(live) !== expectedKey)) return;
         ensureMonReady(live);
         if (Math.floor(live.level) >= getLevelCap(live)) return;
         const liveCost = getLevelCost(live);
@@ -18475,6 +18503,7 @@ function addToPartyFromBox(boxIndex) {
         ? (fn) => MonExClaimGuard.runClaimOnce(`party-add:${boxIndex}`, fn)
         : async (fn) => fn();
     return run(async () => {
+        await syncSaveBeforeGameplayMutation();
         if (party.length >= PARTY_MAX || !box[boxIndex]) return;
         const mon = box[boxIndex];
         if (partyHasSpecies(mon.name)) {
@@ -18482,6 +18511,7 @@ function addToPartyFromBox(boxIndex) {
             return;
         }
         party.push(box.splice(boxIndex, 1)[0]);
+        saveData({ immediate: true });
         await persistProgress();
         updateUI();
         closePartySwitchPicker();
@@ -18496,6 +18526,7 @@ function swapPartyWithBox(partyIndex, boxIndex) {
         ? (fn) => MonExClaimGuard.runClaimOnce(`party-swap:${partyIndex}:${boxIndex}`, fn)
         : async (fn) => fn();
     return run(async () => {
+        await syncSaveBeforeGameplayMutation();
         if (!party[partyIndex] || !box[boxIndex]) return;
         const incoming = box[boxIndex];
         if (partyHasSpecies(incoming.name, partyIndex)) {
@@ -18505,6 +18536,7 @@ function swapPartyWithBox(partyIndex, boxIndex) {
         const temp = party[partyIndex];
         party[partyIndex] = incoming;
         box[boxIndex] = temp;
+        saveData({ immediate: true });
         await persistProgress();
         updateUI();
         closePartySwitchPicker();
