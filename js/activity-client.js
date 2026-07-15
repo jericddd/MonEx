@@ -889,6 +889,7 @@ function formatWildLogMonballsLeftCell(entry) {
 
 function formatActivityEntryHtml(entry, opts = {}) {
     const showUser = opts.showUser !== false;
+    const showClaim = !!opts.showClaim;
     const time = escapeActivityHtml(new Date(entry.at).toLocaleString());
     const mons = getActivityMons(entry);
     const caught = mons.length
@@ -896,10 +897,23 @@ function formatActivityEntryHtml(entry, opts = {}) {
         : "no catches";
     const more = entry.caughtCount > 3 ? ` +${entry.caughtCount - 3} more` : "";
     const userPart = showUser ? `<span class="activity-user">@${escapeActivityHtml(entry.xUsername)}</span> · ` : "";
+    const tweetId = escapeActivityHtml(entry.tweetId || "");
+    let claimRow = "";
+    if (showClaim && entry.tweetId) {
+        if (entry.claimable || entry.completionStatus === "pending") {
+            claimRow = `<div class="profile-activity-claim-row">
+                <button type="button" class="profile-claim-btn" data-catch-tweet-id="${tweetId}" onclick="event.stopPropagation(); claimProfileCatch(this.getAttribute('data-catch-tweet-id'), this)">CLAIM</button>
+                <span class="profile-activity-pending">Tap to claim Monballs + mons</span>
+            </div>`;
+        } else if (entry.claimed || entry.completionStatus === "completed") {
+            claimRow = `<div class="profile-activity-claim-row"><span class="profile-activity-claimed">CLAIMED</span></div>`;
+        }
+    }
     return `<div class="activity-item activity-item-clickable" role="button" tabindex="0" data-activity-idx="__IDX__">
         ${userPart}${escapeActivityHtml(describeWildLogCatch(entry))}
         <div>${caught}${more}</div>
         <div class="activity-meta">${time} · ${escapeActivityHtml(describeWildLogBalance(entry))} Monballs left on X · tap for full log</div>
+        ${claimRow}
     </div>`;
 }
 

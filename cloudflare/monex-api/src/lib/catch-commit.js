@@ -47,10 +47,43 @@ export async function commitCatchTransaction(
       tweet,
       activity,
       pendingMonsAdded,
+      claimModel: processResult.deliveryModel === "claim" ? "deferred" : "legacy",
     });
 
   receipt.deliveryAttempts = (receipt.deliveryAttempts || 0) + 1;
   receipt.retryStatus = receipt.deliveryAttempts > 1 ? "scheduled" : "none";
+
+  const deferredClaim = processResult.deliveryModel === "claim" || receipt.claimModel === "deferred";
+
+  if (deferredClaim) {
+    await saveCatchUserRecord(kv, tweet.authorId, catchUser);
+
+    receipt.catchLogStatus = "written";
+    receipt.deliveryStatus = (activity.caughtCount || 0) > 0 ? "pending" : "delivered";
+    receipt.completionStatus = "pending";
+    receipt.spendApplied = false;
+
+    const activityEntry = enrichActivityWithReceipt(activity, receipt);
+    if (!existing?.catchLogStatus || existing.catchLogStatus !== "written") {
+      await appendActivity(kv, activityEntry);
+    }
+    await saveCatchReceipt(kv, receipt);
+
+    return {
+      ok: true,
+      idempotent: false,
+      receipt,
+      activity: activityEntry,
+      save: null,
+      delivery: {
+        added: 0,
+        remaining: pendingMonsAdded.length,
+        deliveryStatus: receipt.deliveryStatus,
+        completionStatus: receipt.completionStatus,
+        deferred: true,
+      },
+    };
+  }
 
   await saveCatchUserRecord(kv, tweet.authorId, catchUser);
 

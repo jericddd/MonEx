@@ -2,7 +2,11 @@ import { runCatchSession, formatSkillsShort } from "./catch-engine.js";
 import { parseMention } from "./parse-mention.js";
 import { addPendingMons } from "../kv-store.js";
 import { makeActivityId } from "./activity-log.js";
-import { trySpendCatchMonballs } from "./catch-spend.js";
+import { trySpendCatchMonballs, validateCatchMonballsAvailable } from "./catch-spend.js";
+
+function makeCatchPendingId(tweetId, index) {
+  return `p_${String(tweetId || "").trim()}_${index}`;
+}
 
 function summarizeResults(results) {
   const caught = results.filter((r) => !r.escaped);
@@ -20,7 +24,7 @@ function summarizeResults(results) {
 /**
  * Process a mention — no X reply. Logs successful catch sessions to activity feed.
  */
-export function processMentionTweet(tweet, botUsername, user, startingMonballs, botUserId = null) {
+export function processMentionTweet(tweet, botUsername, user, startingMonballs, botUserId = null, options = {}) {
   const replyToBot = botUserId != null && String(tweet.inReplyToUserId || "") === String(botUserId);
   const parsed = parseMention(tweet.text, botUsername, { replyToBot });
 
@@ -41,7 +45,17 @@ export function processMentionTweet(tweet, botUsername, user, startingMonballs, 
       return { parsed, activity: null, skipReason: "no_catch_user" };
     }
 
-    const spendResult = trySpendCatchMonballs(user, parsed.spend);
+    const deliveryModel = options.deliveryModel === "legacy" ? "legacy" : "claim";
+    const walletMonballs =
+      options.walletMonballs != null
+        ? Math.max(0, Math.floor(Number(options.walletMonballs) || 0))
+        : null;
+
+    const spendResult =
+      deliveryModel === "claim"
+        ? validateCatchMonballsAvailable(user, parsed.spend, walletMonballs ?? user.monballs)
+        : trySpendCatchMonballs(user, parsed.spend);
+
     if (!spendResult.ok) {
       return {
         parsed,
@@ -54,11 +68,19 @@ export function processMentionTweet(tweet, botUsername, user, startingMonballs, 
     const { caught, escaped, highlights, mons } = summarizeResults(results);
     const caughtMons = caught.map((r) => r.mon).slice(0, throws);
     const pendingBefore = user.pendingMons.length;
-    addPendingMons(user, caughtMons);
-    const pendingMonsAdded = user.pendingMons.slice(pendingBefore);
+    const pendingMonsAdded = caughtMons.map((mon, index) => ({
+      ...mon,
+      pendingId: makeCatchPendingId(tweet.id, index),
+      caughtAt: new Date().toISOString(),
+    }));
+
+    if (deliveryModel === "legacy") {
+      addPendingMons(user, caughtMons);
+    }
+
     const monsWithIds = mons.slice(0, throws).map((row, index) => ({
       ...row,
-      pendingId: pendingMonsAdded[index]?.pendingId || null,
+      pendingId: pendingMonsAdded[index]?.pendingId || makeCatchPendingId(tweet.id, index),
     }));
 
     const activity = {
@@ -76,9 +98,16 @@ export function processMentionTweet(tweet, botUsername, user, startingMonballs, 
       monballsLeft: spendResult.after,
       status: "success",
       at: new Date().toISOString(),
+      completionStatus: deliveryModel === "claim" ? "pending" : undefined,
     };
 
-    return { parsed, activity, catchResults: results, pendingMonsAdded };
+    return {
+      parsed,
+      activity,
+      catchResults: results,
+      pendingMonsAdded: deliveryModel === "legacy" ? user.pendingMons.slice(pendingBefore) : pendingMonsAdded,
+      deliveryModel,
+    };
   }
 
   return { parsed, activity: null };

@@ -15,9 +15,8 @@ import { validateAndSanitizeSave } from "./save-validate.js";
  * Authoritative monball count across catch state and cloud save.
  */
 export async function getAuthoritativeMonballs(kv, xUserId, username, startingMonballs = 10) {
-  const catchUser = await lookupCatchUserKv(kv, xUserId, username, startingMonballs);
-  const { save } = await loadCloudSave(kv, xUserId);
-  return resolveMergedMonballs(catchUser, save, catchUser?.monballs ?? 0);
+  const { getWalletMonballs } = await import("./monball-wallet.js");
+  return getWalletMonballs(kv, xUserId, username, startingMonballs);
 }
 
 /**
@@ -130,14 +129,13 @@ export async function applyAuthoritativeMonballGrant(
   const amount = clampMonballs(delta);
   if (!amount || !session?.xUserId) return null;
 
-  await creditCatchMonballs(kv, session, amount, startingMonballs, auditSource);
-  const { save } = await loadCloudSave(kv, session.xUserId);
-  const monballs = await getAuthoritativeMonballs(kv, session.xUserId, session.username, startingMonballs);
-  const nextSave = buildSavePayload(
-    { ...save, monballs, updatedAt: new Date().toISOString() },
-    session
-  );
-  return writeCloudSave(kv, session.xUserId, nextSave, { skipStaleCheck: true });
+  const { creditWalletMonballs } = await import("./monball-wallet.js");
+  const credit = await creditWalletMonballs(kv, session, amount, startingMonballs, {
+    source: auditSource,
+    meta: { pool: "wallet" },
+  });
+  if (!credit.ok) return null;
+  return credit.save;
 }
 
 /** Reverse a prior authoritative grant when a follow-up quest save fails. */
@@ -153,21 +151,12 @@ export async function revertAuthoritativeMonballGrant(
 
   const current = await getAuthoritativeMonballs(kv, session.xUserId, session.username, startingMonballs);
   const target = clampMonballs(current - amount);
-  await alignCatchMonballsToMerged(kv, session, target, startingMonballs);
-  const { save } = await loadCloudSave(kv, session.xUserId);
-  const nextSave = buildSavePayload(
-    { ...save, monballs: target, updatedAt: new Date().toISOString() },
-    session
-  );
-  await appendMonballAudit(kv, {
-    xUserId: session.xUserId,
-    username: session.username,
+  const { writeWalletMonballs } = await import("./monball-wallet.js");
+  const written = await writeWalletMonballs(kv, session, target, startingMonballs, {
     source: auditSource,
-    delta: target - current,
-    balanceAfter: target,
     meta: { pool: "rollback", reverted: amount },
   });
-  return writeCloudSave(kv, session.xUserId, nextSave, { skipStaleCheck: true });
+  return written.save;
 }
 
 /**

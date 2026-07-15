@@ -79,6 +79,8 @@ import {
   normalizeSessionOpenedAt,
 } from "./lib/game-session.js";
 import { commitCatchTransaction, retryPendingCatchDeliveries } from "./lib/catch-commit.js";
+import { claimCatchFromLog, enrichActivityEntriesWithReceipts } from "./lib/catch-claim.js";
+import { getWalletMonballs } from "./lib/monball-wallet.js";
 import {
   buildCorsHeaders,
   enforceRateLimit,
@@ -139,17 +141,15 @@ async function handleSimulate(body, env, request) {
 
   const user = await resolveCatchUserKv(env.MONEX_KV, authorId, username, starting);
   const replyToBot = body?.replyToBot === true;
-  const parsed = parseMention(text, bot, { replyToBot });
-  if (parsed.type === "catch" && user && user.monballs < parsed.spend) {
-    user.monballs = starting;
-  }
+  const walletMonballs = await getWalletMonballs(env.MONEX_KV, authorId, username, starting);
 
   const result = processMentionTweet(
     { id: tweetId, text, authorId, username, inReplyToUserId: replyToBot ? "bot" : null },
     bot,
     user,
     starting,
-    replyToBot ? "bot" : null
+    replyToBot ? "bot" : null,
+    { walletMonballs, deliveryModel: "claim" }
   );
   if (result.activity) {
     await commitCatchTransaction(env.MONEX_KV, {
@@ -263,7 +263,16 @@ async function pollXMentions(env, { resetSinceId = false } = {}) {
 
       let result;
       try {
-        result = processMentionTweet(tweet, bot, user, starting, botUser.id);
+        const walletMonballs = await getWalletMonballs(
+          env.MONEX_KV,
+          tweet.authorId,
+          tweet.username,
+          starting
+        );
+        result = processMentionTweet(tweet, bot, user, starting, botUser.id, {
+          walletMonballs,
+          deliveryModel: "claim",
+        });
       } catch (err) {
         await releaseTweetClaim(env.MONEX_KV, tweet.id);
         status.errors = status.errors || [];
@@ -916,7 +925,54 @@ async function handleRequest(request, env) {
       const limit = parseBoundedInt(url.searchParams.get("limit"), { fallback: 30, min: 1, max: 50 });
       const page = parseBoundedInt(url.searchParams.get("page"), { fallback: 1, min: 1, max: 9999 });
       const result = await listActivities(env.MONEX_KV, { limit, page, username, successOnly: true });
-      return json({ ok: true, username, ...result }, 200, request, env);
+      const entries = await enrichActivityEntriesWithReceipts(env.MONEX_KV, result.entries || []);
+      return json({ ok: true, username, ...result, entries }, 200, request, env);
+    }
+
+    if (path === "/api/catch/claim" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const auth = await requireGameplay(request, env, body);
+      if (!auth.ok) {
+        return json(
+          { ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim },
+          auth.status,
+          request,
+          env
+        );
+      }
+      await enforceRateLimit(request, env, "catch-claim", {
+        limit: 60,
+        windowSec: 60,
+        userId: auth.session.xUserId,
+      });
+      const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
+      const expectedRevision =
+        body?.baseRevision != null && Number.isFinite(Number(body.baseRevision))
+          ? Number(body.baseRevision)
+          : undefined;
+      try {
+        const result = await claimCatchFromLog(env.MONEX_KV, auth.session, {
+          tweetId: body?.tweetId,
+          partyCount: body?.partyCount,
+          boxCount: body?.boxCount,
+          partyMax: body?.partyMax ?? DEFAULT_PARTY_MAX,
+          boxMax: body?.boxMax ?? DEFAULT_BOX_MAX,
+          expectedRevision,
+          startingMonballs: starting,
+        });
+        const status = result.ok
+          ? 200
+          : result.error === "insufficient_monballs"
+            ? 400
+            : result.error === "catch_not_found" || result.error === "forbidden"
+              ? 404
+              : result.error === "claim_conflict"
+                ? 409
+                : 400;
+        return json(result, status, request, env);
+      } catch (err) {
+        return json({ ok: false, error: err.message || "catch claim failed" }, 500, request, env);
+      }
     }
 
     if (path === "/api/releases/mine" && request.method === "GET") {

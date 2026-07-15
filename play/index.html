@@ -1911,6 +1911,27 @@ button.green:hover {
     background: #ccc;
     box-shadow: none;
 }
+.profile-claim-btn.loading {
+    opacity: 0.7;
+    cursor: wait;
+}
+.profile-activity-claim-row {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.profile-activity-claimed {
+    font-size: 9px;
+    font-family: "Press Start 2P", monospace;
+    color: #166534;
+}
+.profile-activity-pending {
+    font-size: 9px;
+    font-family: "Press Start 2P", monospace;
+    color: #6B21A8;
+}
 .profile-pending-list {
     font-size: 11px;
     color: #555;
@@ -8481,7 +8502,8 @@ body.cloud-load-blocked .game-shell {
 <script src="js/staging-banner.js?v=20260710a"></script>
 <script src="js/monex-config.js?v=20260710a"></script>
 <script src="js/escape-html.js?v=20260710a"></script>
-<script src="js/activity-client.js?v=20260715a"></script>
+<script src="js/activity-client.js?v=20260715b"></script>
+<script src="js/catch-claim-client.js?v=20260715a"></script>
 <script src="js/auth-client.js?v=20260714d"></script>
 <script src="js/release-client.js?v=20260714a"></script>
 <script src="js/game-session-client.js?v=20260710a"></script>
@@ -17876,7 +17898,7 @@ async function syncXWildMons(silent) {
                 } else if (totalAdded > 0) {
                     statusEl.textContent = "All X catches are in your Party/Box.";
                 } else {
-                    statusEl.textContent = "Linked as @" + handle + " — new X catches sync automatically.";
+                    statusEl.textContent = "Linked as @" + handle + " — legacy pending sync automatically; new catches use CLAIM in log.";
                 }
             }
             return totalAdded;
@@ -17952,12 +17974,15 @@ async function refreshProfileActivity(opts = {}) {
     }
     try {
         const items = await MonExActivity.fetchMine(xHandle);
-        const sig = JSON.stringify(items.map((entry) => entry.id || `${entry.at}:${entry.spend}:${entry.caughtCount}`));
+        const sig = JSON.stringify(items.map((entry) =>
+            entry.id || `${entry.at}:${entry.spend}:${entry.caughtCount}:${entry.completionStatus || ""}:${entry.tweetId || ""}`
+        ));
         if (!force && !handleChanged && sig === profileActivitySignature) return;
         profileActivitySignature = sig;
         MonExActivity.renderFeed(el, items, {
             emptyText: "No successful @monexmonad catches yet. Tweet @monexmonad catch 1 monanimal on X!",
             showUser: false,
+            showClaim: true,
             gameTheme: true,
             wideDetail: true,
         });
@@ -17967,6 +17992,101 @@ async function refreshProfileActivity(opts = {}) {
             el.innerHTML = '<div class="activity-empty">Could not reach activity server. Check your connection and API config in js/monex-config.js.</div>';
             el.removeAttribute("data-profile-activity-loaded");
         }
+    }
+}
+
+async function claimProfileCatch(tweetId, buttonEl) {
+    const id = String(tweetId || "").trim();
+    if (!id) return;
+    if (!isGameSessionPlayable()) return;
+    if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
+        showHubNotice("Login required to claim catches.", "Login required");
+        return;
+    }
+    if (typeof MonExCatchClaim === "undefined" || !MonExCatchClaim.claimCatchFromLog) {
+        showHubNotice("Catch claim is not available. Refresh and try again.", "Claim unavailable");
+        return;
+    }
+
+    const run = window.MonExClaimGuard?.runClaimOnce
+        ? (fn, opts) => MonExClaimGuard.runClaimOnce(`catch:${id}`, fn, opts)
+        : async (fn) => fn();
+
+    const boxMax = Number.isFinite(STAGING_BETA_BOX_MAX) ? STAGING_BETA_BOX_MAX : 500;
+
+    try {
+        await run(async () => {
+            if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
+                MonExAuth.cancelPendingCloudSave();
+            }
+            if (typeof syncSaveBeforeAuthoritativeClaim === "function") {
+                await syncSaveBeforeAuthoritativeClaim();
+            }
+
+            let result = await MonExCatchClaim.claimCatchFromLog(id, {
+                partyCount: party.length,
+                boxCount: box.length,
+                partyMax: PARTY_MAX,
+                boxMax,
+            });
+
+            if (!result.ok && result.error === "claim_conflict" && result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(buildSavePayload());
+                result = await MonExCatchClaim.claimCatchFromLog(id, {
+                    partyCount: party.length,
+                    boxCount: box.length,
+                    partyMax: PARTY_MAX,
+                    boxMax,
+                });
+            }
+
+            if (!result.ok) {
+                const msg = result.error === "insufficient_monballs"
+                    ? "Not enough Monballs to claim this catch. Check your balance and try again."
+                    : result.error === "catch_not_found"
+                        ? "Catch session not found. Refresh your log and try again."
+                        : result.error === "claim_conflict"
+                            ? "Save conflict while claiming. Refresh and try again."
+                            : result.error === "game_session_inactive"
+                                ? "Session expired. Refresh /play and log in again."
+                                : "Could not claim this catch. Try again.";
+                showHubNotice(msg, "Catch claim failed");
+                if (result.save) {
+                    applyLoadedSave(result.save);
+                    writeLocalSave(buildSavePayload());
+                    updateUI();
+                }
+                return;
+            }
+
+            if (result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(buildSavePayload());
+            } else if (typeof result.monballs === "number") {
+                monballs = Math.max(0, Math.floor(Number(result.monballs) || 0));
+            }
+
+            if (typeof refreshMonballsFromServer === "function") {
+                await refreshMonballsFromServer();
+            }
+
+            renderParty();
+            renderBox();
+            updateUI();
+            await persistProgress();
+
+            if (!result.alreadyClaimed && (result.added || 0) > 0) {
+                showHubNotice("Claimed " + result.added + " MonAnimal(s) from your catch log!", "Claimed");
+            } else if (!result.alreadyClaimed) {
+                showHubNotice("Catch claimed!", "Claimed");
+            }
+
+            profileActivitySignature = "";
+            await refreshProfileActivity({ silent: true, force: true });
+        }, { button: buttonEl && buttonEl.classList?.contains("profile-claim-btn") ? buttonEl : null, loadingText: "..." });
+    } catch (e) {
+        showHubNotice(e.message || "Could not claim catch.", "Catch error");
     }
 }
 

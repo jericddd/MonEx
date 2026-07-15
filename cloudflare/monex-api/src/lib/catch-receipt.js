@@ -51,6 +51,12 @@ export function sanitizeCatchReceipt(raw) {
       raw.completionStatus === "completed" || raw.completionStatus === "failed"
         ? raw.completionStatus
         : "pending",
+    claimModel: raw.claimModel === "deferred" ? "deferred" : "legacy",
+    spendApplied:
+      raw.claimModel === "deferred"
+        ? raw.spendApplied === true
+        : raw.spendApplied !== false,
+    claimedAt: typeof raw.claimedAt === "string" ? raw.claimedAt : null,
     mons,
     at: typeof raw.at === "string" ? raw.at : new Date().toISOString(),
     updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : new Date().toISOString(),
@@ -82,7 +88,7 @@ export async function saveCatchReceipt(kv, receipt) {
   return payload;
 }
 
-export function buildCatchReceipt({ tweet, activity, pendingMonsAdded = [] }) {
+export function buildCatchReceipt({ tweet, activity, pendingMonsAdded = [], claimModel = "legacy" }) {
   const at = activity?.at || new Date().toISOString();
   return sanitizeCatchReceipt({
     catchId: `catch_${tweet.id}`,
@@ -95,6 +101,8 @@ export function buildCatchReceipt({ tweet, activity, pendingMonsAdded = [] }) {
     caughtCount: activity.caughtCount,
     monballsBefore: activity.monballsBefore,
     monballsLeft: activity.monballsLeft,
+    claimModel: claimModel === "deferred" ? "deferred" : "legacy",
+    spendApplied: claimModel === "deferred" ? false : true,
     catchLogStatus: "pending",
     deliveryStatus: "pending",
     retryStatus: "none",
@@ -193,11 +201,16 @@ export function enrichActivityWithReceipt(activity, receipt) {
       destination: receiptMon?.destination ?? null,
     };
   });
+  const claimable = receipt.completionStatus !== "completed";
   return {
     ...activity,
     catchId: receipt.catchId,
+    claimModel: receipt.claimModel,
+    spendApplied: receipt.spendApplied,
     deliveryStatus: receipt.deliveryStatus,
     completionStatus: receipt.completionStatus,
+    claimable,
+    claimed: !claimable,
     mons,
   };
 }

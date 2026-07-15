@@ -7,6 +7,24 @@ import {
 } from "./save-reconcile.js";
 import { recoverActivityCatchesForUser, filterActivityEntries, extractRecoverableMons } from "./recover-activity-catches.js";
 import { cleanUsername } from "./backfill-pending.js";
+import { loadCatchReceipt } from "./catch-receipt.js";
+
+async function filterEntriesForAutoRecovery(kv, entries = []) {
+  const out = [];
+  for (const entry of entries) {
+    const tweetId = String(entry?.tweetId || "").trim();
+    if (!tweetId) {
+      out.push(entry);
+      continue;
+    }
+    const receipt = await loadCatchReceipt(kv, tweetId);
+    if (receipt?.claimModel === "deferred" && receipt.completionStatus !== "completed") {
+      continue;
+    }
+    out.push(entry);
+  }
+  return out;
+}
 
 /** Read-only catch user for GET /api/save (no KV writes). */
 export async function lookupCatchUserReadOnly(kv, xUserId, username, startingMonballs = 10) {
@@ -20,7 +38,7 @@ export async function lookupCatchUserReadOnly(kv, xUserId, username, startingMon
 export async function recoverMissingMonsFromActivity(kv, xUserId, username, save, startingMonballs = 10) {
   const uname = cleanUsername(username);
   const log = await loadActivityLog(kv);
-  const entries = log.entries || [];
+  const entries = await filterEntriesForAutoRecovery(kv, log.entries || []);
   const invCount = (save?.party?.length || 0) + (save?.box?.length || 0);
   const recoverableCount = extractRecoverableMons(
     filterActivityEntries(entries, uname, { caseSensitive: false })
