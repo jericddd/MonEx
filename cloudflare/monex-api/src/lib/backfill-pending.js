@@ -59,6 +59,11 @@ export function getWildPendingIds(save) {
   return ids;
 }
 
+/** Pending mons that /api/sync can deliver (excludes profile-claim queue). */
+export function countDeliverablePendingMons(catchUser) {
+  return (catchUser?.pendingMons || []).filter((mon) => !mon?.awaitingProfileClaim).length;
+}
+
 export function pendingMonToSaveMon(raw) {
   if (!raw || typeof raw !== "object") return null;
   const mon = {

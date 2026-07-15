@@ -6,6 +6,7 @@ import { recoverMissingMonsFromActivity } from "./hydrate-save.js";
 import { loadCloudSave, writeCloudSave } from "./save.js";
 import { assignPersonalCatchLogRef } from "./personal-catch-log.js";
 import { debitWalletMonballs } from "./monball-wallet.js";
+import { countDeliverablePendingMons } from "./backfill-pending.js";
 import {
   buildCatchReceipt,
   loadCatchReceipt,
@@ -332,7 +333,9 @@ export async function retryPendingCatchDeliveries(
     ok: true,
     save,
     added: (pendingResult.added || 0) + (recovered.added?.length || 0),
-    remaining: catchUser.pendingMons?.length || 0,
+    remaining: countDeliverablePendingMons(catchUser),
+    remainingClaimGated:
+      Math.max(0, (catchUser.pendingMons?.length || 0) - countDeliverablePendingMons(catchUser)),
     monballs: save?.monballs ?? pendingResult.monballs,
   };
 }

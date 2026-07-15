@@ -6,6 +6,8 @@ import { commitCatchTransaction } from "./catch-commit.js";
 import { processMentionTweet } from "./process-mention.js";
 import { recoverMissingMonsFromActivity } from "./hydrate-save.js";
 import { hydrateCloudSaveWithCatchState } from "./save-reconcile.js";
+import { retryPendingCatchDeliveries } from "./catch-commit.js";
+import { countDeliverablePendingMons } from "./backfill-pending.js";
 
 function makeKv(store = {}) {
   return {
@@ -328,6 +330,47 @@ test("hydrate skips claim-gated pending mons until profile claim", async () => {
   assert.equal(result.added, 0);
   const save = JSON.parse(store["monex:save:u1"]);
   assert.equal(save.party.length + save.box.length, 0);
+});
+
+test("retryPendingCatchDeliveries remaining excludes claim-gated pending mons", async () => {
+  const catchUser = {
+    username: "trainer",
+    monballs: 7,
+    pendingMons: [
+      {
+        pendingId: "p_gate",
+        name: "Chog",
+        rarity: "Common",
+        skills: [],
+        awaitingProfileClaim: true,
+      },
+      {
+        pendingId: "p_gate2",
+        name: "Mouch",
+        rarity: "Common",
+        skills: [],
+        awaitingProfileClaim: true,
+      },
+    ],
+  };
+  assert.equal(countDeliverablePendingMons(catchUser), 0);
+
+  const store = {
+    "monex:catch-user:u1": JSON.stringify(catchUser),
+    "monex:save:u1": JSON.stringify({
+      revision: 1,
+      monballs: 7,
+      party: [],
+      box: [],
+      xHandle: "trainer",
+      updatedAt: new Date().toISOString(),
+    }),
+  };
+  const kv = makeKv(store);
+  const result = await retryPendingCatchDeliveries(kv, "u1", "trainer", 10);
+  assert.equal(result.remaining, 0);
+  assert.equal(result.added, 0);
+  assert.equal(JSON.parse(store["monex:catch-user:u1"]).pendingMons.length, 2);
 });
 
 test("recoverMissingMonsFromActivity skips deferred unclaimed catches", async () => {
