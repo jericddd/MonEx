@@ -18067,13 +18067,22 @@ async function claimProfileCatch(tweetId, buttonEl) {
             }
 
             if (!result.ok) {
+                console.warn("[catch-claim] failed:", result.error, result);
                 const msg = result.error === "catch_not_found"
                         ? "Catch session not found. Refresh your log and try again."
                         : result.error === "claim_conflict"
                             ? "Save conflict while claiming. Refresh and try again."
                             : result.error === "game_session_inactive"
                                 ? "Session expired. Refresh /play and log in again."
-                                : "Could not claim this catch. Try again.";
+                                : result.error === "game_session_required"
+                                    ? "Game session missing. Refresh /play and try again."
+                                    : result.error === "party_box_full"
+                                        ? "Party and Box are full. Free a slot, then claim again."
+                                        : result.error === "forbidden"
+                                            ? "This catch belongs to another account."
+                                            : result.error === "delivery_failed"
+                                                ? "Could not deliver your MonAnimals. Try again in a moment."
+                                                : "Could not claim this catch. Try again.";
                 showHubNotice(msg, "Catch claim failed");
                 if (result.save) {
                     applyLoadedSave(result.save);
