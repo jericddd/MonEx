@@ -7,6 +7,7 @@ import { LIMITS, sanitizeReleaseLog, sanitizeReleasedRecoveryIds } from "./save-
 import {
   mergeAccountBattleCompletions,
   maxAdventureGlobalFromCompletions,
+  repairAdventurePlayhead,
   sanitizeAccountBattleCompletions,
 } from "./battle-completion.js";
 import { preservePatrolProgress } from "./patrol-attempt.js";
@@ -186,8 +187,11 @@ export function reconcileQuestState(existing, incoming, options = {}) {
       const exProgress = clampInt(exTask.progress ?? 0, 0, goal ?? 9999);
       let progress = clampInt(task.progress ?? 0, 0, goal ?? 9999);
       if (goal != null) progress = Math.min(progress, goal);
-      if (!resetChanged && progress > exProgress + MAX_QUEST_PROGRESS_DELTA) {
-        progress = exProgress + MAX_QUEST_PROGRESS_DELTA;
+      if (!resetChanged) {
+        progress = Math.max(exProgress, progress);
+        if (progress > exProgress + MAX_QUEST_PROGRESS_DELTA) {
+          progress = exProgress + MAX_QUEST_PROGRESS_DELTA;
+        }
       }
       if (goal != null) progress = Math.min(progress, goal);
       let claimed = !!task.claimed;
@@ -414,7 +418,7 @@ export function preserveBattleCompletionState(existing, incoming, now = Date.now
 
   out = preservePatrolProgress(ex, out, now);
 
-  return out;
+  return repairAdventurePlayhead(out).save;
 }
 
 /**

@@ -5,6 +5,7 @@ import {
   buildPatrolCompletionId,
   maxAdventureGlobalFromCompletions,
   normalizeBattleCompletionId,
+  repairAdventurePlayhead,
   sanitizeAccountBattleCompletions,
 } from "./battle-completion.js";
 
@@ -49,4 +50,37 @@ test("sanitizeAccountBattleCompletions caps size and normalizes reward", () => {
     },
   });
   assert.equal(out["campaign:chapter-1:stage-1:first-clear"].reward.gold, 100);
+});
+
+test("repairAdventurePlayhead advances playhead when stage already cleared", () => {
+  const save = {
+    currentChapter: 1,
+    currentStage: 5,
+    adventureGlobalBest: 5,
+    highestStageCleared: 5,
+    accountBattleCompletions: {
+      "campaign:chapter-1:stage-5:first-clear": {
+        at: "2026-07-14T00:00:00.000Z",
+        mode: "adventure",
+        reward: { gold: 100, essence: 10, monShards: 0, trainerXp: 50, gear: null },
+      },
+    },
+  };
+  const { save: repaired, changed } = repairAdventurePlayhead(save);
+  assert.equal(changed, true);
+  assert.equal(repaired.currentStage, 6);
+  assert.equal(repaired.adventureGlobalBest, 5);
+});
+
+test("repairAdventurePlayhead is no-op when playhead is ahead", () => {
+  const save = {
+    currentChapter: 1,
+    currentStage: 6,
+    adventureGlobalBest: 5,
+    highestStageCleared: 5,
+    accountBattleCompletions: {},
+  };
+  const { save: repaired, changed } = repairAdventurePlayhead(save);
+  assert.equal(changed, false);
+  assert.equal(repaired.currentStage, 6);
 });

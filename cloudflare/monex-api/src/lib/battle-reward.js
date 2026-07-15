@@ -17,6 +17,7 @@ import {
   logBattleCompletionEvent,
   mergeAccountBattleCompletions,
   normalizeBattleCompletionId,
+  repairAdventurePlayhead,
   sanitizeAccountBattleCompletions,
 } from "./battle-completion.js";
 import { applyQuestResetsToState } from "./quest-reset.js";
@@ -377,6 +378,25 @@ function serializeReward(reward) {
   };
 }
 
+async function repairAndPersistPlayheadIfNeeded(kv, session, save, startingMonballs, context = {}) {
+  const { save: repaired, changed } = repairAdventurePlayhead(save);
+  if (!changed) return repaired;
+
+  const revision = Number.isFinite(Number(save.revision)) ? Number(save.revision) : undefined;
+  const result = await persistBattleSave(
+    kv,
+    session,
+    save,
+    repaired,
+    revision,
+    startingMonballs,
+    0,
+    { ...context, playheadRepair: true }
+  );
+  if (result.ok) return result.save;
+  return repaired;
+}
+
 async function persistBattleSave(
   kv,
   session,
@@ -492,12 +512,19 @@ export async function claimBattleReward(
       completionId,
       source: "accountBattleCompletions",
     });
+    const repairedSave = await repairAndPersistPlayheadIfNeeded(
+      kv,
+      session,
+      save,
+      startingMonballs,
+      { completionId }
+    );
     return {
       ok: true,
       alreadyClaimed: true,
       completionId,
       reward: ledgerHit.reward,
-      save,
+      save: repairedSave,
     };
   }
 
@@ -512,12 +539,19 @@ export async function claimBattleReward(
           completionId,
           source: "kv_receipt",
         });
+        const repairedSave = await repairAndPersistPlayheadIfNeeded(
+          kv,
+          session,
+          parsed.save,
+          startingMonballs,
+          { completionId }
+        );
         return {
           ok: true,
           alreadyClaimed: true,
           completionId,
           reward: parsed.reward,
-          save: parsed.save,
+          save: repairedSave,
         };
       }
     } catch {

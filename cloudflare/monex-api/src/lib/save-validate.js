@@ -1,6 +1,6 @@
 /** Server-side save validation — mirrors client game limits (Phase 1 security). */
 
-import { sanitizeAccountBattleCompletions } from "./battle-completion.js";
+import { repairAdventurePlayhead, sanitizeAccountBattleCompletions } from "./battle-completion.js";
 import {
   DAILY_QUEST_MAX_POINTS,
   WEEKLY_QUEST_MAX_POINTS,
@@ -413,11 +413,19 @@ function sanitizeAdventureFields(src) {
     currentStage = capped.stage;
   }
 
-  return {
+  const { save: repaired } = repairAdventurePlayhead({
+    ...src,
     highestStageCleared,
     adventureGlobalBest,
     currentChapter,
     currentStage,
+  });
+
+  return {
+    highestStageCleared: repaired.highestStageCleared,
+    adventureGlobalBest: repaired.adventureGlobalBest,
+    currentChapter: repaired.currentChapter,
+    currentStage: repaired.currentStage,
   };
 }
 

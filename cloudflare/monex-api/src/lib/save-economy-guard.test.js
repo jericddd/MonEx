@@ -140,6 +140,37 @@ test("caps forged quest progress jumps per save", () => {
   assert.equal(out.questState.tasks.dailies[0].progress, 2);
 });
 
+test("blocks quest progress regression from stale autosaves", () => {
+  const existing = {
+    questState: {
+      grantedKeys: [],
+      ...currentQuestKeys(),
+      tasks: {
+        dailies: [{ id: "d13", progress: 3, claimed: false }],
+        weeklies: [],
+        campaign: [],
+      },
+    },
+  };
+  const incoming = {
+    questState: {
+      grantedKeys: [],
+      ...currentQuestKeys(),
+      dailyPoints: 0,
+      weeklyPoints: 0,
+      dailyClaimedChests: [],
+      weeklyClaimedChests: [],
+      tasks: {
+        dailies: [{ id: "d13", progress: 0, claimed: false }],
+        weeklies: [],
+        campaign: [],
+      },
+    },
+  };
+  const out = reconcileAtTestNow(existing, incoming);
+  assert.equal(out.questState.tasks.dailies[0].progress, 3);
+});
+
 test("caps forged quest points jumps per save", () => {
   const existing = {
     questState: {
