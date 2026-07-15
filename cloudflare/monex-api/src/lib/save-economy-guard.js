@@ -416,7 +416,7 @@ export function preserveBattleCompletionState(existing, incoming, now = Date.now
     out.adventureGlobalBest = minBest;
   }
 
-  out = preservePatrolProgress(ex, out, now);
+  out = preservePatrolProgress(ex, out, now, mergedCompletions);
 
   return repairAdventurePlayhead(out).save;
 }

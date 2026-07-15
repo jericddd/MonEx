@@ -57,6 +57,12 @@ function mergePatrolProgress(local, cloud, now = new Date()) {
     mergedUsed = Math.max(mergedUsed, cloudUsed);
   }
 
+  const localToday = isSamePatrolDay(local?.patrolScansDay, today) ? localUsed : 0;
+  const cloudToday = isSamePatrolDay(cloud?.patrolScansDay, today) ? cloudUsed : 0;
+  if (localToday > 0 && cloudToday > 0 && Math.abs(localToday - cloudToday) > 1) {
+    mergedUsed = Math.min(localToday, cloudToday);
+  }
+
   return { patrolScansDay: today, patrolScansUsed: mergedUsed };
 }
 

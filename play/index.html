@@ -16387,6 +16387,33 @@ async function persistProgress(options = {}) {
     return null;
 }
 
+window.applyServerSaveCorrections = function applyServerSaveCorrections(serverSave) {
+    if (!serverSave || typeof serverSave !== "object") return;
+    let changed = false;
+    const serverMonballs = Math.max(0, Math.floor(Number(serverSave.monballs) || 0));
+    if (serverMonballs !== monballs) {
+        auditMonballChange("server_autosave_reconcile", serverMonballs - monballs, serverMonballs);
+        monballs = serverMonballs;
+        changed = true;
+    }
+    ensurePatrolDailyReset();
+    const serverUsed = Math.max(0, Math.floor(Number(serverSave.patrolScansUsed) || 0));
+    const serverDay = serverSave.patrolScansDay || patrolScansDay;
+    if (serverUsed !== patrolScansUsed || serverDay !== patrolScansDay) {
+        patrolScansUsed = serverUsed;
+        patrolScansDay = serverDay;
+        changed = true;
+    }
+    if (changed) {
+        writeLocalSave(buildSavePayload());
+        updateHeaderCurrencies();
+        setPatrolScanUI(false);
+    }
+    if (typeof MonExAuth !== "undefined" && MonExAuth.setSaveRevision && serverSave.revision != null) {
+        MonExAuth.setSaveRevision(serverSave.revision);
+    }
+};
+
 window.handleCloudSaveConflict = function handleCloudSaveConflict(cloudSave) {
     if (!cloudSave || typeof cloudSave !== "object") return;
     const localData = readLocalSaveData();
@@ -17758,6 +17785,9 @@ async function syncXWildMons(silent) {
     wildSyncInFlight = (async () => {
         const statusEl = document.getElementById("profile-pending-text");
         try {
+            if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
+                MonExAuth.cancelPendingCloudSave();
+            }
             const boxMax = Number.isFinite(STAGING_BETA_BOX_MAX) ? STAGING_BETA_BOX_MAX : 500;
             let totalAdded = 0;
             let remaining = 0;

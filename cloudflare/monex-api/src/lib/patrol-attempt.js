@@ -1,6 +1,32 @@
 import { getDailyDayKey } from "./daily-reset.js";
+import { sanitizeAccountBattleCompletions } from "./battle-completion.js";
 
 export const PATROL_DAILY_MAX = 50;
+
+const UTC8_OFFSET_MS = 8 * 60 * 60 * 1000;
+
+/** UTC+8 midnight for a day key, as UTC epoch ms. */
+export function patrolDayStartMs(dayKey) {
+  if (!dayKey || typeof dayKey !== "string") return NaN;
+  const [y, m, d] = dayKey.split("-").map(Number);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return NaN;
+  return Date.UTC(y, m - 1, d) - UTC8_OFFSET_MS;
+}
+
+/** Count patrol ledger entries whose timestamp falls on the given UTC+8 day. */
+export function countPatrolCompletionsForDay(completions, dayKey) {
+  if (!dayKey) return 0;
+  const start = patrolDayStartMs(dayKey);
+  if (!Number.isFinite(start)) return 0;
+  const end = start + 24 * 60 * 60 * 1000;
+  let count = 0;
+  for (const [id, entry] of Object.entries(sanitizeAccountBattleCompletions(completions))) {
+    if (!id.startsWith("patrol:")) continue;
+    const ms = Date.parse(entry?.at || "");
+    if (Number.isFinite(ms) && ms >= start && ms < end) count++;
+  }
+  return count;
+}
 
 export function applyPatrolDailyResetOnSave(save, now = Date.now()) {
   const today = getDailyDayKey(new Date(now));
@@ -76,7 +102,7 @@ export function syncLegacyPatrolScanCount(save, completionId, now = Date.now()) 
   };
 }
 
-export function preservePatrolProgress(existing, incoming, now = Date.now()) {
+export function preservePatrolProgress(existing, incoming, now = Date.now(), completions = null) {
   const ex = existing && typeof existing === "object" ? existing : {};
   const inc = incoming && typeof incoming === "object" ? incoming : {};
   const today = getDailyDayKey(new Date(now));
@@ -99,6 +125,18 @@ export function preservePatrolProgress(existing, incoming, now = Date.now()) {
     nextDay = incDay;
   } else if (exDay === incDay) {
     nextUsed = Math.max(exUsed, incUsed);
+  }
+
+  const ledgerSource = completions ?? {
+    ...(ex.accountBattleCompletions || {}),
+    ...(inc.accountBattleCompletions || {}),
+  };
+  const ledgerFloor = countPatrolCompletionsForDay(ledgerSource, nextDay);
+  nextUsed = Math.max(nextUsed, ledgerFloor);
+
+  const exUsedForDay = exDay === nextDay ? exUsed : 0;
+  if (incDay === nextDay && incUsed > exUsedForDay && incUsed > ledgerFloor) {
+    nextUsed = Math.min(nextUsed, Math.max(exUsedForDay, ledgerFloor));
   }
 
   return {
