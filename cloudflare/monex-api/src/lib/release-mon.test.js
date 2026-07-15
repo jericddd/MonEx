@@ -39,6 +39,8 @@ test("applyReleaseToSave removes mon from box and records recovery ids", () => {
   assert.ok(result.save.releasedRecoveryIds.includes("inst_chog_1"));
   assert.ok(result.save.releasedRecoveryIds.includes("recovery_act_9_0"));
   assert.equal(result.save.releaseLog.length, 1);
+  assert.equal(result.save.releaseLog[0].releaseLogNumber, 1);
+  assert.equal(result.save.releaseLogSeq, 1);
 });
 
 test("stripReleasedMonsFromInventory removes blocked mons from stale full save", () => {

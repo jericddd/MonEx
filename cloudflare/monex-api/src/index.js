@@ -984,7 +984,7 @@ async function handleRequest(request, env) {
     if (path === "/api/releases/mine" && request.method === "GET") {
       const auth = await requireGameplay(request, env);
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
-      const limit = parseBoundedInt(url.searchParams.get("limit"), { fallback: 30, min: 1, max: 50 });
+      const limit = parseBoundedInt(url.searchParams.get("limit"), { fallback: 50, min: 1, max: 150 });
       const page = parseBoundedInt(url.searchParams.get("page"), { fallback: 1, min: 1, max: 9999 });
       const { save } = await loadCloudSave(env.MONEX_KV, auth.session.xUserId);
       const result = listReleaseLog(save, { limit, page });

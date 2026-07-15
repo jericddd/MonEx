@@ -5,6 +5,7 @@ import { seedOrHydrateCloudSaveFromCatch, syncSaveMonballsAfterCatch } from "./s
 import { recoverMissingMonsFromActivity } from "./hydrate-save.js";
 import { loadCloudSave, writeCloudSave } from "./save.js";
 import { assignPersonalCatchLogRef } from "./personal-catch-log.js";
+import { debitWalletMonballs } from "./monball-wallet.js";
 import {
   buildCatchReceipt,
   loadCatchReceipt,
@@ -12,6 +13,21 @@ import {
   computeCatchReceiptStatus,
   enrichActivityWithReceipt,
 } from "./catch-receipt.js";
+
+function stageDeferredPendingMons(catchUser, pendingMonsAdded, tweetId) {
+  const existing = new Set((catchUser?.pendingMons || []).map((m) => m.pendingId).filter(Boolean));
+  if (!catchUser.pendingMons) catchUser.pendingMons = [];
+  for (const mon of pendingMonsAdded || []) {
+    if (!mon?.pendingId || existing.has(mon.pendingId)) continue;
+    catchUser.pendingMons.push({
+      ...mon,
+      catchTweetId: tweetId,
+      awaitingProfileClaim: true,
+    });
+    existing.add(mon.pendingId);
+  }
+  catchUser.updatedAt = new Date().toISOString();
+}
 
 async function ensurePersonalCatchLogRef(kv, catchUser, tweet, activity, receipt) {
   const existing = Math.floor(Number(receipt?.personalLogNumber) || 0);
@@ -77,12 +93,52 @@ export async function commitCatchTransaction(
   const deferredClaim = processResult.deliveryModel === "claim" || receipt.claimModel === "deferred";
 
   if (deferredClaim) {
+    const session = { xUserId: tweet.authorId, username: tweet.username };
+    const spend = Math.max(0, Math.floor(Number(activity.spend) || 0));
+
+    if (!existing?.spendApplied && spend > 0) {
+      const debit = await debitWalletMonballs(kv, session, spend, startingMonballs, {
+        source: "x_catch_spend",
+        meta: { pool: "catch", tweetId: tweet.id, catchId: receipt.catchId, claimModel: "deferred" },
+      });
+      if (!debit.ok) {
+        receipt.lastError = debit.error || "insufficient_monballs";
+        receipt.deliveryStatus = "failed";
+        receipt.retryStatus = receipt.deliveryAttempts >= 5 ? "exhausted" : "scheduled";
+        await saveCatchReceipt(kv, receipt);
+        return {
+          ok: false,
+          error: debit.error || "insufficient_monballs",
+          receipt,
+          activity: null,
+          save: debit.save || null,
+          delivery: {
+            added: 0,
+            remaining: pendingMonsAdded.length,
+            deliveryStatus: receipt.deliveryStatus,
+            completionStatus: "pending",
+            deferred: true,
+          },
+        };
+      }
+      receipt.spendApplied = true;
+      activity.monballsLeft = debit.after;
+      receipt.monballsLeft = debit.after;
+      catchUser.monballs = debit.after;
+    } else if (existing?.spendApplied) {
+      receipt.spendApplied = true;
+      catchUser.monballs = activity.monballsLeft ?? catchUser.monballs;
+    } else if (spend === 0) {
+      receipt.spendApplied = true;
+    }
+
+    stageDeferredPendingMons(catchUser, pendingMonsAdded, tweet.id);
     await saveCatchUserRecord(kv, tweet.authorId, catchUser);
 
     receipt.catchLogStatus = "written";
-    receipt.deliveryStatus = (activity.caughtCount || 0) > 0 ? "pending" : "delivered";
-    receipt.completionStatus = "pending";
-    receipt.spendApplied = false;
+    const hasMons = (activity.caughtCount || 0) > 0 && pendingMonsAdded.length > 0;
+    receipt.deliveryStatus = hasMons ? "queued" : "delivered";
+    receipt.completionStatus = hasMons ? "pending" : "completed";
 
     if (!existing?.catchLogStatus || existing.catchLogStatus !== "written") {
       await ensurePersonalCatchLogRef(kv, catchUser, tweet, activity, receipt);
@@ -105,10 +161,11 @@ export async function commitCatchTransaction(
       save: null,
       delivery: {
         added: 0,
-        remaining: pendingMonsAdded.length,
+        remaining: catchUser.pendingMons?.length || pendingMonsAdded.length,
         deliveryStatus: receipt.deliveryStatus,
         completionStatus: receipt.completionStatus,
         deferred: true,
+        spendApplied: receipt.spendApplied,
       },
     };
   }

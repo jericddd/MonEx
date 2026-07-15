@@ -5,6 +5,7 @@ import { buildCatchReceipt, saveCatchReceipt, catchReceiptKey } from "./catch-re
 import { commitCatchTransaction } from "./catch-commit.js";
 import { processMentionTweet } from "./process-mention.js";
 import { recoverMissingMonsFromActivity } from "./hydrate-save.js";
+import { hydrateCloudSaveWithCatchState } from "./save-reconcile.js";
 
 function makeKv(store = {}) {
   return {
@@ -22,17 +23,26 @@ function makeKv(store = {}) {
 
 const session = { xUserId: "u1", username: "trainer" };
 
-test("deferred claim debits wallet and delivers mons", async () => {
+test("deferred claim dispatches mons without debiting wallet again", async () => {
   const store = {
     "monex:catch-user:u1": JSON.stringify({
       username: "trainer",
-      monballs: 10,
-      pendingMons: [],
+      monballs: 7,
+      pendingMons: [
+        {
+          pendingId: "p_def",
+          name: "Chog",
+          rarity: "Common",
+          skills: [],
+          awaitingProfileClaim: true,
+          catchTweetId: "tw_def",
+        },
+      ],
       updatedAt: new Date().toISOString(),
     }),
     "monex:save:u1": JSON.stringify({
       revision: 1,
-      monballs: 10,
+      monballs: 7,
       party: [],
       box: [],
       xHandle: "trainer",
@@ -55,7 +65,7 @@ test("deferred claim debits wallet and delivers mons", async () => {
     claimModel: "deferred",
   });
   receipt.completionStatus = "pending";
-  receipt.spendApplied = false;
+  receipt.spendApplied = true;
   receipt.catchLogStatus = "written";
   await saveCatchReceipt(kv, receipt);
 
@@ -161,49 +171,7 @@ test("claim is idempotent when already completed", async () => {
   assert.equal(result.monballs, 5);
 });
 
-test("deferred claim rejects insufficient monballs", async () => {
-  const store = {
-    "monex:catch-user:u1": JSON.stringify({
-      username: "trainer",
-      monballs: 1,
-      pendingMons: [],
-      updatedAt: new Date().toISOString(),
-    }),
-    "monex:save:u1": JSON.stringify({
-      revision: 1,
-      monballs: 1,
-      party: [],
-      box: [],
-      xHandle: "trainer",
-      updatedAt: new Date().toISOString(),
-    }),
-  };
-  const kv = makeKv(store);
-  const receipt = buildCatchReceipt({
-    tweet: { id: "tw_low", authorId: "u1", username: "trainer" },
-    activity: {
-      id: "act4",
-      spend: 5,
-      throws: 1,
-      caughtCount: 1,
-      monballsBefore: 6,
-      monballsLeft: 1,
-      at: "2026-07-15T00:00:00.000Z",
-    },
-    pendingMonsAdded: [{ pendingId: "p_low", name: "Chog", rarity: "Common", skills: [] }],
-    claimModel: "deferred",
-  });
-  receipt.completionStatus = "pending";
-  receipt.spendApplied = false;
-  receipt.catchLogStatus = "written";
-  await saveCatchReceipt(kv, receipt);
-
-  const result = await claimCatchFromLog(kv, session, { tweetId: "tw_low", startingMonballs: 10 });
-  assert.equal(result.ok, false);
-  assert.equal(result.error, "insufficient_monballs");
-});
-
-test("deferred commit leaves spend for profile claim", async () => {
+test("deferred commit spends monballs immediately and stages mons for claim", async () => {
   const store = {
     "monex:activity": JSON.stringify({ entries: [] }),
     "monex:catch-user:u1": JSON.stringify({
@@ -239,18 +207,21 @@ test("deferred commit leaves spend for profile claim", async () => {
   });
   assert.equal(committed.ok, true);
   assert.equal(committed.delivery.deferred, true);
+  assert.equal(committed.delivery.spendApplied, true);
   assert.equal(committed.delivery.added, 0);
 
   const save = JSON.parse(store["monex:save:u1"]);
-  assert.equal(save.monballs, 10);
-  assert.equal(save.party.length + save.box.length, 0);
+  assert.ok(save.monballs < 10, "monballs should be spent at commit time");
 
   const catchUser = JSON.parse(store["monex:catch-user:u1"]);
-  assert.equal(catchUser.pendingMons.length, 0);
+  assert.ok(catchUser.pendingMons.length > 0);
+  assert.equal(catchUser.pendingMons[0].awaitingProfileClaim, true);
+  assert.equal(save.party.length + save.box.length, 0, "mons stay staged until profile claim");
 });
 
-test("deferred claim skips second debit when spendApplied already persisted", async () => {
+test("multiple unclaimed deferred catches each spend monballs at commit", async () => {
   const store = {
+    "monex:activity": JSON.stringify({ entries: [] }),
     "monex:catch-user:u1": JSON.stringify({
       username: "trainer",
       monballs: 10,
@@ -267,40 +238,94 @@ test("deferred claim skips second debit when spendApplied already persisted", as
     }),
   };
   const kv = makeKv(store);
-  const receipt = buildCatchReceipt({
-    tweet: { id: "tw_retry", authorId: "u1", username: "trainer" },
-    activity: {
-      id: "act_retry",
-      spend: 4,
-      throws: 1,
-      caughtCount: 1,
-      monballsBefore: 10,
-      monballsLeft: 6,
-      at: "2026-07-15T00:00:00.000Z",
-    },
-    pendingMonsAdded: [{ pendingId: "p_retry", name: "Chog", rarity: "Common", skills: [] }],
-    claimModel: "deferred",
-  });
-  receipt.completionStatus = "pending";
-  receipt.spendApplied = false;
-  receipt.catchLogStatus = "written";
-  await saveCatchReceipt(kv, receipt);
+  let user = JSON.parse(store["monex:catch-user:u1"]);
 
-  const first = await claimCatchFromLog(kv, session, { tweetId: "tw_retry", startingMonballs: 10 });
-  assert.equal(first.ok, true);
-  assert.equal(first.monballs, 6);
-
-  const stuck = JSON.parse(store[catchReceiptKey("tw_retry")]);
-  stuck.completionStatus = "pending";
-  stuck.spendApplied = true;
-  await saveCatchReceipt(kv, stuck);
-
-  const second = await claimCatchFromLog(kv, session, { tweetId: "tw_retry", startingMonballs: 10 });
-  assert.equal(second.ok, true);
-  assert.equal(second.monballs, 6);
+  for (const tweetId of ["tw_a", "tw_b", "tw_c"]) {
+    const tweet = { id: tweetId, authorId: "u1", username: "trainer", text: "@monexmonad catch 1" };
+    const processed = processMentionTweet(tweet, "monexmonad", user, 10, null, {
+      walletMonballs: JSON.parse(store["monex:save:u1"]).monballs,
+      deliveryModel: "claim",
+    });
+    assert.ok(processed.activity);
+    const committed = await commitCatchTransaction(kv, {
+      tweet,
+      catchUser: user,
+      processResult: processed,
+      startingMonballs: 10,
+    });
+    assert.equal(committed.ok, true);
+    assert.equal(committed.receipt.spendApplied, true);
+    user = JSON.parse(store["monex:catch-user:u1"]);
+  }
 
   const save = JSON.parse(store["monex:save:u1"]);
-  assert.equal(save.monballs, 6);
+  assert.ok(save.monballs < 10, "each catch should deduct even without claiming");
+  assert.equal(JSON.parse(store["monex:activity"]).entries.length, 3);
+  assert.equal(user.pendingMons.length, 3);
+  assert.equal(save.party.length + save.box.length, 0);
+});
+
+test("deferred commit rejects when wallet cannot cover spend", async () => {
+  const store = {
+    "monex:activity": JSON.stringify({ entries: [] }),
+    "monex:catch-user:u1": JSON.stringify({
+      username: "trainer",
+      monballs: 1,
+      pendingMons: [],
+      updatedAt: new Date().toISOString(),
+    }),
+    "monex:save:u1": JSON.stringify({
+      revision: 1,
+      monballs: 1,
+      party: [],
+      box: [],
+      xHandle: "trainer",
+      updatedAt: new Date().toISOString(),
+    }),
+  };
+  const kv = makeKv(store);
+  const user = JSON.parse(store["monex:catch-user:u1"]);
+  const tweet = { id: "tw_low", authorId: "u1", username: "trainer", text: "@monexmonad catch 5" };
+  const processed = processMentionTweet(tweet, "monexmonad", user, 10, null, {
+    walletMonballs: 1,
+    deliveryModel: "claim",
+  });
+  assert.equal(processed.activity, null);
+  assert.equal(processed.skipReason, "insufficient");
+});
+
+test("hydrate skips claim-gated pending mons until profile claim", async () => {
+  const store = {
+    "monex:catch-user:u1": JSON.stringify({
+      username: "trainer",
+      monballs: 7,
+      pendingMons: [
+        {
+          pendingId: "p_gate",
+          name: "Chog",
+          rarity: "Common",
+          skills: [],
+          awaitingProfileClaim: true,
+          catchTweetId: "tw_gate",
+        },
+      ],
+      updatedAt: new Date().toISOString(),
+    }),
+    "monex:save:u1": JSON.stringify({
+      revision: 1,
+      monballs: 7,
+      party: [],
+      box: [],
+      xHandle: "trainer",
+      updatedAt: new Date().toISOString(),
+    }),
+  };
+  const kv = makeKv(store);
+  const result = await hydrateCloudSaveWithCatchState(kv, "u1", "trainer", 10);
+  assert.equal(result.hydrated, true);
+  assert.equal(result.added, 0);
+  const save = JSON.parse(store["monex:save:u1"]);
+  assert.equal(save.party.length + save.box.length, 0);
 });
 
 test("recoverMissingMonsFromActivity skips deferred unclaimed catches", async () => {
@@ -344,6 +369,7 @@ test("recoverMissingMonsFromActivity skips deferred unclaimed catches", async ()
     claimModel: "deferred",
   });
   receipt.completionStatus = "pending";
+  receipt.spendApplied = true;
   await saveCatchReceipt(kv, receipt);
 
   const result = await recoverMissingMonsFromActivity(kv, "u1", "trainer", JSON.parse(store["monex:save:u1"]), 10);

@@ -1930,7 +1930,7 @@ button.green:hover {
 .profile-activity-pending {
     font-size: 9px;
     font-family: "Press Start 2P", monospace;
-    color: #6B21A8;
+    color: #c4b5fd;
 }
 .profile-pending-list {
     font-size: 11px;
@@ -8502,7 +8502,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/staging-banner.js?v=20260710a"></script>
 <script src="js/monex-config.js?v=20260710a"></script>
 <script src="js/escape-html.js?v=20260710a"></script>
-<script src="js/activity-client.js?v=20260715c"></script>
+<script src="js/activity-client.js?v=20260715d"></script>
 <script src="js/catch-claim-client.js?v=20260715a"></script>
 <script src="js/auth-client.js?v=20260714d"></script>
 <script src="js/release-client.js?v=20260714a"></script>
@@ -18043,9 +18043,7 @@ async function claimProfileCatch(tweetId, buttonEl) {
             }
 
             if (!result.ok) {
-                const msg = result.error === "insufficient_monballs"
-                    ? "Not enough Monballs to claim this catch. Check your balance and try again."
-                    : result.error === "catch_not_found"
+                const msg = result.error === "catch_not_found"
                         ? "Catch session not found. Refresh your log and try again."
                         : result.error === "claim_conflict"
                             ? "Save conflict while claiming. Refresh and try again."
@@ -18109,17 +18107,20 @@ async function refreshProfileReleases(opts = {}) {
     try {
         let items = releaseLog || [];
         if (MonExActivity.fetchReleases) {
-            const data = await MonExActivity.fetchReleases(50, 1);
+            const data = await MonExActivity.fetchReleases(150, 1);
             if (Array.isArray(data?.entries)) {
                 items = mergeReleaseLogs(items, data.entries);
                 releaseLog = items;
             }
         }
-        const sig = JSON.stringify(items.map((entry) => entry.id || `${entry.at}:${entry.name}:${entry.level}`));
+        const sig = JSON.stringify(items.map((entry) =>
+            entry.id || `${entry.at}:${entry.name}:${entry.level}:${entry.releaseLogNumber || ""}`
+        ));
         if (!force && sig === profileReleaseSignature) return;
         profileReleaseSignature = sig;
         MonExActivity.renderReleaseFeed(el, items, {
             emptyText: "No released monanimals yet. Releases from Box appear here.",
+            showPersonalLogNumber: true,
         });
         el.dataset.profileReleaseLoaded = "1";
     } catch (e) {
@@ -18128,6 +18129,7 @@ async function refreshProfileReleases(opts = {}) {
                 emptyText: releaseLog?.length
                     ? "Showing local release history."
                     : "Could not reach release log server. Check your connection.",
+                showPersonalLogNumber: true,
             });
             if (releaseLog?.length) el.dataset.profileReleaseLoaded = "1";
         }

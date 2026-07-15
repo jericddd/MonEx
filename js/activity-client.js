@@ -73,11 +73,12 @@ function injectActivityUiStyles() {
     padding-right: 8px;
     border-radius: 6px;
 }
-.profile-catch-log-num {
+.profile-catch-log-num,
+.profile-log-num {
     font-family: "Press Start 2P", monospace;
     font-size: 8px;
     line-height: 1.5;
-    color: #6B21A8;
+    color: #ddd6fe;
     margin: 0 0 6px;
     letter-spacing: 0.02em;
 }
@@ -895,11 +896,25 @@ function formatWildLogMonballsLeftCell(entry) {
     return `<span class="wild-log-balance">${escapeActivityHtml(text)}</span>`;
 }
 
+function formatProfileLogNumberLabel(number, opts = {}) {
+    const num = Number(number);
+    if (!Number.isFinite(num) || num < 1) return "";
+    if (!opts.showPersonalLogNumber) return "";
+    return `<div class="profile-log-num">log #${escapeActivityHtml(String(num))}</div>`;
+}
+
 function formatPersonalLogNumberLabel(entry, opts = {}) {
     const num = Number(entry?.personalLogNumber);
     if (!Number.isFinite(num) || num < 1) return "";
     if (!opts.showPersonalLogNumber && entry.personalLogNumber == null) return "";
-    return `<div class="profile-catch-log-num">log #${escapeActivityHtml(String(num))}</div>`;
+    return formatProfileLogNumberLabel(num, opts);
+}
+
+function formatReleaseLogNumberLabel(entry, opts = {}) {
+    const num = Number(entry?.releaseLogNumber);
+    if (!Number.isFinite(num) || num < 1) return "";
+    if (!opts.showPersonalLogNumber && entry.releaseLogNumber == null) return "";
+    return formatProfileLogNumberLabel(num, opts);
 }
 
 function formatActivityEntryHtml(entry, opts = {}) {
@@ -919,7 +934,7 @@ function formatActivityEntryHtml(entry, opts = {}) {
         if (entry.claimable || entry.completionStatus === "pending") {
             claimRow = `<div class="profile-activity-claim-row">
                 <button type="button" class="profile-claim-btn" data-catch-tweet-id="${tweetId}" onclick="event.stopPropagation(); claimProfileCatch(this.getAttribute('data-catch-tweet-id'), this)">CLAIM</button>
-                <span class="profile-activity-pending">Tap to claim Monballs + mons</span>
+                <span class="profile-activity-pending">Tap to send mons to your Party / Box</span>
             </div>`;
         } else if (entry.claimed || entry.completionStatus === "completed") {
             claimRow = `<div class="profile-activity-claim-row"><span class="profile-activity-claimed">CLAIMED</span></div>`;
@@ -1089,7 +1104,8 @@ function formatReleaseRewardLine(entry) {
     return parts.length ? parts.join(" · ") : "No salvage rewards";
 }
 
-function formatReleaseEntryHtml(entry) {
+function formatReleaseEntryHtml(entry, opts = {}) {
+    const logNumLine = formatReleaseLogNumberLabel(entry, opts);
     const time = escapeActivityHtml(new Date(entry.at).toLocaleString());
     const displayName = getActivityMonDisplayName(entry.name);
     const rarity = escapeActivityHtml(entry.rarity || "Common");
@@ -1097,20 +1113,20 @@ function formatReleaseEntryHtml(entry) {
     const source = entry.source === "party" ? "Party" : "Box";
     const rewards = escapeActivityHtml(formatReleaseRewardLine(entry));
     return `<div class="activity-item">
-        <span class="activity-rare">${rarity}</span> <b>${escapeActivityHtml(displayName)}</b> Lv.${level}
+        ${logNumLine}<span class="activity-rare">${rarity}</span> <b>${escapeActivityHtml(displayName)}</b> Lv.${level}
         <div class="profile-release-rewards">${rewards}</div>
         <div class="activity-meta">${time} · released from ${escapeActivityHtml(source)}</div>
     </div>`;
 }
 
-function renderReleaseFeedElement(el, entries, emptyMsg) {
+function renderReleaseFeedElement(el, entries, emptyMsg, opts = {}) {
     if (!el) return;
     injectActivityUiStyles();
     if (!entries || entries.length === 0) {
         el.innerHTML = `<p class="activity-empty">${emptyMsg}</p>`;
         return;
     }
-    el.innerHTML = entries.map((entry) => formatReleaseEntryHtml(entry)).join("");
+    el.innerHTML = entries.map((entry) => formatReleaseEntryHtml(entry, opts)).join("");
 }
 
 async function fetchPendingMons(username) {
@@ -1319,6 +1335,7 @@ window.MonExActivity = {
             el,
             entries,
             opts.emptyText || "No releases yet.",
+            opts
         );
     },
     renderTable: renderActivityTable,

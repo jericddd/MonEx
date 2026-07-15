@@ -212,12 +212,18 @@ export function syncPendingForCatchUser(
   const safeBoxMax = Math.max(1, Math.min(10_000, boxMax | 0));
   const partySlots = Math.max(0, safePartyMax - Math.max(0, partyCount | 0));
   const boxSlots = Math.max(0, safeBoxMax - Math.max(0, boxCount | 0));
-  const pending = [...catchUser.pendingMons];
+  const gated = [];
+  const deliverable = [];
+  for (const mon of catchUser.pendingMons) {
+    if (mon?.awaitingProfileClaim) gated.push(mon);
+    else deliverable.push(mon);
+  }
+  const pending = [...deliverable];
   const party = pending.splice(0, partySlots);
   const box = pending.splice(0, boxSlots);
-  catchUser.pendingMons = pending;
+  catchUser.pendingMons = [...gated, ...pending];
   catchUser.updatedAt = new Date().toISOString();
-  return { party, box, remaining: pending.length, monballs: catchUser.monballs };
+  return { party, box, remaining: catchUser.pendingMons.length, monballs: catchUser.monballs };
 }
 
 export async function getPendingForCatchUserKv(kv, xUserId, username, startingMonballs = 10) {

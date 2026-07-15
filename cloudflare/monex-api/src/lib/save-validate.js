@@ -586,6 +586,8 @@ function sanitizeReleaseEntry(raw) {
   if (recoveryId) entry.recoveryId = recoveryId;
   const instanceId = trimString(raw.instanceId, 80);
   if (instanceId) entry.instanceId = instanceId;
+  const releaseLogNumber = Math.floor(Number(raw.releaseLogNumber) || 0);
+  if (releaseLogNumber > 0) entry.releaseLogNumber = releaseLogNumber;
   return entry;
 }
 
