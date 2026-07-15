@@ -6402,20 +6402,151 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
 }
 .shop-monex-section {
     width: 100%;
+    position: relative;
+    padding: 16px 14px 18px;
+    border-radius: 14px;
+    border: 2px solid rgba(255, 220, 120, 0.55);
+    background:
+        linear-gradient(160deg, rgba(255, 248, 210, 0.14) 0%, transparent 42%),
+        linear-gradient(180deg, rgba(70, 48, 22, 0.92) 0%, rgba(28, 18, 8, 0.96) 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 240, 180, 0.35),
+        inset 0 -8px 24px rgba(0, 0, 0, 0.35),
+        0 8px 24px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}
+.shop-monex-section::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        118deg,
+        transparent 28%,
+        rgba(255, 255, 255, 0.05) 42%,
+        rgba(255, 230, 160, 0.18) 50%,
+        rgba(255, 255, 255, 0.08) 58%,
+        transparent 72%
+    );
+    pointer-events: none;
+    animation: shop-monex-gloss-sweep 5s ease-in-out infinite;
+}
+.shop-monex-section > * {
+    position: relative;
+    z-index: 1;
 }
 .shop-monex-heading {
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
-    color: #fde68a;
+    color: #fff3bf;
     text-align: center;
     margin: 0 0 8px;
     line-height: 1.5;
+    text-shadow:
+        0 0 12px rgba(255, 210, 80, 0.55),
+        0 1px 0 rgba(0, 0, 0, 0.45);
+    letter-spacing: 0.06em;
 }
 .shop-monex-status {
     margin: 0 0 12px;
+    color: rgba(255, 236, 190, 0.88);
 }
 .shop-monball-pack-grid {
     margin: 0;
+}
+.shop-main--monex {
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(ellipse 90% 60% at 50% -8%, rgba(255, 210, 90, 0.32), transparent 58%),
+        radial-gradient(ellipse 55% 45% at 100% 100%, rgba(255, 170, 50, 0.14), transparent 52%),
+        linear-gradient(180deg, #120a04 0%, #241408 22%, #3d2814 48%, #2a1a0c 72%, #120a04 100%);
+}
+.shop-main--monex::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        125deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.04) 38%,
+        rgba(255, 235, 180, 0.16) 49%,
+        rgba(255, 255, 255, 0.1) 54%,
+        transparent 68%
+    );
+    pointer-events: none;
+    animation: shop-monex-gloss-sweep 6s ease-in-out infinite;
+}
+.shop-main--monex::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(255, 220, 120, 0.025) 3px,
+        rgba(255, 220, 120, 0.025) 4px
+    );
+    pointer-events: none;
+    opacity: 0.55;
+}
+.shop-grid-wrap--monex-premium {
+    position: relative;
+    z-index: 1;
+    background: transparent;
+}
+.shop-cat-btn--monex {
+    border-color: #e8b84a;
+    background: linear-gradient(180deg, #6b4a18 0%, #4a3210 100%);
+    color: #ffe8a8;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 230, 150, 0.2),
+        0 0 8px rgba(255, 190, 60, 0.2),
+        0 3px 0 #2a1808;
+}
+.shop-cat-btn--monex:hover,
+.shop-cat-btn--monex:focus-visible {
+    border-color: #ffe08a;
+    background: linear-gradient(180deg, #8a6018 0%, #5c4010 100%);
+}
+.shop-cat-btn--monex.active {
+    background: linear-gradient(180deg, #ffe566 0%, #f5b800 38%, #c99000 72%, #8a6400 100%);
+    border-color: #fff8dc;
+    color: #2a1500;
+    box-shadow:
+        inset 0 2px 6px rgba(255, 255, 255, 0.55),
+        inset 0 -2px 4px rgba(120, 80, 0, 0.4),
+        0 0 14px rgba(255, 200, 50, 0.5),
+        0 3px 0 #5c4010;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.shop-main--monex .monball-pack-card {
+    border-color: rgba(255, 210, 100, 0.65);
+    background:
+        linear-gradient(160deg, rgba(255, 240, 180, 0.1) 0%, transparent 38%),
+        linear-gradient(180deg, #6b4a28 0%, #3a2612 55%, #281808 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 230, 160, 0.28),
+        inset 0 -4px 12px rgba(0, 0, 0, 0.25),
+        0 4px 0 #1a0f06;
+}
+.shop-main--monex .monball-pack-card.is-selected {
+    border-color: #fff1a8;
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 240, 180, 0.5),
+        0 0 0 2px rgba(255, 200, 60, 0.45),
+        0 0 18px rgba(255, 190, 60, 0.35),
+        0 4px 0 #1a0f06;
+}
+@keyframes shop-monex-gloss-sweep {
+    0%, 100% {
+        transform: translateX(-10%) skewX(-14deg);
+        opacity: 0.55;
+    }
+    50% {
+        transform: translateX(14%) skewX(-14deg);
+        opacity: 1;
+    }
 }
 @media (max-width: 520px) {
     .monball-pack-grid {
@@ -16673,14 +16804,24 @@ function setShopCategory(categoryId) {
     renderShop();
 }
 
+function updateShopMonexPremiumChrome() {
+    const main = document.querySelector("#modal-shop .shop-main");
+    const wrap = document.querySelector("#modal-shop .shop-grid-wrap");
+    const on = shopActiveCategory === "monex";
+    if (main) main.classList.toggle("shop-main--monex", on);
+    if (wrap) wrap.classList.toggle("shop-grid-wrap--monex-premium", on);
+}
+
 function renderShopCategories() {
     const nav = document.getElementById("shop-categories");
     if (!nav) return;
-    nav.innerHTML = SHOP_CATEGORIES.map(cat => `
+    nav.innerHTML = SHOP_CATEGORIES.map(cat => {
+        const monexClass = cat.id === "monex" ? " shop-cat-btn--monex" : "";
+        return `
         <button type="button"
-            class="hub-nav-btn shop-cat-btn${shopActiveCategory === cat.id ? " active" : ""}"
-            onclick="setShopCategory('${cat.id}')">${cat.label}</button>
-    `).join("");
+            class="hub-nav-btn shop-cat-btn${monexClass}${shopActiveCategory === cat.id ? " active" : ""}"
+            onclick="setShopCategory('${cat.id}')">${cat.label}</button>`;
+    }).join("");
 }
 
 async function renderShopMonexPackages(grid) {
@@ -16689,7 +16830,7 @@ async function renderShopMonexPackages(grid) {
 
     grid.innerHTML = `
         <div class="shop-monex-section" style="grid-column:1/-1;">
-            <p class="shop-monex-heading">MONBALL PACKAGES</p>
+            <p class="shop-monex-heading">✦ MONBALL PACKAGES ✦</p>
             <p class="monball-pack-status shop-monex-status">Loading packages…</p>
             <div class="monball-pack-grid shop-monball-pack-grid" aria-live="polite"></div>
         </div>`;
@@ -16737,6 +16878,7 @@ function renderShop() {
     if (!grid) return;
 
     renderShopCategories();
+    updateShopMonexPremiumChrome();
 
     if (shopActiveCategory === "monex") {
         void renderShopMonexPackages(grid);
