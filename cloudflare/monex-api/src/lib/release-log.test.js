@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { validateAndSanitizeSave, sanitizeReleaseLog } from "./save-validate.js";
 import { mergeReleaseLog, mergeReleasedRecoveryIds } from "./save-economy-guard.js";
-import { listReleaseLog } from "./release-log.js";
+import { listReleaseLog, nextReleaseLogNumber } from "./release-log.js";
 
 test("sanitizeReleaseLog keeps valid release entries", () => {
   const rows = sanitizeReleaseLog([
@@ -119,5 +119,32 @@ test("listReleaseLog paginates newest first", () => {
   const page1 = listReleaseLog(save, { limit: 2, page: 1 });
   assert.equal(page1.total, 3);
   assert.equal(page1.entries[0].id, "rel_3");
+  assert.equal(page1.entries[0].releaseLogNumber, 3);
+  assert.equal(page1.entries[1].releaseLogNumber, 2);
   assert.equal(page1.entries.length, 2);
+});
+
+test("nextReleaseLogNumber increments from stored seq and rows", () => {
+  const save = validateAndSanitizeSave({
+    releaseLogSeq: 2,
+    releaseLog: [
+      {
+        id: "rel_1",
+        at: "2026-07-10T00:00:00.000Z",
+        name: "Chog",
+        rarity: "Common",
+        level: 1,
+        releaseLogNumber: 1,
+      },
+      {
+        id: "rel_2",
+        at: "2026-07-12T00:00:00.000Z",
+        name: "Anago",
+        rarity: "Common",
+        level: 2,
+        releaseLogNumber: 2,
+      },
+    ],
+  });
+  assert.equal(nextReleaseLogNumber(save), 3);
 });

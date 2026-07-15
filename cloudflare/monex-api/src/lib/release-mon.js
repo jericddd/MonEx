@@ -1,7 +1,8 @@
 import { loadCloudSave, writeCloudSave, buildSavePayload, preserveServerAuthoritativeFields } from "./save.js";
 import { guardSavePayload } from "./save-economy-guard.js";
 import { reconcileMonballsForCloudSave } from "./save-reconcile.js";
-import { sanitizeGear } from "./save-validate.js";
+import { sanitizeReleaseLog } from "./save-validate.js";
+import { nextReleaseLogNumber } from "./release-log.js";
 
 const MAX_RELEASE_RETRIES = 3;
 const GEAR_SLOTS = ["weapon", "armor", "helmet", "boots"];
@@ -51,8 +52,9 @@ export function collectReleaseRecoveryKeys(mon) {
   return [...keys];
 }
 
-function buildReleaseLogEntry(mon, salvage) {
+function buildReleaseLogEntry(mon, salvage, save) {
   const instanceId = resolveMonInstanceId(mon) || `inst_${Date.now()}`;
+  const releaseLogNumber = nextReleaseLogNumber(save);
   const entry = {
     id: `rel_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     at: new Date().toISOString(),
@@ -64,6 +66,7 @@ function buildReleaseLogEntry(mon, salvage) {
     shards: Math.max(0, Math.floor(salvage?.shards || 0)),
     source: "box",
     instanceId,
+    releaseLogNumber,
   };
   if (mon.wildPendingId) entry.recoveryId = mon.wildPendingId;
   return entry;
@@ -101,7 +104,7 @@ export function applyReleaseToSave(save, mon) {
   box.splice(loc.index, 1);
 
   const releaseLog = Array.isArray(save.releaseLog) ? [...save.releaseLog] : [];
-  const entry = buildReleaseLogEntry(mon, salvage);
+  const entry = buildReleaseLogEntry(mon, salvage, save);
   releaseLog.unshift(entry);
 
   const blocked = collectReleaseRecoveryKeys(mon);
@@ -126,6 +129,7 @@ export function applyReleaseToSave(save, mon) {
       monShards: (save.monShards || 0) + salvage.shards,
       gearInventory: returnGearToInventory(save, mon),
       releaseLog: releaseLog.slice(0, 200),
+      releaseLogSeq: entry.releaseLogNumber,
       releasedRecoveryIds: releasedRecoveryIds.slice(0, 500),
       updatedAt: new Date().toISOString(),
     },
