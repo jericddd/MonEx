@@ -27,7 +27,7 @@ test("listMonballPackages returns default 10/50/100 packs", () => {
   );
   assert.deepEqual(
     packages.map((p) => p.monexPrice),
-    [5000, 25000, 50000]
+    [10_000, 50_000, 100_000]
   );
   assert.equal(packages[0].id, "mb_10");
   assert.equal(packages[2].featured, true);

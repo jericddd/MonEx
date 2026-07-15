@@ -16977,7 +16977,7 @@ function showMonballComingSoonNotice(pkg) {
         const amount = Math.floor(Number(pkg.amount) || 0);
         const price = Number(pkg.monexPrice);
         showHubNotice(
-            `${amount} MonBalls — <strong>${price} $MONEX</strong><br>$MONEX payment integration coming soon.`,
+            `${amount.toLocaleString()} MonBalls — <strong>${price.toLocaleString()} $MONEX</strong><br>$MONEX payment integration coming soon.`,
             "COMING SOON",
             { html: true }
         );
@@ -17008,7 +17008,7 @@ function formatGoldAmount(amount) {
 function formatMonexPrice(price) {
     const n = Number(price);
     if (!Number.isFinite(n)) return "— $MONEX";
-    return `${n} $MONEX`;
+    return `${n.toLocaleString()} $MONEX`;
 }
 
 async function fetchMonballPackages({ force = false } = {}) {
@@ -17247,13 +17247,16 @@ function renderMonballPackageCards(packages, selectedId, currency) {
         const selected = pkg.id === selectedId ? " is-selected" : "";
         const featured = pkg.featured ? " monex-pack-card--featured" : "";
         const amount = Math.floor(Number(pkg.amount) || 0);
-        const price = formatMonexPrice(pkg.monexPrice).replace("$MONEX", `$${cur}`);
+        const priceNum = Number(pkg.monexPrice);
+        const price = Number.isFinite(priceNum)
+            ? `${priceNum.toLocaleString()} $${cur}`
+            : `— $${cur}`;
         const badge = pkg.featured ? `<span class="monex-pack-card__badge">MEGA PACK</span>` : "";
         return `
             <div class="monball-pack-card${featured}${selected}" data-package-id="${pkg.id}" role="button" tabindex="0" aria-pressed="${pkg.id === selectedId ? "true" : "false"}">
                 ${badge}
                 <img class="monball-pack-icon" src="${monballIcon}" alt="">
-                <div class="monball-pack-amount">${amount} MonBalls</div>
+                <div class="monball-pack-amount">${amount.toLocaleString()} MonBalls</div>
                 <div class="monball-pack-price">Price: <span>${price}</span></div>
                 <button type="button" class="hub-popup-btn hub-popup-btn-primary monball-pack-buy" data-buy-package="${pkg.id}">BUY</button>
             </div>`;
@@ -17595,7 +17598,7 @@ async function renderShopMonexPackages(grid) {
         if (monballStatusEl) monballStatusEl.textContent = "Could not load MonBall packages. Try again shortly.";
         if (monballGrid) monballGrid.innerHTML = "";
     } else {
-        if (monballStatusEl) monballStatusEl.textContent = "Fixed packages · priced in $MONEX";
+        if (monballStatusEl) monballStatusEl.textContent = "1,000 $MONEX per MonBall · fixed packages";
         let monballSelectedId = monballPackages[0].id;
         function setMonballSelected(id) {
             monballSelectedId = id;
