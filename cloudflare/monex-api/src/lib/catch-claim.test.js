@@ -421,3 +421,122 @@ test("recoverMissingMonsFromActivity skips deferred unclaimed catches", async ()
   assert.equal(result.recovered, false);
   assert.equal(result.added.length, 0);
 });
+
+test("claim succeeds when receipt xUserId differs but username matches", async () => {
+  const store = {
+    "monex:catch-user:old_uid": JSON.stringify({
+      username: "trainer",
+      monballs: 7,
+      pendingMons: [
+        {
+          pendingId: "p_migrate",
+          name: "Chog",
+          rarity: "Common",
+          skills: [],
+          awaitingProfileClaim: true,
+          catchTweetId: "tw_migrate",
+        },
+      ],
+      updatedAt: new Date().toISOString(),
+    }),
+    "monex:catch-user:new_uid": JSON.stringify({
+      username: "trainer",
+      monballs: 7,
+      pendingMons: [],
+      updatedAt: new Date().toISOString(),
+    }),
+    "monex:catch-username:trainer": "new_uid",
+    "monex:save:new_uid": JSON.stringify({
+      revision: 1,
+      monballs: 7,
+      party: [],
+      box: [],
+      xHandle: "trainer",
+      updatedAt: new Date().toISOString(),
+    }),
+  };
+  const kv = makeKv(store);
+  const receipt = buildCatchReceipt({
+    tweet: { id: "tw_migrate", authorId: "old_uid", username: "trainer" },
+    activity: {
+      id: "act_migrate",
+      spend: 1,
+      throws: 1,
+      caughtCount: 1,
+      monballsBefore: 8,
+      monballsLeft: 7,
+      at: "2026-07-15T00:00:00.000Z",
+    },
+    pendingMonsAdded: [{ pendingId: "p_migrate", name: "Chog", rarity: "Common", skills: [] }],
+    claimModel: "deferred",
+  });
+  receipt.completionStatus = "pending";
+  receipt.spendApplied = true;
+  receipt.catchLogStatus = "written";
+  await saveCatchReceipt(kv, receipt);
+
+  const result = await claimCatchFromLog(kv, { xUserId: "new_uid", username: "trainer" }, {
+    tweetId: "tw_migrate",
+    startingMonballs: 10,
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.added, 1);
+  const save = JSON.parse(store["monex:save:new_uid"]);
+  assert.equal(save.party.length + save.box.length, 1);
+});
+
+test("claim rejects when party and box are full", async () => {
+  const store = {
+    "monex:catch-user:u1": JSON.stringify({
+      username: "trainer",
+      monballs: 7,
+      pendingMons: [
+        {
+          pendingId: "p_full",
+          name: "Chog",
+          rarity: "Common",
+          skills: [],
+          awaitingProfileClaim: true,
+          catchTweetId: "tw_full",
+        },
+      ],
+      updatedAt: new Date().toISOString(),
+    }),
+    "monex:save:u1": JSON.stringify({
+      revision: 1,
+      monballs: 7,
+      party: [{ name: "Mouch", rarity: "Common", level: 1, max_hp: 100, current_hp: 100, equipment: {} }],
+      box: [{ name: "Salmonad", rarity: "Common", level: 1, max_hp: 100, current_hp: 100, equipment: {} }],
+      xHandle: "trainer",
+      updatedAt: new Date().toISOString(),
+    }),
+  };
+  const kv = makeKv(store);
+  const receipt = buildCatchReceipt({
+    tweet: { id: "tw_full", authorId: "u1", username: "trainer" },
+    activity: {
+      id: "act_full",
+      spend: 1,
+      throws: 1,
+      caughtCount: 1,
+      monballsBefore: 8,
+      monballsLeft: 7,
+      at: "2026-07-15T00:00:00.000Z",
+    },
+    pendingMonsAdded: [{ pendingId: "p_full", name: "Chog", rarity: "Common", skills: [] }],
+    claimModel: "deferred",
+  });
+  receipt.completionStatus = "pending";
+  receipt.spendApplied = true;
+  receipt.catchLogStatus = "written";
+  await saveCatchReceipt(kv, receipt);
+
+  const result = await claimCatchFromLog(kv, session, {
+    tweetId: "tw_full",
+    partyMax: 1,
+    boxMax: 1,
+    startingMonballs: 10,
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.error, "party_box_full");
+});

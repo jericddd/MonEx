@@ -972,11 +972,13 @@ async function handleRequest(request, env) {
           ? 200
           : result.error === "insufficient_monballs"
             ? 400
-            : result.error === "catch_not_found" || result.error === "forbidden"
-              ? 404
-              : result.error === "claim_conflict"
-                ? 409
-                : 400;
+            : result.error === "party_box_full"
+              ? 400
+              : result.error === "catch_not_found" || result.error === "forbidden"
+                ? 404
+                : result.error === "claim_conflict"
+                  ? 409
+                  : 400;
         return json(result, status, request, env);
       } catch (err) {
         return json({ ok: false, error: err.message || "catch claim failed" }, 500, request, env);
