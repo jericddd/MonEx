@@ -8,15 +8,15 @@ import {
 
 export const MONANIMAL_NAMES = new Set([
   "Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal",
-  "Monavara", "Moncock", "Pampam", "Montiger", "Mosferatu", "Monhorse", "Shramp",
+  "Monavara", "Moncock", "Pampam", "Montiger", "Monigga", "Monhorse", "Shramp",
   "Spidermon", "Moyaki",
 ]);
 
 export const REMOVED_MONANIMAL_NAMES = new Set(["Mopo"]);
 
-const MONANIMAL_LEGACY_RENAMES = { Moxy: "Monhorse", Mondigrade: "Pampam" };
+const MONANIMAL_LEGACY_RENAMES = { Moxy: "Monhorse", Mondigrade: "Pampam", Mosferatu: "Monigga" };
 
-function canonicalMonanimalName(name) {
+export function canonicalMonanimalName(name) {
   return MONANIMAL_LEGACY_RENAMES[name] || name;
 }
 

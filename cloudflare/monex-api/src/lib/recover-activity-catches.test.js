@@ -19,7 +19,7 @@ const sampleActivities = [
     monballsLeft: 9,
     status: "success",
     at: "2026-07-10T12:54:39.000Z",
-    mons: [{ name: "Mosferatu", rarity: "Common", skills: "★Blood Moon" }],
+    mons: [{ name: "Monigga", rarity: "Common", skills: "★Blood Moon" }],
   },
   {
     id: "act_2",
@@ -107,7 +107,7 @@ describe("extractRecoverableMons", () => {
   it("builds stable recovery ids per activity mon", () => {
     const mons = extractRecoverableMons(sampleActivities);
     assert.equal(mons.length, 2);
-    assert.equal(mons[0].name, "Mosferatu");
+    assert.equal(mons[0].name, "Monigga");
     assert.equal(mons[1].name, "Shramp");
     assert.match(mons[0].recoveryId, /^recovery_act_1_0$/);
   });
@@ -131,7 +131,7 @@ describe("recoverActivityCatchesForUser", () => {
     assert.equal(result.save.party.length, 2);
     assert.equal(result.save.monballs, 8);
     assert.ok(result.save.party.some((m) => m.name === "Shramp"));
-    assert.ok(result.save.party.some((m) => m.name === "Mosferatu"));
+    assert.ok(result.save.party.some((m) => m.name === "Monigga"));
   });
 
   it("skips mons already recovered", () => {
@@ -147,7 +147,7 @@ describe("recoverActivityCatchesForUser", () => {
     });
 
     assert.equal(result.added.length, 1);
-    assert.equal(result.added[0].name, "Mosferatu");
+    assert.equal(result.added[0].name, "Monigga");
   });
 
   it("keeps duplicate species from the same catch session", () => {
@@ -221,7 +221,7 @@ describe("recoverActivityCatchesForUser", () => {
     });
 
     assert.equal(result.added.length, 1);
-    assert.equal(result.added[0].name, "Mosferatu");
+    assert.equal(result.added[0].name, "Monigga");
     assert.equal(result.skipped.some((row) => row.reason === "released_by_user"), true);
   });
 });

@@ -1,6 +1,6 @@
 /** Server mirror of js/monanimal-sprites.js — keep in sync when adding species or GIF assets. */
 
-const MON_DISPLAY_NAMES = { Moxy: "Monhorse", Mondigrade: "Pampam" };
+const MON_DISPLAY_NAMES = { Moxy: "Monhorse", Mondigrade: "Pampam", Mosferatu: "Monigga" };
 
 const RARITY_ORDER = ["Common", "Uncommon", "Rare", "Legendary", "Mythic"];
 
@@ -19,7 +19,7 @@ const MANIFEST = {
   mokadal: { cardGif: "idle", idleGif: "128x128/mokadal-idle.gif", gifConfirmed: false },
   monavara: { cardGif: "idle", idleGif: "128x128/monavara-idle.gif", gifConfirmed: false },
   montiger: { cardGif: "idle", idleGif: "128x128/montiger-idle.gif", gifConfirmed: false },
-  mosferatu: { cardGif: "idle", idleGif: "128x128/mosferatu-idle.gif", gifConfirmed: false },
+  monigga: { cardGif: "idle", idleGif: "128x128/monigga-idle.gif", gifConfirmed: true, sceneIdle: true },
   shramp: { cardGif: "idle", idleGif: "128x128/shramp-idle.gif", gifConfirmed: false },
   spidermon: { cardGif: "idle", idleGif: "128x128/spidermon-idle.gif", gifConfirmed: false },
 };

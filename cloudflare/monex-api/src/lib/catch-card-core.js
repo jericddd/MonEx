@@ -17,7 +17,7 @@ const RARITY_STYLES = {
   Mythic: { border: "#9f1239", badge: "#9f1239", badgeText: "#ffffff" },
 };
 
-const MON_DISPLAY_NAMES = { Moxy: "Monhorse", Mondigrade: "Pampam" };
+const MON_DISPLAY_NAMES = { Moxy: "Monhorse", Mondigrade: "Pampam", Mosferatu: "Monigga" };
 
 function escapeXml(value) {
   return String(value ?? "")

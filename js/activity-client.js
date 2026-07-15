@@ -568,7 +568,7 @@ const ACTIVITY_SPECIES_HOUSE = {
     Monhorse: "moyaki",
     Moxy: "moyaki",
     Larvanad: "moyaki",
-    Mosferatu: "moyaki",
+    Monigga: "moyaki",
 };
 
 const ACTIVITY_HOUSE_ICONS = {
@@ -577,7 +577,7 @@ const ACTIVITY_HOUSE_ICONS = {
     moyaki: "game_icons/house/moyakiicon.png",
 };
 
-const ACTIVITY_MON_DISPLAY_NAMES = { Moxy: "Monhorse", Mondigrade: "Pampam" };
+const ACTIVITY_MON_DISPLAY_NAMES = { Moxy: "Monhorse", Mondigrade: "Pampam", Mosferatu: "Monigga" };
 
 function getActivityMonDisplayName(name) {
     return ACTIVITY_MON_DISPLAY_NAMES[name] || name;
@@ -697,7 +697,7 @@ const ACTIVITY_SKILL_ICON_MAP = {
     "Tidal Crash": "salmonad.png",
     "Flame Geyser": "moyaki.png",
     "Web Cataclysm": "spidermon.png",
-    "Blood Moon": "mosferatu.png",
+    "Blood Moon": "monigga.png",
 };
 const ACTIVITY_SKILL_NAME_KEYS = Object.keys(ACTIVITY_SKILL_ICON_MAP);
 

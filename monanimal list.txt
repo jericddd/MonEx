@@ -12,7 +12,7 @@ mokadal
 monavara
 pampam
 montiger
-mosferatu
+monigga
 monhorse
 shramp
 spidermon
@@ -37,7 +37,7 @@ Chog — generic .gif
 Anago, Mouch, Moyaki, Moncock, Salmonad, Larvanad, Monhorse, Pampam — idle GIF (+ sceneIdle where noted)
 
 === PNG-only until art deployed (gifConfirmed: false) ===
-Lyraffe, Mokadal, Monavara, Montiger, Mosferatu, Shramp, Spidermon
+Lyraffe, Mokadal, Monavara, Montiger, Monigga, Shramp, Spidermon
 When idle GIF art ships, set gifConfirmed: true in both manifest files.
 
 === Battle / main scene ===

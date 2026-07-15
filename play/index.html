@@ -8429,9 +8429,9 @@ function bindHoverFloatTips(root) {
     });
 }
 
-const MONANIMAL_NAMES = ["Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal", "Monavara", "Moncock", "Pampam", "Montiger", "Mosferatu", "Monhorse", "Shramp", "Spidermon", "Moyaki"];
+const MONANIMAL_NAMES = ["Molandak", "Chog", "Mouch", "Salmonad", "Anago", "Larvanad", "Lyraffe", "Mokadal", "Monavara", "Moncock", "Pampam", "Montiger", "Monigga", "Monhorse", "Shramp", "Spidermon", "Moyaki"];
 const REMOVED_MONANIMAL_NAMES = new Set(["Mopo"]);
-const MONANIMAL_RENAME_MAP = { Moxy: "Monhorse", Mondigrade: "Pampam" };
+const MONANIMAL_RENAME_MAP = { Moxy: "Monhorse", Mondigrade: "Pampam", Mosferatu: "Monigga" };
 
 function getSpeciesSpriteKey(name) {
     const display = MONANIMAL_RENAME_MAP[name] || name;
@@ -8455,7 +8455,7 @@ const SPECIES_HOUSE = {
     Moncock: "moyaki",
     Monhorse: "moyaki",
     Larvanad: "moyaki",
-    Mosferatu: "moyaki",
+    Monigga: "moyaki",
 };
 
 function getSpeciesHouseId(name) {
@@ -8475,7 +8475,7 @@ const SPRITE_MAP = {
     "Salmonad": "128x128/salmonad.png", "Anago": "128x128/anago.png", "Larvanad": "128x128/larvanad.png",
     "Lyraffe": "128x128/lyraffe.png", "Mokadal": "128x128/mokadal.png", "Monavara": "128x128/monavara.png",
     "Moncock": "128x128/moncock.png", "Pampam": "128x128/pampam.png", "Montiger": "128x128/montiger.png",
-    "Mosferatu": "128x128/mosferatu.png", "Monhorse": "128x128/monhorse.png",
+    "Monigga": "128x128/monigga.png", "Monhorse": "128x128/monhorse.png",
     "Shramp": "128x128/shramp.png", "Spidermon": "128x128/spidermon.png", "Moyaki": "128x128/moyaki.png",
     "Johnw": "128x128/johnw.png"
 };
@@ -8695,7 +8695,7 @@ const SPECIES_ULTIMATE = {
         enemyDebuff: { id: "webbed", turns: 2, statMods: { hitPct: -0.10 } },
         selfBuff: { id: "webdodge", turns: 2, statMods: { dodgePct: 0.10 } },
     },
-    "Mosferatu": {
+    "Monigga": {
         name: "Blood Moon", element: "dark", power: 2.2,
         desc: "Life drain under a blood moon. Heals 40% of damage dealt.",
         lifesteal: 0.4,
@@ -8717,7 +8717,7 @@ const SPECIES_STAT_PROFILE = {
     Moncock:    { specialty: "crit",   bias: { spd: 0.60, crit: 0.88, dodge: 0.40, block: 0.30, hit: 0.65, pierce: 0.45 } },
     Pampam: { specialty: "block",  bias: { spd: 0.20, crit: 0.40, dodge: 0.25, block: 0.96, hit: 0.45, pierce: 0.35 } },
     Montiger:   { specialty: "crit",   bias: { spd: 0.65, crit: 0.95, dodge: 0.35, block: 0.25, hit: 0.70, pierce: 0.55 } },
-    Mosferatu:  { specialty: "dodge",  bias: { spd: 0.50, crit: 0.55, dodge: 0.92, block: 0.35, hit: 0.45, pierce: 0.40 } },
+    Monigga:  { specialty: "dodge",  bias: { spd: 0.50, crit: 0.55, dodge: 0.92, block: 0.35, hit: 0.45, pierce: 0.40 } },
     Monhorse:       { specialty: "spd",    bias: { spd: 0.90, crit: 0.55, dodge: 0.50, block: 0.25, hit: 0.60, pierce: 0.50 } },
     Shramp:     { specialty: "block",  bias: { spd: 0.35, crit: 0.35, dodge: 0.45, block: 0.88, hit: 0.50, pierce: 0.30 } },
     Spidermon:  { specialty: "dodge",  bias: { spd: 0.55, crit: 0.45, dodge: 0.94, block: 0.30, hit: 0.50, pierce: 0.45 } },
@@ -8808,7 +8808,7 @@ const SKILL_ICON_MAP = {
     "Tidal Crash": "salmonad.png",
     "Flame Geyser": "moyaki.png",
     "Web Cataclysm": "spidermon.png",
-    "Blood Moon": "mosferatu.png",
+    "Blood Moon": "monigga.png",
 };
 
 const SKILL_ELEMENT_ICON_FALLBACK = {
@@ -9198,7 +9198,7 @@ const SCENE_IDLE_SPRITE_SCALE = {
     Moyaki: 0.94,
     Montiger: 0.86,
     Pampam: 0.86,
-    Mosferatu: 0.88,
+    Monigga: 0.88,
     Moncock: 0.90,
     Spidermon: 0.90,
     Salmonad: 0.92,
@@ -12106,7 +12106,7 @@ const SPRITE_NATURAL_FACING = {
     Moncock: "left",
     Pampam: "left",
     Montiger: "right",
-    Mosferatu: "right",
+    Monigga: "right",
     Monhorse: "right",
     Shramp: "left",
     Spidermon: "left",
