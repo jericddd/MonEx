@@ -1051,7 +1051,9 @@ button.green:hover {
 .hub-main .skills-grid--card {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    grid-template-rows: repeat(2, auto);
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    justify-items: stretch;
 }
 .hub-main .skill-square {
     width: 100%;
@@ -1061,12 +1063,21 @@ button.green:hover {
     border: 2px solid #8b4513;
     background: linear-gradient(145deg, #a85a2a, #6b3518);
     box-shadow: 1px 1px 0 #3d2010;
+    box-sizing: border-box;
 }
-.hub-main .skill-square.skill-ult {
+.hub-main .skill-square:not(.skill-ult) {
     display: flex;
-    align-items: stretch;
-    justify-content: stretch;
+    align-items: center;
+    justify-content: center;
+}
+.hub-main .skills-grid--card .skill-square.skill-ult {
+    display: block;
     position: relative;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    min-width: 0;
+    min-height: 0;
     line-height: 0;
     font-size: 0;
     overflow: hidden;
@@ -1077,24 +1088,38 @@ button.green:hover {
     color: #7c2d12;
     box-shadow: 0 0 6px rgba(245, 158, 11, 0.55), 1px 1px 0 #92400e;
 }
-.hub-main .skill-square.skill-ult:has(.skill-icon-img-ult) {
+.hub-main .skills-grid--card .skill-square.skill-ult:has(.skill-icon-img-ult),
+.hub-main .skills-grid--card .skill-square.skill-ult:has(.skill-ult-icon-shell) {
     background: #120a1f;
 }
-.hub-main .skill-square.skill-ult > .skill-icon-img-ult {
-    position: relative;
-    inset: auto;
-    flex: 1 1 auto;
-    align-self: stretch;
+.hub-main .skills-grid--card .skill-square.skill-ult > .skill-ult-icon-shell,
+.hub-main .skills-grid--card .skill-square.skill-ult > .skill-icon-img-ult {
+    position: absolute;
+    inset: 0;
     z-index: 1;
     display: block;
     width: 100%;
     height: 100%;
-    min-width: 0;
-    min-height: 0;
     max-width: none;
     max-height: none;
     margin: 0;
     padding: 0;
+    overflow: hidden;
+    line-height: 0;
+    pointer-events: none;
+}
+.hub-main .skills-grid--card .skill-square.skill-ult > .skill-ult-icon-shell > .skill-icon-img-ult,
+.hub-main .skills-grid--card .skill-square.skill-ult > .skill-icon-img-ult {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
     object-fit: fill;
     object-position: center;
     image-rendering: pixelated;
@@ -3236,6 +3261,15 @@ body.afk-layout .currency-tip-float {
     box-shadow: 0 0 8px rgba(245, 158, 11, 0.75), 2px 2px 0px #92400e;
 }
 /* Ultimate skill icons: full-box stretch (battle meter, callouts, party switch). */
+.skill-square.skill-ult > .skill-ult-icon-shell {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: block;
+    overflow: hidden;
+    line-height: 0;
+    pointer-events: none;
+}
 img.skill-icon-img-ult {
     position: absolute;
     inset: 0;
@@ -3264,7 +3298,9 @@ img.skill-icon-img-ult {
     box-sizing: border-box;
 }
 .skill-square.skill-ult:has(.skill-icon-img-ult),
+.skill-square.skill-ult:has(.skill-ult-icon-shell),
 .hub-main .skill-square.skill-ult:has(.skill-icon-img-ult),
+.hub-main .skill-square.skill-ult:has(.skill-ult-icon-shell),
 .battle-meter-skills-grid .skill-square.skill-ult:has(.skill-icon-img-ult),
 .skill-callout-icon-wrap.skill-ult:has(.skill-icon-img-ult),
 .party-switch-skill-icon.skill-ult:has(.skill-icon-img-ult) {
@@ -12424,7 +12460,7 @@ function getSkillIcon(skill) {
     const fb = getSkillIconFallbackText(skill);
     if (!path) return `<span class="skill-icon-fallback">${fb}</span>`;
     if (skill.type === "ultimate") {
-        return `<img class="skill-icon-img-ult" src="${path}" alt="" onerror="this.outerHTML='<span class=\\'skill-icon-fallback\\'>${fb}</span>'">`;
+        return `<span class="skill-ult-icon-shell"><img class="skill-icon-img-ult" src="${path}" alt="" onerror="this.outerHTML='<span class=\\'skill-icon-fallback\\'>${fb}</span>'"></span>`;
     }
     return `<span class="skill-icon-fallback">${fb}</span><img class="skill-icon-img" src="${path}" alt="" onerror="this.remove()">`;
 }
