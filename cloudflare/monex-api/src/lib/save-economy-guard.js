@@ -317,6 +317,54 @@ export function clampInventoryShrink(existing, incoming, maxRemoved = MAX_INVENT
   };
 }
 
+function monIdentityKey(mon) {
+  if (typeof mon?.instanceId === "string" && mon.instanceId.trim()) return mon.instanceId.trim();
+  if (typeof mon?.wildPendingId === "string" && mon.wildPendingId.trim()) return mon.wildPendingId.trim();
+  return null;
+}
+
+/** Per-mon progress floor from existing inventory — blocks stale tabs from regressing levels. */
+export function buildMonProgressIndex(party, box) {
+  const index = new Map();
+  for (const mon of [...(party || []), ...(box || [])]) {
+    const key = monIdentityKey(mon);
+    if (!key) continue;
+    const prev = index.get(key) || { level: 1, ascensionStars: 0 };
+    index.set(key, {
+      level: Math.max(prev.level, Math.max(1, Math.floor(Number(mon.level) || 1))),
+      ascensionStars: Math.max(
+        prev.ascensionStars,
+        Math.max(0, Math.floor(Number(mon.ascensionStars) || 0))
+      ),
+    });
+  }
+  return index;
+}
+
+function applyMonProgressFloor(mon, progressIndex) {
+  const key = monIdentityKey(mon);
+  if (!key || !progressIndex.has(key)) return mon;
+  const floor = progressIndex.get(key);
+  const level = Math.max(1, Math.floor(Number(mon.level) || 1));
+  const ascensionStars = Math.max(0, Math.floor(Number(mon.ascensionStars) || 0));
+  if (level >= floor.level && ascensionStars >= floor.ascensionStars) return mon;
+  return {
+    ...mon,
+    level: Math.max(level, floor.level),
+    ascensionStars: Math.max(ascensionStars, floor.ascensionStars),
+  };
+}
+
+export function preserveMonProgress(existing, incoming) {
+  const progressIndex = buildMonProgressIndex(existing?.party, existing?.box);
+  if (!progressIndex.size) return incoming;
+  return {
+    ...incoming,
+    party: (incoming?.party || []).map((mon) => applyMonProgressFloor(mon, progressIndex)),
+    box: (incoming?.box || []).map((mon) => applyMonProgressFloor(mon, progressIndex)),
+  };
+}
+
 /**
  * Trainer reward level may only advance modestly per save (blocks merge-max inflation).
  */
@@ -440,6 +488,7 @@ export function guardSavePayload(existing, incoming, options = {}) {
   out = reconcileQuestState(ex, out, options);
   out = clampInventoryGrowth(ex, out);
   out = clampInventoryShrink(ex, out);
+  out = preserveMonProgress(ex, out);
   out.releaseLog = mergeReleaseLog(ex, out);
   out.releasedRecoveryIds = mergeReleasedRecoveryIds(ex, out);
   out = stripReleasedMonsFromInventory(ex, out);

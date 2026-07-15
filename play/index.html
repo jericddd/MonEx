@@ -15337,6 +15337,9 @@ function ascendMonRarity(index) {
     showConfirmModal(
         "Ascend " + mon.name + " from " + mon.rarity + " to " + next + "?\nCost: " + cost + " Mon Shards",
         () => {
+            if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
+                MonExAuth.cancelPendingCloudSave();
+            }
             const live = party[index];
             if (!live) return;
             if (monShards < cost) return;
@@ -16404,10 +16407,29 @@ window.applyServerSaveCorrections = function applyServerSaveCorrections(serverSa
         patrolScansDay = serverDay;
         changed = true;
     }
+    const levelIndex = buildMonLevelIndexFromInventories(party, box, serverSave.party, serverSave.box);
+    const inv = applyMonLevelIndexToInventories(party, box, levelIndex);
+    const prevLevels = buildMonLevelIndexFromInventories(party, box);
+    let monProgressChanged = false;
+    for (const [key, lvl] of levelIndex) {
+        if ((prevLevels.get(key) || 1) < lvl) {
+            monProgressChanged = true;
+            break;
+        }
+    }
+    if (monProgressChanged) {
+        party.length = 0;
+        party.push(...inv.party);
+        box.length = 0;
+        box.push(...inv.box);
+        changed = true;
+    }
     if (changed) {
         writeLocalSave(buildSavePayload());
         updateHeaderCurrencies();
         setPatrolScanUI(false);
+        renderParty();
+        renderBox();
     }
     if (typeof MonExAuth !== "undefined" && MonExAuth.setSaveRevision && serverSave.revision != null) {
         MonExAuth.setSaveRevision(serverSave.revision);
@@ -16456,9 +16478,8 @@ function mergeSaveSnapshots(local, cloud) {
     merged.trainerXp = pickMergedEconomyScalar(local, cloud, "trainerXp");
     merged.trainerRewardLevel = pickNewerSaveScalar(local, cloud, "trainerRewardLevel");
 
-    // Inventory: keep the preferred (newer-by-clock) side only — no count-max,
-    // no append/union (refresh inflation).
-    const inv = mergeMonsterInventories(newer.party, newer.box, older.party, older.box);
+    // Inventory: max level/ascension per mon across both sides; layout from newer side.
+    const inv = mergeInventoryWithMaxProgress(local, cloud);
     merged.party = inv.party;
     merged.box = inv.box;
 
@@ -17531,6 +17552,9 @@ function levelUpMonManual(index, buttonEl) {
         ? (fn, opts) => MonExClaimGuard.runClaimOnce(`level-up:${index}`, fn, opts)
         : async (fn) => fn();
     return run(async () => {
+        if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
+            MonExAuth.cancelPendingCloudSave();
+        }
         const live = party[index];
         if (!live) return;
         ensureMonReady(live);
