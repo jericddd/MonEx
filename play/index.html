@@ -15764,6 +15764,57 @@ function mergeMonsterInventories(preferredParty, preferredBox, otherParty, other
     };
 }
 
+function monProgressKey(mon) {
+    if (!mon) return null;
+    const instanceId = typeof mon.instanceId === "string" ? mon.instanceId.trim() : "";
+    if (instanceId) return instanceId;
+    const pendingId = typeof mon.wildPendingId === "string" ? mon.wildPendingId.trim() : "";
+    return pendingId || null;
+}
+
+function buildLocalMonProgressIndex(localParty, localBox) {
+    const map = new Map();
+    for (const mon of [...(localParty || []), ...(localBox || [])]) {
+        const key = monProgressKey(mon);
+        if (key) map.set(key, mon);
+    }
+    return map;
+}
+
+function mergeMonStatProgress(localMon, cloudMon) {
+    const localLevel = Math.floor(Number(localMon?.level) || 1);
+    const cloudLevel = Math.floor(Number(cloudMon?.level) || 1);
+    if (localLevel <= cloudLevel) return cloudMon;
+    return {
+        ...cloudMon,
+        ...localMon,
+        instanceId: cloudMon.instanceId || localMon.instanceId,
+        level: localLevel,
+    };
+}
+
+function mergeMonProgressOntoInventories(partyList, boxList, localParty, localBox) {
+    const localByKey = buildLocalMonProgressIndex(localParty, localBox);
+    const mapList = (list) => (list || []).map((cloudMon) => {
+        const key = monProgressKey(cloudMon);
+        const localMon = key ? localByKey.get(key) : null;
+        return localMon ? mergeMonStatProgress(localMon, cloudMon) : cloudMon;
+    });
+    return { party: mapList(partyList), box: mapList(boxList) };
+}
+
+function localMonProgressAhead(localData, partyList, boxList) {
+    if (!localData) return false;
+    const localByKey = buildLocalMonProgressIndex(localData.party, localData.box);
+    for (const mon of [...(partyList || []), ...(boxList || [])]) {
+        const key = monProgressKey(mon);
+        const localMon = key ? localByKey.get(key) : null;
+        if (!localMon) continue;
+        if (Math.floor(Number(localMon.level) || 1) > Math.floor(Number(mon.level) || 1)) return true;
+    }
+    return false;
+}
+
 async function refreshMonballsFromServer() {
     if (!currentUser || typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return null;
     if (!isGameSessionPlayable()) return null;
@@ -15798,6 +15849,9 @@ async function refreshMonballsFromServer() {
 async function persistProgress(options = {}) {
     if (!isGameSessionPlayable()) return null;
     const { flush = true } = options;
+    if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
+        await MonExAuth.awaitCloudSaveIdle();
+    }
     saveData({ immediate: true });
     updateHeaderCurrencies();
     if (flush && typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
@@ -15823,24 +15877,39 @@ window.handleCloudSaveConflict = function handleCloudSaveConflict(cloudSave) {
     const localData = readLocalSaveData();
     const cloudRev = Number(cloudSave.revision ?? 0);
     const localRev = Number(localData?.revision ?? 0);
-    // Prefer cloud whenever it is ahead on revision (or local is missing).
-    if (cloudRev > localRev || !localData) {
-        applyLoadedSave(cloudSave);
-        writeLocalSave(buildSavePayload());
-        if (typeof MonExAuth !== "undefined" && MonExAuth.setSaveRevision) {
-            MonExAuth.setSaveRevision(cloudSave.revision);
-        }
-        reconcileUngrantedQuestRewards({ silent: true });
-        updateUI();
-        return;
+    let merged;
+
+    if (!localData) {
+        merged = { ...cloudSave };
+    } else if (cloudRev > localRev) {
+        merged = {
+            ...mergeSaveSnapshots(localData, cloudSave),
+            ...cloudSave,
+            revision: cloudSave.revision,
+            party: [...(cloudSave.party || [])],
+            box: [...(cloudSave.box || [])],
+        };
+    } else {
+        merged = mergeSaveSnapshots(localData, cloudSave);
+        merged.party = [...(cloudSave.party || [])];
+        merged.box = [...(cloudSave.box || [])];
     }
-    const merged = mergeSaveSnapshots(localData, cloudSave);
-    // Conflict with equal/older cloud revision: still keep cloud inventory to
-    // avoid re-pushing a duplicated local roster.
-    merged.party = [...(cloudSave.party || [])];
-    merged.box = [...(cloudSave.box || [])];
+
+    if (localData) {
+        const inv = mergeMonProgressOntoInventories(merged.party, merged.box, localData.party, localData.box);
+        merged.party = inv.party;
+        merged.box = inv.box;
+        if (localMonProgressAhead(localData, merged.party, merged.box)) {
+            merged.money = Math.min(Number(localData.money) || 0, Number(merged.money) || 0);
+            merged.essence = Math.min(Number(localData.essence) || 0, Number(merged.essence) || 0);
+        }
+    }
+
     applyLoadedSave(merged);
     writeLocalSave(buildSavePayload());
+    if (typeof MonExAuth !== "undefined" && MonExAuth.setSaveRevision) {
+        MonExAuth.setSaveRevision(merged.revision ?? cloudSave.revision);
+    }
     reconcileUngrantedQuestRewards({ silent: true });
     updateUI();
 };
@@ -16475,9 +16544,17 @@ async function executeShopPurchase(item, qty) {
             showHubNotice("Shop sync is unavailable. Refresh the page and try again.", "Shop offline");
             return false;
         }
+        if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
+            await MonExAuth.awaitCloudSaveIdle();
+        }
+        await flushSaveToCloud();
         const result = await MonExShop.purchaseShopItem(item.id, qty);
         if (!result.ok) {
-            showHubNotice("Purchase could not sync with the server. Check your connection and try again.", "Shop error");
+            if (result.status === 409 && result.error === "purchase_conflict") {
+                showHubNotice("Save was refreshed after a sync conflict. Check your party and try again.", "Shop sync");
+            } else {
+                showHubNotice("Purchase could not sync with the server. Check your connection and try again.", "Shop error");
+            }
             return false;
         }
         if (result.save) {
@@ -16631,6 +16708,10 @@ async function executeMonballPackagePurchase(pkg) {
         showHubNotice("Shop sync is unavailable. Refresh the page and try again.", "Shop offline");
         return { ok: false, error: "shop_offline" };
     }
+    if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
+        await MonExAuth.awaitCloudSaveIdle();
+    }
+    await flushSaveToCloud();
     const result = await MonExShop.purchaseMonballPackage(pkg.id);
     if (result.ok && result.save) {
         applyLoadedSave(result.save);
@@ -16784,7 +16865,7 @@ function levelUpMonManual(index, buttonEl) {
         levelUpMon(live);
         live.current_hp = live.max_hp;
         bumpQuestProgress("mon_level_up", 1);
-        void persistProgress();
+        await persistProgress();
         updateUI();
     }, { button: buttonEl, loadingText: "..." });
 }

@@ -86,7 +86,8 @@
       if (waits[i]) await delay(waits[i]);
       last = await claimBattleReward(params);
       if (last.ok && last.save) return last;
-      if (last.status === 403 || last.status === 409) return last;
+      if (last.status === 403) return last;
+      // 409: conflict handler refreshed save — retry with updated revision.
     }
     return last;
   }

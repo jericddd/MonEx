@@ -18,7 +18,30 @@
     return body;
   }
 
+  function applyPurchaseConflict(res, data) {
+    if (res.status !== 409 || !data?.save) return false;
+    if (data.error !== "purchase_conflict") return false;
+    if (typeof window.handleCloudSaveConflict === "function") {
+      window.handleCloudSaveConflict(data.save);
+      return true;
+    }
+    if (typeof MonExAuth !== "undefined" && MonExAuth.setSaveRevision) {
+      MonExAuth.setSaveRevision(data.save.revision);
+    }
+    return true;
+  }
+
+  function syncPurchaseRevision(res, data, conflictHandled) {
+    if (conflictHandled) return;
+    if (data.ok && data.save && typeof MonExAuth !== "undefined" && MonExAuth.setSaveRevision) {
+      MonExAuth.setSaveRevision(data.save.revision);
+    }
+  }
+
   async function purchaseShopItem(itemId, qty) {
+    if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
+      await MonExAuth.awaitCloudSaveIdle();
+    }
     const res = await fetch(`${apiBase()}/api/shop/purchase`, {
       method: "POST",
       headers: MonExAuth.authHeaders({ "Content-Type": "application/json" }),
@@ -28,12 +51,8 @@
     if (res.status === 403 && data.error === "game_session_inactive") {
       window.MonExGameSession?.handleInactiveFromApi?.();
     }
-    if (res.status === 409 && data.error === "purchase_conflict" && data.save && MonExAuth.handleCloudSaveConflict) {
-      await MonExAuth.handleCloudSaveConflict(data.save);
-    }
-    if (data.save && MonExAuth.setSaveRevision) {
-      MonExAuth.setSaveRevision(data.save.revision);
-    }
+    const conflictHandled = applyPurchaseConflict(res, data);
+    syncPurchaseRevision(res, data, conflictHandled);
     return { ok: res.ok && data.ok, status: res.status, ...data };
   }
 
@@ -57,6 +76,9 @@
   }
 
   async function purchaseMonballPackage(packageId, paymentProof) {
+    if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
+      await MonExAuth.awaitCloudSaveIdle();
+    }
     const payload = purchaseBody({ packageId });
     if (paymentProof) payload.paymentProof = paymentProof;
     const res = await fetch(`${apiBase()}/api/shop/monball-packages/purchase`, {
@@ -68,12 +90,8 @@
     if (res.status === 403 && data.error === "game_session_inactive") {
       window.MonExGameSession?.handleInactiveFromApi?.();
     }
-    if (res.status === 409 && data.error === "purchase_conflict" && data.save && MonExAuth.handleCloudSaveConflict) {
-      await MonExAuth.handleCloudSaveConflict(data.save);
-    }
-    if (data.save && MonExAuth.setSaveRevision) {
-      MonExAuth.setSaveRevision(data.save.revision);
-    }
+    const conflictHandled = applyPurchaseConflict(res, data);
+    syncPurchaseRevision(res, data, conflictHandled);
     return { ok: res.ok && data.ok, status: res.status, ...data };
   }
 
