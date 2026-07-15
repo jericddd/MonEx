@@ -80,7 +80,7 @@ import {
   normalizeSessionOpenedAt,
 } from "./lib/game-session.js";
 import { commitCatchTransaction, retryPendingCatchDeliveries } from "./lib/catch-commit.js";
-import { enrichActivityEntriesWithReceipts } from "./lib/catch-claim.js";
+import { claimCatchFromLog, enrichActivityEntriesWithReceipts } from "./lib/catch-claim.js";
 import { attachPersonalLogNumbers } from "./lib/personal-catch-log.js";
 import { getWalletMonballs } from "./lib/monball-wallet.js";
 import {
