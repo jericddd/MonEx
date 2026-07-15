@@ -34,7 +34,7 @@ describe("findUngrantedQuestRewards", () => {
       grantedKeys: [],
     });
     assert.equal(grants.monballs, DAILY_QUEST_CHEST_REWARDS[60].grant.monballs);
-    assert.equal(grants.trainerXp, DAILY_QUEST_CHEST_REWARDS[60].grant.trainerXp);
+    assert.equal(grants.gold, DAILY_QUEST_CHEST_REWARDS[60].grant.gold);
     assert.deepEqual(keys, [questChestGrantKey("dailies", 60)]);
   });
 
@@ -46,7 +46,7 @@ describe("findUngrantedQuestRewards", () => {
       grantedKeys: [],
     });
     assert.equal(grants.monballs, WEEKLY_QUEST_CHEST_REWARDS[60].grant.monballs);
-    assert.equal(grants.trainerXp, WEEKLY_QUEST_CHEST_REWARDS[60].grant.trainerXp);
+    assert.equal(grants.gold, WEEKLY_QUEST_CHEST_REWARDS[60].grant.gold);
     assert.deepEqual(keys, [questChestGrantKey("weeklies", 60)]);
   });
 

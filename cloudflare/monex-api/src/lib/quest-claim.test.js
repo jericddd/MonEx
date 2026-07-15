@@ -298,6 +298,7 @@ test("claimQuestChest completes milestone when monball was paid but chest not ma
   assert.equal(result.ok, true);
   assert.equal(result.repaired, true);
   assert.ok(result.save.questState.dailyClaimedChests.includes(60));
-  assert.equal(result.save.trainerXp, 120);
+  assert.equal(result.save.money, 1150);
+  assert.equal(result.save.trainerXp, 100);
   assert.equal(result.save.monballs, 11);
 });
