@@ -433,27 +433,34 @@ function injectActivityUiStyles() {
 .activity-skills-grid .activity-skill-square.skill-ult:hover {
     box-shadow: 0 0 8px rgba(245, 158, 11, 0.65), 2px 2px 0 #92400e;
 }
-.activity-skills-grid .activity-skill-square.skill-ult:has(.skill-icon-img-ult) {
-    overflow: hidden;
+.activity-skills-grid .activity-skill-square.skill-ult:has(.skill-icon-img-ult),
+.activity-skills-grid .activity-skill-square.skill-ult:has(.skill-ult-icon-shell) {
     padding: 0;
     line-height: 0;
     font-size: 0;
     background: #120a1f;
+    overflow: visible;
 }
-.activity-skills-grid .activity-skill-square:not(.skill-ult) .skill-icon-img {
-    width: 16px;
-    height: 16px;
-    max-width: 88%;
-    max-height: 88%;
-    object-fit: contain;
-    image-rendering: pixelated;
-    display: block;
-    pointer-events: none;
-}
+.activity-skills-grid .activity-skill-square.skill-ult > .skill-ult-icon-shell,
 .activity-skills-grid .activity-skill-square.skill-ult > .skill-icon-img-ult {
     position: absolute;
     inset: 0;
     z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    line-height: 0;
+    pointer-events: none;
+}
+.activity-skills-grid .activity-skill-square.skill-ult > .skill-ult-icon-shell > .skill-icon-img-ult,
+.activity-skills-grid .activity-skill-square.skill-ult > .skill-icon-img-ult {
+    position: absolute;
+    inset: 0;
     display: block;
     width: 100% !important;
     height: 100% !important;
@@ -461,6 +468,7 @@ function injectActivityUiStyles() {
     max-height: none !important;
     margin: 0;
     padding: 0;
+    border: 0;
     object-fit: fill;
     object-position: center;
     image-rendering: pixelated;
@@ -494,7 +502,21 @@ function injectActivityUiStyles() {
     line-height: 1.35;
     box-shadow: 3px 3px 0 #6b21a8;
     border: 2px solid #6b21a8;
-    z-index: 999;
+    z-index: 30;
+    pointer-events: none;
+}
+.activity-skills-grid .activity-skill-square.skill-ult .skill-tip {
+    border-color: #b45309;
+    box-shadow: 3px 3px 0 #92400e;
+}
+.activity-skills-grid .activity-skill-square:not(.skill-ult) .skill-icon-img {
+    width: 16px;
+    height: 16px;
+    max-width: 88%;
+    max-height: 88%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    display: block;
     pointer-events: none;
 }
 .activity-skills-grid .activity-skill-square:hover .skill-tip {
@@ -715,7 +737,7 @@ function resolveActivitySkillName(shortOrFull) {
 function parseActivitySkillObjects(skillsStr) {
     return parseActivitySkills(skillsStr).map((entry) => {
         if (entry.isUlt) {
-            return { type: "ultimate", name: entry.label.slice(1).trim() };
+            return { type: "ultimate", name: resolveActivitySkillName(entry.label.slice(1).trim()) };
         }
         if (entry.isPassive) {
             return {
@@ -747,8 +769,10 @@ function renderActivitySkillIcon(skill) {
     const fb = skill.type === "ultimate" ? "★" : skill.type === "passive" ? "P" : skill.name.substring(0, 2).toUpperCase();
     if (!path) return `<span class="skill-icon-fallback">${escapeActivityHtml(fb)}</span>`;
     const fbEsc = escapeActivityHtml(fb);
-    const imgCls = skill.type === "ultimate" ? "skill-icon-img-ult" : "skill-icon-img";
-    return `<img class="${imgCls}" src="${escapeActivityHtml(path)}" alt="" onerror="this.outerHTML='<span class=\\'skill-icon-fallback\\'>${fbEsc}</span>'">`;
+    if (skill.type === "ultimate") {
+        return `<span class="skill-ult-icon-shell"><img class="skill-icon-img-ult" src="${escapeActivityHtml(path)}" alt="" onerror="this.outerHTML='<span class=\\'skill-icon-fallback\\'>${fbEsc}</span>'"></span>`;
+    }
+    return `<img class="skill-icon-img" src="${escapeActivityHtml(path)}" alt="" onerror="this.outerHTML='<span class=\\'skill-icon-fallback\\'>${fbEsc}</span>'">`;
 }
 
 function renderActivitySkillTip(skill) {
