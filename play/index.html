@@ -10704,11 +10704,8 @@ async function advanceQuestTask(taskId, buttonEl) {
                 return;
             }
             if (result.save) {
-                applyLoadedSave(result.save);
+                applyAuthoritativeSaveFromServer(result.save);
                 writeLocalSave(buildSavePayload());
-            }
-            if (typeof refreshMonballsFromServer === "function") {
-                await refreshMonballsFromServer();
             }
             if (!result.alreadyClaimed) {
                 playQuestRewardBurstFx(buttonEl, buildQuestGrantFromDef(def));
@@ -10781,11 +10778,8 @@ async function claimQuestChest(milestone, buttonEl) {
                 return;
             }
             if (result.save) {
-                applyLoadedSave(result.save);
+                applyAuthoritativeSaveFromServer(result.save);
                 writeLocalSave(buildSavePayload());
-            }
-            if (typeof refreshMonballsFromServer === "function") {
-                await refreshMonballsFromServer();
             }
             if (!result.alreadyClaimed) {
                 playQuestRewardBurstFx(buttonEl, chest.grant, 1.05);
@@ -16439,7 +16433,18 @@ function mergeInventoryWithMaxProgress(local, cloud) {
     return mergeMonProgressOntoInventories(leveled.party, leveled.box, local?.party, local?.box);
 }
 
-async function refreshMonballsFromServer() {
+function applyAuthoritativeSaveFromServer(save) {
+    if (!save || typeof save !== "object") return;
+    if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
+        MonExAuth.cancelPendingCloudSave();
+    }
+    const authoritativeMonballs = Math.max(0, Math.floor(Number(save.monballs) || 0));
+    applyLoadedSave(save);
+    monballs = authoritativeMonballs;
+}
+
+async function refreshMonballsFromServer(options = {}) {
+    const { allowDecrease = false } = options;
     if (!currentUser || typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return null;
     if (!isGameSessionPlayable()) return null;
     try {
@@ -16458,13 +16463,14 @@ async function refreshMonballsFromServer() {
         const data = await res.json();
         if (typeof data.monballs !== "number") return null;
         const serverMonballs = Math.max(0, Math.floor(Number(data.monballs) || 0));
-        if (serverMonballs !== monballs) {
-            auditMonballChange("server_refresh", serverMonballs - monballs, serverMonballs, { endpoint: "/api/monballs" });
-            monballs = serverMonballs;
+        const nextMonballs = allowDecrease ? serverMonballs : Math.max(monballs, serverMonballs);
+        if (nextMonballs !== monballs) {
+            auditMonballChange("server_refresh", nextMonballs - monballs, nextMonballs, { endpoint: "/api/monballs" });
+            monballs = nextMonballs;
             writeLocalSave(buildSavePayload());
             updateHeaderCurrencies();
         }
-        return serverMonballs;
+        return nextMonballs;
     } catch (_) {
         return null;
     }
@@ -18174,14 +18180,10 @@ async function claimProfileCatch(tweetId, buttonEl) {
             }
 
             if (result.save) {
-                applyLoadedSave(result.save);
+                applyAuthoritativeSaveFromServer(result.save);
                 writeLocalSave(buildSavePayload());
             } else if (typeof result.monballs === "number") {
                 monballs = Math.max(0, Math.floor(Number(result.monballs) || 0));
-            }
-
-            if (typeof refreshMonballsFromServer === "function") {
-                await refreshMonballsFromServer();
             }
 
             renderParty();
@@ -19006,7 +19008,7 @@ async function runPostLoginBootstrap() {
         showHubNotice("Your adventure battle was abandoned. It counts as a defeat — your team was restored to full HP.", "Battle abandoned");
     }
     resolveXHandle();
-    try { await refreshMonballsFromServer(); } catch (_) {}
+    try { await refreshMonballsFromServer({ allowDecrease: true }); } catch (_) {}
     try { await syncXWildMons(true, 2); } catch (_) {}
     try { await refreshProfileCatchBadge({ silent: true }); } catch (_) {}
     updateUI();
@@ -19059,7 +19061,7 @@ async function checkLogin() {
         if (cloudLoadFailed) return;
         gameSessionBootLoaded = true;
         setGameBootLoadingStatus("Loading game assets…");
-        await refreshMonballsFromServer();
+        await refreshMonballsFromServer({ allowDecrease: true });
         await runPostLoginBootstrap();
         await bootPlayStartupAssets();
         showMainScene();
@@ -19280,7 +19282,7 @@ async function claimMailboxReward(mailId, buttonEl) {
             renderMailbox();
             updateHeaderCurrencies();
             updateUI();
-            await refreshMonballsFromServer();
+            await refreshMonballsFromServer({ allowDecrease: true });
             if (result.save && typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
                 try {
                     await flushSaveToCloud();
@@ -20212,7 +20214,7 @@ window.onload = async function() {
                     MonExGameSession.pollSessionStatus().catch(() => {});
                 }
                 if (!isGameSessionPlayable()) return;
-                refreshMonballsFromServer().catch(() => {});
+                refreshMonballsFromServer({ allowDecrease: true }).catch(() => {});
                 // Defer wild sync so monball refresh + session poll settle first.
                 setTimeout(() => {
                     if (document.visibilityState === "visible" && isGameSessionPlayable()) {

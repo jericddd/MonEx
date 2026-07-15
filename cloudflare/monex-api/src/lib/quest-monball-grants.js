@@ -34,7 +34,9 @@ export function findUnpaidMonballQuestGrants(questState, paidMap = {}) {
     for (const def of QUEST_TASK_DEFS[tab] || []) {
       if (def.rewardKey !== "monball") continue;
       const key = questGrantKey(tab, def.id);
-      if (!granted.has(key)) continue;
+      const task = (questState.tasks?.[tab] || []).find((t) => t?.id === def.id);
+      const claimed = granted.has(key) || Boolean(task?.claimed);
+      if (!claimed) continue;
       const expected = Math.max(0, Math.floor(Number(def.rewardAmount) || 0));
       const paid = Math.max(0, Math.floor(Number(paidMap[key]) || 0));
       const delta = expected - paid;
@@ -47,11 +49,14 @@ export function findUnpaidMonballQuestGrants(questState, paidMap = {}) {
     if (!dailyClaimed.includes(ms)) continue;
     const key = questChestGrantKey("dailies", ms);
     const legacyKey = `chest:${ms}`;
-    if (!granted.has(key) && !granted.has(legacyKey)) continue;
     const grant = DAILY_QUEST_CHEST_REWARDS[ms]?.grant;
     const expected = Math.max(0, Math.floor(Number(grant?.monballs) || 0));
     if (!expected) continue;
-    const paid = Math.max(0, Math.floor(Number(paidMap[key]) || 0));
+    const paid = Math.max(
+      0,
+      Math.floor(Number(paidMap[key]) || 0),
+      Math.floor(Number(paidMap[legacyKey]) || 0)
+    );
     const delta = expected - paid;
     if (delta > 0) owed.push({ key, amount: delta, expected });
   }
@@ -60,7 +65,6 @@ export function findUnpaidMonballQuestGrants(questState, paidMap = {}) {
   for (const ms of WEEKLY_QUEST_MILESTONES) {
     if (!weeklyClaimed.includes(ms)) continue;
     const key = questChestGrantKey("weeklies", ms);
-    if (!granted.has(key)) continue;
     const grant = WEEKLY_QUEST_CHEST_REWARDS[ms]?.grant;
     const expected = Math.max(0, Math.floor(Number(grant?.monballs) || 0));
     if (!expected) continue;

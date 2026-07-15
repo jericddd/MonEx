@@ -347,3 +347,46 @@ test("claimQuestChest completes milestone when monball was paid but chest not ma
   assert.equal(result.save.trainerXp, 100);
   assert.equal(result.save.monballs, 11);
 });
+
+test("claimQuestChest daily 60 grants monball and gold together", async () => {
+  const now = new Date();
+  const store = {
+    "monex:state": JSON.stringify({ processedTweetIds: [], users: {} }),
+    "monex:save:u1": JSON.stringify({
+      revision: 2,
+      money: 1000,
+      essence: 0,
+      monShards: 0,
+      trainerXp: 0,
+      monballs: 5,
+      party: [],
+      box: [],
+      questState: {
+        dailyResetKey: getDailyDayKey(now),
+        weeklyResetKey: getDailyWeekKey(now),
+        grantedKeys: [],
+        dailyPoints: 65,
+        weeklyPoints: 0,
+        dailyClaimedChests: [],
+        weeklyClaimedChests: [],
+        tasks: { dailies: [], weeklies: [], campaign: [] },
+      },
+      questOneTimeResetsApplied: [...QUEST_ONE_TIME_DAILY_RESET_IDS],
+      updatedAt: now.toISOString(),
+    }),
+  };
+  seedCatchUser(store, 5);
+  const kv = makeKv(store);
+
+  const result = await claimQuestChest(
+    kv,
+    { xUserId: "u1", username: "trainer" },
+    { track: "dailies", milestone: 60, expectedRevision: 2 },
+    10
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(result.save.monballs, 6);
+  assert.equal(result.save.money, 1150);
+  assert.ok(result.save.questState.dailyClaimedChests.includes(60));
+});
