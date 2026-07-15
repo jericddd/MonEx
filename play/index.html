@@ -5987,7 +5987,23 @@ body.afk-layout:has(.game-container.patrol-scan-active) > .game-container-bg {
     left: 50%;
     bottom: 18%;
     transform: translateX(-50%);
-    z-index: 18;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+.battle-sprite-loading.is-visible {
+    opacity: 1;
+    visibility: visible;
+}
+.battle-sprite-loading-mascot {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
 }
 .battle-sprite-loading-text {
     margin: 0;
@@ -8954,6 +8970,8 @@ const SCENE_IDLE_SPRITE_SCALE_DEFAULT = 1.0;
 
 const CHOG_SWING1_PATH = "128x128/chog1-swing.gif";
 const CHOG_SWING2_PATH = "128x128/chog-swing2.gif";
+const BATTLE_SPRITE_LOADING_MASCOT = "128x128/chog-idle.gif";
+const BATTLE_SPRITE_LOADING_MASCOT_FALLBACK = "128x128/chog.gif";
 /** chog-swing2 canvas reads smaller than other mons (+5% on swing2 only). */
 const CHOG_SWING2_DISPLAY_SCALE = 1.1 * 1.05;
 
@@ -10816,6 +10834,8 @@ function collectBattleCombatantAssetUrls(playerTeam, enemyTeam) {
     (enemyTeam || []).forEach(addFighter);
     urls.add(BLOCK_FX_ICON);
     urls.add(DEBUFF_BURN_FX);
+    urls.add(BATTLE_SPRITE_LOADING_MASCOT);
+    urls.add(BATTLE_SPRITE_LOADING_MASCOT_FALLBACK);
     return [...urls];
 }
 
@@ -10850,12 +10870,62 @@ async function warmGifLoopTimingForPath(spritePath) {
     });
 }
 
+async function decodeGifAsset(url) {
+    if (!url || !String(url).endsWith(".gif")) return;
+    const base = assetUrlBase(url);
+    const img = new Image();
+    img.decoding = "async";
+    await new Promise((resolve) => {
+        const done = async () => {
+            try {
+                if (img.decode) await img.decode();
+            } catch (_) { /* ignore */ }
+            resolve();
+        };
+        img.onload = () => { void done(); };
+        img.onerror = done;
+        img.src = base;
+    });
+}
+
 async function warmBattleCombatantAssets(playerTeam, enemyTeam) {
     const urls = collectBattleCombatantAssetUrls(playerTeam, enemyTeam);
     await preloadImages(urls);
+    await Promise.all(urls.filter((u) => String(u).endsWith(".gif")).map((u) => decodeGifAsset(u)));
     await Promise.all(
         urls.filter((u) => usesGifNaturalLoop(u)).map((u) => warmGifLoopTimingForPath(u))
     );
+}
+
+function getBattleFighterPlaceholderPath(fighter) {
+    if (!fighter?.name) return "";
+    return isJohnw(fighter.name) ? JOHNW_PNG_SPRITE : getMonPngPath(fighter.name);
+}
+
+function paintBattleFighterPlaceholder(side, fighter) {
+    if (!fighter?.name) return;
+    const png = getBattleFighterPlaceholderPath(fighter);
+    if (!png) return;
+    const sprite = document.getElementById("sprite-" + side);
+    const portrait = document.getElementById("portrait-" + side);
+    bindBattleImgFallback(sprite, fighter.name);
+    bindBattleImgFallback(portrait, fighter.name);
+    if (sprite) {
+        sprite.style.visibility = "visible";
+        sprite.src = assetUrlBase(png);
+        applyBattleSpritePresentation(sprite, side, fighter.name, png);
+    }
+    if (portrait) {
+        portrait.style.visibility = "visible";
+        portrait.src = assetUrlBase(png);
+        applyBattleSpritePresentation(portrait, side, fighter.name, png);
+    }
+    applyBattleBodyShadow(side, fighter.name);
+}
+
+function paintBattleLeadFighterPlaceholders(playerTeam, enemyTeam) {
+    paintBattleFighterPlaceholder("player", playerTeam?.[0]);
+    paintBattleFighterPlaceholder("enemy", enemyTeam?.[0]);
 }
 
 function collectGameAssetManifest() {
@@ -10980,15 +11050,18 @@ function stopAssetLoadingDots() {
 async function withAssetLoadingIndicator(warmPromise, opts = {}) {
     const overlayId = opts.overlayId || "battle-sprite-loading";
     const showMs = opts.showMs ?? ASSET_LOADING_SHOW_MS;
+    const minShowMs = opts.minShowMs ?? 0;
     const isCancelled = opts.isCancelled || null;
     const token = ++assetLoadingSeq;
     let showTimer = null;
     let indicatorShown = false;
+    let revealedAt = 0;
 
     const reveal = () => {
         if (token !== assetLoadingSeq || indicatorShown) return;
         if (typeof isCancelled === "function" && isCancelled()) return;
         indicatorShown = true;
+        revealedAt = Date.now();
         setAssetLoadingOverlay(overlayId, true);
     };
 
@@ -10996,6 +11069,10 @@ async function withAssetLoadingIndicator(warmPromise, opts = {}) {
 
     try {
         await warmPromise;
+        if (indicatorShown && minShowMs > 0) {
+            const remain = minShowMs - (Date.now() - revealedAt);
+            if (remain > 0) await delay(remain);
+        }
     } finally {
         clearTimeout(showTimer);
         if (token === assetLoadingSeq) {
@@ -11007,6 +11084,8 @@ async function withAssetLoadingIndicator(warmPromise, opts = {}) {
 async function withBattleSpriteLoading(warmPromise, battleToken) {
     return withAssetLoadingIndicator(warmPromise, {
         overlayId: "battle-sprite-loading",
+        showMs: 0,
+        minShowMs: 350,
         isCancelled: () => battleToken != null && battleToken !== adventureBattleToken,
     });
 }
@@ -11638,7 +11717,11 @@ async function replayBattleAttackGif(side, src, name) {
 function setBattleSprite(side, src, name, replayGif) {
     const sprite = document.getElementById("sprite-" + side);
     if (!sprite || !src) return;
-    if (replayGif && src.endsWith(".gif")) {
+    if (src.endsWith(".gif")) {
+        void paintBattleAttackSprite(sprite, src, side, name);
+        return;
+    }
+    if (replayGif) {
         void paintBattleAttackSprite(sprite, src, side, name);
         return;
     }
@@ -18977,6 +19060,7 @@ async function start3v3BattleAsync(playerParty, options = {}) {
     const playerTeam = playerParty.slice(0, 3).map(m => makeFighter(m, true));
     const enemyTeam = options.enemyTeam || makeEnemyTeam(currentChapter, currentStage);
     renderBattleScene();
+    paintBattleLeadFighterPlaceholders(playerTeam, enemyTeam);
     setBattleFightingUI(true);
     await withBattleSpriteLoading(
         warmBattleCombatantAssets(playerTeam, enemyTeam),
@@ -19041,6 +19125,16 @@ function renderBattleScene() {
             <div class="fx-layer" id="fx-layer"></div>
             <div class="screen-flash" id="screen-flash"></div>
             <div class="battle-sprite-loading game-asset-loading" id="battle-sprite-loading" aria-live="polite" aria-hidden="true">
+                <img
+                    class="battle-sprite-loading-mascot"
+                    src="${BATTLE_SPRITE_LOADING_MASCOT}"
+                    alt=""
+                    aria-hidden="true"
+                    width="64"
+                    height="64"
+                    decoding="async"
+                    onerror="this.onerror=null;this.src='${BATTLE_SPRITE_LOADING_MASCOT_FALLBACK}';"
+                >
                 <p class="game-asset-loading-text battle-sprite-loading-text">
                     <span class="game-asset-loading-label">Loading sprite animation</span><span class="game-asset-loading-dots battle-sprite-loading-dots">...</span>
                 </p>
