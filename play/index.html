@@ -6350,6 +6350,8 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     text-align: center;
     color: #ffe8c8;
     transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+    position: relative;
+    overflow: hidden;
 }
 .monball-pack-card:hover {
     border-color: #f0a040;
@@ -6554,27 +6556,36 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
         0 0 0 2px rgba(234, 179, 8, 0.35),
         0 4px 0 #1a1206;
 }
-.gold-pack-card--featured {
-    grid-column: 1 / -1;
-    max-width: 420px;
-    justify-self: center;
-    width: 100%;
-    padding: 18px 14px 16px;
-    border-width: 3px;
+/* MEGA PACK highlight — same card size, visual emphasis only */
+.monex-pack-card--featured {
     border-color: #fbbf24;
+    animation: monex-pack-featured-glow 2.4s ease-in-out infinite;
+}
+.monball-pack-card.monex-pack-card--featured {
+    background:
+        radial-gradient(ellipse 80% 70% at 50% 0%, rgba(255, 230, 120, 0.22), transparent 62%),
+        linear-gradient(160deg, rgba(255, 240, 180, 0.14) 0%, transparent 40%),
+        linear-gradient(180deg, #6b4a28 0%, #3a2612 55%, #281808 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 230, 160, 0.32),
+        inset 0 -4px 12px rgba(0, 0, 0, 0.25),
+        0 0 0 1px rgba(255, 220, 100, 0.2),
+        0 0 18px rgba(251, 191, 36, 0.3),
+        0 4px 0 #1a0f06;
+}
+.gold-pack-card.monex-pack-card--featured {
     background:
         radial-gradient(ellipse 80% 70% at 50% 0%, rgba(255, 230, 120, 0.28), transparent 62%),
         linear-gradient(160deg, rgba(255, 240, 180, 0.18) 0%, transparent 40%),
         linear-gradient(180deg, #8a6418 0%, #5c4010 48%, #3d2808 100%);
     box-shadow:
-        inset 0 1px 0 rgba(255, 240, 200, 0.45),
-        inset 0 -6px 18px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255, 240, 200, 0.4),
+        inset 0 -4px 12px rgba(0, 0, 0, 0.25),
         0 0 0 1px rgba(255, 220, 100, 0.25),
-        0 0 24px rgba(251, 191, 36, 0.35),
-        0 6px 0 #2a1808;
-    animation: gold-pack-featured-glow 2.4s ease-in-out infinite;
+        0 0 20px rgba(251, 191, 36, 0.32),
+        0 4px 0 #1a1206;
 }
-.gold-pack-card--featured::before {
+.monex-pack-card--featured::before {
     content: "";
     position: absolute;
     inset: -40% -60%;
@@ -6589,16 +6600,16 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     pointer-events: none;
     animation: shop-monex-gloss-sweep 4s ease-in-out infinite;
 }
-.gold-pack-card--featured:hover,
-.gold-pack-card--featured.is-selected {
+.monex-pack-card--featured:hover,
+.monex-pack-card--featured.is-selected {
     border-color: #fff7cc;
     box-shadow:
-        inset 0 0 0 1px rgba(255, 248, 210, 0.55),
-        0 0 0 2px rgba(255, 220, 100, 0.5),
-        0 0 32px rgba(251, 191, 36, 0.55),
-        0 6px 0 #2a1808;
+        inset 0 0 0 1px rgba(255, 248, 210, 0.5),
+        0 0 0 2px rgba(255, 220, 100, 0.45),
+        0 0 28px rgba(251, 191, 36, 0.48),
+        0 4px 0 #1a1206;
 }
-.gold-pack-card__badge {
+.monex-pack-card__badge {
     position: absolute;
     top: 8px;
     right: -28px;
@@ -6622,20 +6633,12 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     image-rendering: pixelated;
     filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
 }
-.gold-pack-card--featured .gold-pack-icon {
-    width: 56px;
-    height: 56px;
-}
 .gold-pack-amount {
     font-family: 'Press Start 2P', monospace;
     font-size: 9px;
     line-height: 1.45;
     color: #fef08a;
     text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
-}
-.gold-pack-card--featured .gold-pack-amount {
-    font-size: 10px;
-    color: #fff7cc;
 }
 .gold-pack-price {
     font-family: 'Lato', system-ui, sans-serif;
@@ -6649,26 +6652,22 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
 .gold-pack-buy {
     margin-top: 2px;
 }
-.gold-pack-card--featured .gold-pack-buy {
-    font-size: 8px;
-    padding: 10px 14px;
-}
-@keyframes gold-pack-featured-glow {
+@keyframes monex-pack-featured-glow {
     0%, 100% {
         box-shadow:
-            inset 0 1px 0 rgba(255, 240, 200, 0.45),
-            inset 0 -6px 18px rgba(0, 0, 0, 0.28),
-            0 0 0 1px rgba(255, 220, 100, 0.25),
-            0 0 18px rgba(251, 191, 36, 0.28),
-            0 6px 0 #2a1808;
+            inset 0 1px 0 rgba(255, 240, 200, 0.38),
+            inset 0 -4px 12px rgba(0, 0, 0, 0.25),
+            0 0 0 1px rgba(255, 220, 100, 0.22),
+            0 0 14px rgba(251, 191, 36, 0.24),
+            0 4px 0 #1a1206;
     }
     50% {
         box-shadow:
-            inset 0 1px 0 rgba(255, 240, 200, 0.45),
-            inset 0 -6px 18px rgba(0, 0, 0, 0.28),
-            0 0 0 1px rgba(255, 220, 100, 0.35),
-            0 0 32px rgba(251, 191, 36, 0.48),
-            0 6px 0 #2a1808;
+            inset 0 1px 0 rgba(255, 240, 200, 0.38),
+            inset 0 -4px 12px rgba(0, 0, 0, 0.25),
+            0 0 0 1px rgba(255, 220, 100, 0.32),
+            0 0 24px rgba(251, 191, 36, 0.42),
+            0 4px 0 #1a1206;
     }
 }
 .shop-main--monex {
@@ -6774,7 +6773,14 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
         0 0 18px rgba(255, 190, 60, 0.35),
         0 4px 0 #1a0f06;
 }
-.shop-main--monex .gold-pack-card--featured {
+.shop-main--monex .monball-pack-card.monex-pack-card--featured {
+    border-color: #fde047;
+    background:
+        radial-gradient(ellipse 85% 65% at 50% -5%, rgba(255, 230, 120, 0.28), transparent 60%),
+        linear-gradient(160deg, rgba(255, 240, 180, 0.16) 0%, transparent 40%),
+        linear-gradient(180deg, #7a5520 0%, #4a3210 55%, #302008 100%);
+}
+.shop-main--monex .gold-pack-card.monex-pack-card--featured {
     border-color: #fde047;
     background:
         radial-gradient(ellipse 85% 65% at 50% -5%, rgba(255, 230, 120, 0.32), transparent 60%),
@@ -6797,9 +6803,6 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     }
     .gold-pack-grid {
         grid-template-columns: 1fr;
-    }
-    .gold-pack-card--featured {
-        max-width: none;
     }
     .shop-monball-cta {
         flex-direction: column;
@@ -17170,10 +17173,13 @@ function renderMonballPackageCards(packages, selectedId, currency) {
     const cur = currency || "MONEX";
     return packages.map((pkg) => {
         const selected = pkg.id === selectedId ? " is-selected" : "";
+        const featured = pkg.featured ? " monex-pack-card--featured" : "";
         const amount = Math.floor(Number(pkg.amount) || 0);
         const price = formatMonexPrice(pkg.monexPrice).replace("$MONEX", `$${cur}`);
+        const badge = pkg.featured ? `<span class="monex-pack-card__badge">MEGA PACK</span>` : "";
         return `
-            <div class="monball-pack-card${selected}" data-package-id="${pkg.id}" role="button" tabindex="0" aria-pressed="${pkg.id === selectedId ? "true" : "false"}">
+            <div class="monball-pack-card${featured}${selected}" data-package-id="${pkg.id}" role="button" tabindex="0" aria-pressed="${pkg.id === selectedId ? "true" : "false"}">
+                ${badge}
                 <img class="monball-pack-icon" src="${monballIcon}" alt="">
                 <div class="monball-pack-amount">${amount} MonBalls</div>
                 <div class="monball-pack-price">Price: <span>${price}</span></div>
@@ -17187,13 +17193,13 @@ function renderGoldPackageCards(packages, selectedId, currency) {
     const cur = currency || "MONEX";
     return packages.map((pkg) => {
         const selected = pkg.id === selectedId ? " is-selected" : "";
-        const featured = pkg.featured ? " gold-pack-card--featured" : "";
+        const featured = pkg.featured ? " monex-pack-card--featured" : "";
         const gold = Math.floor(Number(pkg.gold) || 0);
         const priceNum = Number(pkg.monexPrice);
         const price = Number.isFinite(priceNum)
             ? `${priceNum.toLocaleString()} $${cur}`
             : `— $${cur}`;
-        const badge = pkg.featured ? `<span class="gold-pack-card__badge">MEGA PACK</span>` : "";
+        const badge = pkg.featured ? `<span class="monex-pack-card__badge">MEGA PACK</span>` : "";
         return `
             <div class="gold-pack-card${featured}${selected}" data-gold-package-id="${pkg.id}" role="button" tabindex="0" aria-pressed="${pkg.id === selectedId ? "true" : "false"}">
                 ${badge}
