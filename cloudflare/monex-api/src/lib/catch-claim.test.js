@@ -239,6 +239,7 @@ test("multiple unclaimed deferred catches each spend monballs at commit", async 
   };
   const kv = makeKv(store);
   let user = JSON.parse(store["monex:catch-user:u1"]);
+  let totalCaught = 0;
 
   for (const tweetId of ["tw_a", "tw_b", "tw_c"]) {
     const tweet = { id: tweetId, authorId: "u1", username: "trainer", text: "@monexmonad catch 1" };
@@ -255,13 +256,14 @@ test("multiple unclaimed deferred catches each spend monballs at commit", async 
     });
     assert.equal(committed.ok, true);
     assert.equal(committed.receipt.spendApplied, true);
+    totalCaught += committed.receipt.caughtCount || 0;
     user = JSON.parse(store["monex:catch-user:u1"]);
   }
 
   const save = JSON.parse(store["monex:save:u1"]);
-  assert.ok(save.monballs < 10, "each catch should deduct even without claiming");
+  assert.equal(save.monballs, 7, "each catch should deduct even without claiming");
   assert.equal(JSON.parse(store["monex:activity"]).entries.length, 3);
-  assert.equal(user.pendingMons.length, 3);
+  assert.equal(user.pendingMons.length, totalCaught);
   assert.equal(save.party.length + save.box.length, 0);
 });
 
