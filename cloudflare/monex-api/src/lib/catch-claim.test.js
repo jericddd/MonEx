@@ -249,6 +249,60 @@ test("deferred commit leaves spend for profile claim", async () => {
   assert.equal(catchUser.pendingMons.length, 0);
 });
 
+test("deferred claim skips second debit when spendApplied already persisted", async () => {
+  const store = {
+    "monex:catch-user:u1": JSON.stringify({
+      username: "trainer",
+      monballs: 10,
+      pendingMons: [],
+      updatedAt: new Date().toISOString(),
+    }),
+    "monex:save:u1": JSON.stringify({
+      revision: 1,
+      monballs: 10,
+      party: [],
+      box: [],
+      xHandle: "trainer",
+      updatedAt: new Date().toISOString(),
+    }),
+  };
+  const kv = makeKv(store);
+  const receipt = buildCatchReceipt({
+    tweet: { id: "tw_retry", authorId: "u1", username: "trainer" },
+    activity: {
+      id: "act_retry",
+      spend: 4,
+      throws: 1,
+      caughtCount: 1,
+      monballsBefore: 10,
+      monballsLeft: 6,
+      at: "2026-07-15T00:00:00.000Z",
+    },
+    pendingMonsAdded: [{ pendingId: "p_retry", name: "Chog", rarity: "Common", skills: [] }],
+    claimModel: "deferred",
+  });
+  receipt.completionStatus = "pending";
+  receipt.spendApplied = false;
+  receipt.catchLogStatus = "written";
+  await saveCatchReceipt(kv, receipt);
+
+  const first = await claimCatchFromLog(kv, session, { tweetId: "tw_retry", startingMonballs: 10 });
+  assert.equal(first.ok, true);
+  assert.equal(first.monballs, 6);
+
+  const stuck = JSON.parse(store[catchReceiptKey("tw_retry")]);
+  stuck.completionStatus = "pending";
+  stuck.spendApplied = true;
+  await saveCatchReceipt(kv, stuck);
+
+  const second = await claimCatchFromLog(kv, session, { tweetId: "tw_retry", startingMonballs: 10 });
+  assert.equal(second.ok, true);
+  assert.equal(second.monballs, 6);
+
+  const save = JSON.parse(store["monex:save:u1"]);
+  assert.equal(save.monballs, 6);
+});
+
 test("recoverMissingMonsFromActivity skips deferred unclaimed catches", async () => {
   const store = {
     "monex:activity": JSON.stringify({

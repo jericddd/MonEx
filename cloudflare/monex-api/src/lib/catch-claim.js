@@ -140,6 +140,8 @@ export async function claimCatchFromLog(
       save = debit.save || save;
       monballs = debit.after;
       receipt.spendApplied = true;
+      // Persist spend immediately so a failed delivery/persist retry cannot double-debit.
+      await saveCatchReceipt(kv, receipt);
     } else if (!deferred && spend > 0) {
       await appendMonballAudit(kv, {
         xUserId: session.xUserId,
