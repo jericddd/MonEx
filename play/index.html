@@ -15994,6 +15994,57 @@ function reconcileSaveWithLocalMonProgress(saveData, localData) {
     return merged;
 }
 
+function buildMonLevelIndexFromInventories(...groups) {
+    const levelIndex = new Map();
+    for (const group of groups) {
+        for (const mon of group || []) {
+            const key = monProgressKey(mon);
+            if (!key) continue;
+            const lvl = Math.floor(Number(mon.level) || 1);
+            levelIndex.set(key, Math.max(levelIndex.get(key) || 1, lvl));
+        }
+    }
+    return levelIndex;
+}
+
+function applyMonLevelIndexToInventories(partyList, boxList, levelIndex) {
+    const applyLevel = (mon) => {
+        if (!mon) return mon;
+        const key = monProgressKey(mon);
+        if (!key || !levelIndex.has(key)) return mon;
+        const targetLvl = levelIndex.get(key);
+        const cur = Math.floor(Number(mon.level) || 1);
+        if (targetLvl <= cur) return mon;
+        const next = { ...mon, level: targetLvl };
+        ensureMonReady(next);
+        refreshMonDerivedStats(next);
+        next.current_hp = next.max_hp;
+        return next;
+    };
+    return {
+        party: (partyList || []).map(applyLevel),
+        box: (boxList || []).map(applyLevel),
+    };
+}
+
+/** Party/box layout from the side with newer gameplay, levels max'd across both. */
+function mergeInventoryWithMaxProgress(local, cloud) {
+    const localTs = getSaveTimestamp(local);
+    const cloudTs = getSaveTimestamp(cloud);
+    const preferLocal = !cloud?.party && !cloud?.box
+        ? true
+        : !local?.party && !local?.box
+            ? false
+            : localTs >= cloudTs || localMonProgressAhead(local, cloud?.party, cloud?.box);
+    const comp = preferLocal
+        ? { party: [...(local?.party || [])], box: [...(local?.box || [])] }
+        : { party: [...(cloud?.party || [])], box: [...(cloud?.box || [])] };
+    const levelIndex = buildMonLevelIndexFromInventories(
+        local?.party, local?.box, cloud?.party, cloud?.box
+    );
+    return applyMonLevelIndexToInventories(comp.party, comp.box, levelIndex);
+}
+
 async function refreshMonballsFromServer() {
     if (!currentUser || typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return null;
     if (!isGameSessionPlayable()) return null;
@@ -16054,28 +16105,20 @@ async function persistProgress(options = {}) {
 window.handleCloudSaveConflict = function handleCloudSaveConflict(cloudSave) {
     if (!cloudSave || typeof cloudSave !== "object") return;
     const localData = readLocalSaveData();
-    const cloudRev = Number(cloudSave.revision ?? 0);
-    const localRev = Number(localData?.revision ?? 0);
     let merged;
 
     if (!localData) {
         merged = { ...cloudSave };
-    } else if (cloudRev > localRev) {
-        merged = {
-            ...mergeSaveSnapshots(localData, cloudSave),
-            ...cloudSave,
-            revision: cloudSave.revision,
-            party: [...(cloudSave.party || [])],
-            box: [...(cloudSave.box || [])],
-        };
     } else {
         merged = mergeSaveSnapshots(localData, cloudSave);
-        merged.party = [...(cloudSave.party || [])];
-        merged.box = [...(cloudSave.box || [])];
-    }
-
-    if (localData) {
-        merged = reconcileSaveWithLocalMonProgress(merged, localData);
+        const inv = mergeInventoryWithMaxProgress(localData, cloudSave);
+        merged.party = inv.party;
+        merged.box = inv.box;
+        merged.revision = cloudSave.revision ?? merged.revision;
+        if (localMonProgressAhead(localData, merged.party, merged.box)) {
+            merged.money = Math.min(Number(localData.money) || 0, Number(merged.money) || 0);
+            merged.essence = Math.min(Number(localData.essence) || 0, Number(merged.essence) || 0);
+        }
     }
 
     applyLoadedSave(merged);
@@ -16336,20 +16379,28 @@ async function loadData() {
         const cloudTs = getSaveTimestamp(cloudData);
 
         if (cloudRev > localRev) {
-            data = reconcileSaveWithLocalMonProgress(cloudData, localData);
+            data = mergeSaveSnapshots(localData, cloudData);
+            const inv = mergeInventoryWithMaxProgress(localData, cloudData);
+            data.party = inv.party;
+            data.box = inv.box;
+            data.revision = cloudData.revision;
+            if (localMonProgressAhead(localData, data.party, data.box)) {
+                data.money = Math.min(Number(localData.money) || 0, Number(data.money) || 0);
+                data.essence = Math.min(Number(localData.essence) || 0, Number(data.essence) || 0);
+            }
             shouldPersistLocal = true;
-            shouldSyncCloud = localMonProgressAhead(localData, data.party, data.box);
+            shouldSyncCloud = localMonProgressAhead(localData, data.party, data.box)
+                || localTs >= cloudTs;
         } else if (localRev > cloudRev) {
             data = mergeSaveSnapshots(localData, cloudData);
             shouldPersistLocal = true;
             // Do not push a high-revision local tab that regresses cloud economy.
             shouldSyncCloud = !localEconomyBehindCloud(localData, cloudData);
         } else if (localTs > cloudTs) {
-            // Same revision: keep cloud inventory; merge may update scalars from local.
             data = mergeSaveSnapshots(localData, cloudData);
-            data.party = [...(cloudData.party || [])];
-            data.box = [...(cloudData.box || [])];
-            data = reconcileSaveWithLocalMonProgress(data, localData);
+            const inv = mergeInventoryWithMaxProgress(localData, cloudData);
+            data.party = inv.party;
+            data.box = inv.box;
             shouldPersistLocal = true;
             shouldSyncCloud = localMonProgressAhead(localData, data.party, data.box);
         } else {
@@ -17718,19 +17769,24 @@ function openBoxSwitchPicker(boxIndex) {
 }
 
 function addToPartyFromBox(boxIndex) {
-    if (party.length >= PARTY_MAX || !box[boxIndex]) return;
-    const mon = box[boxIndex];
-    if (partyHasSpecies(mon.name)) {
+    const run = window.MonExClaimGuard?.runClaimOnce
+        ? (fn) => MonExClaimGuard.runClaimOnce(`party-add:${boxIndex}`, fn)
+        : async (fn) => fn();
+    return run(async () => {
+        if (party.length >= PARTY_MAX || !box[boxIndex]) return;
+        const mon = box[boxIndex];
+        if (partyHasSpecies(mon.name)) {
             showHubNotice(`You already have ${mon.name} in your party.\nOnly one of each species allowed.`, "Can't add");
-        return;
-    }
-    party.push(box.splice(boxIndex, 1)[0]);
-    saveData();
-    updateUI();
-    closePartySwitchPicker();
-    if (battleScreen === "chapter" && document.getElementById("team-arrange")) {
-        renderTeamArrangement();
-    }
+            return;
+        }
+        party.push(box.splice(boxIndex, 1)[0]);
+        await persistProgress();
+        updateUI();
+        closePartySwitchPicker();
+        if (battleScreen === "chapter" && document.getElementById("team-arrange")) {
+            renderTeamArrangement();
+        }
+    });
 }
 
 function swapPartyWithBox(partyIndex, boxIndex) {
@@ -17747,7 +17803,7 @@ function swapPartyWithBox(partyIndex, boxIndex) {
         const temp = party[partyIndex];
         party[partyIndex] = incoming;
         box[boxIndex] = temp;
-        saveData();
+        await persistProgress();
         updateUI();
         closePartySwitchPicker();
         if (battleScreen === "chapter" && document.getElementById("team-arrange")) {
