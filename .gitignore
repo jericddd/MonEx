@@ -16,3 +16,4 @@ scripts/__pycache__/
 
 # Legacy x-bot runtime data
 x-bot/data/
+/catchcard/
