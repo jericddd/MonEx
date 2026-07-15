@@ -1109,36 +1109,39 @@ button.green:hover {
 .hub-main .skills-grid .skill-square .skill-tip {
     display: none !important;
 }
-.hub-main .skill-square .skill-icon-img {
+.hub-main .skill-square:not(.skill-ult) .skill-icon-img {
     width: 72%;
     height: 72%;
     max-width: 24px;
     max-height: 24px;
 }
-/* Ultimate slot: icon fills the full bordered box (hub party/box cards). */
 .hub-main .skill-square.skill-ult {
+    display: block;
+    position: relative;
+    line-height: 0;
+    font-size: 0;
     overflow: hidden;
     padding: 0;
     box-sizing: border-box;
 }
-.hub-main .skill-square.skill-ult:has(> .skill-icon-img),
-.hub-main .skill-square.skill-ult:has(> .skill-icon-img-ult) {
+.hub-main .skill-square.skill-ult:has(.skill-icon-img-ult) {
     background: #120a1f;
 }
-.hub-main .skill-square.skill-ult > .skill-icon-img,
 .hub-main .skill-square.skill-ult > .skill-icon-img-ult {
     position: absolute;
     inset: 0;
+    z-index: 1;
+    display: block;
     width: 100% !important;
     height: 100% !important;
     max-width: none !important;
     max-height: none !important;
-    object-fit: cover;
-    object-position: center;
-    image-rendering: pixelated;
-    display: block;
     margin: 0;
     padding: 0;
+    object-fit: fill;
+    object-position: center;
+    image-rendering: pixelated;
+    pointer-events: none;
 }
 .hub-main .skill-square:hover {
     box-shadow: 2px 2px 0 #3d2010;
@@ -3228,51 +3231,40 @@ body.afk-layout .currency-tip-float {
     color: #7c2d12;
     box-shadow: 0 0 8px rgba(245, 158, 11, 0.75), 2px 2px 0px #92400e;
 }
-.skill-square.skill-ult:has(.skill-icon-img),
-.skill-square.skill-ult:has(.skill-icon-img-ult),
-.hub-main .skill-square.skill-ult:has(.skill-icon-img),
-.hub-main .skill-square.skill-ult:has(.skill-icon-img-ult),
-.battle-meter-skills-grid .skill-square.skill-ult:has(.skill-icon-img),
-.battle-meter-skills-grid .skill-square.skill-ult:has(.skill-icon-img-ult),
-.skill-callout-icon-wrap.skill-ult:has(.skill-icon-img),
-.skill-callout-icon-wrap.skill-ult:has(.skill-icon-img-ult),
-.party-switch-skill-icon.skill-ult:has(.skill-icon-img),
-.party-switch-skill-icon.skill-ult:has(.skill-icon-img-ult) {
-    overflow: hidden;
-    padding: 0;
-    box-sizing: border-box;
-}
-.skill-square.skill-ult:has(.skill-icon-img),
-.skill-square.skill-ult:has(.skill-icon-img-ult),
-.hub-main .skill-square.skill-ult:has(.skill-icon-img),
-.hub-main .skill-square.skill-ult:has(.skill-icon-img-ult),
-.battle-meter-skills-grid .skill-square.skill-ult:has(.skill-icon-img),
-.battle-meter-skills-grid .skill-square.skill-ult:has(.skill-icon-img-ult) {
-    background: #120a1f;
-}
-.skill-square.skill-ult > .skill-icon-img,
-.skill-square.skill-ult > .skill-icon-img-ult,
-.hub-main .skill-square.skill-ult > .skill-icon-img,
-.hub-main .skill-square.skill-ult > .skill-icon-img-ult,
-.battle-meter-skills-grid .skill-square.skill-ult > .skill-icon-img,
-.battle-meter-skills-grid .skill-square.skill-ult > .skill-icon-img-ult,
-.skill-callout-icon-wrap.skill-ult > .skill-icon-img,
-.skill-callout-icon-wrap.skill-ult > .skill-icon-img-ult,
-.party-switch-skill-icon.skill-ult > .skill-icon-img,
-.party-switch-skill-icon.skill-ult > .skill-icon-img-ult {
+/* Ultimate skill icons: full-box exception (not the inset 72% used by normal skills). */
+img.skill-icon-img-ult {
     position: absolute;
     inset: 0;
     z-index: 1;
-    width: 100% !important;
-    height: 100% !important;
-    max-width: none !important;
-    max-height: none !important;
-    object-fit: cover;
-    object-position: center;
-    image-rendering: pixelated;
     display: block;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
     margin: 0;
     padding: 0;
+    object-fit: fill;
+    object-position: center;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+.skill-square.skill-ult,
+.battle-meter-skills-grid .skill-square.skill-ult,
+.skill-callout-icon-wrap.skill-ult,
+.party-switch-skill-icon.skill-ult {
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+    line-height: 0;
+    font-size: 0;
+    box-sizing: border-box;
+}
+.skill-square.skill-ult:has(.skill-icon-img-ult),
+.hub-main .skill-square.skill-ult:has(.skill-icon-img-ult),
+.battle-meter-skills-grid .skill-square.skill-ult:has(.skill-icon-img-ult),
+.skill-callout-icon-wrap.skill-ult:has(.skill-icon-img-ult),
+.party-switch-skill-icon.skill-ult:has(.skill-icon-img-ult) {
+    background: #120a1f;
 }
 .skill-square.skill-ult .skill-tip {
     border-color: #b45309;
@@ -3405,12 +3397,12 @@ body.afk-layout .currency-tip-float {
     box-shadow: 2px 2px 0 #4c1d95;
     overflow: hidden;
 }
-.skill-callout-icon-wrap.skill-ult:has(.skill-icon-img) {
+.skill-callout-icon-wrap.skill-ult:has(.skill-icon-img-ult) {
     background: #120a1f;
     border-color: #b45309;
     box-shadow: 0 0 8px rgba(245, 158, 11, 0.75), 2px 2px 0 #92400e;
 }
-.skill-callout-icon-wrap .skill-icon-img {
+.skill-callout-icon-wrap:not(.skill-ult) .skill-icon-img {
     position: relative;
     z-index: 1;
     width: 22px;
@@ -3802,7 +3794,7 @@ body.afk-layout .currency-tip-float {
 .battle-meter-skills-grid .skill-square.skill-locked .skill-tip-desc {
     color: #d1d5db;
 }
-.battle-meter-skills-grid .skill-square .skill-icon-img {
+.battle-meter-skills-grid .skill-square:not(.skill-ult) .skill-icon-img {
     width: 24px;
     height: 24px;
 }
@@ -6658,11 +6650,11 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     justify-content: center;
     overflow: hidden;
 }
-.party-switch-skill-icon.skill-ult:has(.skill-icon-img) {
+.party-switch-skill-icon.skill-ult:has(.skill-icon-img-ult) {
     background: #120a1f;
     border-color: #b45309;
 }
-.party-switch-skill-icon .skill-icon-img {
+.party-switch-skill-icon:not(.skill-ult) .skill-icon-img {
     position: relative;
     z-index: 1;
     width: 16px;
@@ -7533,14 +7525,7 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     .battle-meter-panel .st-value { font-size: 10px; }
     .battle-meter-skills-grid { grid-template-columns: repeat(4, 1fr); gap: 3px; }
     .battle-meter-skills-grid .skill-square { width: 26px; height: 26px; }
-    .battle-meter-skills-grid .skill-square .skill-icon-img { width: 20px; height: 20px; }
-    .battle-meter-skills-grid .skill-square.skill-ult > .skill-icon-img,
-    .battle-meter-skills-grid .skill-square.skill-ult > .skill-icon-img-ult {
-        width: 100% !important;
-        height: 100% !important;
-        max-width: none !important;
-        max-height: none !important;
-    }
+    .battle-meter-skills-grid .skill-square:not(.skill-ult) .skill-icon-img { width: 20px; height: 20px; }
     .battle-meter-skills-grid .skill-lock-icon { font-size: 11px; }
     .fighter-wrap.player { left: 18%; }
     .fighter-wrap.enemy { right: 18%; }
@@ -12352,7 +12337,7 @@ function getSkillIcon(skill) {
     const fb = getSkillIconFallbackText(skill);
     if (!path) return `<span class="skill-icon-fallback">${fb}</span>`;
     if (skill.type === "ultimate") {
-        return `<img class="skill-icon-img skill-icon-img-ult" src="${path}" alt="" onerror="this.outerHTML='<span class=\\'skill-icon-fallback\\'>${fb}</span>'">`;
+        return `<img class="skill-icon-img-ult" src="${path}" alt="" onerror="this.outerHTML='<span class=\\'skill-icon-fallback\\'>${fb}</span>'">`;
     }
     return `<span class="skill-icon-fallback">${fb}</span><img class="skill-icon-img" src="${path}" alt="" onerror="this.remove()">`;
 }

@@ -433,13 +433,14 @@ function injectActivityUiStyles() {
 .activity-skills-grid .activity-skill-square.skill-ult:hover {
     box-shadow: 0 0 8px rgba(245, 158, 11, 0.65), 2px 2px 0 #92400e;
 }
-.activity-skills-grid .activity-skill-square.skill-ult:has(.skill-icon-img),
 .activity-skills-grid .activity-skill-square.skill-ult:has(.skill-icon-img-ult) {
     overflow: hidden;
     padding: 0;
+    line-height: 0;
+    font-size: 0;
     background: #120a1f;
 }
-.activity-skills-grid .activity-skill-square .skill-icon-img {
+.activity-skills-grid .activity-skill-square:not(.skill-ult) .skill-icon-img {
     width: 16px;
     height: 16px;
     max-width: 88%;
@@ -449,16 +450,21 @@ function injectActivityUiStyles() {
     display: block;
     pointer-events: none;
 }
-.activity-skills-grid .activity-skill-square.skill-ult > .skill-icon-img,
 .activity-skills-grid .activity-skill-square.skill-ult > .skill-icon-img-ult {
     position: absolute;
     inset: 0;
+    z-index: 1;
+    display: block;
     width: 100% !important;
     height: 100% !important;
     max-width: none !important;
     max-height: none !important;
-    object-fit: cover;
+    margin: 0;
+    padding: 0;
+    object-fit: fill;
     object-position: center;
+    image-rendering: pixelated;
+    pointer-events: none;
 }
 .activity-skills-grid .activity-skill-square .skill-icon-fallback {
     font-family: "Press Start 2P", monospace;
@@ -741,7 +747,7 @@ function renderActivitySkillIcon(skill) {
     const fb = skill.type === "ultimate" ? "★" : skill.type === "passive" ? "P" : skill.name.substring(0, 2).toUpperCase();
     if (!path) return `<span class="skill-icon-fallback">${escapeActivityHtml(fb)}</span>`;
     const fbEsc = escapeActivityHtml(fb);
-    const imgCls = skill.type === "ultimate" ? "skill-icon-img skill-icon-img-ult" : "skill-icon-img";
+    const imgCls = skill.type === "ultimate" ? "skill-icon-img-ult" : "skill-icon-img";
     return `<img class="${imgCls}" src="${escapeActivityHtml(path)}" alt="" onerror="this.outerHTML='<span class=\\'skill-icon-fallback\\'>${fbEsc}</span>'">`;
 }
 
