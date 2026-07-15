@@ -15956,19 +15956,26 @@ function hideCloudLoadErrorModal() {
     document.body.classList.remove("cloud-load-blocked");
 }
 
+function setGameBootLoadingStatus(text) {
+    const statusEl = document.getElementById("game-loading-status");
+    if (statusEl && text) statusEl.textContent = text;
+}
+
 async function fetchCloudSaveWithRetry() {
     if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
         return { status: "not_logged_in" };
     }
     const waits = [0, 600, 1500];
     let lastError = null;
+    let hydrated = false;
     for (let i = 0; i < waits.length; i++) {
         if (waits[i]) await delay(waits[i]);
         try {
-            if (typeof MonExAuth.hydrateCloudSave === "function") {
+            if (!hydrated && typeof MonExAuth.hydrateCloudSave === "function") {
                 await MonExAuth.hydrateCloudSave().catch((err) => {
                     console.warn("Cloud hydrate attempt failed:", err);
                 });
+                hydrated = true;
             }
             const cloud = await Promise.race([
                 MonExAuth.loadCloudSave(),
@@ -17824,12 +17831,14 @@ function saveXHandle() {
     refreshProfileActivity({ force: true });
 }
 
-async function syncXWildMons(silent) {
+async function syncXWildMons(silent, maxAttempts = 25) {
     const handle = resolveXHandle();
     if (!handle || typeof MonExActivity === "undefined") return 0;
     if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return 0;
     if (!isGameSessionPlayable()) return 0;
     if (wildSyncInFlight) return wildSyncInFlight;
+
+    const attemptLimit = Math.max(1, Math.min(25, Math.floor(Number(maxAttempts) || 25)));
 
     wildSyncInFlight = (async () => {
         const statusEl = document.getElementById("profile-pending-text");
@@ -17842,7 +17851,7 @@ async function syncXWildMons(silent) {
             let remaining = 0;
             let monballsSynced = false;
 
-            for (let attempt = 0; attempt < 25; attempt++) {
+            for (let attempt = 0; attempt < attemptLimit; attempt++) {
                 const data = await MonExActivity.syncWild(handle, party.length, box.length, PARTY_MAX, boxMax);
                 let added = 0;
 
@@ -17877,7 +17886,8 @@ async function syncXWildMons(silent) {
 
                 totalAdded += added;
                 remaining = Number(data.remaining) || 0;
-                if (!added && !remaining) break;
+                // Stop when sync cannot deliver more (claim-gated pending, full box, etc.)
+                if (!added) break;
                 if (!remaining) break;
             }
 
@@ -18892,7 +18902,7 @@ async function runPostLoginBootstrap() {
     }
     resolveXHandle();
     try { await refreshMonballsFromServer(); } catch (_) {}
-    try { await syncXWildMons(true); } catch (_) {}
+    try { await syncXWildMons(true, 2); } catch (_) {}
     updateUI();
 }
 
@@ -18938,9 +18948,11 @@ async function checkLogin() {
         } else {
             console.error("[monex-session] MonExGameSession failed to load — session enforcement disabled");
         }
+        setGameBootLoadingStatus("Loading your save…");
         await loadData();
         if (cloudLoadFailed) return;
         gameSessionBootLoaded = true;
+        setGameBootLoadingStatus("Loading game assets…");
         await refreshMonballsFromServer();
         await runPostLoginBootstrap();
         await bootPlayStartupAssets();
