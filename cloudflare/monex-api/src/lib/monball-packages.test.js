@@ -30,6 +30,7 @@ test("listMonballPackages returns default 10/50/100 packs", () => {
     [5000, 25000, 50000]
   );
   assert.equal(packages[0].id, "mb_10");
+  assert.equal(packages[2].featured, true);
 });
 
 test("listMonballPackages honors MONBALL_PACKAGES_JSON override", () => {

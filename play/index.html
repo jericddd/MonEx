@@ -6350,6 +6350,8 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     text-align: center;
     color: #ffe8c8;
     transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+    position: relative;
+    overflow: hidden;
 }
 .monball-pack-card:hover {
     border-color: #f0a040;
@@ -6554,27 +6556,36 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
         0 0 0 2px rgba(234, 179, 8, 0.35),
         0 4px 0 #1a1206;
 }
-.gold-pack-card--featured {
-    grid-column: 1 / -1;
-    max-width: 420px;
-    justify-self: center;
-    width: 100%;
-    padding: 18px 14px 16px;
-    border-width: 3px;
+/* MEGA PACK highlight — same card size, visual emphasis only */
+.monex-pack-card--featured {
     border-color: #fbbf24;
+    animation: monex-pack-featured-glow 2.4s ease-in-out infinite;
+}
+.monball-pack-card.monex-pack-card--featured {
+    background:
+        radial-gradient(ellipse 80% 70% at 50% 0%, rgba(255, 230, 120, 0.22), transparent 62%),
+        linear-gradient(160deg, rgba(255, 240, 180, 0.14) 0%, transparent 40%),
+        linear-gradient(180deg, #6b4a28 0%, #3a2612 55%, #281808 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 230, 160, 0.32),
+        inset 0 -4px 12px rgba(0, 0, 0, 0.25),
+        0 0 0 1px rgba(255, 220, 100, 0.2),
+        0 0 18px rgba(251, 191, 36, 0.3),
+        0 4px 0 #1a0f06;
+}
+.gold-pack-card.monex-pack-card--featured {
     background:
         radial-gradient(ellipse 80% 70% at 50% 0%, rgba(255, 230, 120, 0.28), transparent 62%),
         linear-gradient(160deg, rgba(255, 240, 180, 0.18) 0%, transparent 40%),
         linear-gradient(180deg, #8a6418 0%, #5c4010 48%, #3d2808 100%);
     box-shadow:
-        inset 0 1px 0 rgba(255, 240, 200, 0.45),
-        inset 0 -6px 18px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255, 240, 200, 0.4),
+        inset 0 -4px 12px rgba(0, 0, 0, 0.25),
         0 0 0 1px rgba(255, 220, 100, 0.25),
-        0 0 24px rgba(251, 191, 36, 0.35),
-        0 6px 0 #2a1808;
-    animation: gold-pack-featured-glow 2.4s ease-in-out infinite;
+        0 0 20px rgba(251, 191, 36, 0.32),
+        0 4px 0 #1a1206;
 }
-.gold-pack-card--featured::before {
+.monex-pack-card--featured::before {
     content: "";
     position: absolute;
     inset: -40% -60%;
@@ -6589,16 +6600,16 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     pointer-events: none;
     animation: shop-monex-gloss-sweep 4s ease-in-out infinite;
 }
-.gold-pack-card--featured:hover,
-.gold-pack-card--featured.is-selected {
+.monex-pack-card--featured:hover,
+.monex-pack-card--featured.is-selected {
     border-color: #fff7cc;
     box-shadow:
-        inset 0 0 0 1px rgba(255, 248, 210, 0.55),
-        0 0 0 2px rgba(255, 220, 100, 0.5),
-        0 0 32px rgba(251, 191, 36, 0.55),
-        0 6px 0 #2a1808;
+        inset 0 0 0 1px rgba(255, 248, 210, 0.5),
+        0 0 0 2px rgba(255, 220, 100, 0.45),
+        0 0 28px rgba(251, 191, 36, 0.48),
+        0 4px 0 #1a1206;
 }
-.gold-pack-card__badge {
+.monex-pack-card__badge {
     position: absolute;
     top: 8px;
     right: -28px;
@@ -6622,20 +6633,12 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     image-rendering: pixelated;
     filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
 }
-.gold-pack-card--featured .gold-pack-icon {
-    width: 56px;
-    height: 56px;
-}
 .gold-pack-amount {
     font-family: 'Press Start 2P', monospace;
     font-size: 9px;
     line-height: 1.45;
     color: #fef08a;
     text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
-}
-.gold-pack-card--featured .gold-pack-amount {
-    font-size: 10px;
-    color: #fff7cc;
 }
 .gold-pack-price {
     font-family: 'Lato', system-ui, sans-serif;
@@ -6649,26 +6652,22 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
 .gold-pack-buy {
     margin-top: 2px;
 }
-.gold-pack-card--featured .gold-pack-buy {
-    font-size: 8px;
-    padding: 10px 14px;
-}
-@keyframes gold-pack-featured-glow {
+@keyframes monex-pack-featured-glow {
     0%, 100% {
         box-shadow:
-            inset 0 1px 0 rgba(255, 240, 200, 0.45),
-            inset 0 -6px 18px rgba(0, 0, 0, 0.28),
-            0 0 0 1px rgba(255, 220, 100, 0.25),
-            0 0 18px rgba(251, 191, 36, 0.28),
-            0 6px 0 #2a1808;
+            inset 0 1px 0 rgba(255, 240, 200, 0.38),
+            inset 0 -4px 12px rgba(0, 0, 0, 0.25),
+            0 0 0 1px rgba(255, 220, 100, 0.22),
+            0 0 14px rgba(251, 191, 36, 0.24),
+            0 4px 0 #1a1206;
     }
     50% {
         box-shadow:
-            inset 0 1px 0 rgba(255, 240, 200, 0.45),
-            inset 0 -6px 18px rgba(0, 0, 0, 0.28),
-            0 0 0 1px rgba(255, 220, 100, 0.35),
-            0 0 32px rgba(251, 191, 36, 0.48),
-            0 6px 0 #2a1808;
+            inset 0 1px 0 rgba(255, 240, 200, 0.38),
+            inset 0 -4px 12px rgba(0, 0, 0, 0.25),
+            0 0 0 1px rgba(255, 220, 100, 0.32),
+            0 0 24px rgba(251, 191, 36, 0.42),
+            0 4px 0 #1a1206;
     }
 }
 .shop-main--monex {
@@ -6774,7 +6773,14 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
         0 0 18px rgba(255, 190, 60, 0.35),
         0 4px 0 #1a0f06;
 }
-.shop-main--monex .gold-pack-card--featured {
+.shop-main--monex .monball-pack-card.monex-pack-card--featured {
+    border-color: #fde047;
+    background:
+        radial-gradient(ellipse 85% 65% at 50% -5%, rgba(255, 230, 120, 0.28), transparent 60%),
+        linear-gradient(160deg, rgba(255, 240, 180, 0.16) 0%, transparent 40%),
+        linear-gradient(180deg, #7a5520 0%, #4a3210 55%, #302008 100%);
+}
+.shop-main--monex .gold-pack-card.monex-pack-card--featured {
     border-color: #fde047;
     background:
         radial-gradient(ellipse 85% 65% at 50% -5%, rgba(255, 230, 120, 0.32), transparent 60%),
@@ -6797,9 +6803,6 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     }
     .gold-pack-grid {
         grid-template-columns: 1fr;
-    }
-    .gold-pack-card--featured {
-        max-width: none;
     }
     .shop-monball-cta {
         flex-direction: column;
@@ -8489,7 +8492,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/release-client.js?v=20260714a"></script>
 <script src="js/game-session-client.js?v=20260710a"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
-<script src="js/quest-client.js?v=20260713b"></script>
+<script src="js/quest-client.js?v=20260715c"></script>
 <script src="js/shop-client.js?v=20260715b"></script>
 <script src="js/resource-chest-client.js?v=20260713d"></script>
 <script src="js/battle-reward-client.js?v=20260713e"></script>
@@ -10605,6 +10608,15 @@ function switchQuestTab(tab) {
     renderDailyQuest();
 }
 
+async function syncSaveBeforeAuthoritativeClaim() {
+    if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return;
+    if (MonExAuth.awaitCloudSaveIdle) await MonExAuth.awaitCloudSaveIdle();
+    saveData({ immediate: true });
+    if (typeof flushSaveToCloud === "function") {
+        await flushSaveToCloud();
+    }
+}
+
 async function advanceQuestTask(taskId, buttonEl) {
     const tab = questState.tab;
     const run = window.MonExClaimGuard?.runClaimOnce
@@ -10616,13 +10628,15 @@ async function advanceQuestTask(taskId, buttonEl) {
         const task = tasks.find(t => t.id === taskId);
         const def = getQuestTaskDef(tab, taskId);
         if (!task || !def || task.claimed || task.progress < def.goal) return;
-        const grantKey = questGrantKey(tab, taskId);
-        if (questState.grantedKeys?.includes(grantKey)) return;
         if (typeof MonExQuest !== "undefined" && MonExQuest.claimQuestTask) {
-            if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
-                MonExAuth.cancelPendingCloudSave();
+            await syncSaveBeforeAuthoritativeClaim();
+            let result = await MonExQuest.claimQuestTask(tab, taskId);
+            if (!result.ok && result.error === "claim_conflict" && result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(buildSavePayload());
+                ensureQuestResets();
+                result = await MonExQuest.claimQuestTask(tab, taskId);
             }
-            const result = await MonExQuest.claimQuestTask(tab, taskId);
             if (!result.ok) {
                 if (result.save) {
                     applyLoadedSave(result.save);
@@ -10650,7 +10664,9 @@ async function advanceQuestTask(taskId, buttonEl) {
             if (typeof refreshMonballsFromServer === "function") {
                 await refreshMonballsFromServer();
             }
-            playQuestRewardBurstFx(buttonEl, buildQuestGrantFromDef(def));
+            if (!result.alreadyClaimed) {
+                playQuestRewardBurstFx(buttonEl, buildQuestGrantFromDef(def));
+            }
             ensureQuestResets();
             renderDailyQuest();
             updateHeaderCurrencies();
@@ -10690,11 +10706,22 @@ async function claimQuestChest(milestone, buttonEl) {
         if (!chest) return;
         const grantKey = questChestGrantKey(track, milestone);
         if (typeof MonExQuest !== "undefined" && MonExQuest.claimQuestChest) {
-            if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
-                MonExAuth.cancelPendingCloudSave();
+            await syncSaveBeforeAuthoritativeClaim();
+            let result = await MonExQuest.claimQuestChest(track, milestone);
+            if (!result.ok && result.error === "claim_conflict" && result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(buildSavePayload());
+                ensureQuestResets();
+                result = await MonExQuest.claimQuestChest(track, milestone);
             }
-            const result = await MonExQuest.claimQuestChest(track, milestone);
             if (!result.ok) {
+                if (result.save) {
+                    applyLoadedSave(result.save);
+                    writeLocalSave(buildSavePayload());
+                    ensureQuestResets();
+                    renderDailyQuest();
+                    updateHeaderCurrencies();
+                }
                 const msg = result.error === "points_insufficient"
                     ? "Not enough quest points on the server yet. Refresh /play to sync, then try again."
                     : result.error === "claim_conflict"
@@ -10714,7 +10741,9 @@ async function claimQuestChest(milestone, buttonEl) {
             if (typeof refreshMonballsFromServer === "function") {
                 await refreshMonballsFromServer();
             }
-            playQuestRewardBurstFx(buttonEl, chest.grant, 1.05);
+            if (!result.alreadyClaimed) {
+                playQuestRewardBurstFx(buttonEl, chest.grant, 1.05);
+            }
             ensureQuestResets();
             renderDailyQuest();
             updateHeaderCurrencies();
@@ -17170,10 +17199,13 @@ function renderMonballPackageCards(packages, selectedId, currency) {
     const cur = currency || "MONEX";
     return packages.map((pkg) => {
         const selected = pkg.id === selectedId ? " is-selected" : "";
+        const featured = pkg.featured ? " monex-pack-card--featured" : "";
         const amount = Math.floor(Number(pkg.amount) || 0);
         const price = formatMonexPrice(pkg.monexPrice).replace("$MONEX", `$${cur}`);
+        const badge = pkg.featured ? `<span class="monex-pack-card__badge">MEGA PACK</span>` : "";
         return `
-            <div class="monball-pack-card${selected}" data-package-id="${pkg.id}" role="button" tabindex="0" aria-pressed="${pkg.id === selectedId ? "true" : "false"}">
+            <div class="monball-pack-card${featured}${selected}" data-package-id="${pkg.id}" role="button" tabindex="0" aria-pressed="${pkg.id === selectedId ? "true" : "false"}">
+                ${badge}
                 <img class="monball-pack-icon" src="${monballIcon}" alt="">
                 <div class="monball-pack-amount">${amount} MonBalls</div>
                 <div class="monball-pack-price">Price: <span>${price}</span></div>
@@ -17187,13 +17219,13 @@ function renderGoldPackageCards(packages, selectedId, currency) {
     const cur = currency || "MONEX";
     return packages.map((pkg) => {
         const selected = pkg.id === selectedId ? " is-selected" : "";
-        const featured = pkg.featured ? " gold-pack-card--featured" : "";
+        const featured = pkg.featured ? " monex-pack-card--featured" : "";
         const gold = Math.floor(Number(pkg.gold) || 0);
         const priceNum = Number(pkg.monexPrice);
         const price = Number.isFinite(priceNum)
             ? `${priceNum.toLocaleString()} $${cur}`
             : `— $${cur}`;
-        const badge = pkg.featured ? `<span class="gold-pack-card__badge">MEGA PACK</span>` : "";
+        const badge = pkg.featured ? `<span class="monex-pack-card__badge">MEGA PACK</span>` : "";
         return `
             <div class="gold-pack-card${featured}${selected}" data-gold-package-id="${pkg.id}" role="button" tabindex="0" aria-pressed="${pkg.id === selectedId ? "true" : "false"}">
                 ${badge}

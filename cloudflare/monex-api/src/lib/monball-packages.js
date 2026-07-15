@@ -24,6 +24,7 @@ export const DEFAULT_MONBALL_PACKAGES = Object.freeze([
     monexPrice: 5000,
     active: true,
     displayOrder: 1,
+    featured: false,
   }),
   Object.freeze({
     id: "mb_50",
@@ -31,6 +32,7 @@ export const DEFAULT_MONBALL_PACKAGES = Object.freeze([
     monexPrice: 25000,
     active: true,
     displayOrder: 2,
+    featured: false,
   }),
   Object.freeze({
     id: "mb_100",
@@ -38,6 +40,7 @@ export const DEFAULT_MONBALL_PACKAGES = Object.freeze([
     monexPrice: 50000,
     active: true,
     displayOrder: 3,
+    featured: true,
   }),
 ]);
 
@@ -88,6 +91,7 @@ function normalizePackage(raw, index = 0) {
     monexPrice,
     active: raw.active !== false,
     displayOrder,
+    featured: raw.featured === true,
   };
 }
 
@@ -139,6 +143,7 @@ export function publicPackageView(pkg) {
     amount: pkg.amount,
     monexPrice: pkg.monexPrice,
     displayOrder: pkg.displayOrder,
+    featured: pkg.featured === true,
   };
 }
 
