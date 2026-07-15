@@ -158,6 +158,42 @@ async function persistMonballQuestTaskClaim(
   return { ok: true, save: result.save };
 }
 
+async function finalizeQuestChestClaim(
+  kv,
+  session,
+  save,
+  questState,
+  trackKey,
+  ms,
+  chest,
+  grantKey,
+  expectedRev,
+  startingMonballs,
+  { skipMonballs = false } = {}
+) {
+  const claimedList = trackKey === "weeklies" ? questState.weeklyClaimedChests : questState.dailyClaimedChests;
+  if (claimedList.includes(ms)) {
+    return { ok: true, alreadyClaimed: true, save };
+  }
+
+  if (trackKey === "weeklies") {
+    questState.weeklyClaimedChests = [...claimedList, ms].sort((a, b) => a - b);
+  } else {
+    questState.dailyClaimedChests = [...claimedList, ms].sort((a, b) => a - b);
+  }
+  if (!questState.grantedKeys.includes(grantKey)) questState.grantedKeys.push(grantKey);
+
+  const grant = skipMonballs
+    ? { ...chest.grant, monballs: 0 }
+    : chest.grant;
+  let nextSave = applyGrantToSave(save, grant);
+  nextSave.questState = questState;
+
+  const result = await persistQuestSave(kv, session, nextSave, expectedRev, startingMonballs);
+  if (!result.ok) return result;
+  return { ok: true, grantKey, grant: chest.grant, save: result.save, alreadyClaimed: false, repaired: skipMonballs };
+}
+
 async function persistMonballQuestChestClaim(
   kv,
   session,
@@ -342,15 +378,33 @@ export async function claimQuestChest(kv, session, { track, milestone, expectedR
   const points = trackKey === "weeklies" ? questState.weeklyPoints : questState.dailyPoints;
   const claimedList = trackKey === "weeklies" ? questState.weeklyClaimedChests : questState.dailyClaimedChests;
 
-  const monballAmount = clampMonballs(chest.grant.monballs || 0);
-  if (
-    questState.grantedKeys.includes(grantKey) ||
-    claimedList.includes(ms) ||
-    (monballAmount > 0 && isMonballQuestFullyPaid(save, grantKey, monballAmount))
-  ) {
+  if (claimedList.includes(ms)) {
     return { ok: true, alreadyClaimed: true, save };
   }
+
+  const monballAmount = clampMonballs(chest.grant.monballs || 0);
   if ((points || 0) < ms) return { ok: false, error: "points_insufficient" };
+
+  const monballAlreadyPaid = monballAmount > 0 && isMonballQuestFullyPaid(save, grantKey, monballAmount);
+  const grantKeyRecorded = questState.grantedKeys.includes(grantKey);
+  if (monballAlreadyPaid || (grantKeyRecorded && monballAmount > 0)) {
+    return finalizeQuestChestClaim(
+      kv,
+      session,
+      save,
+      questState,
+      trackKey,
+      ms,
+      chest,
+      grantKey,
+      expectedRev,
+      startingMonballs,
+      { skipMonballs: true }
+    );
+  }
+  if (grantKeyRecorded && monballAmount === 0) {
+    return { ok: true, alreadyClaimed: true, save };
+  }
 
   if (monballAmount > 0) {
     const monballResult = await persistMonballQuestChestClaim(

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { claimQuestTask } from "./quest-claim.js";
+import { claimQuestTask, claimQuestChest } from "./quest-claim.js";
 import { getDailyDayKey, getDailyWeekKey } from "./daily-reset.js";
 import { findUnpaidMonballQuestGrants, reconcileUnpaidMonballQuestGrants } from "./quest-monball-grants.js";
 import { DAILY_QUEST_FORCE_RESET_ID } from "./quest-one-time-reset.js";
@@ -255,4 +255,49 @@ test("claimQuestTask resets stale daily bundle before validating claim", async (
   assert.equal(stored.questState.tasks.dailies[0].claimed, false);
   assert.equal(stored.questState.tasks.dailies[0].progress, 0);
   assert.ok(!stored.questState.grantedKeys.includes("task:dailies:d1"));
+});
+
+test("claimQuestChest completes milestone when monball was paid but chest not marked claimed", async () => {
+  const now = new Date();
+  const store = {
+    "monex:state": JSON.stringify(baseCatchState(10)),
+    "monex:save:u1": JSON.stringify({
+      revision: 4,
+      money: 1000,
+      essence: 0,
+      monShards: 0,
+      trainerXp: 100,
+      monballs: 11,
+      party: [],
+      box: [],
+      questState: {
+        dailyResetKey: getDailyDayKey(now),
+        weeklyResetKey: getDailyWeekKey(now),
+        grantedKeys: ["chest:dailies:60"],
+        dailyPoints: 74,
+        weeklyPoints: 0,
+        dailyClaimedChests: [],
+        weeklyClaimedChests: [],
+        tasks: { dailies: [], weeklies: [], campaign: [] },
+      },
+      questMonballPaidAmounts: { "chest:dailies:60": 1 },
+      questOneTimeResetsApplied: [DAILY_QUEST_FORCE_RESET_ID],
+      updatedAt: now.toISOString(),
+    }),
+  };
+  seedCatchUser(store, 11);
+  const kv = makeKv(store);
+
+  const result = await claimQuestChest(
+    kv,
+    { xUserId: "u1", username: "trainer" },
+    { track: "dailies", milestone: 60, expectedRevision: 4 },
+    10
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(result.repaired, true);
+  assert.ok(result.save.questState.dailyClaimedChests.includes(60));
+  assert.equal(result.save.trainerXp, 120);
+  assert.equal(result.save.monballs, 11);
 });

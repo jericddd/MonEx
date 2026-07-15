@@ -9600,11 +9600,11 @@ async function persistBattleReward() {
 function describeQuestChestGrant(grant) {
     if (!grant) return "";
     const parts = [];
-    if (grant.gold) parts.push(currencyQty("gold", grant.gold, 12));
-    if (grant.essence) parts.push(currencyQty("essence", grant.essence, 12));
-    if (grant.monballs) parts.push(currencyQty("monball", grant.monballs, 12));
-    if (grant.monShards) parts.push(currencyQty("shards", grant.monShards, 12));
-    if (grant.trainerXp) parts.push(currencyQty("trainerXp", grant.trainerXp, 12));
+    if (grant.gold) parts.push(`${currencyQty("gold", grant.gold, 12)} Gold`);
+    if (grant.essence) parts.push(`${currencyQty("essence", grant.essence, 12)} ${KBS_ONION_NAME}`);
+    if (grant.monballs) parts.push(`${currencyQty("monball", grant.monballs, 12)} Monball${grant.monballs > 1 ? "s" : ""}`);
+    if (grant.monShards) parts.push(`${currencyQty("shards", grant.monShards, 12)} Shards`);
+    if (grant.trainerXp) parts.push(`${currencyQty("trainerXp", grant.trainerXp, 12)} Trainer XP`);
     return parts.join(" ");
 }
 
@@ -10036,13 +10036,24 @@ async function claimQuestChest(milestone, buttonEl) {
         const chest = getQuestChestRewardsForTrack(track)[milestone];
         if (!chest) return;
         const grantKey = questChestGrantKey(track, milestone);
-        if (questState.grantedKeys?.includes(grantKey)) return;
         if (typeof MonExQuest !== "undefined" && MonExQuest.claimQuestChest) {
             if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
                 MonExAuth.cancelPendingCloudSave();
             }
             const result = await MonExQuest.claimQuestChest(track, milestone);
-            if (!result.ok) return;
+            if (!result.ok) {
+                const msg = result.error === "points_insufficient"
+                    ? "Not enough quest points on the server yet. Refresh /play to sync, then try again."
+                    : result.error === "claim_conflict"
+                        ? "Save conflict while claiming. Refresh and try again."
+                        : result.error === "monball_grant_failed"
+                            ? "Monball reward could not be saved. Try claiming again."
+                            : result.error === "invalid_milestone"
+                                ? "This milestone reward is unavailable."
+                                : "Could not claim this milestone reward.";
+                showHubNotice(msg, "Milestone claim failed");
+                return;
+            }
             if (result.save) {
                 applyLoadedSave(result.save);
                 writeLocalSave(buildSavePayload());
