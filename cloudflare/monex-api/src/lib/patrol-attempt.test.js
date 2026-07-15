@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   applyPatrolDailyResetOnSave,
   consumePatrolAttempt,
+  countPatrolCompletionsForDay,
   getPatrolScansRemaining,
   mergePatrolProgressOntoLatest,
   parsePatrolScanFromCompletionId,
@@ -40,6 +41,30 @@ test("preservePatrolProgress prevents client from regressing scan count", () => 
   const out = preservePatrolProgress(existing, incoming, Date.parse("2026-07-14T12:00:00.000Z"));
   assert.equal(out.patrolScansUsed, 5);
   assert.equal(out.money, 100);
+});
+
+test("preservePatrolProgress blocks stale client from inflating patrol count above ledger", () => {
+  const now = Date.parse("2026-07-15T17:26:18.870Z");
+  const completions = {
+    "patrol:token:d27c9d53-81b8-47f5-bf54-3f8069494d27": {
+      at: "2026-07-15T16:11:47.380Z",
+      mode: "patrol",
+      reward: { gold: 75 },
+    },
+  };
+  const existing = {
+    patrolScansDay: "2026-07-16",
+    patrolScansUsed: 1,
+    accountBattleCompletions: completions,
+  };
+  const incoming = {
+    patrolScansDay: "2026-07-16",
+    patrolScansUsed: 50,
+    accountBattleCompletions: completions,
+  };
+  const out = preservePatrolProgress(existing, incoming, now, completions);
+  assert.equal(out.patrolScansUsed, 1);
+  assert.equal(countPatrolCompletionsForDay(completions, "2026-07-16"), 1);
 });
 
 test("mergePatrolProgressOntoLatest applies patrol attempt delta on conflict retry", () => {

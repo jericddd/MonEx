@@ -198,6 +198,38 @@ describe("reconcileMonballsForCloudSave", () => {
     const reconciled = await reconcileMonballsForCloudSave(kv, { xUserId: "u1", username: "lucci_crypto" }, payload, 10);
     assert.equal(reconciled.monballs, 0);
   });
+
+  it("clamps when both persisted save and stale client exceed catch pool", async () => {
+    const kv = makeKv({
+      "monex:catch-user:u1": JSON.stringify({
+        username: "louism33726154",
+        monballs: 1,
+        pendingMons: [],
+        updatedAt: new Date(4000).toISOString(),
+      }),
+      "monex:save:u1": JSON.stringify({
+        monballs: 6,
+        updatedAt: new Date(3000).toISOString(),
+        party: [],
+        box: [],
+      }),
+    });
+
+    const payload = {
+      monballs: 6,
+      updatedAt: new Date(5000).toISOString(),
+      party: [],
+      box: [],
+    };
+
+    const reconciled = await reconcileMonballsForCloudSave(
+      kv,
+      { xUserId: "u1", username: "louism33726154" },
+      payload,
+      10
+    );
+    assert.equal(reconciled.monballs, 1);
+  });
 });
 
 describe("seedOrHydrateCloudSaveFromCatch", () => {

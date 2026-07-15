@@ -464,6 +464,8 @@ async function runCloudSavePush() {
     .then((result) => {
       if (result?.conflict && result.save && typeof window.handleCloudSaveConflict === "function") {
         window.handleCloudSaveConflict(result.save);
+      } else if (result?.save && typeof window.applyServerSaveCorrections === "function") {
+        window.applyServerSaveCorrections(result.save);
       }
       return result;
     })

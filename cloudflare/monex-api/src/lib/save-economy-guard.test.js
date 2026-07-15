@@ -8,6 +8,7 @@ import {
   reconcileQuestState,
   clampInventoryShrink,
   guardSavePayload,
+  preserveMonProgress,
   MAX_SAVE_DELTA,
   MAX_INVENTORY_SHRINK,
 } from "./save-economy-guard.js";
@@ -228,6 +229,32 @@ test("allows small legitimate inventory shrink (releases)", () => {
   };
   const out = clampInventoryShrink(existing, incoming);
   assert.equal(out.box.length, incoming.box.length);
+});
+
+test("preserveMonProgress blocks stale client from regressing mon levels", () => {
+  const existing = {
+    party: [{ name: "Chog", rarity: "Common", level: 8, instanceId: "inst_chog" }],
+    box: [],
+  };
+  const incoming = {
+    party: [{ name: "Chog", rarity: "Common", level: 5, instanceId: "inst_chog" }],
+    box: [],
+  };
+  const out = preserveMonProgress(existing, incoming);
+  assert.equal(out.party[0].level, 8);
+});
+
+test("preserveMonProgress allows legitimate level increases", () => {
+  const existing = {
+    party: [{ name: "Chog", rarity: "Common", level: 5, instanceId: "inst_chog" }],
+    box: [],
+  };
+  const incoming = {
+    party: [{ name: "Chog", rarity: "Common", level: 6, instanceId: "inst_chog" }],
+    box: [],
+  };
+  const out = preserveMonProgress(existing, incoming);
+  assert.equal(out.party[0].level, 6);
 });
 
 test("guardSavePayload preserves large box against stale shrink", () => {

@@ -76,7 +76,9 @@ export async function reconcileMonballsForCloudSave(kv, session, payload, starti
       Number.isFinite(catchTs) && (!Number.isFinite(saveTs) || catchTs >= saveTs);
     const catchSpentBelowClient =
       catchLeads && incoming > catchMonballs && (catchMonballs < existingMonballs || catchMonballs === 0);
-    if (catchSpentBelowClient) {
+    const bothPoolsAboveCatch =
+      incoming > catchMonballs && existingMonballs > catchMonballs;
+    if (catchSpentBelowClient || bothPoolsAboveCatch) {
       merged = catchMonballs;
     } else {
       const poolsDepleted = catchMonballs === 0 && existingMonballs === 0 && merged === 0;
