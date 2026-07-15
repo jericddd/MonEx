@@ -21,6 +21,31 @@ export function getPatrolScansRemaining(save) {
   return Math.max(0, PATROL_DAILY_MAX - used);
 }
 
+/** Ops compensation: increase remaining patrol attempts by reducing patrolScansUsed. */
+export function grantPatrolAttemptsOnSave(save, amount, now = Date.now()) {
+  const reset = applyPatrolDailyResetOnSave(save, now);
+  const beforeUsed = reset.patrolScansUsed || 0;
+  const beforeRemaining = getPatrolScansRemaining(reset);
+  const requested = Math.max(0, Math.floor(Number(amount) || 0));
+  const afterUsed = Math.max(0, beforeUsed - requested);
+  const granted = beforeUsed - afterUsed;
+  const nextSave = {
+    ...reset,
+    patrolScansUsed: afterUsed,
+    patrolScansDay: reset.patrolScansDay,
+  };
+  return {
+    save: nextSave,
+    beforeUsed,
+    afterUsed,
+    beforeRemaining,
+    afterRemaining: getPatrolScansRemaining(nextSave),
+    requested,
+    granted,
+    patrolDailyMax: PATROL_DAILY_MAX,
+  };
+}
+
 export function consumePatrolAttempt(save, now = Date.now()) {
   const reset = applyPatrolDailyResetOnSave(save, now);
   if (reset.patrolScansUsed >= PATROL_DAILY_MAX) {
