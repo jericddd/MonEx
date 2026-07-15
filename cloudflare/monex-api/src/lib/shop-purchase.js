@@ -73,6 +73,33 @@ function grantShopGearItems(save, gearGrant, qty) {
   };
 }
 
+/** Apply a shop purchase onto a save snapshot (used for initial buy and conflict retry). */
+export function applyShopPurchaseToSave(save, item, quantity) {
+  if (!item) return { ok: false, error: "invalid_item" };
+  const qty = Math.max(1, Math.min(MAX_SHOP_QTY, Math.floor(Number(quantity) || 1)));
+  const totalCost = multiplyShopCost(item.cost, qty);
+  if (!canAffordShopCost(save, totalCost)) {
+    return { ok: false, error: "insufficient_funds" };
+  }
+
+  let nextSave = spendShopCost(save, totalCost);
+  let grantedGear = [];
+
+  if (item.grant) {
+    nextSave = applyMatsGrant(nextSave, item.grant, qty);
+  } else if (item.gearGrant) {
+    const gearResult = grantShopGearItems(nextSave, item.gearGrant, qty);
+    nextSave = gearResult.save;
+    grantedGear = gearResult.grantedGear;
+    if (!grantedGear.length) return { ok: false, error: "gear_grant_failed" };
+  } else {
+    return { ok: false, error: "no_grant" };
+  }
+
+  nextSave.questState = bumpShopBuyQuestProgress(nextSave.questState, qty);
+  return { ok: true, save: nextSave, grantedGear, cost: totalCost, qty };
+}
+
 async function persistShopSave(kv, session, save, expectedRevision, startingMonballs, attempt = 0) {
   const now = Date.now();
   let payload = buildSavePayload(
@@ -85,12 +112,8 @@ async function persistShopSave(kv, session, save, expectedRevision, startingMonb
     const written = await writeCloudSave(kv, session.xUserId, payload, { expectedRevision });
     return { ok: true, save: written };
   } catch (err) {
-    if (err?.code === "revision_conflict" && attempt < MAX_CLAIM_RETRIES) {
-      const { save: latest } = await loadCloudSave(kv, session.xUserId);
-      return persistShopSave(kv, session, latest, latest.revision, startingMonballs, attempt + 1);
-    }
     if (err?.code === "revision_conflict") {
-      return { ok: false, error: "purchase_conflict", save: err.existingSave };
+      return { ok: false, error: "revision_conflict", existingSave: err.existingSave, currentRevision: err.currentRevision };
     }
     throw err;
   }
@@ -105,42 +128,58 @@ export async function purchaseShopItem(kv, session, { itemId, qty = 1, expectedR
   if (item.blocked) return { ok: false, error: "item_unavailable" };
 
   const quantity = Math.max(1, Math.min(MAX_SHOP_QTY, Math.floor(Number(qty) || 1)));
-  const totalCost = multiplyShopCost(item.cost, quantity);
+  let expectedRev =
+    expectedRevision != null && Number.isFinite(Number(expectedRevision))
+      ? Number(expectedRevision)
+      : null;
 
-  const { save } = await loadCloudSave(kv, session.xUserId);
-  if (!canAffordShopCost(save, totalCost)) {
-    return { ok: false, error: "insufficient_funds" };
-  }
-
-  let nextSave = spendShopCost(save, totalCost);
   let grantedGear = [];
+  let cost = null;
 
-  if (item.grant) {
-    nextSave = applyMatsGrant(nextSave, item.grant, quantity);
-  } else if (item.gearGrant) {
-    const gearResult = grantShopGearItems(nextSave, item.gearGrant, quantity);
-    nextSave = gearResult.save;
-    grantedGear = gearResult.grantedGear;
-    if (!grantedGear.length) return { ok: false, error: "gear_grant_failed" };
-  } else {
-    return { ok: false, error: "no_grant" };
+  for (let attempt = 0; attempt <= MAX_CLAIM_RETRIES; attempt++) {
+    const { save } = await loadCloudSave(kv, session.xUserId);
+    if (expectedRev == null) {
+      expectedRev = Number.isFinite(Number(save?.revision)) ? Number(save.revision) : 0;
+    }
+
+    const applied = applyShopPurchaseToSave(save, item, quantity);
+    if (!applied.ok) return applied;
+    grantedGear = applied.grantedGear;
+    cost = applied.cost;
+
+    const persisted = await persistShopSave(
+      kv,
+      session,
+      applied.save,
+      expectedRev,
+      startingMonballs,
+      attempt
+    );
+
+    if (persisted.ok) {
+      if (item.grant?.monballs) {
+        await creditCatchMonballs(kv, session, item.grant.monballs * quantity, startingMonballs, "shop_purchase");
+      }
+      return {
+        ok: true,
+        itemId: id,
+        qty: quantity,
+        cost,
+        grantedGear,
+        save: persisted.save,
+      };
+    }
+
+    if (persisted.error !== "revision_conflict" || attempt >= MAX_CLAIM_RETRIES) {
+      return {
+        ok: false,
+        error: "purchase_conflict",
+        save: persisted.existingSave,
+      };
+    }
+
+    expectedRev = persisted.currentRevision ?? persisted.existingSave?.revision ?? expectedRev;
   }
 
-  nextSave.questState = bumpShopBuyQuestProgress(nextSave.questState, quantity);
-
-  const result = await persistShopSave(kv, session, nextSave, expectedRevision, startingMonballs);
-  if (!result.ok) return result;
-
-  if (item.grant?.monballs) {
-    await creditCatchMonballs(kv, session, item.grant.monballs * quantity, startingMonballs, "shop_purchase");
-  }
-
-  return {
-    ok: true,
-    itemId: id,
-    qty: quantity,
-    cost: totalCost,
-    grantedGear,
-    save: result.save,
-  };
+  return { ok: false, error: "purchase_conflict" };
 }

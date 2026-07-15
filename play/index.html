@@ -10647,11 +10647,16 @@ function switchQuestTab(tab) {
 
 async function syncSaveBeforeAuthoritativeClaim() {
     if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return;
+    if (MonExAuth.cancelPendingCloudSave) MonExAuth.cancelPendingCloudSave();
     if (MonExAuth.awaitCloudSaveIdle) await MonExAuth.awaitCloudSaveIdle();
     saveData({ immediate: true });
     if (typeof flushSaveToCloud === "function") {
         await flushSaveToCloud();
     }
+}
+
+async function syncSaveBeforeGameplayMutation() {
+    return syncSaveBeforeAuthoritativeClaim();
 }
 
 async function advanceQuestTask(taskId, buttonEl) {
@@ -14357,6 +14362,10 @@ function unequipToInventory(mon, slot) {
     }
 }
 function equipGearOnMon(location, monIndex, gearId) {
+    void equipGearOnMonAsync(location, monIndex, gearId);
+}
+
+async function equipGearOnMonAsync(location, monIndex, gearId) {
     const list = getMonList(location);
     const mon = list[monIndex];
     if (!mon) return;
@@ -14372,14 +14381,23 @@ function equipGearOnMon(location, monIndex, gearId) {
         showHubNotice(`${meta ? meta.label + " gear" : "This gear"} can only be worn by that house's Monanimals.`, "Can't equip");
         return;
     }
-    gearInventory.splice(gi, 1);
-    const old = mon.equipment[gear.slot];
+    await syncSaveBeforeGameplayMutation();
+    const liveList = getMonList(location);
+    const liveMon = liveList[monIndex];
+    if (!liveMon) return;
+    const liveGi = gearInventory.findIndex(g => g.id === gearId);
+    if (liveGi < 0) return;
+    const liveGear = gearInventory[liveGi];
+    if (!canMonEquipGear(liveMon, liveGear)) return;
+    gearInventory.splice(liveGi, 1);
+    const old = liveMon.equipment[liveGear.slot];
     if (old) gearInventory.push(old);
-    mon.equipment[gear.slot] = gear;
-    refreshMonDerivedStats(mon);
-    mon.current_hp = Math.min(mon.max_hp, mon.current_hp);
+    liveMon.equipment[liveGear.slot] = liveGear;
+    refreshMonDerivedStats(liveMon);
+    liveMon.current_hp = Math.min(liveMon.max_hp, liveMon.current_hp);
     if (location === "party") bumpQuestProgress("gear_equip", 1);
-    saveData();
+    saveData({ immediate: true });
+    await persistProgress();
     updateUI();
 }
 function unequipGear(location, monIndex, slot) {
@@ -14605,6 +14623,10 @@ async function runArmoryForgeAction(workFn) {
         armoryForgeResultTimer = null;
     }
     renderArmoryPane();
+    if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
+        MonExAuth.cancelPendingCloudSave();
+    }
+    await syncSaveBeforeGameplayMutation();
     await new Promise((resolve) => setTimeout(resolve, ARMORY_FORGE_DURATION_MS));
     try {
         armoryForgeResult = workFn() || { ok: false, text: "Action failed." };
@@ -14612,7 +14634,8 @@ async function runArmoryForgeAction(workFn) {
         armoryForgeResult = { ok: false, text: String(err?.message || "Action failed.") };
     }
     armoryForgeBusy = false;
-    void persistProgress();
+    saveData({ immediate: true });
+    await persistProgress();
     updateUI();
     renderArmoryPane();
     renderInventory();
@@ -16263,15 +16286,38 @@ function buildLocalMonProgressIndex(localParty, localBox) {
     return map;
 }
 
+function mergeGearProgress(localGear, cloudGear) {
+    if (!localGear && !cloudGear) return null;
+    if (!localGear) return cloudGear;
+    if (!cloudGear) return localGear;
+    const localEnh = Math.floor(Number(localGear.enhanceLevel) || 0);
+    const cloudEnh = Math.floor(Number(cloudGear.enhanceLevel) || 0);
+    const base = localEnh >= cloudEnh ? { ...cloudGear, ...localGear } : { ...localGear, ...cloudGear };
+    base.enhanceLevel = Math.max(localEnh, cloudEnh);
+    return base;
+}
+
+function mergeMonEquipment(localMon, cloudMon) {
+    const equipment = {};
+    for (const slot of GEAR_SLOTS) {
+        const merged = mergeGearProgress(localMon?.equipment?.[slot], cloudMon?.equipment?.[slot]);
+        if (merged) equipment[slot] = merged;
+    }
+    return equipment;
+}
+
 function mergeMonStatProgress(localMon, cloudMon) {
     const localLevel = Math.floor(Number(localMon?.level) || 1);
     const cloudLevel = Math.floor(Number(cloudMon?.level) || 1);
-    if (localLevel <= cloudLevel) return cloudMon;
+    const level = Math.max(localLevel, cloudLevel);
+    const preferLocal = localLevel >= cloudLevel;
+    const base = preferLocal ? { ...cloudMon, ...localMon } : { ...localMon, ...cloudMon };
     return {
-        ...cloudMon,
-        ...localMon,
-        instanceId: cloudMon.instanceId || localMon.instanceId,
-        level: localLevel,
+        ...base,
+        instanceId: cloudMon?.instanceId || localMon?.instanceId,
+        wildPendingId: cloudMon?.wildPendingId || localMon?.wildPendingId,
+        level,
+        equipment: mergeMonEquipment(localMon, cloudMon),
     };
 }
 
@@ -16359,7 +16405,8 @@ function mergeInventoryWithMaxProgress(local, cloud) {
     const levelIndex = buildMonLevelIndexFromInventories(
         local?.party, local?.box, cloud?.party, cloud?.box
     );
-    return applyMonLevelIndexToInventories(comp.party, comp.box, levelIndex);
+    const leveled = applyMonLevelIndexToInventories(comp.party, comp.box, levelIndex);
+    return mergeMonProgressOntoInventories(leveled.party, leveled.box, local?.party, local?.box);
 }
 
 async function refreshMonballsFromServer() {
@@ -16565,13 +16612,20 @@ function mergeSaveSnapshots(local, cloud) {
     merged.mailbox = [...mailById.values()];
 
     const gearById = new Map();
-    const gearLists = localTs > cloudTs
-        ? [...(cloud.gearInventory || []), ...(local.gearInventory || [])]
-        : [...(local.gearInventory || []), ...(cloud.gearInventory || [])];
+    const gearLists = [...(local?.gearInventory || []), ...(cloud?.gearInventory || [])];
     gearLists.forEach((gear) => {
-        if (gear?.id) gearById.set(gear.id, gear);
+        if (!gear?.id) return;
+        const prev = gearById.get(gear.id);
+        gearById.set(gear.id, prev ? mergeGearProgress(prev, gear) : gear);
     });
-    merged.gearInventory = [...gearById.values()];
+    const equippedIds = new Set();
+    for (const mon of [...(merged.party || []), ...(merged.box || [])]) {
+        for (const slot of GEAR_SLOTS) {
+            const g = mon?.equipment?.[slot];
+            if (g?.id) equippedIds.add(g.id);
+        }
+    }
+    merged.gearInventory = [...gearById.values()].filter((g) => !equippedIds.has(g.id));
 
     const localGlobal = getGlobalAdventureProgress(local.currentChapter, local.currentStage);
     const cloudGlobal = getGlobalAdventureProgress(cloud.currentChapter, cloud.currentStage);
@@ -17584,9 +17638,7 @@ function levelUpMonManual(index, buttonEl) {
         ? (fn, opts) => MonExClaimGuard.runClaimOnce(`level-up:${index}`, fn, opts)
         : async (fn) => fn();
     return run(async () => {
-        if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
-            MonExAuth.cancelPendingCloudSave();
-        }
+        await syncSaveBeforeGameplayMutation();
         const live = party[index];
         if (!live) return;
         ensureMonReady(live);
@@ -17599,6 +17651,7 @@ function levelUpMonManual(index, buttonEl) {
         live.current_hp = live.max_hp;
         bumpQuestProgress("mon_level_up", 1);
         playLevelUpBurstFx(buttonEl || document.querySelector(`#party-grid .mon-card:nth-child(${index + 1})`));
+        saveData({ immediate: true });
         await persistProgress();
         updateUI();
     }, { button: buttonEl, loadingText: "..." });

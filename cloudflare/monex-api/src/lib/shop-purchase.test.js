@@ -117,3 +117,39 @@ test("purchaseShopItem grants gear to inventory", async () => {
   assert.equal(result.save.gearInventory.length, 1);
   assert.equal(result.save.gearInventory[0].slot, "weapon");
 });
+
+test("purchaseShopItem re-applies purchase after revision conflict", async () => {
+  const store = {
+    "monex:save:u1": JSON.stringify({
+      revision: 1,
+      money: 10000,
+      essence: 0,
+      party: [],
+      box: [],
+      gearInventory: [],
+      updatedAt: new Date().toISOString(),
+    }),
+    "monex:state": JSON.stringify({ processedTweetIds: [], users: {} }),
+  };
+  const kv = makeKv(store);
+
+  // Simulate another tab advancing revision without the purchase.
+  store["monex:save:u1"] = JSON.stringify({
+    ...JSON.parse(store["monex:save:u1"]),
+    revision: 2,
+    money: 9000,
+    updatedAt: new Date(Date.now() + 1000).toISOString(),
+  });
+
+  const result = await purchaseShopItem(
+    kv,
+    { xUserId: "u1", username: "trainer" },
+    { itemId: "shop_weapon_t1", qty: 1, expectedRevision: 1 },
+    10
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(result.save.revision, 3);
+  assert.equal(result.save.gearInventory.length, 1);
+  assert.equal(result.save.money, 5500);
+});
