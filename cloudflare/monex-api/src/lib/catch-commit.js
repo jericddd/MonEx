@@ -4,6 +4,7 @@ import { appendMonballAudit } from "./monball-audit.js";
 import { seedOrHydrateCloudSaveFromCatch, syncSaveMonballsAfterCatch } from "./save-reconcile.js";
 import { recoverMissingMonsFromActivity } from "./hydrate-save.js";
 import { loadCloudSave, writeCloudSave } from "./save.js";
+import { assignPersonalCatchLogRef } from "./personal-catch-log.js";
 import {
   buildCatchReceipt,
   loadCatchReceipt,
@@ -11,6 +12,26 @@ import {
   computeCatchReceiptStatus,
   enrichActivityWithReceipt,
 } from "./catch-receipt.js";
+
+async function ensurePersonalCatchLogRef(kv, catchUser, tweet, activity, receipt) {
+  const existing = Math.floor(Number(receipt?.personalLogNumber) || 0);
+  if (existing > 0) return existing;
+  const logNumber = await assignPersonalCatchLogRef(kv, catchUser, {
+    xUserId: tweet.authorId,
+    username: tweet.username,
+    tweetId: tweet.id,
+    activityId: activity.id,
+    catchId: receipt.catchId,
+    at: activity.at,
+    activity,
+    receipt,
+  });
+  if (logNumber > 0) {
+    receipt.personalLogNumber = logNumber;
+    activity.personalLogNumber = logNumber;
+  }
+  return logNumber;
+}
 
 /**
  * Server-authoritative catch commit: deliver Mons, write catch log, persist receipt.
@@ -62,6 +83,13 @@ export async function commitCatchTransaction(
     receipt.deliveryStatus = (activity.caughtCount || 0) > 0 ? "pending" : "delivered";
     receipt.completionStatus = "pending";
     receipt.spendApplied = false;
+
+    if (!existing?.catchLogStatus || existing.catchLogStatus !== "written") {
+      await ensurePersonalCatchLogRef(kv, catchUser, tweet, activity, receipt);
+    } else if (existing?.personalLogNumber) {
+      receipt.personalLogNumber = existing.personalLogNumber;
+      activity.personalLogNumber = existing.personalLogNumber;
+    }
 
     const activityEntry = enrichActivityWithReceipt(activity, receipt);
     if (!existing?.catchLogStatus || existing.catchLogStatus !== "written") {
@@ -145,6 +173,13 @@ export async function commitCatchTransaction(
     const { save: finalSave } = await loadCloudSave(kv, tweet.authorId);
     save = finalSave || save;
     receipt = computeCatchReceiptStatus(receipt, save, catchUser);
+
+    if (!existing?.catchLogStatus || existing.catchLogStatus !== "written") {
+      await ensurePersonalCatchLogRef(kv, catchUser, tweet, activity, receipt);
+    } else if (existing?.personalLogNumber) {
+      receipt.personalLogNumber = existing.personalLogNumber;
+      activity.personalLogNumber = existing.personalLogNumber;
+    }
 
     const activityEntry = enrichActivityWithReceipt(activity, receipt);
 

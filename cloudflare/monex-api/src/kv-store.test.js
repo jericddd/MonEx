@@ -5,8 +5,8 @@ import {
   lookupCatchUser,
   getPendingForSession,
   syncPendingForSession,
-  assignPersonalLogNumbers,
 } from "./kv-store.js";
+import { attachPersonalLogNumbers } from "./lib/personal-catch-log.js";
 
 function makeState(users = {}) {
   return { processedTweetIds: [], users };
@@ -144,10 +144,10 @@ describe("syncPendingForSession", () => {
   });
 });
 
-describe("assignPersonalLogNumbers", () => {
+describe("attachPersonalLogNumbers", () => {
   it("assigns highest number to newest entry and 1 to oldest", () => {
     const entries = [{ id: "new" }, { id: "mid" }, { id: "old-page" }];
-    const numbered = assignPersonalLogNumbers(entries, { total: 5, page: 1, limit: 3 });
+    const numbered = attachPersonalLogNumbers(entries, { total: 5, page: 1, limit: 3 });
     assert.equal(numbered[0].personalLogNumber, 5);
     assert.equal(numbered[1].personalLogNumber, 4);
     assert.equal(numbered[2].personalLogNumber, 3);
@@ -155,7 +155,7 @@ describe("assignPersonalLogNumbers", () => {
 
   it("continues numbering on later pages", () => {
     const entries = [{ id: "older" }, { id: "oldest" }];
-    const numbered = assignPersonalLogNumbers(entries, { total: 5, page: 2, limit: 3 });
+    const numbered = attachPersonalLogNumbers(entries, { total: 5, page: 2, limit: 3 });
     assert.equal(numbered[0].personalLogNumber, 2);
     assert.equal(numbered[1].personalLogNumber, 1);
   });

@@ -334,19 +334,6 @@ export async function listActivities(kv, { limit = 40, page = 1, username = null
   };
 }
 
-/** Personal catch log # — oldest session is 1, newest is total (newest-first feed). */
-export function assignPersonalLogNumbers(entries, { total, page = 1, limit } = {}) {
-  const rows = Array.isArray(entries) ? entries : [];
-  const count = Math.max(0, Math.floor(Number(total) || 0));
-  const safeLimit = Math.max(1, Math.floor(Number(limit) || rows.length || 1));
-  const safePage = Math.max(1, Math.floor(Number(page) || 1));
-  const offset = (safePage - 1) * safeLimit;
-  return rows.map((entry, index) => ({
-    ...entry,
-    personalLogNumber: Math.max(1, count - offset - index),
-  }));
-}
-
 export function makeActivityId() {
   return `act_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }

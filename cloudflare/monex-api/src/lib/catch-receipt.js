@@ -57,6 +57,10 @@ export function sanitizeCatchReceipt(raw) {
         ? raw.spendApplied === true
         : raw.spendApplied !== false,
     claimedAt: typeof raw.claimedAt === "string" ? raw.claimedAt : null,
+    personalLogNumber:
+      Math.floor(Number(raw.personalLogNumber) || 0) > 0
+        ? Math.floor(Number(raw.personalLogNumber))
+        : null,
     mons,
     at: typeof raw.at === "string" ? raw.at : new Date().toISOString(),
     updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : new Date().toISOString(),
@@ -207,6 +211,10 @@ export function enrichActivityWithReceipt(activity, receipt) {
     catchId: receipt.catchId,
     claimModel: receipt.claimModel,
     spendApplied: receipt.spendApplied,
+    personalLogNumber:
+      Math.floor(Number(activity.personalLogNumber) || 0) > 0
+        ? Math.floor(Number(activity.personalLogNumber))
+        : receipt.personalLogNumber,
     deliveryStatus: receipt.deliveryStatus,
     completionStatus: receipt.completionStatus,
     claimable,

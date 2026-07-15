@@ -3,7 +3,6 @@ import { parseMention } from "./lib/parse-mention.js";
 import {
   appendActivity,
   listActivities,
-  assignPersonalLogNumbers,
   getPollSinceId,
   setPollSinceId,
   clearPollSinceId,
@@ -80,7 +79,8 @@ import {
   normalizeSessionOpenedAt,
 } from "./lib/game-session.js";
 import { commitCatchTransaction, retryPendingCatchDeliveries } from "./lib/catch-commit.js";
-import { claimCatchFromLog, enrichActivityEntriesWithReceipts } from "./lib/catch-claim.js";
+import { enrichActivityEntriesWithReceipts } from "./lib/catch-claim.js";
+import { attachPersonalLogNumbers } from "./lib/personal-catch-log.js";
 import { getWalletMonballs } from "./lib/monball-wallet.js";
 import {
   buildCorsHeaders,
@@ -927,7 +927,7 @@ async function handleRequest(request, env) {
       const page = parseBoundedInt(url.searchParams.get("page"), { fallback: 1, min: 1, max: 9999 });
       const result = await listActivities(env.MONEX_KV, { limit, page, username, successOnly: true });
       const enriched = await enrichActivityEntriesWithReceipts(env.MONEX_KV, result.entries || []);
-      const entries = assignPersonalLogNumbers(enriched, {
+      const entries = attachPersonalLogNumbers(enriched, {
         total: result.total,
         page: result.page,
         limit: result.limit,
