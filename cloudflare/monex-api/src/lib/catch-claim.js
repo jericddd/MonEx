@@ -8,8 +8,7 @@ import {
   markMonsDeliveredFromSave,
 } from "./catch-receipt.js";
 import { backfillPendingForCatchUser, getWildPendingIds, pendingMonToSaveMon } from "./backfill-pending.js";
-import { debitWalletMonballs, getWalletMonballs } from "./monball-wallet.js";
-import { appendMonballAudit } from "./monball-audit.js";
+import { getWalletMonballs } from "./monball-wallet.js";
 
 const MAX_CLAIM_RETRIES = 4;
 const claimLocks = globalThis.__monexCatchClaimLocks || (globalThis.__monexCatchClaimLocks = new Map());
@@ -49,10 +48,19 @@ function mergeUndeliveredPending(catchUser, receipt, save) {
   const merged = [...(catchUser?.pendingMons || [])];
   for (const row of pendingRowsFromReceipt(receipt)) {
     if (!row.pendingId || delivered.has(row.pendingId) || existing.has(row.pendingId)) continue;
-    merged.push(row);
+    merged.push({ ...row, awaitingProfileClaim: false });
     existing.add(row.pendingId);
   }
   return merged;
+}
+
+function releaseClaimGatedMons(catchUser, receipt) {
+  const ids = new Set((receipt?.mons || []).map((m) => m.pendingId).filter(Boolean));
+  if (!ids.size || !catchUser?.pendingMons?.length) return;
+  for (const mon of catchUser.pendingMons) {
+    if (ids.has(mon.pendingId)) mon.awaitingProfileClaim = false;
+  }
+  catchUser.updatedAt = new Date().toISOString();
 }
 
 async function persistClaimSave(kv, session, save, expectedRevision, attempt = 0) {
@@ -79,8 +87,7 @@ async function persistClaimSave(kv, session, save, expectedRevision, attempt = 0
 
 /**
  * Claim a catch session from the profile / activity log.
- * Deferred model: spend + deliver on claim.
- * Legacy model: spend already applied at tweet — deliver only, idempotent if already done.
+ * Spend is applied at catch-log commit time; claim dispatches mons to party/box only.
  */
 export async function claimCatchFromLog(
   kv,
@@ -122,39 +129,11 @@ export async function claimCatchFromLog(
     }
 
     const spend = Math.max(0, Math.floor(Number(receipt.spend) || 0));
-    let monballs = await getWalletMonballs(kv, session.xUserId, session.username, startingMonballs);
-
-    if (deferred && !receipt.spendApplied) {
-      const debit = await debitWalletMonballs(kv, session, spend, startingMonballs, {
-        source: "catch_claim_spend",
-        meta: { tweetId: id, catchId: receipt.catchId },
-      });
-      if (!debit.ok) {
-        return {
-          ok: false,
-          error: debit.error || "insufficient_monballs",
-          monballs,
-          required: spend,
-        };
-      }
-      save = debit.save || save;
-      monballs = debit.after;
-      receipt.spendApplied = true;
-      // Persist spend immediately so a failed delivery/persist retry cannot double-debit.
-      await saveCatchReceipt(kv, receipt);
-    } else if (!deferred && spend > 0) {
-      await appendMonballAudit(kv, {
-        xUserId: session.xUserId,
-        username: session.username,
-        source: "catch_claim_legacy",
-        delta: 0,
-        balanceAfter: monballs,
-        meta: { tweetId: id, catchId: receipt.catchId, note: "spend_already_at_tweet" },
-      });
-    }
+    const monballs = await getWalletMonballs(kv, session.xUserId, session.username, startingMonballs);
 
     const catchUser = await resolveCatchUserKv(kv, session.xUserId, session.username, startingMonballs);
     catchUser.pendingMons = mergeUndeliveredPending(catchUser, receipt, save);
+    releaseClaimGatedMons(catchUser, receipt);
 
     const effectivePartyCount = partyCount ?? save?.party?.length ?? 0;
     const effectiveBoxCount = boxCount ?? save?.box?.length ?? 0;
@@ -206,7 +185,7 @@ export async function claimCatchFromLog(
       {
         tweetId: id,
         spend,
-        monballsLeft: deferred ? Math.max(0, monballs) : receipt.monballsLeft,
+        monballsLeft: receipt.monballsLeft ?? monballs,
         mons: receipt.mons,
       },
       receipt

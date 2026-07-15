@@ -1,5 +1,5 @@
 /**
- * Profile catch-log claim API (deferred spend + delivery).
+ * Profile catch-log claim API (dispatch staged mons to party/box; spend already applied at catch log).
  */
 (function () {
   function apiBase() {

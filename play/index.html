@@ -18043,9 +18043,7 @@ async function claimProfileCatch(tweetId, buttonEl) {
             }
 
             if (!result.ok) {
-                const msg = result.error === "insufficient_monballs"
-                    ? "Not enough Monballs to claim this catch. Check your balance and try again."
-                    : result.error === "catch_not_found"
+                const msg = result.error === "catch_not_found"
                         ? "Catch session not found. Refresh your log and try again."
                         : result.error === "claim_conflict"
                             ? "Save conflict while claiming. Refresh and try again."

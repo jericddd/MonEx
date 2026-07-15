@@ -934,7 +934,7 @@ function formatActivityEntryHtml(entry, opts = {}) {
         if (entry.claimable || entry.completionStatus === "pending") {
             claimRow = `<div class="profile-activity-claim-row">
                 <button type="button" class="profile-claim-btn" data-catch-tweet-id="${tweetId}" onclick="event.stopPropagation(); claimProfileCatch(this.getAttribute('data-catch-tweet-id'), this)">CLAIM</button>
-                <span class="profile-activity-pending">Tap to claim Monballs + mons</span>
+                <span class="profile-activity-pending">Tap to send mons to your Party / Box</span>
             </div>`;
         } else if (entry.claimed || entry.completionStatus === "completed") {
             claimRow = `<div class="profile-activity-claim-row"><span class="profile-activity-claimed">CLAIMED</span></div>`;
