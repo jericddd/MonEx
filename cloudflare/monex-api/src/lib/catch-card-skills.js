@@ -51,6 +51,26 @@ const SKILL_ICON_MAP = {
   "Emerald Ward": "emerald-ward.png",
   "Iron Will": "iron-will.png",
   "Mystic Sigil": "mystic-sigil.png",
+  "Eagle Eye": "eagle-eye.png",
+  "Piercing Gaze": "piercing-gaze.png",
+  "Swift Feet": "swift-feet.png",
+  "Apex Roar": "montiger.png",
+  "Void Pulse": "monavara.png",
+  "Crimson Spur": "moncock.png",
+  "Venom Bloom": "larvanad.png",
+  "Frost Nova": "molandak.png",
+  "Mind Crush": "mokadal.png",
+  "Abyssal Coil": "anago.png",
+  "Seismic Shell": "pampam.png",
+  "Croak Quake": "chog.png",
+  "Bubble Barrage": "shramp.png",
+  "Gale Stampede": "lyraffe.png",
+  "Static Swarm": "mouch.png",
+  "Shock Nova": "monhorse.png",
+  "Tidal Crash": "salmonad.png",
+  "Flame Geyser": "moyaki.png",
+  "Web Cataclysm": "spidermon.png",
+  "Blood Moon": "mosferatu.png",
 };
 
 const SKILL_NAME_KEYS = Object.keys(SKILL_ICON_MAP);
@@ -67,10 +87,11 @@ function resolveSkillName(name) {
 }
 
 export function getSkillIconPath(skill) {
-  if (!skill || skill.type === "ultimate") return null;
+  if (!skill) return null;
   const name = resolveSkillName(skill.name);
   const mapped = SKILL_ICON_MAP[name];
   if (mapped) return `${SKILL_ICON_DIR}${mapped}`;
+  if (skill.type === "ultimate") return null;
   if (skill.type === "passive") return `${SKILL_ICON_DIR}tough-hide.png`;
   return `${SKILL_ICON_DIR}slash.png`;
 }
@@ -97,17 +118,16 @@ export async function fetchSkillTiles(skills, frontendOrigin) {
 
   for (const skill of list) {
     const fill = getSkillSquareFill(skill);
-    if (skill.type === "ultimate") {
-      tiles.push({ fill, label: "★" });
-      continue;
-    }
     const path = getSkillIconPath(skill);
     try {
       const iconDataUri = await fetchDataUri(origin, path);
       tiles.push({ fill, iconDataUri });
     } catch {
-      const label =
-        skill.type === "passive" ? "P" : String(skill.name || "??").slice(0, 2).toUpperCase();
+      const label = skill.type === "ultimate"
+        ? "★"
+        : skill.type === "passive"
+          ? "P"
+          : String(skill.name || "??").slice(0, 2).toUpperCase();
       tiles.push({ fill, label });
     }
   }

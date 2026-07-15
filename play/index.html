@@ -8464,7 +8464,24 @@ const SKILL_ICON_MAP = {
     "Mystic Sigil": "mystic-sigil.png",
     "Eagle Eye": "eagle-eye.png",
     "Piercing Gaze": "piercing-gaze.png",
-    "Swift Feet": "swift-feet.png"
+    "Swift Feet": "swift-feet.png",
+    "Apex Roar": "montiger.png",
+    "Void Pulse": "monavara.png",
+    "Crimson Spur": "moncock.png",
+    "Venom Bloom": "larvanad.png",
+    "Frost Nova": "molandak.png",
+    "Mind Crush": "mokadal.png",
+    "Abyssal Coil": "anago.png",
+    "Seismic Shell": "pampam.png",
+    "Croak Quake": "chog.png",
+    "Bubble Barrage": "shramp.png",
+    "Gale Stampede": "lyraffe.png",
+    "Static Swarm": "mouch.png",
+    "Shock Nova": "monhorse.png",
+    "Tidal Crash": "salmonad.png",
+    "Flame Geyser": "moyaki.png",
+    "Web Cataclysm": "spidermon.png",
+    "Blood Moon": "mosferatu.png",
 };
 
 const SKILL_ELEMENT_ICON_FALLBACK = {
@@ -8483,9 +8500,10 @@ const SKILL_ELEMENT_ICON_FALLBACK = {
 };
 
 function getSkillIconPath(skill) {
-    if (!skill || skill.type === "ultimate") return null;
+    if (!skill) return null;
     const mapped = SKILL_ICON_MAP[skill.name];
     if (mapped) return SKILL_ICON_DIR + mapped;
+    if (skill.type === "ultimate") return null;
     const elem = skill.element && skill.element !== "passive" ? skill.element : null;
     if (skill.type === "passive") return SKILL_ICON_DIR + SKILL_ELEMENT_ICON_FALLBACK.passive;
     if (elem && SKILL_ELEMENT_ICON_FALLBACK[elem]) return SKILL_ICON_DIR + SKILL_ELEMENT_ICON_FALLBACK[elem];
@@ -12235,12 +12253,12 @@ function getSkillSquareClass(skill, index) {
 }
 
 function getSkillIconFallbackText(skill) {
+    if (skill.type === "ultimate") return "\u2605";
     if (skill.type === "passive") return "P";
     return skill.name.substring(0, 2).toUpperCase();
 }
 
 function getSkillIcon(skill) {
-    if (skill.type === "ultimate") return '<span class="skill-icon-fallback">\u2605</span>';
     const path = getSkillIconPath(skill);
     const fb = getSkillIconFallbackText(skill);
     if (!path) return `<span class="skill-icon-fallback">${fb}</span>`;
@@ -19281,12 +19299,13 @@ function renderTeam(side, team, curIdx) {
 }
 
 function getSkillBodyFxHtml(skill) {
-    if (!skill || skill.type === "ultimate") {
-        return '<span class="fx-skill-fallback fx-skill-ult">\u2605</span>';
-    }
+    if (!skill) return '<span class="fx-skill-fallback fx-skill-ult">\u2605</span>';
     const path = getSkillIconPath(skill);
     const fb = getSkillIconFallbackText(skill);
-    if (!path) return `<span class="fx-skill-fallback">${fb}</span>`;
+    if (!path) {
+        const cls = skill.type === "ultimate" ? "fx-skill-fallback fx-skill-ult" : "fx-skill-fallback";
+        return `<span class="${cls}">${fb}</span>`;
+    }
     return `<img class="fx-skill-icon" src="${path}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fx-skill-fallback',textContent:'${fb}'}))">`;
 }
 

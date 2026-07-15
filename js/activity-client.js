@@ -658,6 +658,23 @@ const ACTIVITY_SKILL_ICON_MAP = {
     "Eagle Eye": "eagle-eye.png",
     "Piercing Gaze": "piercing-gaze.png",
     "Swift Feet": "swift-feet.png",
+    "Apex Roar": "montiger.png",
+    "Void Pulse": "monavara.png",
+    "Crimson Spur": "moncock.png",
+    "Venom Bloom": "larvanad.png",
+    "Frost Nova": "molandak.png",
+    "Mind Crush": "mokadal.png",
+    "Abyssal Coil": "anago.png",
+    "Seismic Shell": "pampam.png",
+    "Croak Quake": "chog.png",
+    "Bubble Barrage": "shramp.png",
+    "Gale Stampede": "lyraffe.png",
+    "Static Swarm": "mouch.png",
+    "Shock Nova": "monhorse.png",
+    "Tidal Crash": "salmonad.png",
+    "Flame Geyser": "moyaki.png",
+    "Web Cataclysm": "spidermon.png",
+    "Blood Moon": "mosferatu.png",
 };
 const ACTIVITY_SKILL_NAME_KEYS = Object.keys(ACTIVITY_SKILL_ICON_MAP);
 
@@ -688,9 +705,10 @@ function parseActivitySkillObjects(skillsStr) {
 }
 
 function getActivitySkillIconPath(skill) {
-    if (!skill || skill.type === "ultimate") return null;
+    if (!skill) return null;
     const mapped = ACTIVITY_SKILL_ICON_MAP[skill.name];
     if (mapped) return ACTIVITY_SKILL_ICON_DIR + mapped;
+    if (skill.type === "ultimate") return null;
     if (skill.type === "passive") return ACTIVITY_SKILL_ICON_DIR + "tough-hide.png";
     return ACTIVITY_SKILL_ICON_DIR + "slash.png";
 }
@@ -702,9 +720,8 @@ function getActivitySkillSquareClass(skill) {
 }
 
 function renderActivitySkillIcon(skill) {
-    if (skill.type === "ultimate") return '<span class="skill-icon-fallback">★</span>';
     const path = getActivitySkillIconPath(skill);
-    const fb = skill.type === "passive" ? "P" : skill.name.substring(0, 2).toUpperCase();
+    const fb = skill.type === "ultimate" ? "★" : skill.type === "passive" ? "P" : skill.name.substring(0, 2).toUpperCase();
     if (!path) return `<span class="skill-icon-fallback">${escapeActivityHtml(fb)}</span>`;
     const fbEsc = escapeActivityHtml(fb);
     return `<img class="skill-icon-img" src="${escapeActivityHtml(path)}" alt="" onerror="this.outerHTML='<span class=\\'skill-icon-fallback\\'>${fbEsc}</span>'">`;
