@@ -14991,6 +14991,7 @@ function tryApplySkillEffect(atk, def, skill) {
     if (skill.effect.type === "stun") {
         addStatus(def, { id: "stun" });
     } else if (skill.effect.type === "frozen") {
+        if (isFrozen(atk) || isFrozen(def)) return;
         addStatus(def, { id: "frozen", applierId: atk.battleId });
     } else if (skill.effect.type === "poison") {
         addStatus(def, { id: "poison" });
@@ -19541,6 +19542,15 @@ function showSkillCallout(side, skillOrLabel, options = {}) {
     if (!el) return;
     const isUlt = options.isUlt || (skillOrLabel?.type === "ultimate");
     const isStatus = !!options.status;
+    if (isStatus || options.hideOther) {
+        const otherSide = side === "player" ? "enemy" : "player";
+        const otherEl = document.getElementById("skill-callout-" + otherSide);
+        if (otherEl) {
+            clearTimeout(otherEl._hideTimer);
+            otherEl.className = "fighter-skill-callout";
+            otherEl.setAttribute("aria-hidden", "true");
+        }
+    }
     el.innerHTML = typeof skillOrLabel === "string"
         ? `<span class="skill-callout-name">${skillOrLabel}</span>`
         : getSkillCalloutHtml(skillOrLabel, isUlt);
@@ -19548,8 +19558,12 @@ function showSkillCallout(side, skillOrLabel, options = {}) {
     if (isUlt) cls += " ult";
     if (isStatus) cls += " status" + (options.block ? " block-status" : "");
     el.className = cls;
+    el.setAttribute("aria-hidden", "false");
     clearTimeout(el._hideTimer);
-    el._hideTimer = setTimeout(() => { el.className = "fighter-skill-callout"; }, options.duration || 900);
+    el._hideTimer = setTimeout(() => {
+        el.className = "fighter-skill-callout";
+        el.setAttribute("aria-hidden", "true");
+    }, options.duration || 900);
 }
 
 function hideSkillCallouts() {
@@ -19721,7 +19735,9 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
     }
 
     let skill, isUlt = false;
-    if (!atk.ultimateUsed && rollUltimateTrigger(atk)) {
+    if (isFrozen(atk)) {
+        skill = pickBattleSkill(atk);
+    } else if (!atk.ultimateUsed && rollUltimateTrigger(atk)) {
         skill = atk.ultimate;
         isUlt = true;
     } else {
@@ -19732,6 +19748,9 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         showSkillCallout(atkSide, "FROZEN!", { status: true });
         renderStatusRow(atkSide, atk);
         await delay(450);
+        removeStatus(atk, "frozen");
+        renderStatusRow(atkSide, atk);
+        tickStatusDurations(atk);
         return;
     }
 
