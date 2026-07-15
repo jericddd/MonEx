@@ -10954,6 +10954,10 @@ const SALMONAD_SWING_SPRITES = [
     "128x128/salmonad-swing1.gif",
     "128x128/salmonad-swing2.gif"
 ];
+const MONIGGA_SWING_SPRITES = [
+    "128x128/monigga-swing1.gif",
+    "128x128/monigga-swing2.gif"
+];
 const LARVANAD_SWING_SPRITE = "128x128/larvanad-swing1.gif";
 const PAMPAM_SWING_SPRITE = "128x128/pampam-swing1.gif";
 const CHOG_SWING_SPRITES = [
@@ -10981,6 +10985,10 @@ function isSalmonad(name) {
     return String(name || "").toLowerCase() === "salmonad";
 }
 
+function isMonigga(name) {
+    return getSpeciesSpriteKey(name) === "monigga";
+}
+
 function isLarvanad(name) {
     return String(name || "").toLowerCase() === "larvanad";
 }
@@ -11001,6 +11009,10 @@ function pickSalmonadSwingSprite() {
     return SALMONAD_SWING_SPRITES[Math.floor(Math.random() * SALMONAD_SWING_SPRITES.length)];
 }
 
+function pickMoniggaSwingSprite() {
+    return MONIGGA_SWING_SPRITES[Math.floor(Math.random() * MONIGGA_SWING_SPRITES.length)];
+}
+
 function pickChogSwingSprite() {
     return CHOG_SWING_SPRITES[Math.floor(Math.random() * CHOG_SWING_SPRITES.length)];
 }
@@ -11015,7 +11027,8 @@ const ATTACK_SPRITE_DURATION_MS = {
     Johnw: 1920,
     Anago: 1920,
     Moncock: 1920,
-    Salmonad: 1920
+    Salmonad: 1920,
+    Monigga: 1920
 };
 
 // Per-swing GIF impact timing (ms from first painted frame after replay).
@@ -11029,6 +11042,8 @@ const BATTLE_ATTACK_HIT_AT_MS = {
     "128x128/moncock-swing2.gif": 1080,
     "128x128/salmonad-swing1.gif": 1080,
     "128x128/salmonad-swing2.gif": 1200,
+    "128x128/monigga-swing1.gif": 1080,
+    "128x128/monigga-swing2.gif": 1080,
     "128x128/johnw-swing1.gif": 960
 };
 
@@ -11039,7 +11054,8 @@ const ATTACK_HIT_AT_MS = {
     Johnw: 960,
     Anago: 1080,
     Moncock: 1080,
-    Salmonad: 1080
+    Salmonad: 1080,
+    Monigga: 1080
 };
 
 // Full measured GIF loop lengths for main-scene idle fighting (ffprobe).
@@ -11063,6 +11079,9 @@ const SCENE_SPRITE_DURATION_MS = {
     "128x128/slamonad-idle.gif": 1200,
     "128x128/salmonad-swing1.gif": 1920,
     "128x128/salmonad-swing2.gif": 1680,
+    "128x128/monigga-idle.gif": 1200,
+    "128x128/monigga-swing1.gif": 1080,
+    "128x128/monigga-swing2.gif": 1800,
     "128x128/larvanad-swing1.gif": 1920,
     "128x128/pampam-swing1.gif": 1920
 };
@@ -11118,6 +11137,7 @@ function getAttackSpritePath(name) {
     if (isAnago(name)) return pickAnagoSwingSprite();
     if (isMoncock(name)) return pickMoncockSwingSprite();
     if (isSalmonad(name)) return pickSalmonadSwingSprite();
+    if (isMonigga(name)) return pickMoniggaSwingSprite();
     if (isLarvanad(name)) return LARVANAD_SWING_SPRITE;
     if (isPampam(name)) return PAMPAM_SWING_SPRITE;
     if (isChog(name)) return pickChogSwingSprite();
@@ -11161,6 +11181,7 @@ function listAttackAssetUrlsForMon(name) {
     else if (isAnago(n)) ANAGO_SWING_SPRITES.forEach((u) => urls.add(u));
     else if (isMoncock(n)) MONCOCK_SWING_SPRITES.forEach((u) => urls.add(u));
     else if (isSalmonad(n)) SALMONAD_SWING_SPRITES.forEach((u) => urls.add(u));
+    else if (isMonigga(n)) MONIGGA_SWING_SPRITES.forEach((u) => urls.add(u));
     else if (isLarvanad(n)) urls.add(LARVANAD_SWING_SPRITE);
     else if (isPampam(n)) urls.add(PAMPAM_SWING_SPRITE);
     else if (isChog(n)) CHOG_SWING_SPRITES.forEach((u) => urls.add(u));
