@@ -125,10 +125,16 @@ export function markMonsDeliveredFromSave(receipt, save) {
     const id = mon?.wildPendingId || mon?.pendingId;
     if (id) partyIds.set(String(id), "box");
   }
-  const mons = (receipt.mons || []).map((row) => {
+  const mons = (receipt.mons || []).map((row, index) => {
     const dest = partyIds.get(row.pendingId);
-    if (!dest) return row;
-    return { ...row, delivered: true, destination: dest };
+    if (dest) return { ...row, delivered: true, destination: dest };
+    const activityKey = receipt.activityId || receipt.tweetId;
+    if (activityKey) {
+      const recoveryId = `recovery_${activityKey}_${index}`;
+      const recoveryDest = partyIds.get(recoveryId);
+      if (recoveryDest) return { ...row, delivered: true, destination: recoveryDest };
+    }
+    return { ...row, delivered: false, destination: null };
   });
   return { ...receipt, mons };
 }

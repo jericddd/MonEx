@@ -9586,6 +9586,20 @@ function saveWouldRestoreReleasedMon(save) {
     return false;
 }
 
+/** Drop released mons from a server sync payload so new catches still apply. */
+function filterReleasedMonsFromIncomingSave(save) {
+    if (!save || typeof save !== "object") return save;
+    const released = getLocalReleasedRecoveryIdSet();
+    if (!released.size) return save;
+    const keepMon = (mon) => !monPersistenceKeys(mon).some((key) => released.has(key));
+    const party = (save.party || []).filter(keepMon);
+    const box = (save.box || []).filter(keepMon);
+    if (party.length === (save.party || []).length && box.length === (save.box || []).length) {
+        return save;
+    }
+    return { ...save, party, box };
+}
+
 function debugReleaseLog(event, detail = {}) {
     if (!window.MONEX_DEBUG_RELEASE && !window.MONEX_DEBUG_SAVE) return;
     const rev = typeof MonExAuth !== "undefined" && MonExAuth.getSaveRevision
@@ -17761,21 +17775,15 @@ async function syncXWildMons(silent) {
                         debugReleaseLog("sync response ignored", { reason: "release_in_flight" });
                         break;
                     }
-                    if (saveWouldRestoreReleasedMon(data.save)) {
-                        debugReleaseLog("stale response ignored", {
-                            reason: "would_restore_released_mon",
-                            syncResponseRevision: data.save.revision ?? null,
-                        });
-                        break;
-                    }
+                    let syncSave = filterReleasedMonsFromIncomingSave(data.save);
                     const beforeCount = party.length + box.length;
                     const revBefore = typeof MonExAuth !== "undefined" && MonExAuth.getSaveRevision
                         ? MonExAuth.getSaveRevision()
                         : null;
-                    applyLoadedSave(data.save);
-                    writeLocalSave(data.save);
+                    applyLoadedSave(syncSave);
+                    writeLocalSave(buildSavePayload());
                     debugReleaseLog("sync response applied", {
-                        syncResponseRevision: data.save.revision ?? null,
+                        syncResponseRevision: syncSave.revision ?? null,
                         priorRevision: revBefore,
                     });
                     added = Math.max(Number(data.added) || 0, party.length + box.length - beforeCount);

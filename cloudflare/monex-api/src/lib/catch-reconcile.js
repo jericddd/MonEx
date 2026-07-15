@@ -1,9 +1,62 @@
 import { getWildPendingIds } from "./backfill-pending.js";
 import { loadCatchReceipt, saveCatchReceipt, computeCatchReceiptStatus } from "./catch-receipt.js";
 import { retryPendingCatchDeliveries } from "./catch-commit.js";
-import { loadCloudSave } from "./save.js";
+import { loadCloudSave, writeCloudSave } from "./save.js";
 import { resolveCatchUserKv } from "./catch-user-store.js";
 import { filterActivityEntries, recoverActivityCatchesForUser } from "./recover-activity-catches.js";
+
+function inventoryHasCatchMon(save, { pendingId, activityId, index, name }) {
+  const deliveredIds = getWildPendingIds(save || {});
+  if (pendingId && deliveredIds.has(pendingId)) return true;
+  if (activityId != null && index != null) {
+    const recoveryId = `recovery_${activityId}_${index}`;
+    if (deliveredIds.has(recoveryId)) return true;
+  }
+  for (const mon of [...(save?.party || []), ...(save?.box || [])]) {
+    if (pendingId && (mon.wildPendingId === pendingId || mon.pendingId === pendingId)) return true;
+    if (activityId != null && index != null && mon.wildPendingId === `recovery_${activityId}_${index}`) {
+      return true;
+    }
+    if (name && mon.name === name && activityId && String(mon.wildPendingId || "").includes(String(activityId))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Align recovery_* wildPendingIds to canonical p_* ids from the activity log when both refer to the same slot. */
+export function alignCatchPendingIdsInSave(save, activityEntries, username) {
+  if (!save || typeof save !== "object") return { save, changed: false, aligned: 0 };
+  const activities = filterActivityEntries(activityEntries, username, { caseSensitive: false })
+    .filter((e) => e.status === "success" && (e.caughtCount || 0) > 0);
+
+  let changed = false;
+  let aligned = 0;
+  const patchMon = (mon) => {
+    if (!mon?.wildPendingId || !String(mon.wildPendingId).startsWith("recovery_")) return mon;
+    const match = String(mon.wildPendingId).match(/^recovery_(.+)_(\d+)$/);
+    if (!match) return mon;
+    const activityKey = match[1];
+    const index = Number(match[2]);
+    const entry = activities.find((e) => e.id === activityKey || e.tweetId === activityKey);
+    const pendingId = entry?.mons?.[index]?.pendingId;
+    if (!pendingId || pendingId === mon.wildPendingId) return mon;
+    changed = true;
+    aligned += 1;
+    const next = { ...mon, wildPendingId: pendingId };
+    if (next.instanceId && String(next.instanceId).startsWith("recovery_")) {
+      next.instanceId = pendingId;
+    }
+    return next;
+  };
+
+  const nextSave = {
+    ...save,
+    party: (save.party || []).map(patchMon),
+    box: (save.box || []).map(patchMon),
+  };
+  return { save: nextSave, changed, aligned };
+}
 
 export function auditCatchSyncForUser({ username, save, catchUser, activityEntries = [] }) {
   const issues = [];
@@ -20,7 +73,7 @@ export function auditCatchSyncForUser({ username, save, catchUser, activityEntri
 
   for (const entry of userActivities) {
     const mons = Array.isArray(entry.mons) ? entry.mons : [];
-    for (const mon of mons) {
+    mons.forEach((mon, index) => {
       const pendingId = mon?.pendingId;
       if (!pendingId) {
         issues.push({
@@ -29,9 +82,17 @@ export function auditCatchSyncForUser({ username, save, catchUser, activityEntri
           activityId: entry.id,
           name: mon?.name,
         });
-        continue;
+        return;
       }
-      if (!deliveredIds.has(pendingId) && !pendingIds.has(pendingId)) {
+      if (
+        !inventoryHasCatchMon(save, {
+          pendingId,
+          activityId: entry.id || entry.tweetId,
+          index,
+          name: mon?.name,
+        }) &&
+        !pendingIds.has(pendingId)
+      ) {
         issues.push({
           type: "log_without_inventory",
           tweetId: entry.tweetId,
@@ -40,7 +101,7 @@ export function auditCatchSyncForUser({ username, save, catchUser, activityEntri
           name: mon?.name,
         });
       }
-    }
+    });
   }
 
   for (const id of deliveredIds) {
@@ -109,7 +170,12 @@ export async function repairCatchSyncForUser(
 
   if (recovery.added?.length) {
     save = recovery.save;
-    const { writeCloudSave } = await import("./save.js");
+    await writeCloudSave(kv, xUserId, save, { skipStaleCheck: true });
+  }
+
+  const aligned = alignCatchPendingIdsInSave(save, activityEntries, username);
+  if (aligned.changed) {
+    save = aligned.save;
     await writeCloudSave(kv, xUserId, save, { skipStaleCheck: true });
   }
 

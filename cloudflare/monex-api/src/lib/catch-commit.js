@@ -80,21 +80,23 @@ export async function commitCatchTransaction(
     save = hydrated.save || null;
 
     if (save) {
-      const recovered = await recoverMissingMonsFromActivity(
-        kv,
-        tweet.authorId,
-        tweet.username,
-        save,
-        startingMonballs
-      );
-      if (recovered.recovered) {
-        save = recovered.save;
-        deliveryAdded += recovered.added?.length || 0;
-      } else if (hydrated.hydrated) {
+      if (hydrated.hydrated && (hydrated.added || 0) > 0) {
         deliveryAdded += hydrated.added || 0;
         deliveryRemaining = hydrated.remaining ?? deliveryRemaining;
         const { save: latest } = await loadCloudSave(kv, tweet.authorId);
         save = latest;
+      } else {
+        const recovered = await recoverMissingMonsFromActivity(
+          kv,
+          tweet.authorId,
+          tweet.username,
+          save,
+          startingMonballs
+        );
+        if (recovered.recovered) {
+          save = recovered.save;
+          deliveryAdded += recovered.added?.length || 0;
+        }
       }
     }
 

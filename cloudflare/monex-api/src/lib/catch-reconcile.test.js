@@ -43,3 +43,25 @@ test("auditCatchSyncForUser passes when pendingId is in party", () => {
   });
   assert.equal(report.issueCount, 0);
 });
+
+test("auditCatchSyncForUser passes when recovery alias is in box", () => {
+  const report = auditCatchSyncForUser({
+    username: "trainer",
+    save: {
+      party: [],
+      box: [{ name: "Chog", wildPendingId: "recovery_act1_0" }],
+    },
+    catchUser: { pendingMons: [] },
+    activityEntries: [
+      {
+        id: "act1",
+        tweetId: "tw1",
+        xUsername: "trainer",
+        status: "success",
+        caughtCount: 1,
+        mons: [{ name: "Chog", pendingId: "p_a" }],
+      },
+    ],
+  });
+  assert.equal(report.issueCount, 0);
+});
