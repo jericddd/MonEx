@@ -9,7 +9,7 @@ export const WEEKLY_QUEST_MAX_POINTS = 150;
 export const DAILY_QUEST_CHEST_REWARDS = {
   20: { label: "100 Gold", grant: { gold: 100 } },
   40: { label: "15 KB's Onion", grant: { essence: 15 } },
-  60: { label: "1 Monball + 20 Trainer XP", grant: { monballs: 1, trainerXp: 20 } },
+  60: { label: "1 Monball + 150 Gold", grant: { monballs: 1, gold: 150 } },
   80: { label: "2 Shards", grant: { monShards: 2 } },
   100: { label: "250 Gold + 25 Onion + 50 Trainer XP", grant: { gold: 250, essence: 25, trainerXp: 50 } },
 };
@@ -17,9 +17,9 @@ export const DAILY_QUEST_CHEST_REWARDS = {
 export const WEEKLY_QUEST_CHEST_REWARDS = {
   20: { label: "300 Gold", grant: { gold: 300 } },
   40: { label: "40 KB's Onion", grant: { essence: 40 } },
-  60: { label: "4 Monballs + 60 Trainer XP", grant: { monballs: 4, trainerXp: 60 } },
+  60: { label: "4 Monballs + 700 Gold", grant: { monballs: 4, gold: 700 } },
   80: { label: "6 Shards", grant: { monShards: 6 } },
-  100: { label: "600 Gold + 60 Onion + 120 Trainer XP + 2 Monballs", grant: { gold: 600, essence: 60, trainerXp: 120, monballs: 2 } },
+  100: { label: "6 Monballs + 1000 Gold + 150 Trainer XP + 60 KB's Onion", grant: { monballs: 6, gold: 1000, trainerXp: 150, essence: 60 } },
 };
 
 /** @deprecated Use DAILY_QUEST_MILESTONES */
