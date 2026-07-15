@@ -8215,6 +8215,7 @@ body.cloud-load-blocked .game-shell {
             <span class="rail-tip">MAILBOX</span>
         </button>
         <button type="button" class="side-icon-btn" id="rail-profile" onclick="goToProfile()">
+            <span class="rail-mail-badge" id="rail-profile-catch-badge" aria-hidden="true">0</span>
             <img src="game_icons/button%20tabs/profile.png?v=5" alt="">
             <span class="rail-tip">PROFILE</span>
         </button>
@@ -8502,7 +8503,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/staging-banner.js?v=20260710a"></script>
 <script src="js/monex-config.js?v=20260710a"></script>
 <script src="js/escape-html.js?v=20260710a"></script>
-<script src="js/activity-client.js?v=20260715d"></script>
+<script src="js/activity-client.js?v=20260716a"></script>
 <script src="js/catch-claim-client.js?v=20260715a"></script>
 <script src="js/auth-client.js?v=20260714d"></script>
 <script src="js/release-client.js?v=20260714a"></script>
@@ -9479,6 +9480,8 @@ let releaseLog = [];
 let releasedRecoveryIds = [];
 let releaseInFlight = false;
 let profileActivityHandle = "";
+let profileCatchActivityCache = [];
+let profileCatchBadgeFetch = null;
 
 /** OAuth session @handle wins over a stale manual link in cloud/local save. */
 function resolveXHandle() {
@@ -10013,6 +10016,7 @@ function updateHeaderCurrencies() {
     if (essenceEl) essenceEl.innerText = essence;
     if (shardEl) shardEl.innerText = monShards;
     updateMailboxBadge();
+    updateProfileCatchBadge();
     const tInfo = getTrainerLevelInfo(trainerXp);
     const best = globalProgressToChapterStage(adventureGlobalBest);
     const meta = document.getElementById("trainer-meta");
@@ -17976,6 +17980,8 @@ async function refreshProfileActivity(opts = {}) {
         el.removeAttribute("data-profile-activity-loaded");
         profileActivitySignature = "";
         profileActivityHandle = "";
+        profileCatchActivityCache = [];
+        updateProfileCatchBadge([]);
         refreshProfileReleases({ force: true });
         return;
     }
@@ -17990,8 +17996,13 @@ async function refreshProfileActivity(opts = {}) {
         const sig = JSON.stringify(items.map((entry) =>
             entry.id || `${entry.at}:${entry.spend}:${entry.caughtCount}:${entry.completionStatus || ""}:${entry.tweetId || ""}`
         ));
-        if (!force && !handleChanged && sig === profileActivitySignature) return;
+        if (!force && !handleChanged && sig === profileActivitySignature) {
+            updateProfileCatchBadge(items);
+            return;
+        }
         profileActivitySignature = sig;
+        profileCatchActivityCache = items;
+        updateProfileCatchBadge(items);
         MonExActivity.renderFeed(el, items, {
             emptyText: "No successful @monexmonad catches yet. Tweet @monexmonad catch 1 monanimal on X!",
             showUser: false,
@@ -18903,6 +18914,7 @@ async function runPostLoginBootstrap() {
     resolveXHandle();
     try { await refreshMonballsFromServer(); } catch (_) {}
     try { await syncXWildMons(true, 2); } catch (_) {}
+    try { await refreshProfileCatchBadge({ silent: true }); } catch (_) {}
     updateUI();
 }
 
@@ -19015,6 +19027,48 @@ function readCachedUserFallback() {
 }
 
 // ==================== MAILBOX ====================
+function getUnclaimedProfileCatchCount(entries) {
+    if (typeof MonExActivity !== "undefined" && MonExActivity.countClaimableCatchLogEntries) {
+        return MonExActivity.countClaimableCatchLogEntries(entries || profileCatchActivityCache);
+    }
+    return (entries || profileCatchActivityCache || []).filter((entry) => {
+        if (!entry?.tweetId) return false;
+        if (entry.claimed === true || entry.completionStatus === "completed") return false;
+        return entry.claimable === true || entry.completionStatus === "pending";
+    }).length;
+}
+
+function updateProfileCatchBadge(entries) {
+    const badge = document.getElementById("rail-profile-catch-badge");
+    if (!badge) return;
+    const n = getUnclaimedProfileCatchCount(entries);
+    badge.textContent = n > 9 ? "9+" : String(n);
+    badge.style.display = n > 0 ? "block" : "none";
+}
+
+async function refreshProfileCatchBadge(opts = {}) {
+    const handle = resolveXHandle();
+    if (!handle || typeof MonExActivity === "undefined" || !MonExActivity.fetchMine) {
+        profileCatchActivityCache = [];
+        updateProfileCatchBadge([]);
+        return;
+    }
+    if (profileCatchBadgeFetch) return profileCatchBadgeFetch;
+    profileCatchBadgeFetch = (async () => {
+        try {
+            const items = await MonExActivity.fetchMine(handle, 150);
+            profileCatchActivityCache = items || [];
+            updateProfileCatchBadge(profileCatchActivityCache);
+        } catch (e) {
+            if (!opts.silent) console.warn("Profile catch badge refresh failed:", e);
+            updateProfileCatchBadge(profileCatchActivityCache);
+        } finally {
+            profileCatchBadgeFetch = null;
+        }
+    })();
+    return profileCatchBadgeFetch;
+}
+
 function getUnclaimedMailboxCount() {
     return (mailbox || []).filter((m) => m && !m.claimedAt).length;
 }

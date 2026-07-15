@@ -917,6 +917,16 @@ function formatReleaseLogNumberLabel(entry, opts = {}) {
     return formatProfileLogNumberLabel(num, opts);
 }
 
+function isCatchLogEntryClaimable(entry) {
+    if (!entry?.tweetId) return false;
+    if (entry.claimed === true || entry.completionStatus === "completed") return false;
+    return entry.claimable === true || entry.completionStatus === "pending";
+}
+
+function countClaimableCatchLogEntries(entries) {
+    return (entries || []).filter(isCatchLogEntryClaimable).length;
+}
+
 function formatActivityEntryHtml(entry, opts = {}) {
     const showUser = opts.showUser !== false;
     const showClaim = !!opts.showClaim;
@@ -931,7 +941,7 @@ function formatActivityEntryHtml(entry, opts = {}) {
     const tweetId = escapeActivityHtml(entry.tweetId || "");
     let claimRow = "";
     if (showClaim && entry.tweetId) {
-        if (entry.claimable || entry.completionStatus === "pending") {
+        if (isCatchLogEntryClaimable(entry)) {
             claimRow = `<div class="profile-activity-claim-row">
                 <button type="button" class="profile-claim-btn" data-catch-tweet-id="${tweetId}" onclick="event.stopPropagation(); claimProfileCatch(this.getAttribute('data-catch-tweet-id'), this)">CLAIM</button>
                 <span class="profile-activity-pending">Tap to send mons to your Party / Box</span>
@@ -1344,6 +1354,8 @@ window.MonExActivity = {
     syncWild: syncWildMons,
     openDetail: openActivityDetail,
     closeDetail: closeActivityDetailModal,
+    isCatchLogEntryClaimable,
+    countClaimableCatchLogEntries,
     ensureUiStyles: injectActivityUiStyles,
     PAGE_SIZE: 50,
 };
