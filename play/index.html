@@ -3203,6 +3203,35 @@ body.afk-layout .currency-tip-float {
     color: #7c2d12;
     box-shadow: 0 0 8px rgba(245, 158, 11, 0.75), 2px 2px 0px #92400e;
 }
+.skill-square.skill-ult:has(.skill-icon-img),
+.hub-main .skill-square.skill-ult:has(.skill-icon-img),
+.battle-meter-skills-grid .skill-square.skill-ult:has(.skill-icon-img),
+.skill-callout-icon-wrap.skill-ult:has(.skill-icon-img),
+.party-switch-skill-icon.skill-ult:has(.skill-icon-img) {
+    overflow: hidden;
+    padding: 0;
+}
+.skill-square.skill-ult:has(.skill-icon-img),
+.hub-main .skill-square.skill-ult:has(.skill-icon-img),
+.battle-meter-skills-grid .skill-square.skill-ult:has(.skill-icon-img) {
+    background: #120a1f;
+}
+.skill-square.skill-ult .skill-icon-img,
+.hub-main .skill-square.skill-ult .skill-icon-img,
+.battle-meter-skills-grid .skill-square.skill-ult .skill-icon-img,
+.skill-callout-icon-wrap.skill-ult .skill-icon-img,
+.party-switch-skill-icon.skill-ult .skill-icon-img {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    object-fit: cover;
+    object-position: center;
+    image-rendering: pixelated;
+}
 .skill-square.skill-ult .skill-tip {
     border-color: #b45309;
     box-shadow: 3px 3px 0px #92400e;
@@ -3333,6 +3362,11 @@ body.afk-layout .currency-tip-float {
     border: 2px solid #6b21a8;
     box-shadow: 2px 2px 0 #4c1d95;
     overflow: hidden;
+}
+.skill-callout-icon-wrap.skill-ult:has(.skill-icon-img) {
+    background: #120a1f;
+    border-color: #b45309;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.75), 2px 2px 0 #92400e;
 }
 .skill-callout-icon-wrap .skill-icon-img {
     position: relative;
@@ -3859,6 +3893,7 @@ body.afk-layout .currency-tip-float {
 .fx-ultimate .fx-skill-icon {
     width: 96px;
     height: 96px;
+    object-fit: cover;
 }
 .fx-skill-fallback {
     display: flex;
@@ -3889,6 +3924,7 @@ body.afk-layout .currency-tip-float {
 .fx-ultimate.fx-skill-small .fx-skill-icon {
     width: 24px;
     height: 24px;
+    object-fit: cover;
 }
 .fx.fx-skill.fx-skill-small .fx-skill-fallback {
     width: 16px;
@@ -6580,6 +6616,10 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     justify-content: center;
     overflow: hidden;
 }
+.party-switch-skill-icon.skill-ult:has(.skill-icon-img) {
+    background: #120a1f;
+    border-color: #b45309;
+}
 .party-switch-skill-icon .skill-icon-img {
     position: relative;
     z-index: 1;
@@ -7452,6 +7492,7 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     .battle-meter-skills-grid { grid-template-columns: repeat(4, 1fr); gap: 3px; }
     .battle-meter-skills-grid .skill-square { width: 26px; height: 26px; }
     .battle-meter-skills-grid .skill-square .skill-icon-img { width: 20px; height: 20px; }
+    .battle-meter-skills-grid .skill-square.skill-ult .skill-icon-img { width: 100%; height: 100%; }
     .battle-meter-skills-grid .skill-lock-icon { font-size: 11px; }
     .fighter-wrap.player { left: 18%; }
     .fighter-wrap.enemy { right: 18%; }
@@ -16815,7 +16856,7 @@ function renderPartySwitchSkillList(mon) {
     }
     return mon.skills.map((skill) => {
         return `<div class="party-switch-skill-line">
-            <span class="party-switch-skill-icon">${getSkillIcon(skill)}</span>
+            <span class="party-switch-skill-icon${skill.type === "ultimate" ? " skill-ult" : ""}">${getSkillIcon(skill)}</span>
             <span class="party-switch-skill-name">${skill.name}</span>
         </div>`;
     }).join("");
@@ -19354,7 +19395,7 @@ function showDamage(side, amount, kind) {
 function getSkillCalloutHtml(skill, isUlt) {
     const ult = isUlt || skill?.type === "ultimate";
     const iconHtml = skill && typeof skill === "object"
-        ? `<span class="skill-callout-icon-wrap">${getSkillIcon(skill)}</span>`
+        ? `<span class="skill-callout-icon-wrap${ult ? " skill-ult" : ""}">${getSkillIcon(skill)}</span>`
         : "";
     const label = typeof skill === "string" ? skill : skill.name;
     const name = ult ? `\u2605 ${label} \u2605` : label;

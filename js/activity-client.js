@@ -433,6 +433,11 @@ function injectActivityUiStyles() {
 .activity-skills-grid .activity-skill-square.skill-ult:hover {
     box-shadow: 0 0 8px rgba(245, 158, 11, 0.65), 2px 2px 0 #92400e;
 }
+.activity-skills-grid .activity-skill-square.skill-ult:has(.skill-icon-img) {
+    overflow: hidden;
+    padding: 0;
+    background: #120a1f;
+}
 .activity-skills-grid .activity-skill-square .skill-icon-img {
     width: 16px;
     height: 16px;
@@ -442,6 +447,16 @@ function injectActivityUiStyles() {
     image-rendering: pixelated;
     display: block;
     pointer-events: none;
+}
+.activity-skills-grid .activity-skill-square.skill-ult .skill-icon-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    object-fit: cover;
+    object-position: center;
 }
 .activity-skills-grid .activity-skill-square .skill-icon-fallback {
     font-family: "Press Start 2P", monospace;
