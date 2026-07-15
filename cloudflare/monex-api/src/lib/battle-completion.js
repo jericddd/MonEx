@@ -3,7 +3,7 @@
  * KV receipts are a cache; this object is the source of truth for idempotency.
  */
 
-import { getGlobalAdventureProgress } from "./equipment-unlock.js";
+import { getGlobalAdventureProgress, globalProgressToChapterStage } from "./equipment-unlock.js";
 
 export const COMPLETION_ID_MAX = 96;
 export const COMPLETION_LEDGER_MAX = 200;
@@ -108,6 +108,63 @@ export function maxAdventureGlobalFromCompletions(completions) {
     if (globalP > max) max = globalP;
   }
   return max;
+}
+
+/** Best cleared global stage from save field and completion ledger. */
+export function getEffectiveAdventureGlobalBest(save) {
+  if (!save || typeof save !== "object") return 0;
+  const fromField = Math.max(0, Math.floor(Number(save.adventureGlobalBest) || 0));
+  const fromLedger = maxAdventureGlobalFromCompletions(save.accountBattleCompletions);
+  return Math.max(fromField, fromLedger);
+}
+
+/**
+ * If cleared stages are recorded but playhead rolled back (stale autosave),
+ * advance currentChapter/currentStage to the next uncleared stage.
+ */
+export function repairAdventurePlayhead(save) {
+  if (!save || typeof save !== "object") {
+    return { save, changed: false };
+  }
+
+  const effectiveBest = getEffectiveAdventureGlobalBest(save);
+  const chapterBefore = Math.max(1, Math.floor(Number(save.currentChapter) || 1));
+  const stageBefore = Math.max(1, Math.floor(Number(save.currentStage) || 1));
+  const currentGlobal = getGlobalAdventureProgress(chapterBefore, stageBefore);
+
+  let nextChapter = chapterBefore;
+  let nextStage = stageBefore;
+  let changed = false;
+
+  if (effectiveBest > 0 && currentGlobal <= effectiveBest) {
+    const next = globalProgressToChapterStage(effectiveBest + 1);
+    nextChapter = next.chapter;
+    nextStage = next.stage;
+    changed = true;
+  }
+
+  const nextBest = Math.max(effectiveBest, Math.floor(Number(save.adventureGlobalBest) || 0));
+  if (nextBest !== Math.floor(Number(save.adventureGlobalBest) || 0)) {
+    changed = true;
+  }
+
+  const bestPos = globalProgressToChapterStage(Math.max(nextBest, 1));
+  const highestBefore = Math.floor(Number(save.highestStageCleared) || 0);
+
+  if (!changed && nextChapter === chapterBefore && nextStage === stageBefore && nextBest === Math.floor(Number(save.adventureGlobalBest) || 0)) {
+    return { save, changed: false };
+  }
+
+  return {
+    save: {
+      ...save,
+      currentChapter: nextChapter,
+      currentStage: nextStage,
+      adventureGlobalBest: nextBest,
+      highestStageCleared: Math.max(highestBefore, bestPos.stage),
+    },
+    changed: true,
+  };
 }
 
 export function logBattleCompletionEvent(event, fields = {}) {

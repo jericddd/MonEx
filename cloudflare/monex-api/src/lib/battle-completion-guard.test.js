@@ -22,3 +22,27 @@ test("preserveBattleCompletionState blocks adventureGlobalBest regression", () =
   assert.equal(out.adventureGlobalBest, 26);
   assert.ok(out.accountBattleCompletions["campaign:chapter-1:stage-26:first-clear"]);
 });
+
+test("preserveBattleCompletionState repairs rolled-back playhead", () => {
+  const existing = {
+    adventureGlobalBest: 5,
+    currentChapter: 1,
+    currentStage: 5,
+    accountBattleCompletions: {
+      "campaign:chapter-1:stage-5:first-clear": {
+        at: "2026-07-14T00:00:00.000Z",
+        mode: "adventure",
+        reward: { gold: 100, essence: 10, monShards: 0, trainerXp: 50, gear: null },
+      },
+    },
+  };
+  const incoming = {
+    adventureGlobalBest: 5,
+    currentChapter: 1,
+    currentStage: 5,
+    accountBattleCompletions: {},
+    money: 5000,
+  };
+  const out = preserveBattleCompletionState(existing, incoming);
+  assert.equal(out.currentStage, 6);
+});

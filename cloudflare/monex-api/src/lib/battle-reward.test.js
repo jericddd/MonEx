@@ -92,6 +92,50 @@ test("claimBattleReward advances adventure stage and bumps quest progress", asyn
   assert.equal(dup.alreadyClaimed, true);
 });
 
+test("alreadyClaimed repairs playhead when stale autosave rolled it back", async () => {
+  const completionId = buildCampaignCompletionId(1, 5);
+  const store = {
+    "monex:save:u1": JSON.stringify({
+      revision: 3,
+      currentChapter: 1,
+      currentStage: 5,
+      adventureGlobalBest: 5,
+      highestStageCleared: 5,
+      money: 1000,
+      essence: 0,
+      monShards: 0,
+      trainerXp: 0,
+      gearInventory: [],
+      questState: { tasks: { dailies: [], weeklies: [], campaign: [] } },
+      accountBattleCompletions: {
+        [completionId]: {
+          at: "2026-07-14T00:00:00.000Z",
+          mode: "adventure",
+          reward: { gold: 140, essence: 30, monShards: 0, trainerXp: 175, gear: null },
+        },
+      },
+      updatedAt: new Date().toISOString(),
+    }),
+    "monex:state": JSON.stringify({ processedTweetIds: [], users: {} }),
+  };
+  const kv = makeKv(store);
+  const session = { xUserId: "u1", username: "Daniel_Freire15" };
+
+  const result = await claimBattleReward(kv, session, {
+    mode: "adventure",
+    win: true,
+    claimId: completionId,
+    chapter: 1,
+    stage: 5,
+    expectedRevision: 3,
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.alreadyClaimed, true);
+  assert.equal(result.save.currentStage, 6);
+  assert.equal(result.save.adventureGlobalBest, 5);
+});
+
 test("Chapter 1-26 claim adds reward and persists completion ledger", async () => {
   const moneyBefore = 5000;
   const store = {
@@ -216,7 +260,7 @@ test("claimBattleReward patrol win grants resources with stable completion id", 
   });
 
   assert.equal(result.ok, true);
-  assert.equal(result.save.currentStage, 5);
+  assert.equal(result.save.currentStage, 6);
   assert.equal(result.save.patrolScansUsed, 2);
   assert.ok(result.reward.gold > 0);
   assert.ok(result.save.accountBattleCompletions[legacyId]);

@@ -9079,6 +9079,7 @@ let highestStageCleared = 0;
 let adventureGlobalBest = 0;
 let lastResetDate = null;
 let isInAdventureBattle = false;
+let _battleRewardClaimInFlight = false;
 let adventureBattleToken = 0;
 let adventureForfeitNotice = false;
 let battlePaused = false;
@@ -13596,6 +13597,14 @@ function migrateAdventureSave() {
     if (currentStage < 1) currentStage = 1;
     const best = globalProgressToChapterStage(adventureGlobalBest);
     highestStageCleared = best.stage;
+    if (adventureGlobalBest > 0) {
+        const currentGlobal = getGlobalAdventureProgress(currentChapter, currentStage);
+        if (currentGlobal <= adventureGlobalBest) {
+            const next = globalProgressToChapterStage(adventureGlobalBest + 1);
+            currentChapter = next.chapter;
+            currentStage = next.stage;
+        }
+    }
 }
 
 function getAdventureEnemyLevel(globalProgress, slotIndex, boss) {
@@ -16009,9 +16018,9 @@ function saveData(options = {}) {
     if (!isGameSessionPlayable()) return;
     const payload = buildSavePayload();
     scheduleLocalSave(payload, options.immediate === true);
-    // Never push cloud autosaves during an active battle — pre-victory snapshots
-    // raced server claim-reward and rolled back rewards/progress (Ch.1-26 bug).
-    if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn() && !isInAdventureBattle) {
+    // Never push cloud autosaves during an active battle or in-flight reward claim —
+    // pre-victory snapshots raced server claim-reward and rolled back progress.
+    if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn() && !isInAdventureBattle && !_battleRewardClaimInFlight) {
         MonExAuth.scheduleCloudSave(payload);
     }
 }
@@ -16094,6 +16103,7 @@ function writeLocalSave(payload) {
 function flushSaveToCloud() {
     if (!currentUser || typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) return;
     if (isGameSessionSuperseded()) return;
+    if (_battleRewardClaimInFlight) return;
     const payload = buildSavePayload();
     _pendingLocalSavePayload = payload;
     flushLocalSave();
@@ -16477,18 +16487,23 @@ function mergeSaveSnapshots(local, cloud) {
 
     const localGlobal = getGlobalAdventureProgress(local.currentChapter, local.currentStage);
     const cloudGlobal = getGlobalAdventureProgress(cloud.currentChapter, cloud.currentStage);
-    let bestGlobal;
-    if (cloudTs > localTs) {
-        bestGlobal = Math.max(cloudGlobal, Number(cloud.adventureGlobalBest) || 0);
-    } else if (localTs > cloudTs) {
-        bestGlobal = Math.max(localGlobal, cloudGlobal, Number(local.adventureGlobalBest) || 0);
-    } else {
-        bestGlobal = Math.max(cloudGlobal, Number(cloud.adventureGlobalBest) || 0);
+    const effectiveBest = Math.max(
+        Number(local.adventureGlobalBest) || 0,
+        Number(cloud.adventureGlobalBest) || 0
+    );
+    merged.adventureGlobalBest = effectiveBest;
+
+    let playheadGlobal = cloudTs > localTs
+        ? cloudGlobal
+        : (localTs > cloudTs ? Math.max(localGlobal, cloudGlobal) : cloudGlobal);
+    if (effectiveBest > 0 && playheadGlobal <= effectiveBest) {
+        playheadGlobal = effectiveBest + 1;
     }
-    const bestPos = globalProgressToChapterStage(bestGlobal);
-    merged.adventureGlobalBest = bestGlobal;
-    merged.currentChapter = bestPos.chapter;
-    merged.currentStage = bestPos.stage;
+    const playheadPos = globalProgressToChapterStage(Math.max(1, playheadGlobal));
+    merged.currentChapter = playheadPos.chapter;
+    merged.currentStage = playheadPos.stage;
+
+    const bestPos = globalProgressToChapterStage(Math.max(effectiveBest, 1));
     if (cloudTs > localTs || tiePrefersCloud) {
         merged.highestStageCleared = Math.max(Number(cloud.highestStageCleared) || 0, bestPos.stage);
     } else {
@@ -19505,6 +19520,7 @@ async function claimServerBattleReward({ mode, win, encounterId, claimId, chapte
     } else if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
         MonExAuth.cancelPendingCloudSave();
     }
+    _battleRewardClaimInFlight = true;
     const claimFn = MonExBattle.claimBattleRewardWithRetry || MonExBattle.claimBattleReward;
     try {
         const result = await claimFn({
@@ -19557,6 +19573,8 @@ async function claimServerBattleReward({ mode, win, encounterId, claimId, chapte
                 : "Network error while claiming battle rewards. Refresh to sync from the cloud.",
             mode === "patrol" ? "Patrol sync failed" : "Reward sync failed"
         );
+    } finally {
+        _battleRewardClaimInFlight = false;
     }
     return null;
 }
