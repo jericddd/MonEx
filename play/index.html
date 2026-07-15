@@ -14943,8 +14943,8 @@ function applyUltDamageModifiers(atk, def, skill, dmg) {
     return out;
 }
 
-function getUltBlockChance(def, atk, skill, isUlt, defenderCanEvade) {
-    if (!defenderCanEvade) return 0;
+function getUltBlockChance(def, atk, skill, isUlt, defenderCanBlock) {
+    if (!defenderCanBlock) return 0;
     if (isUlt && skill.cannotBeBlocked) return 0;
     let block = getEffectiveBlock(def, atk);
     if (isUlt && skill.ignoreBlock != null) {
@@ -19789,7 +19789,8 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
 
     const attackPath = getAttackSpritePath(atk.name);
     let animStart = 0;
-    const defenderCanEvade = !isUlt && !hasStatus(def, "stun");
+    const defenderCanDodge = !isUlt && !hasStatus(def, "stun");
+    const defenderCanBlock = !hasStatus(def, "stun");
     if (attackPath) {
         beginAttackAnim(atkSide);
         const dashDist = await measureMeleeDashDistance(atkSide, defSide);
@@ -19812,7 +19813,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
         await approach(atkSide, defSide);
     }
 
-    const effDodge = defenderCanEvade ? getEffectiveDodge(def, atk) : 0;
+    const effDodge = defenderCanDodge ? getEffectiveDodge(def, atk) : 0;
     if (effDodge > 0 && Math.random() * 100 < effDodge) {
         await playDodgeEvade(defSide);
         showDamage(defSide, 0, "miss");
@@ -19843,7 +19844,7 @@ async function takeTurn(atk, def, atkSide, defSide, battleToken) {
                 dmg = Math.floor(dmg + critBonus);
                 crit = true;
             }
-            const effBlock = getUltBlockChance(def, atk, skill, isUlt, defenderCanEvade);
+            const effBlock = getUltBlockChance(def, atk, skill, isUlt, defenderCanBlock);
             if (effBlock > 0 && Math.random() * 100 < effBlock) {
                 dmg = Math.floor(dmg * 0.5);
                 blocked = true;
