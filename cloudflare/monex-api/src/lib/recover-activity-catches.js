@@ -1,5 +1,5 @@
 import { generateSkills } from "./catch-engine.js";
-import { sanitizeMon, validateAndSanitizeSave, sanitizeReleaseLog, sanitizeReleasedRecoveryIds } from "./save-validate.js";
+import { sanitizeMon, validateAndSanitizeSave, sanitizeReleaseLog, sanitizeReleasedRecoveryIds, canonicalMonanimalName } from "./save-validate.js";
 import {
   cleanUsername,
   getWildPendingIds,
@@ -50,7 +50,7 @@ export function extractRecoverableMons(activityEntries) {
         tweetId: entry.tweetId || null,
         index,
         caughtAt: entry.at || null,
-        name: mon.name,
+        name: canonicalMonanimalName(mon.name),
         rarity: mon.rarity || "Common",
         skillsShort: mon.skills || null,
       });
@@ -78,7 +78,8 @@ export function latestActivityUserId(activityEntries) {
 }
 
 function partyHasSpecies(party, name) {
-  return party.some((mon) => mon?.name === name);
+  const canonical = canonicalMonanimalName(name);
+  return party.some((mon) => canonicalMonanimalName(mon?.name) === canonical);
 }
 
 /** Signatures for mons already recovered from activity (by recovery id / slot). */
@@ -149,12 +150,13 @@ export function isMonAlreadyRecovered(save, raw, seenRecoveryIds) {
 
 export function activityMonToSaveMon(recovered) {
   if (!recovered?.name) return null;
+  const name = canonicalMonanimalName(recovered.name);
   const rarity = recovered.rarity || "Common";
   const mon = {
-    name: recovered.name,
+    name,
     rarity,
     level: 1,
-    skills: generateSkills(recovered.name, rarity),
+    skills: generateSkills(name, rarity),
     equipment: { weapon: null, armor: null, helmet: null, boots: null },
     wildPendingId: recovered.recoveryId,
   };
@@ -178,8 +180,11 @@ export function applyRecoveredMonsToSave(
   const skipped = [];
 
   const activitySigs = getExistingRecoverySignatures({ party, box });
-  const hasSpecies = (name) =>
-    party.some((m) => m?.name === name) || box.some((m) => m?.name === name);
+  const hasSpecies = (name) => {
+    const canonical = canonicalMonanimalName(name);
+    return party.some((m) => canonicalMonanimalName(m?.name) === canonical)
+      || box.some((m) => canonicalMonanimalName(m?.name) === canonical);
+  };
 
   for (const raw of recoveredMons || []) {
     if (isRecoveryIdReleased(save, raw)) {

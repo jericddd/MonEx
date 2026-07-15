@@ -54,6 +54,13 @@ test("speciesHasSceneIdle is false when idle GIF is not confirmed", () => {
 test("speciesHasSceneIdle is true when scene idle is confirmed", () => {
   assert.equal(speciesHasSceneIdle("Anago"), true);
   assert.equal(speciesHasSceneIdle("Monhorse"), true);
+  assert.equal(speciesHasSceneIdle("Monigga"), true);
+  assert.equal(speciesHasSceneIdle("Mosferatu"), true);
+});
+
+test("getPngPath resolves Monigga and legacy Mosferatu rename", () => {
+  assert.equal(getPngPath("Monigga"), "128x128/monigga.png");
+  assert.equal(getPngPath("Mosferatu"), "128x128/monigga.png");
 });
 
 test("getMonDisplaySpriteCandidates always includes PNG fallback", () => {

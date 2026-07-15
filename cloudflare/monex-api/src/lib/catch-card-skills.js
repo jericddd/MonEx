@@ -70,7 +70,7 @@ const SKILL_ICON_MAP = {
   "Tidal Crash": "salmonad.png",
   "Flame Geyser": "moyaki.png",
   "Web Cataclysm": "spidermon.png",
-  "Blood Moon": "mosferatu.png",
+  "Blood Moon": "monigga.png",
 };
 
 const SKILL_NAME_KEYS = Object.keys(SKILL_ICON_MAP);
