@@ -6400,6 +6400,23 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     box-shadow: 2px 2px 0 #166534;
     padding: 8px 10px;
 }
+.shop-monex-section {
+    width: 100%;
+}
+.shop-monex-heading {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #fde68a;
+    text-align: center;
+    margin: 0 0 8px;
+    line-height: 1.5;
+}
+.shop-monex-status {
+    margin: 0 0 12px;
+}
+.shop-monball-pack-grid {
+    margin: 0;
+}
 @media (max-width: 520px) {
     .monball-pack-grid {
         grid-template-columns: 1fr;
@@ -9192,6 +9209,7 @@ const SHOP_CATEGORIES = [
     { id: "weapon", label: "WEAPON" },
     { id: "armor", label: "ARMOR" },
     { id: "mats", label: "MATS" },
+    { id: "monex", label: "$MONEX" },
 ];
 let shopActiveCategory = "mats";
 
@@ -16494,6 +16512,48 @@ async function executeMonballPackagePurchase(pkg) {
     return result;
 }
 
+function bindMonballPackageCardInteractions(container, packages, { onSelect, onPurchaseSuccess } = {}) {
+    if (!container) return;
+    container.querySelectorAll(".monball-pack-card").forEach((card) => {
+        const id = card.getAttribute("data-package-id");
+        card.onclick = (e) => {
+            if (e.target.closest("[data-buy-package]")) return;
+            onSelect?.(id);
+        };
+        card.onkeydown = (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect?.(id);
+            }
+        };
+    });
+    container.querySelectorAll("[data-buy-package]").forEach((btn) => {
+        btn.onclick = async (e) => {
+            e.stopPropagation();
+            const packageId = btn.getAttribute("data-buy-package");
+            const pkg = packages.find((p) => p.id === packageId);
+            if (!pkg) return;
+            onSelect?.(packageId);
+            const run = window.MonExClaimGuard?.runClaimOnce
+                ? (fn, opts) => MonExClaimGuard.runClaimOnce(`monball-pack:${packageId}`, fn, opts)
+                : async (fn) => fn();
+            await run(async () => {
+                const result = await executeMonballPackagePurchase(pkg);
+                if (result.ok) {
+                    onPurchaseSuccess?.(pkg, result);
+                    return;
+                }
+                if (result.error === "monex_payment_required" || result.error === "monex_payment_unverified") {
+                    showMonballComingSoonNotice(result.package || pkg);
+                    return;
+                }
+                if (result.error === "login_required" || result.error === "shop_offline") return;
+                showHubNotice(result.message || "Could not complete MonBall package purchase.", "Shop error");
+            }, { button: btn, loadingText: "BUYING...", resetOnError: true });
+        };
+    });
+}
+
 async function openMonballPackagePopup() {
     const existing = document.querySelector(".monball-pack-popup-overlay");
     if (existing) existing.remove();
@@ -16535,48 +16595,6 @@ async function openMonballPackagePopup() {
         }
     }
 
-    function bindPackageCards() {
-        grid.querySelectorAll(".monball-pack-card").forEach((card) => {
-            const id = card.getAttribute("data-package-id");
-            card.onclick = (e) => {
-                if (e.target.closest("[data-buy-package]")) return;
-                setSelected(id);
-            };
-            card.onkeydown = (e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setSelected(id);
-                }
-            };
-        });
-        grid.querySelectorAll("[data-buy-package]").forEach((btn) => {
-            btn.onclick = async (e) => {
-                e.stopPropagation();
-                const packageId = btn.getAttribute("data-buy-package");
-                const pkg = packages.find((p) => p.id === packageId);
-                if (!pkg) return;
-                setSelected(packageId);
-                const run = window.MonExClaimGuard?.runClaimOnce
-                    ? (fn, opts) => MonExClaimGuard.runClaimOnce(`monball-pack:${packageId}`, fn, opts)
-                    : async (fn) => fn();
-                await run(async () => {
-                    const result = await executeMonballPackagePurchase(pkg);
-                    if (result.ok) {
-                        overlay.remove();
-                        showHubNotice(`Purchased ${Math.floor(pkg.amount)} MonBalls!`, "PURCHASED");
-                        return;
-                    }
-                    if (result.error === "monex_payment_required" || result.error === "monex_payment_unverified") {
-                        showMonballComingSoonNotice(result.package || pkg);
-                        return;
-                    }
-                    if (result.error === "login_required" || result.error === "shop_offline") return;
-                    showHubNotice(result.message || "Could not complete MonBall package purchase.", "Shop error");
-                }, { button: btn, loadingText: "BUYING...", resetOnError: true });
-            };
-        });
-    }
-
     const result = await fetchMonballPackages();
     packages = Array.isArray(result.packages) ? result.packages : [];
     currency = result.currency || "MONEX";
@@ -16586,12 +16604,19 @@ async function openMonballPackagePopup() {
     }
     selectedId = packages[0].id;
     grid.innerHTML = renderMonballPackageCards(packages, selectedId, currency);
-    bindPackageCards();
+    bindMonballPackageCardInteractions(grid, packages, {
+        onSelect: setSelected,
+        onPurchaseSuccess: (pkg) => {
+            overlay.remove();
+            showHubNotice(`Purchased ${Math.floor(pkg.amount)} MonBalls!`, "PURCHASED");
+        },
+    });
     setSelected(selectedId);
 }
 
 function buyMonball() {
-    openMonballPackagePopup();
+    shopActiveCategory = "monex";
+    openGameModal("shop");
 }
 
 // Spend KB's Onion + Gold to level a party member up by one (also fully heals it).
@@ -16658,19 +16683,53 @@ function renderShopCategories() {
     `).join("");
 }
 
-function renderShopMonballCta() {
-    const monballIcon = GAME_ICONS.monball?.src || "game_icons/button%20tabs/monball.png";
-    return `
-        <button type="button" class="shop-monball-cta" onclick="openMonballPackagePopup()">
-            <span class="shop-monball-cta-left">
-                <img src="${monballIcon}" alt="">
-                <span>
-                    <div class="shop-monball-cta-title">BUY MONBALLS</div>
-                    <div class="shop-monball-cta-sub">Fixed packages · priced in $MONEX</div>
-                </span>
-            </span>
-            <span class="shop-monball-cta-go">OPEN</span>
-        </button>`;
+async function renderShopMonexPackages(grid) {
+    const renderToken = Date.now();
+    grid.dataset.monexRenderToken = String(renderToken);
+
+    grid.innerHTML = `
+        <div class="shop-monex-section" style="grid-column:1/-1;">
+            <p class="shop-monex-heading">MONBALL PACKAGES</p>
+            <p class="monball-pack-status shop-monex-status">Loading packages…</p>
+            <div class="monball-pack-grid shop-monball-pack-grid" aria-live="polite"></div>
+        </div>`;
+
+    const packGrid = grid.querySelector(".shop-monball-pack-grid");
+    const statusEl = grid.querySelector(".shop-monex-status");
+    const result = await fetchMonballPackages();
+
+    if (grid.dataset.monexRenderToken !== String(renderToken) || shopActiveCategory !== "monex") return;
+
+    const packages = Array.isArray(result.packages) ? result.packages : [];
+    const currency = result.currency || "MONEX";
+
+    if (!result.ok || !packages.length) {
+        if (statusEl) statusEl.textContent = "Could not load MonBall packages. Try again shortly.";
+        if (packGrid) packGrid.innerHTML = "";
+        return;
+    }
+
+    if (statusEl) statusEl.textContent = "Fixed packages · priced in $MONEX";
+
+    let selectedId = packages[0].id;
+
+    function setSelected(id) {
+        selectedId = id;
+        packGrid.querySelectorAll(".monball-pack-card").forEach((card) => {
+            const on = card.getAttribute("data-package-id") === selectedId;
+            card.classList.toggle("is-selected", on);
+            card.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+    }
+
+    packGrid.innerHTML = renderMonballPackageCards(packages, selectedId, currency);
+    bindMonballPackageCardInteractions(packGrid, packages, {
+        onSelect: setSelected,
+        onPurchaseSuccess: (pkg) => {
+            showHubNotice(`Purchased ${Math.floor(pkg.amount)} MonBalls!`, "PURCHASED");
+        },
+    });
+    setSelected(selectedId);
 }
 
 function renderShop() {
@@ -16679,9 +16738,13 @@ function renderShop() {
 
     renderShopCategories();
 
+    if (shopActiveCategory === "monex") {
+        void renderShopMonexPackages(grid);
+        return;
+    }
+
     const items = SHOP_ITEMS.filter(i => i.category === shopActiveCategory);
-    const monballCta = shopActiveCategory === "mats" ? renderShopMonballCta() : "";
-    if (!items.length && !monballCta) {
+    if (!items.length) {
         grid.innerHTML = `<p class="shop-empty-msg">No items in this category yet.</p>`;
         return;
     }
@@ -16712,9 +16775,7 @@ function renderShop() {
         `;
     }).join("");
 
-    grid.innerHTML = monballCta
-        ? `<div style="grid-column:1/-1;">${monballCta}</div>${itemHtml}`
-        : itemHtml;
+    grid.innerHTML = itemHtml;
     bindHoverFloatTips(grid);
 }
 
