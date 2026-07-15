@@ -8590,6 +8590,12 @@ function clearHoverFloatTip(el) {
     }
 }
 
+function clearHoverFloatTipsIn(root) {
+    if (!root) return;
+    const nodes = root.classList?.contains("has-hover-tip") ? [root] : root.querySelectorAll(".has-hover-tip");
+    nodes.forEach((el) => clearHoverFloatTip(el));
+}
+
 function positionHoverFloatTip(anchorEl, floatTip) {
     const pad = 8;
     floatTip.style.visibility = "hidden";
@@ -10809,6 +10815,9 @@ function renderQuestTaskCard(task, tab) {
 function renderDailyQuest() {
     const root = document.getElementById("daily-quest-content");
     if (!root) return;
+
+    clearHoverFloatTipsIn(root);
+    clearAllHubFloatTips();
 
     if (window.MonExDailyReset?.msUntilNextDailyReset?.() <= 0) {
         ensureQuestResets();
@@ -13396,6 +13405,14 @@ function clearHubMonCardFloatTip(anchor) {
 
 function clearAllHubFloatTips() {
     document.querySelectorAll(".hub-stats-tip-float, .hub-float-skill-tip, .hover-tip-float").forEach(el => el.remove());
+    document.querySelectorAll(".has-hover-tip").forEach((el) => {
+        if (el._hoverFloatTip) el._hoverFloatTip = null;
+    });
+}
+
+function clearCollectFxLayer() {
+    const layer = document.getElementById("collect-fx-layer");
+    if (layer) layer.replaceChildren();
 }
 
 function showHubSkillFloatTip(square) {
@@ -18971,6 +18988,9 @@ function showMainScene() {
 
 function closeAllModals() {
     closePartySwitchPicker();
+    clearHoverFloatTipsIn(document.getElementById("daily-quest-content"));
+    clearAllHubFloatTips();
+    clearCollectFxLayer();
     document.querySelectorAll(".game-modal").forEach(el => el.classList.remove("open"));
     syncActiveRailTab();
 }
@@ -19004,6 +19024,11 @@ function closeGameModal(name) {
     const modal = document.getElementById("modal-" + name);
     if (modal) modal.classList.remove("open");
     if (name === "party" || name === "box") clearAllHubFloatTips();
+    if (name === "daily-quest") {
+        clearHoverFloatTipsIn(document.getElementById("daily-quest-content"));
+        clearAllHubFloatTips();
+        clearCollectFxLayer();
+    }
     if (name === "box") closeBoxSortMenu();
     syncActiveRailTab();
 }
