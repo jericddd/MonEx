@@ -203,19 +203,17 @@ test("appendActivity maintains per-user activity index", async () => {
   assert.equal(index.entries[0].tweetId, "t1");
 });
 
-test("listUserActivities lazy backfills user index from global log once", async () => {
+test("listUserActivities reads user index only (never global log)", async () => {
   const kv = makeKv({
-    "monex:activity": JSON.stringify({
+    "monex:activity-user:u1": JSON.stringify({
       entries: [
-        { id: "other", xUserId: "u2", xUsername: "other", status: "success", at: "2026-07-15T00:00:00.000Z" },
-        { id: "mine-old", xUserId: "u1", xUsername: "trainer", status: "success", at: "2026-07-15T01:00:00.000Z" },
         { id: "mine-new", xUserId: "u1", xUsername: "trainer", status: "success", at: "2026-07-16T00:00:00.000Z" },
+        { id: "wrong-user", xUserId: "u1", xUsername: "other", status: "success", at: "2026-07-15T00:00:00.000Z" },
       ],
     }),
   });
-  const result = await listUserActivities(kv, "u1", "trainer", { limit: 50, page: 1 });
-  assert.equal(result.total, 2);
+  const result = await listUserActivities(kv, "u1", "trainer", { limit: 30, page: 1 });
+  assert.equal(result.total, 1);
+  assert.equal(result.entries.length, 1);
   assert.equal(result.entries[0].id, "mine-new");
-  const index = JSON.parse(await kv.get("monex:activity-user:u1"));
-  assert.equal(index.entries.length, 2);
 });

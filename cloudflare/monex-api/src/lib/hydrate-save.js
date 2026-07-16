@@ -1,4 +1,4 @@
-import { loadActivityLog } from "../kv-store.js";
+import { loadUserActivityIndex } from "../kv-store.js";
 import { lookupCatchUserKv } from "./catch-user-store.js";
 import { loadCloudSave, writeCloudSave } from "./save.js";
 import {
@@ -37,8 +37,8 @@ export async function lookupCatchUserReadOnly(kv, xUserId, username, startingMon
  */
 export async function recoverMissingMonsFromActivity(kv, xUserId, username, save, startingMonballs = 10) {
   const uname = cleanUsername(username);
-  const log = await loadActivityLog(kv);
-  const entries = await filterEntriesForAutoRecovery(kv, log.entries || []);
+  const index = await loadUserActivityIndex(kv, xUserId);
+  const entries = await filterEntriesForAutoRecovery(kv, index.entries || []);
   const invCount = (save?.party?.length || 0) + (save?.box?.length || 0);
   const recoverableCount = extractRecoverableMons(
     filterActivityEntries(entries, uname, { caseSensitive: false })

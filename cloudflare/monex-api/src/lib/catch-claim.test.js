@@ -375,11 +375,12 @@ test("retryPendingCatchDeliveries remaining excludes claim-gated pending mons", 
 
 test("recoverMissingMonsFromActivity skips deferred unclaimed catches", async () => {
   const store = {
-    "monex:activity": JSON.stringify({
+    "monex:activity-user:u1": JSON.stringify({
       entries: [
         {
           id: "act_def",
           tweetId: "tw_skip",
+          xUserId: "u1",
           xUsername: "trainer",
           status: "success",
           spend: 1,

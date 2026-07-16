@@ -1093,10 +1093,10 @@ async function fetchPersonalActivity(username, limit, page) {
     return res.json();
 }
 
-async function fetchPendingCatchCount(limit = 50) {
+async function fetchPendingCatchCount(limit = 30) {
     const base = getMonexApiBase();
     const headers = getAuthHeaders();
-    const params = new URLSearchParams({ limit: String(limit || 50) });
+    const params = new URLSearchParams({ limit: String(limit || 30) });
     const url = `${base}/api/catch/pending-count?${params}`;
     const res = await fetch(url, { headers });
     if (!res.ok) throw new Error("pending catch count fetch failed");
@@ -1329,13 +1329,13 @@ function renderActivityFeedElement(el, entries, emptyMsg, opts = {}) {
 
 window.MonExActivity = {
     fetchMine: async (username, limit, page) => {
-        const data = await fetchPersonalActivity(username, limit || 50, page || 1);
+        const data = await fetchPersonalActivity(username, limit || 30, page || 1);
         return data.entries || [];
     },
     fetchMineData: async (username, limit, page) => {
-        return fetchPersonalActivity(username, limit || 50, page || 1);
+        return fetchPersonalActivity(username, limit || 30, page || 1);
     },
-    fetchPendingCatchCount: async (limit = 50) => {
+    fetchPendingCatchCount: async (limit = 30) => {
         const data = await fetchPendingCatchCount(limit);
         return Math.max(0, Math.floor(Number(data?.count) || 0));
     },

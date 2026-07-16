@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { hydrateUserCloudSave, recoverMissingMonsFromActivity } from "./hydrate-save.js";
+import { userActivityIndexKey } from "../kv-store.js";
 
 function makeKv(store = {}) {
   return {
@@ -13,21 +14,24 @@ function makeKv(store = {}) {
   };
 }
 
-test("recoverMissingMonsFromActivity adds mons from activity log", async () => {
+function seedUserActivity(store, xUserId, entries) {
+  store[userActivityIndexKey(xUserId)] = JSON.stringify({ entries });
+}
+
+test("recoverMissingMonsFromActivity adds mons from user activity index", async () => {
   const store = {};
   const kv = makeKv(store);
 
-  store["monex:activity"] = JSON.stringify({
-    entries: [
-      {
-        id: "act_legacy",
-        xUsername: "trainer",
-        status: "success",
-        at: "2026-07-10T12:00:00.000Z",
-        mons: [{ name: "Chog", rarity: "Common", skills: "★Slash" }],
-      },
-    ],
-  });
+  seedUserActivity(store, "u1", [
+    {
+      id: "act_legacy",
+      xUserId: "u1",
+      xUsername: "trainer",
+      status: "success",
+      at: "2026-07-10T12:00:00.000Z",
+      mons: [{ name: "Chog", rarity: "Common", skills: "★Slash" }],
+    },
+  ]);
   store["monex:state"] = JSON.stringify({ processedTweetIds: [], users: {} });
 
   const result = await recoverMissingMonsFromActivity(
@@ -47,17 +51,16 @@ test("recoverMissingMonsFromActivity adds mons from activity log", async () => {
 test("recoverMissingMonsFromActivity skips when inventory already populated", async () => {
   const store = {};
   const kv = makeKv(store);
-  store["monex:activity"] = JSON.stringify({
-    entries: [
-      {
-        id: "act_legacy",
-        xUsername: "trainer",
-        status: "success",
-        at: "2026-07-10T12:00:00.000Z",
-        mons: [{ name: "Chog", rarity: "Common", skills: "★Slash" }],
-      },
-    ],
-  });
+  seedUserActivity(store, "u1", [
+    {
+      id: "act_legacy",
+      xUserId: "u1",
+      xUsername: "trainer",
+      status: "success",
+      at: "2026-07-10T12:00:00.000Z",
+      mons: [{ name: "Chog", rarity: "Common", skills: "★Slash" }],
+    },
+  ]);
 
   const existing = {
     party: [
@@ -82,28 +85,28 @@ test("recoverMissingMonsFromActivity skips when inventory already populated", as
 test("recoverMissingMonsFromActivity backfills undelivered mons when inventory is partial", async () => {
   const store = {};
   const kv = makeKv(store);
-  store["monex:activity"] = JSON.stringify({
-    entries: [
-      {
-        id: "act_bulk",
-        xUsername: "Noajolouis",
-        status: "success",
-        at: "2026-07-13T23:52:55.829Z",
-        mons: [
-          { name: "Monhorse", rarity: "Common", skills: "★Slash" },
-          { name: "Moyaki", rarity: "Rare", skills: "★Flame" },
-          { name: "Chog", rarity: "Common", skills: "★Slash" },
-        ],
-      },
-      {
-        id: "act_single",
-        xUsername: "Noajolouis",
-        status: "success",
-        at: "2026-07-14T00:00:58.064Z",
-        mons: [{ name: "Mouch", rarity: "Uncommon", skills: "★Zap" }],
-      },
-    ],
-  });
+  seedUserActivity(store, "u1", [
+    {
+      id: "act_bulk",
+      xUserId: "u1",
+      xUsername: "Noajolouis",
+      status: "success",
+      at: "2026-07-13T23:52:55.829Z",
+      mons: [
+        { name: "Monhorse", rarity: "Common", skills: "★Slash" },
+        { name: "Moyaki", rarity: "Rare", skills: "★Flame" },
+        { name: "Chog", rarity: "Common", skills: "★Slash" },
+      ],
+    },
+    {
+      id: "act_single",
+      xUserId: "u1",
+      xUsername: "Noajolouis",
+      status: "success",
+      at: "2026-07-14T00:00:58.064Z",
+      mons: [{ name: "Mouch", rarity: "Uncommon", skills: "★Zap" }],
+    },
+  ]);
   store["monex:state"] = JSON.stringify({ processedTweetIds: [], users: {} });
 
   const partial = {
@@ -124,20 +127,19 @@ test("recoverMissingMonsFromActivity backfills undelivered mons when inventory i
 test("hydrate does not re-import activity on every call once inventory exists", async () => {
   const store = {};
   const kv = makeKv(store);
-  store["monex:activity"] = JSON.stringify({
-    entries: [
-      {
-        id: "act_1",
-        xUsername: "trainer",
-        status: "success",
-        at: "2026-07-10T12:00:00.000Z",
-        mons: [
-          { name: "Chog", rarity: "Common", skills: "★Slash" },
-          { name: "Mouch", rarity: "Common", skills: "★Zap" },
-        ],
-      },
-    ],
-  });
+  seedUserActivity(store, "u1", [
+    {
+      id: "act_1",
+      xUserId: "u1",
+      xUsername: "trainer",
+      status: "success",
+      at: "2026-07-10T12:00:00.000Z",
+      mons: [
+        { name: "Chog", rarity: "Common", skills: "★Slash" },
+        { name: "Mouch", rarity: "Common", skills: "★Zap" },
+      ],
+    },
+  ]);
   store["monex:state"] = JSON.stringify({ processedTweetIds: [], users: {} });
   store["monex:catch-user:u1"] = JSON.stringify({
     username: "trainer",
@@ -165,7 +167,7 @@ test("hydrateUserCloudSave seeds pending then returns save", async () => {
       pendingMons: [{ name: "Mouch", rarity: "Common", pendingId: "p1" }],
       updatedAt: new Date().toISOString(),
     }),
-    "monex:activity": JSON.stringify({ entries: [] }),
+    "monex:activity-user:u1": JSON.stringify({ entries: [] }),
     "monex:state": JSON.stringify({ processedTweetIds: [], users: {} }),
   });
 

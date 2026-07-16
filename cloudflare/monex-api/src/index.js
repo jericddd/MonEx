@@ -4,6 +4,7 @@ import {
   appendActivity,
   listActivities,
   listUserActivities,
+  PROFILE_CATCH_LOG_LIMIT,
   getPollSinceId,
   setPollSinceId,
   clearPollSinceId,
@@ -927,7 +928,11 @@ async function handleRequest(request, env) {
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       const username = auth.session.username;
       const xUserId = auth.session.xUserId;
-      const limit = parseBoundedInt(url.searchParams.get("limit"), { fallback: 50, min: 1, max: 150 });
+      const limit = parseBoundedInt(url.searchParams.get("limit"), {
+        fallback: PROFILE_CATCH_LOG_LIMIT,
+        min: 1,
+        max: PROFILE_CATCH_LOG_LIMIT,
+      });
       const page = parseBoundedInt(url.searchParams.get("page"), { fallback: 1, min: 1, max: 9999 });
       const result = await listUserActivities(env.MONEX_KV, xUserId, username, {
         limit,
@@ -951,7 +956,11 @@ async function handleRequest(request, env) {
         windowSec: 60,
         userId: auth.session.xUserId,
       });
-      const scanLimit = parseBoundedInt(url.searchParams.get("limit"), { fallback: 50, min: 1, max: 50 });
+      const scanLimit = parseBoundedInt(url.searchParams.get("limit"), {
+        fallback: PROFILE_CATCH_LOG_LIMIT,
+        min: 1,
+        max: PROFILE_CATCH_LOG_LIMIT,
+      });
       const result = await listUserActivities(env.MONEX_KV, auth.session.xUserId, auth.session.username, {
         limit: scanLimit,
         page: 1,

@@ -1,4 +1,4 @@
-import { loadActivityLog } from "../kv-store.js";
+import { loadUserActivityIndex } from "../kv-store.js";
 import { loadCatchReceipt } from "./catch-receipt.js";
 import { catchUsernameIndexKey } from "./catch-user-store.js";
 
@@ -130,15 +130,15 @@ export async function assignPersonalCatchLogRef(
     }
   }
 
-  const log = await loadActivityLog(kv);
-  const existingEntry = filterUserSuccessfulCatchEntries(log.entries, username).find(
+  const index = await loadUserActivityIndex(kv, uid);
+  const existingEntry = filterUserSuccessfulCatchEntries(index.entries, username).find(
     (row) => String(row.tweetId) === id
   );
   if (existingEntry?.personalLogNumber > 0) {
     return existingEntry.personalLogNumber;
   }
 
-  const inferred = inferPersonalCatchLogSeq(log.entries, username);
+  const inferred = inferPersonalCatchLogSeq(index.entries, username);
   const seq = Math.max(Number(catchUser?.personalCatchLogSeq) || 0, inferred);
   const logNumber = seq + 1;
   if (catchUser) catchUser.personalCatchLogSeq = logNumber;
@@ -192,11 +192,11 @@ export async function resolvePersonalCatchLog(
   if (!uid) return { ok: false, error: "user_not_found" };
 
   const ref = await loadPersonalCatchLogRef(kv, uid, n);
-  const log = await loadActivityLog(kv);
+  const index = await loadUserActivityIndex(kv, uid);
   const displayUsername = ref?.username || username;
   let activity =
-    (ref?.tweetId ? findActivityEntryByTweetId(log.entries, ref.tweetId) : null) ||
-    findActivityEntryByPersonalLogNumber(log.entries, displayUsername, n);
+    (ref?.tweetId ? findActivityEntryByTweetId(index.entries, ref.tweetId) : null) ||
+    findActivityEntryByPersonalLogNumber(index.entries, displayUsername, n);
 
   let receipt = ref?.tweetId ? await loadCatchReceipt(kv, ref.tweetId) : null;
   if (!receipt && activity?.tweetId) {

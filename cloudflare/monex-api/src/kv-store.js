@@ -1,5 +1,5 @@
+import { cleanPersonalLogUsername } from "./lib/personal-catch-log.js";
 import { mergeMonballBalances } from "./lib/grant-monballs.js";
-import { filterUserSuccessfulCatchEntries } from "./lib/personal-catch-log.js";
 import { safeJsonParse } from "./lib/safe-json.js";
 
 const STATE_KEY = "monex:state";
@@ -11,6 +11,8 @@ const RESET_EPOCH_KEY = "monex:resetEpoch";
 const RATE_LIMIT_PREFIX = "monex:rl:";
 const MAX_ACTIVITY = 500;
 const MAX_USER_ACTIVITY_INDEX = 250;
+/** Profile /mine reads at most this many personal catch rows per request. */
+export const PROFILE_CATCH_LOG_LIMIT = 30;
 
 /** Hidden from global /api/activity feed (home X Wild Log). Personal /mine still works. */
 const HIDDEN_ACTIVITY_USERNAMES = new Set(["yesdraken_"]);
@@ -325,30 +327,24 @@ export async function appendUserActivityIndex(kv, xUserId, entry) {
   await saveUserActivityIndex(kv, xUserId, index);
 }
 
-/** Lazy-build per-user index from global log once, then serve /mine without full-log scans. */
-export async function ensureUserActivityIndex(kv, xUserId, username) {
-  const existing = await loadUserActivityIndex(kv, xUserId);
-  if (existing.entries?.length) return existing;
-
-  const log = await loadActivityLog(kv);
-  const rows = filterUserSuccessfulCatchEntries(log.entries, username);
-  if (!rows.length) return existing;
-
-  const built = { entries: [...rows].reverse() };
-  await saveUserActivityIndex(kv, xUserId, built);
-  return built;
-}
-
+/** Per-user catch log index only — never reads the global activity log. */
 export async function listUserActivities(
   kv,
   xUserId,
   username,
-  { limit = 50, page = 1, successOnly = true } = {}
+  { limit = PROFILE_CATCH_LOG_LIMIT, page = 1, successOnly = true } = {}
 ) {
-  const safeLimit = Number.isFinite(limit) && limit > 0 ? limit : 50;
+  const safeLimit = Math.min(
+    PROFILE_CATCH_LOG_LIMIT,
+    Number.isFinite(limit) && limit > 0 ? limit : PROFILE_CATCH_LOG_LIMIT
+  );
   const safePage = Number.isFinite(page) && page > 0 ? page : 1;
-  const index = await ensureUserActivityIndex(kv, xUserId, username);
+  const index = await loadUserActivityIndex(kv, xUserId);
+  const handle = cleanPersonalLogUsername(username);
   let rows = index.entries || [];
+  if (handle) {
+    rows = rows.filter((entry) => cleanPersonalLogUsername(entry.xUsername) === handle);
+  }
   if (successOnly) rows = rows.filter((entry) => entry.status === "success");
   const total = rows.length;
   const totalPages = Math.max(1, Math.ceil(total / safeLimit));
