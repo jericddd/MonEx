@@ -165,25 +165,42 @@
 
   /**
    * Load a manifest: { images: string[], fallbacks?: Record<string,string>, audio?: string[] }
-   * Marks ready when all tasks finish (non-fatal failures still allow ready — avoids infinite boot).
+   * @param {object} [opts]
+   * @param {boolean} [opts.markReady=true] Set status ready when this batch finishes.
+   * @param {boolean} [opts.trackProgress=false] Update boot progress UI (blocking boot only).
+   * @param {boolean} [opts.loadFonts=true] Preload fonts on first batch only.
    */
-  async function loadManifest(manifest) {
+  async function loadManifest(manifest, opts = {}) {
+    const markReady = opts.markReady !== false;
+    const trackProgress = opts.trackProgress === true;
+    const loadFonts = opts.loadFonts !== false;
+
     if (state.status === "ready") return state;
 
-    state.status = "loading";
-    state.failedAssets = [];
-    state.progress = 0;
-    state.loadedAssets = 0;
+    const fresh = state.status === "idle";
+    if (fresh) {
+      state.status = "loading";
+      state.failedAssets = [];
+      state.progress = 0;
+      state.loadedAssets = 0;
+      state.totalAssets = 0;
+    }
 
-    const images = [...new Set((manifest?.images || []).filter(Boolean))];
     const fallbacks = manifest?.fallbacks || {};
-    const audio = [...new Set((manifest?.audio || []).filter(Boolean))];
-    const total = images.length + audio.length + 1;
-    state.totalAssets = total;
-    setProgress(0, total);
+    const images = [...new Set((manifest?.images || []).filter(Boolean))]
+      .filter((url) => !imageCache.has(normalizeUrl(url)));
+    const audio = [...new Set((manifest?.audio || []).filter(Boolean))]
+      .filter((url) => !audioCache.has(normalizeUrl(url)));
 
-    await preloadFonts();
-    setProgress(1, total);
+    const batchTotal = images.length + audio.length + (fresh && loadFonts ? 1 : 0);
+    const progressBase = state.loadedAssets;
+    const progressTotal = progressBase + batchTotal;
+    if (trackProgress && batchTotal > 0) setProgress(progressBase, progressTotal);
+
+    if (fresh && loadFonts) {
+      await preloadFonts();
+      if (trackProgress && batchTotal > 0) setProgress(progressBase + 1, progressTotal);
+    }
 
     const imageTasks = images.map((url) => async () => {
       const fb = fallbacks[normalizeUrl(url)] || fallbacks[url];
@@ -191,9 +208,12 @@
     });
 
     let imageDone = 0;
+    const fontOffset = fresh && loadFonts ? 1 : 0;
     await runPool(imageTasks, LOAD_CONCURRENCY, (n) => {
       imageDone = n;
-      setProgress(1 + imageDone, total);
+      if (trackProgress && batchTotal > 0) {
+        setProgress(progressBase + fontOffset + imageDone, progressTotal);
+      }
     });
 
     let audioDone = 0;
@@ -202,16 +222,28 @@
     });
     await runPool(audioTasks, LOAD_CONCURRENCY, (n) => {
       audioDone = n;
-      setProgress(1 + images.length + audioDone, total);
+      if (trackProgress && batchTotal > 0) {
+        setProgress(progressBase + fontOffset + images.length + audioDone, progressTotal);
+      }
     });
 
-    state.progress = 1;
-    state.status = "ready";
-    if (state.failedAssets.length) {
-      console.warn("[MonExGameAssets] Boot completed with failed assets:", state.failedAssets);
+    state.loadedAssets = progressBase + batchTotal;
+    state.totalAssets = Math.max(state.totalAssets, state.loadedAssets);
+
+    if (markReady) {
+      state.progress = 1;
+      state.status = "ready";
+      if (state.failedAssets.length) {
+        console.warn("[MonExGameAssets] Boot completed with failed assets:", state.failedAssets);
+      }
+      if (trackProgress) updateProgressUI();
     }
-    updateProgressUI();
     return state;
+  }
+
+  /** Load manifest without blocking the boot loading screen (tiered /play preload). */
+  async function preloadManifestInBackground(manifest, opts = {}) {
+    return loadManifest(manifest, { ...opts, trackProgress: false });
   }
 
   function isReady() {
@@ -255,6 +287,7 @@
     preloadFonts,
     preloadAudio,
     loadManifest,
+    preloadManifestInBackground,
     bootFromManifest,
     isReady,
     isLoaded,
