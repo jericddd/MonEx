@@ -18196,7 +18196,7 @@ async function refreshProfileActivity(opts = {}) {
         el.innerHTML = '<div class="activity-empty">Loading your log…</div>';
     }
     try {
-        const items = await MonExActivity.fetchMine(xHandle, 150);
+        const items = await MonExActivity.fetchMine(xHandle, 50);
         const sig = JSON.stringify(items.map((entry) =>
             entry.id || `${entry.at}:${entry.spend}:${entry.caughtCount}:${entry.completionStatus || ""}:${entry.tweetId || ""}`
         ));
@@ -19271,7 +19271,7 @@ async function refreshProfileCatchBadge(opts = {}) {
         return;
     }
     if (profileCatchBadgeFetch) return profileCatchBadgeFetch;
-    const fetchLimit = Math.max(1, Math.min(150, Math.floor(Number(opts.limit) || 30)));
+    const fetchLimit = Math.max(1, Math.min(50, Math.floor(Number(opts.limit) || 50)));
     profileCatchBadgeFetch = (async () => {
         try {
             const items = await MonExActivity.fetchMine(handle, fetchLimit);
@@ -19289,7 +19289,7 @@ async function refreshProfileCatchBadge(opts = {}) {
 
 function deferProfileCatchBadgeRefresh() {
     const run = () => {
-        refreshProfileCatchBadge({ silent: true, limit: 30 }).catch(() => {});
+        refreshProfileCatchBadge({ silent: true, limit: 50 }).catch(() => {});
     };
     if (typeof requestIdleCallback === "function") {
         requestIdleCallback(run, { timeout: 2500 });
