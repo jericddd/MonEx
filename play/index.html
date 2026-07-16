@@ -8514,7 +8514,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/resource-chest-client.js?v=20260713d"></script>
 <script src="js/battle-reward-client.js?v=20260713e"></script>
 <script src="js/mailbox-client.js?v=20260713a"></script>
-<script src="js/game-asset-manager.js?v=20260714a"></script>
+<script src="js/game-asset-manager.js?v=20260716b"></script>
 <script>
 // =====================================================
 // MONEX - CLEAN ORGANIZED STRUCTURE
@@ -11639,13 +11639,94 @@ function collectGameAssetManifest() {
     return { images: [...images], fallbacks, audio: [] };
 }
 
+/** Tier-1 boot assets: main scene + UI + owned mons only (not all 17 species). */
+function collectCriticalBootAssetManifest() {
+    const images = new Set();
+    const fallbacks = {};
+    const add = (url, fallback) => {
+        if (!url) return;
+        images.add(url);
+        if (fallback) {
+            const key = MonExGameAssets?.normalizeUrl?.(url) || assetUrlBase(url);
+            fallbacks[key] = fallback;
+        }
+    };
+
+    add(MAIN_SCENE_BG);
+    add(BATTLE_HUB_BG);
+    add(getAdventureModeHubBackgroundPath());
+    add(getChapterBackgroundPath(currentChapter));
+
+    Object.values(GAME_ICONS).forEach((icon) => add(icon.src));
+    [
+        "dailyquest.png", "shop.png", "armory.png", "monball.png", "mailbox.png",
+        "profile.png", "party.png", "box.png", "inventory.png", "battle.png", "catch.png",
+        "collectresource.png",
+    ].forEach((file) => add(buttonTabIconSrc(file)));
+    add("game_icons/mailbox.png?v=1");
+
+    ensureSceneIdleEnemies();
+    const heroes = party.slice(0, 3);
+    const enemies = sceneIdleEnemyTeam.slice(0, 3);
+    [...heroes, ...enemies].forEach((mon) => {
+        if (!mon?.name) return;
+        add(getSceneIdleDisplaySprite(mon), getMonPngPath(mon.name));
+    });
+
+    [...party, ...box].forEach((mon) => {
+        if (!mon?.name) return;
+        if (_sprites()?.getMonDisplaySpriteCandidates) {
+            _sprites().getMonDisplaySpriteCandidates(mon).forEach((u) => add(u, getMonPngPath(mon.name)));
+        } else {
+            add(getMonPngPath(mon.name));
+            add(getMonIdleGifPath(mon.name), getMonPngPath(mon.name));
+        }
+    });
+
+    return { images: [...images], fallbacks, audio: [] };
+}
+
+function collectDeferredGameAssetManifest() {
+    const full = collectGameAssetManifest();
+    const critical = collectCriticalBootAssetManifest();
+    const criticalKeys = new Set(
+        critical.images.map((u) => MonExGameAssets?.normalizeUrl?.(u) || assetUrlBase(u))
+    );
+    const images = full.images.filter(
+        (u) => !criticalKeys.has(MonExGameAssets?.normalizeUrl?.(u) || assetUrlBase(u))
+    );
+    return { images, fallbacks: full.fallbacks, audio: full.audio || [] };
+}
+
+let playAssetPreloadPromise = null;
+
 async function bootPlayStartupAssets() {
     if (isPlayAssetsReady()) return;
     const manifest = collectGameAssetManifest();
     await MonExGameAssets.bootFromManifest(manifest);
-    await Promise.all(
-        manifest.images.filter((u) => usesGifNaturalLoop(u)).map((u) => warmGifLoopTimingForPath(u))
-    );
+}
+
+function startPlayAssetPreload() {
+    if (isPlayAssetsReady()) return playAssetPreloadPromise;
+    if (playAssetPreloadPromise) return playAssetPreloadPromise;
+    playAssetPreloadPromise = (async () => {
+        if (!window.MonExGameAssets?.preloadManifestInBackground) return;
+        try {
+            const critical = collectCriticalBootAssetManifest();
+            await MonExGameAssets.preloadManifestInBackground(critical, { markReady: false });
+            const deferred = collectDeferredGameAssetManifest();
+            await MonExGameAssets.preloadManifestInBackground(deferred, {
+                markReady: true,
+                loadFonts: false,
+            });
+        } catch (e) {
+            console.warn("Background asset preload failed:", e);
+            if (MonExGameAssets?.state && MonExGameAssets.state.status !== "ready") {
+                MonExGameAssets.state.status = "ready";
+            }
+        }
+    })();
+    return playAssetPreloadPromise;
 }
 
 async function warmFighterAssets(fighter) {
@@ -15982,6 +16063,20 @@ function setGameBootLoadingStatus(text) {
     if (statusEl && text) statusEl.textContent = text;
 }
 
+function hideGameBootLoadingScreen() {
+    const screen = document.getElementById("game-loading-screen");
+    const shell = document.querySelector(".game-shell");
+    if (screen) {
+        screen.hidden = true;
+        screen.classList.remove("is-visible");
+        screen.setAttribute("aria-busy", "false");
+    }
+    if (shell) shell.classList.remove("game-shell--loading");
+    if (window.MonExGameAssets?.showLoadingScreen) {
+        MonExGameAssets.showLoadingScreen(false);
+    }
+}
+
 async function fetchCloudSaveWithRetry() {
     if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
         return { status: "not_logged_in" };
@@ -15989,15 +16084,37 @@ async function fetchCloudSaveWithRetry() {
     const waits = [0, 600, 1500];
     let lastError = null;
     let hydrated = false;
+    const localData = readLocalSaveData();
+    const localRevision = Number(localData?.revision ?? 0);
+    const hasWarmLocalSave = !!(localData && localRevision > 0);
+
     for (let i = 0; i < waits.length; i++) {
         if (waits[i]) await delay(waits[i]);
         try {
-            if (!hydrated && typeof MonExAuth.hydrateCloudSave === "function") {
-                await MonExAuth.hydrateCloudSave().catch((err) => {
+            const isLastAttempt = i === waits.length - 1;
+            const shouldHydrate = !hydrated
+                && typeof MonExAuth.hydrateCloudSave === "function"
+                && (!hasWarmLocalSave || isLastAttempt);
+
+            if (shouldHydrate) {
+                const hydrateResult = await MonExAuth.hydrateCloudSave().catch((err) => {
                     console.warn("Cloud hydrate attempt failed:", err);
+                    return null;
                 });
                 hydrated = true;
+                if (hydrateResult?.save) {
+                    return {
+                        status: "ok",
+                        cloud: {
+                            ok: true,
+                            found: true,
+                            save: hydrateResult.save,
+                            user: hydrateResult.user || null,
+                        },
+                    };
+                }
             }
+
             const cloud = await Promise.race([
                 MonExAuth.loadCloudSave(),
                 delay(12000).then(() => {
@@ -19010,7 +19127,6 @@ async function runPostLoginBootstrap() {
     resolveXHandle();
     try { await refreshMonballsFromServer({ allowDecrease: true }); } catch (_) {}
     try { await syncXWildMons(true, 2); } catch (_) {}
-    try { await refreshProfileCatchBadge({ silent: true }); } catch (_) {}
     updateUI();
 }
 
@@ -19060,11 +19176,12 @@ async function checkLogin() {
         await loadData();
         if (cloudLoadFailed) return;
         gameSessionBootLoaded = true;
-        setGameBootLoadingStatus("Loading game assets…");
-        await refreshMonballsFromServer({ allowDecrease: true });
+        setGameBootLoadingStatus("Syncing…");
         await runPostLoginBootstrap();
-        await bootPlayStartupAssets();
+        hideGameBootLoadingScreen();
         showMainScene();
+        startPlayAssetPreload();
+        deferProfileCatchBadgeRefresh();
     } catch (e) {
         console.error("checkLogin failed:", e);
         const cached = readCachedUserFallback();
@@ -19087,16 +19204,18 @@ async function checkLogin() {
             try {
                 await loadData();
                 if (cloudLoadFailed) {
-                    await bootPlayStartupAssets();
+                    hideGameBootLoadingScreen();
                     showMainScene();
+                    startPlayAssetPreload();
                     return;
                 }
                 gameSessionBootLoaded = true;
             } catch (inner) {
                 console.error("checkLogin fallback load failed:", inner);
                 showCloudLoadErrorModal();
-                await bootPlayStartupAssets();
+                hideGameBootLoadingScreen();
                 showMainScene();
+                startPlayAssetPreload();
                 return;
             }
             try {
@@ -19104,8 +19223,10 @@ async function checkLogin() {
             } catch (inner) {
                 console.error("checkLogin fallback bootstrap failed:", inner);
             }
-            await bootPlayStartupAssets();
+            hideGameBootLoadingScreen();
             showMainScene();
+            startPlayAssetPreload();
+            deferProfileCatchBadgeRefresh();
             return;
         }
         sessionStorage.removeItem("monex_game_entry");
@@ -19150,9 +19271,10 @@ async function refreshProfileCatchBadge(opts = {}) {
         return;
     }
     if (profileCatchBadgeFetch) return profileCatchBadgeFetch;
+    const fetchLimit = Math.max(1, Math.min(150, Math.floor(Number(opts.limit) || 30)));
     profileCatchBadgeFetch = (async () => {
         try {
-            const items = await MonExActivity.fetchMine(handle, 150);
+            const items = await MonExActivity.fetchMine(handle, fetchLimit);
             profileCatchActivityCache = items || [];
             updateProfileCatchBadge(profileCatchActivityCache);
         } catch (e) {
@@ -19163,6 +19285,17 @@ async function refreshProfileCatchBadge(opts = {}) {
         }
     })();
     return profileCatchBadgeFetch;
+}
+
+function deferProfileCatchBadgeRefresh() {
+    const run = () => {
+        refreshProfileCatchBadge({ silent: true, limit: 30 }).catch(() => {});
+    };
+    if (typeof requestIdleCallback === "function") {
+        requestIdleCallback(run, { timeout: 2500 });
+    } else {
+        setTimeout(run, 0);
+    }
 }
 
 function getUnclaimedMailboxCount() {
