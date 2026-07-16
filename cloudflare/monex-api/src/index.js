@@ -3,6 +3,7 @@ import { parseMention } from "./lib/parse-mention.js";
 import {
   appendActivity,
   listActivities,
+  listUserActivities,
   getPollSinceId,
   setPollSinceId,
   clearPollSinceId,
@@ -80,7 +81,7 @@ import {
   normalizeSessionOpenedAt,
 } from "./lib/game-session.js";
 import { commitCatchTransaction, retryPendingCatchDeliveries } from "./lib/catch-commit.js";
-import { claimCatchFromLog, enrichActivityEntriesWithReceipts } from "./lib/catch-claim.js";
+import { claimCatchFromLog, enrichActivityEntriesWithReceipts, countClaimableActivityEntries } from "./lib/catch-claim.js";
 import { attachPersonalLogNumbers } from "./lib/personal-catch-log.js";
 import { getWalletMonballs } from "./lib/monball-wallet.js";
 import {
@@ -925,9 +926,14 @@ async function handleRequest(request, env) {
       const auth = await requireGameplay(request, env);
       if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
       const username = auth.session.username;
+      const xUserId = auth.session.xUserId;
       const limit = parseBoundedInt(url.searchParams.get("limit"), { fallback: 50, min: 1, max: 150 });
       const page = parseBoundedInt(url.searchParams.get("page"), { fallback: 1, min: 1, max: 9999 });
-      const result = await listActivities(env.MONEX_KV, { limit, page, username, successOnly: true });
+      const result = await listUserActivities(env.MONEX_KV, xUserId, username, {
+        limit,
+        page,
+        successOnly: true,
+      });
       const enriched = await enrichActivityEntriesWithReceipts(env.MONEX_KV, result.entries || []);
       const entries = attachPersonalLogNumbers(enriched, {
         total: result.total,
@@ -935,6 +941,30 @@ async function handleRequest(request, env) {
         limit: result.limit,
       });
       return json({ ok: true, username, ...result, entries }, 200, request, env);
+    }
+
+    if (path === "/api/catch/pending-count" && request.method === "GET") {
+      const auth = await requireGameplay(request, env);
+      if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
+      await enforceRateLimit(request, env, "catch-pending-count", {
+        limit: 120,
+        windowSec: 60,
+        userId: auth.session.xUserId,
+      });
+      const scanLimit = parseBoundedInt(url.searchParams.get("limit"), { fallback: 50, min: 1, max: 50 });
+      const result = await listUserActivities(env.MONEX_KV, auth.session.xUserId, auth.session.username, {
+        limit: scanLimit,
+        page: 1,
+        successOnly: true,
+      });
+      const enriched = await enrichActivityEntriesWithReceipts(env.MONEX_KV, result.entries || []);
+      const count = countClaimableActivityEntries(enriched);
+      return json(
+        { ok: true, count, scanned: enriched.length, total: result.total },
+        200,
+        request,
+        env
+      );
     }
 
     if (path === "/api/catch/claim" && request.method === "POST") {

@@ -8503,7 +8503,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/staging-banner.js?v=20260710a"></script>
 <script src="js/monex-config.js?v=20260710a"></script>
 <script src="js/escape-html.js?v=20260710a"></script>
-<script src="js/activity-client.js?v=20260716a"></script>
+<script src="js/activity-client.js?v=20260716b"></script>
 <script src="js/catch-claim-client.js?v=20260715a"></script>
 <script src="js/auth-client.js?v=20260714d"></script>
 <script src="js/release-client.js?v=20260714a"></script>
@@ -19126,8 +19126,11 @@ async function runPostLoginBootstrap() {
     }
     resolveXHandle();
     try { await refreshMonballsFromServer({ allowDecrease: true }); } catch (_) {}
-    try { await syncXWildMons(true, 2); } catch (_) {}
     updateUI();
+}
+
+async function runBackgroundCatchSync() {
+    try { await syncXWildMons(true, 1); } catch (_) {}
 }
 
 async function checkLogin() {
@@ -19182,6 +19185,7 @@ async function checkLogin() {
         showMainScene();
         startPlayAssetPreload();
         deferProfileCatchBadgeRefresh();
+        void runBackgroundCatchSync();
     } catch (e) {
         console.error("checkLogin failed:", e);
         const cached = readCachedUserFallback();
@@ -19227,6 +19231,7 @@ async function checkLogin() {
             showMainScene();
             startPlayAssetPreload();
             deferProfileCatchBadgeRefresh();
+            void runBackgroundCatchSync();
             return;
         }
         sessionStorage.removeItem("monex_game_entry");
@@ -19255,25 +19260,32 @@ function getUnclaimedProfileCatchCount(entries) {
     }).length;
 }
 
-function updateProfileCatchBadge(entries) {
+function updateProfileCatchBadge(entriesOrCount) {
     const badge = document.getElementById("rail-profile-catch-badge");
     if (!badge) return;
-    const n = getUnclaimedProfileCatchCount(entries);
+    const n = typeof entriesOrCount === "number"
+        ? Math.max(0, Math.floor(entriesOrCount))
+        : getUnclaimedProfileCatchCount(entriesOrCount);
     badge.textContent = n > 9 ? "9+" : String(n);
     badge.style.display = n > 0 ? "block" : "none";
 }
 
 async function refreshProfileCatchBadge(opts = {}) {
     const handle = resolveXHandle();
-    if (!handle || typeof MonExActivity === "undefined" || !MonExActivity.fetchMine) {
+    if (!handle || typeof MonExActivity === "undefined") {
         profileCatchActivityCache = [];
-        updateProfileCatchBadge([]);
+        updateProfileCatchBadge(0);
         return;
     }
     if (profileCatchBadgeFetch) return profileCatchBadgeFetch;
-    const fetchLimit = Math.max(1, Math.min(50, Math.floor(Number(opts.limit) || 50)));
     profileCatchBadgeFetch = (async () => {
         try {
+            if (!opts.full && MonExActivity.fetchPendingCatchCount) {
+                const count = await MonExActivity.fetchPendingCatchCount(50);
+                updateProfileCatchBadge(count);
+                return;
+            }
+            const fetchLimit = Math.max(1, Math.min(50, Math.floor(Number(opts.limit) || 50)));
             const items = await MonExActivity.fetchMine(handle, fetchLimit);
             profileCatchActivityCache = items || [];
             updateProfileCatchBadge(profileCatchActivityCache);
@@ -19289,7 +19301,7 @@ async function refreshProfileCatchBadge(opts = {}) {
 
 function deferProfileCatchBadgeRefresh() {
     const run = () => {
-        refreshProfileCatchBadge({ silent: true, limit: 50 }).catch(() => {});
+        refreshProfileCatchBadge({ silent: true }).catch(() => {});
     };
     if (typeof requestIdleCallback === "function") {
         requestIdleCallback(run, { timeout: 2500 });

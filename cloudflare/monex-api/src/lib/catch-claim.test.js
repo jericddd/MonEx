@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { claimCatchFromLog } from "./catch-claim.js";
+import { claimCatchFromLog, countClaimableActivityEntries } from "./catch-claim.js";
 import { buildCatchReceipt, saveCatchReceipt, catchReceiptKey } from "./catch-receipt.js";
 import { commitCatchTransaction } from "./catch-commit.js";
 import { processMentionTweet } from "./process-mention.js";
@@ -539,4 +539,15 @@ test("claim rejects when party and box are full", async () => {
   });
   assert.equal(result.ok, false);
   assert.equal(result.error, "party_box_full");
+});
+
+test("countClaimableActivityEntries counts pending claim rows only", () => {
+  assert.equal(
+    countClaimableActivityEntries([
+      { tweetId: "a", completionStatus: "pending", claimable: true },
+      { tweetId: "b", completionStatus: "completed", claimable: false },
+      { tweetId: "c", claimed: true },
+    ]),
+    1
+  );
 });

@@ -309,20 +309,22 @@ export async function claimCatchFromLog(
 
 /** Refresh activity rows with live receipt claim state for profile UI. */
 export async function enrichActivityEntriesWithReceipts(kv, entries = []) {
-  const out = [];
-  for (const entry of entries) {
-    if (!entry?.tweetId) {
-      out.push(entry);
-      continue;
-    }
-    const receipt = await loadCatchReceipt(kv, entry.tweetId);
-    if (!receipt) {
-      out.push(entry);
-      continue;
-    }
-    out.push(enrichActivityWithReceipt(entry, receipt));
-  }
-  return out;
+  return Promise.all(
+    (entries || []).map(async (entry) => {
+      if (!entry?.tweetId) return entry;
+      const receipt = await loadCatchReceipt(kv, entry.tweetId);
+      if (!receipt) return entry;
+      return enrichActivityWithReceipt(entry, receipt);
+    })
+  );
+}
+
+export function countClaimableActivityEntries(entries = []) {
+  return (entries || []).filter((entry) => {
+    if (!entry?.tweetId) return false;
+    if (entry.claimed === true || entry.completionStatus === "completed") return false;
+    return entry.claimable === true || entry.completionStatus === "pending";
+  }).length;
 }
 
 export function monsAlreadyDelivered(save, receipt) {

@@ -1093,6 +1093,16 @@ async function fetchPersonalActivity(username, limit, page) {
     return res.json();
 }
 
+async function fetchPendingCatchCount(limit = 50) {
+    const base = getMonexApiBase();
+    const headers = getAuthHeaders();
+    const params = new URLSearchParams({ limit: String(limit || 50) });
+    const url = `${base}/api/catch/pending-count?${params}`;
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error("pending catch count fetch failed");
+    return res.json();
+}
+
 async function fetchPersonalReleases(limit, page) {
     const base = getMonexApiBase();
     const headers = getAuthHeaders();
@@ -1324,6 +1334,10 @@ window.MonExActivity = {
     },
     fetchMineData: async (username, limit, page) => {
         return fetchPersonalActivity(username, limit || 50, page || 1);
+    },
+    fetchPendingCatchCount: async (limit = 50) => {
+        const data = await fetchPendingCatchCount(limit);
+        return Math.max(0, Math.floor(Number(data?.count) || 0));
     },
     fetchReleases: async (limit, page) => {
         return fetchPersonalReleases(limit, page);

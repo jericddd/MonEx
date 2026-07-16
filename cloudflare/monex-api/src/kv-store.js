@@ -1,13 +1,16 @@
 import { mergeMonballBalances } from "./lib/grant-monballs.js";
+import { filterUserSuccessfulCatchEntries } from "./lib/personal-catch-log.js";
 import { safeJsonParse } from "./lib/safe-json.js";
 
 const STATE_KEY = "monex:state";
 const ACTIVITY_KEY = "monex:activity";
+const USER_ACTIVITY_INDEX_PREFIX = "monex:activity-user:";
 const POLL_KEY = "monex:poll:sinceId";
 const POLL_STATUS_KEY = "monex:poll:lastStatus";
 const RESET_EPOCH_KEY = "monex:resetEpoch";
 const RATE_LIMIT_PREFIX = "monex:rl:";
 const MAX_ACTIVITY = 500;
+const MAX_USER_ACTIVITY_INDEX = 250;
 
 /** Hidden from global /api/activity feed (home X Wild Log). Personal /mine still works. */
 const HIDDEN_ACTIVITY_USERNAMES = new Set(["yesdraken_"]);
@@ -44,6 +47,11 @@ export async function withUserSyncLock(usernameOrKey, fn) {
 
 const DEFAULT_STATE = { processedTweetIds: [], users: {} };
 const DEFAULT_ACTIVITY = { entries: [] };
+const DEFAULT_USER_ACTIVITY_INDEX = { entries: [] };
+
+export function userActivityIndexKey(xUserId) {
+  return `${USER_ACTIVITY_INDEX_PREFIX}${String(xUserId || "").trim()}`;
+}
 
 export async function loadState(kv) {
   const raw = await kv.get(STATE_KEY);
@@ -291,6 +299,71 @@ export async function loadActivityLog(kv) {
   return safeJsonParse(raw, structuredClone(DEFAULT_ACTIVITY));
 }
 
+export async function loadUserActivityIndex(kv, xUserId) {
+  if (!kv || !xUserId) return structuredClone(DEFAULT_USER_ACTIVITY_INDEX);
+  const raw = await kv.get(userActivityIndexKey(xUserId));
+  if (!raw) return structuredClone(DEFAULT_USER_ACTIVITY_INDEX);
+  return safeJsonParse(raw, structuredClone(DEFAULT_USER_ACTIVITY_INDEX));
+}
+
+export async function saveUserActivityIndex(kv, xUserId, index) {
+  if (!kv || !xUserId) return;
+  let entries = Array.isArray(index?.entries) ? index.entries : [];
+  if (entries.length > MAX_USER_ACTIVITY_INDEX) {
+    entries = entries.slice(0, MAX_USER_ACTIVITY_INDEX);
+  }
+  await kv.put(userActivityIndexKey(xUserId), JSON.stringify({ entries }));
+}
+
+export async function appendUserActivityIndex(kv, xUserId, entry) {
+  if (!kv || !xUserId || !entry || entry.status !== "success") return;
+  const index = await loadUserActivityIndex(kv, xUserId);
+  const tweetId = String(entry.tweetId || "");
+  if (tweetId && index.entries.some((row) => String(row.tweetId) === tweetId)) return;
+  index.entries = index.entries.filter((row) => row.id !== entry.id);
+  index.entries.unshift(entry);
+  await saveUserActivityIndex(kv, xUserId, index);
+}
+
+/** Lazy-build per-user index from global log once, then serve /mine without full-log scans. */
+export async function ensureUserActivityIndex(kv, xUserId, username) {
+  const existing = await loadUserActivityIndex(kv, xUserId);
+  if (existing.entries?.length) return existing;
+
+  const log = await loadActivityLog(kv);
+  const rows = filterUserSuccessfulCatchEntries(log.entries, username);
+  if (!rows.length) return existing;
+
+  const built = { entries: [...rows].reverse() };
+  await saveUserActivityIndex(kv, xUserId, built);
+  return built;
+}
+
+export async function listUserActivities(
+  kv,
+  xUserId,
+  username,
+  { limit = 50, page = 1, successOnly = true } = {}
+) {
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? limit : 50;
+  const safePage = Number.isFinite(page) && page > 0 ? page : 1;
+  const index = await ensureUserActivityIndex(kv, xUserId, username);
+  let rows = index.entries || [];
+  if (successOnly) rows = rows.filter((entry) => entry.status === "success");
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / safeLimit));
+  const pageNum = Math.min(Math.max(1, safePage), totalPages);
+  const offset = (pageNum - 1) * safeLimit;
+  const entries = rows.slice(offset, offset + safeLimit);
+  return {
+    entries,
+    total,
+    page: pageNum,
+    limit: safeLimit,
+    totalPages,
+  };
+}
+
 export async function saveActivityLog(kv, log) {
   if (log.entries.length > MAX_ACTIVITY) {
     log.entries = log.entries.slice(-MAX_ACTIVITY);
@@ -305,6 +378,8 @@ export async function appendActivity(kv, entry) {
   }
   log.entries.unshift(entry);
   await saveActivityLog(kv, log);
+  const uid = String(entry?.xUserId || "").trim();
+  if (uid) await appendUserActivityIndex(kv, uid, entry);
   return entry;
 }
 
