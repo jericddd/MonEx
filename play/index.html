@@ -18340,7 +18340,7 @@ async function refreshProfileReleases(opts = {}) {
     try {
         let items = releaseLog || [];
         if (MonExActivity.fetchReleases) {
-            const data = await MonExActivity.fetchReleases(150, 1);
+            const data = await MonExActivity.fetchReleases(50, 1);
             if (Array.isArray(data?.entries)) {
                 items = mergeReleaseLogs(items, data.entries);
                 releaseLog = items;
