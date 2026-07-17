@@ -371,6 +371,34 @@ test("retryPendingCatchDeliveries remaining excludes claim-gated pending mons", 
   assert.equal(result.remaining, 0);
   assert.equal(result.added, 0);
   assert.equal(JSON.parse(store["monex:catch-user:u1"]).pendingMons.length, 2);
+  // No-op sync must NOT bump cloud save revision (was overwriting client progress).
+  assert.equal(JSON.parse(store["monex:save:u1"]).revision, 1);
+});
+
+test("retryPendingCatchDeliveries does not rewrite cloud save when nothing delivered", async () => {
+  const store = {
+    "monex:catch-user:u1": JSON.stringify({
+      username: "trainer",
+      monballs: 9,
+      pendingMons: [],
+      updatedAt: new Date().toISOString(),
+    }),
+    "monex:save:u1": JSON.stringify({
+      revision: 7,
+      monballs: 9,
+      money: 5000,
+      party: [{ name: "Chog", rarity: "Common", level: 5, equipment: {} }],
+      box: [],
+      xHandle: "trainer",
+      updatedAt: new Date().toISOString(),
+    }),
+  };
+  const kv = makeKv(store);
+  const result = await retryPendingCatchDeliveries(kv, "u1", "trainer", 10);
+  assert.equal(result.ok, true);
+  assert.equal(result.added, 0);
+  assert.equal(JSON.parse(store["monex:save:u1"]).revision, 7);
+  assert.equal(JSON.parse(store["monex:save:u1"]).party[0].level, 5);
 });
 
 test("recoverMissingMonsFromActivity skips deferred unclaimed catches", async () => {
