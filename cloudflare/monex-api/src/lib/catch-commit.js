@@ -312,9 +312,15 @@ export async function retryPendingCatchDeliveries(
     boxCount,
   });
 
-  if (pendingResult.ok && pendingResult.save) {
+  if (pendingResult.ok && pendingResult.save && (pendingResult.added || 0) > 0) {
     save = pendingResult.save;
     await writeCloudSave(kv, xUserId, save, { skipStaleCheck: true });
+  } else if (pendingResult.ok && pendingResult.save) {
+    // No mons delivered — keep loaded save revision. Still expose monballs for client.
+    save = {
+      ...loadedSave,
+      monballs: pendingResult.monballs ?? loadedSave?.monballs,
+    };
   }
   await saveCatchUserRecord(kv, xUserId, catchUser);
 

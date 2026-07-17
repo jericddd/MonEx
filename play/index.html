@@ -16490,8 +16490,8 @@ function reconcileSaveWithLocalMonProgress(saveData, localData) {
     merged.party = inv.party;
     merged.box = inv.box;
     if (localMonProgressAhead(localData, merged.party, merged.box)) {
-        merged.money = Math.min(Number(localData.money) || 0, Number(merged.money) || 0);
-        merged.essence = Math.min(Number(localData.essence) || 0, Number(merged.essence) || 0);
+        merged.money = Number(localData.money) || 0;
+        merged.essence = Number(localData.essence) || 0;
     }
     return merged;
 }
@@ -16631,7 +16631,14 @@ window.applyServerSaveCorrections = function applyServerSaveCorrections(serverSa
     ensurePatrolDailyReset();
     const serverUsed = Math.max(0, Math.floor(Number(serverSave.patrolScansUsed) || 0));
     const serverDay = serverSave.patrolScansDay || patrolScansDay;
-    if (serverUsed !== patrolScansUsed || serverDay !== patrolScansDay) {
+    // Only apply patrol counters from a successful autosave when the day matches.
+    // Never rewind a higher same-day client count from a stale correction race.
+    if (serverDay === patrolScansDay) {
+        if (serverUsed > patrolScansUsed) {
+            patrolScansUsed = serverUsed;
+            changed = true;
+        }
+    } else if (serverDay !== patrolScansDay) {
         patrolScansUsed = serverUsed;
         patrolScansDay = serverDay;
         changed = true;
@@ -16667,7 +16674,9 @@ window.applyServerSaveCorrections = function applyServerSaveCorrections(serverSa
 
 window.handleCloudSaveConflict = function handleCloudSaveConflict(cloudSave) {
     if (!cloudSave || typeof cloudSave !== "object") return;
-    const localData = readLocalSaveData();
+    // Prefer live in-memory progress over stale localStorage (debounce may not have flushed).
+    const liveData = typeof buildSavePayload === "function" ? buildSavePayload() : null;
+    const localData = liveData || readLocalSaveData();
     let merged;
 
     if (!localData) {
@@ -16679,8 +16688,10 @@ window.handleCloudSaveConflict = function handleCloudSaveConflict(cloudSave) {
         merged.box = inv.box;
         merged.revision = cloudSave.revision ?? merged.revision;
         if (localMonProgressAhead(localData, merged.party, merged.box)) {
-            merged.money = Math.min(Number(localData.money) || 0, Number(merged.money) || 0);
-            merged.essence = Math.min(Number(localData.essence) || 0, Number(merged.essence) || 0);
+            // Local levels ahead ⇒ local wallet is the spend/earn source of truth.
+            // Do NOT Math.min — that erased battle/quest gold earned alongside upgrades.
+            merged.money = Number(localData.money) || 0;
+            merged.essence = Number(localData.essence) || 0;
         }
     }
 
@@ -16691,6 +16702,12 @@ window.handleCloudSaveConflict = function handleCloudSaveConflict(cloudSave) {
     }
     reconcileUngrantedQuestRewards({ silent: true });
     updateUI();
+    // Re-push merged progress so the conflict does not strand local-ahead state.
+    if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn?.() && isGameSessionPlayable()) {
+        void persistProgress({ flush: true }).catch((err) => {
+            console.warn("Conflict re-flush failed:", err?.message || err);
+        });
+    }
 };
 
 function mergeSaveSnapshots(local, cloud) {
@@ -16962,8 +16979,9 @@ async function loadData() {
             data.box = inv.box;
             data.revision = cloudData.revision;
             if (localMonProgressAhead(localData, data.party, data.box)) {
-                data.money = Math.min(Number(localData.money) || 0, Number(data.money) || 0);
-                data.essence = Math.min(Number(localData.essence) || 0, Number(data.essence) || 0);
+                // Keep local wallet when local mon progress is ahead (spent + earned).
+                data.money = Number(localData.money) || 0;
+                data.essence = Number(localData.essence) || 0;
             }
             shouldPersistLocal = true;
             shouldSyncCloud = localMonProgressAhead(localData, data.party, data.box)
@@ -16981,7 +16999,17 @@ async function loadData() {
             shouldPersistLocal = true;
             shouldSyncCloud = localMonProgressAhead(localData, data.party, data.box);
         } else {
-            data = cloudData;
+            // Same revision — still merge so local-ahead progress is not wiped by raw cloud.
+            data = mergeSaveSnapshots(localData, cloudData);
+            const inv = mergeInventoryWithMaxProgress(localData, cloudData);
+            data.party = inv.party;
+            data.box = inv.box;
+            data.revision = cloudData.revision ?? localData.revision;
+            if (localMonProgressAhead(localData, data.party, data.box)) {
+                data.money = Number(localData.money) || 0;
+                data.essence = Number(localData.essence) || 0;
+                shouldSyncCloud = true;
+            }
             shouldPersistLocal = true;
         }
     } else if (cloudData) {
@@ -18051,8 +18079,9 @@ async function syncXWildMons(silent, maxAttempts = 25) {
     wildSyncInFlight = (async () => {
         const statusEl = document.getElementById("profile-pending-text");
         try {
-            if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
-                MonExAuth.cancelPendingCloudSave();
+            // Flush pending progress first — never cancel a live upgrade/spend push.
+            if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
+                await MonExAuth.awaitCloudSaveIdle();
             }
             const boxMax = Number.isFinite(STAGING_BETA_BOX_MAX) ? STAGING_BETA_BOX_MAX : 500;
             let totalAdded = 0;
@@ -18061,28 +18090,42 @@ async function syncXWildMons(silent, maxAttempts = 25) {
 
             for (let attempt = 0; attempt < attemptLimit; attempt++) {
                 const data = await MonExActivity.syncWild(handle, party.length, box.length, PARTY_MAX, boxMax);
-                let added = 0;
+                let added = Math.max(0, Math.floor(Number(data.added) || 0));
 
-                if (data.save) {
+                if (data.save && added > 0) {
                     if (releaseInFlight) {
                         debugReleaseLog("sync response ignored", { reason: "release_in_flight" });
                         break;
                     }
+                    // Merge newly delivered mons into LIVE progress — never raw-replace cloud.
+                    const liveData = buildSavePayload();
                     let syncSave = filterReleasedMonsFromIncomingSave(data.save);
                     const beforeCount = party.length + box.length;
                     const revBefore = typeof MonExAuth !== "undefined" && MonExAuth.getSaveRevision
                         ? MonExAuth.getSaveRevision()
                         : null;
-                    applyLoadedSave(syncSave);
+                    const merged = mergeSaveSnapshots(liveData, syncSave);
+                    const inv = mergeInventoryWithMaxProgress(liveData, syncSave);
+                    merged.party = inv.party;
+                    merged.box = inv.box;
+                    merged.revision = syncSave.revision ?? merged.revision;
+                    if (localMonProgressAhead(liveData, merged.party, merged.box)) {
+                        merged.money = Number(liveData.money) || 0;
+                        merged.essence = Number(liveData.essence) || 0;
+                    }
+                    applyLoadedSave(merged);
                     writeLocalSave(buildSavePayload());
-                    debugReleaseLog("sync response applied", {
+                    debugReleaseLog("sync response merged", {
                         syncResponseRevision: syncSave.revision ?? null,
                         priorRevision: revBefore,
+                        added,
                     });
-                    added = Math.max(Number(data.added) || 0, party.length + box.length - beforeCount);
-                } else {
+                    added = Math.max(added, party.length + box.length - beforeCount);
+                } else if (!data.save && added === 0) {
                     added = applyWildSyncMonsLegacy(data);
                 }
+                // When data.save exists but added === 0: do NOT applyLoadedSave — that was
+                // wiping upgrades/spends after a no-op revision bump from /api/sync.
 
                 if (typeof data.monballs === "number") {
                     const serverMonballs = Math.max(0, Math.floor(Number(data.monballs) || 0));
@@ -19126,8 +19169,17 @@ async function runPostLoginBootstrap() {
     }
     resolveXHandle();
     try { await refreshMonballsFromServer({ allowDecrease: true }); } catch (_) {}
-    try { await syncXWildMons(true, 2); } catch (_) {}
     updateUI();
+}
+
+async function runBackgroundCatchSync() {
+    try {
+        // Let any post-load cloud flush finish before syncing wild catches.
+        if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
+            await MonExAuth.awaitCloudSaveIdle();
+        }
+        await syncXWildMons(true, 1);
+    } catch (_) {}
 }
 
 async function checkLogin() {
@@ -19176,12 +19228,13 @@ async function checkLogin() {
         await loadData();
         if (cloudLoadFailed) return;
         gameSessionBootLoaded = true;
-        setGameBootLoadingStatus("Syncing…");
+        setGameBootLoadingStatus("Finishing login…");
         await runPostLoginBootstrap();
         hideGameBootLoadingScreen();
         showMainScene();
         startPlayAssetPreload();
         deferProfileCatchBadgeRefresh();
+        void runBackgroundCatchSync();
     } catch (e) {
         console.error("checkLogin failed:", e);
         const cached = readCachedUserFallback();
@@ -19227,6 +19280,7 @@ async function checkLogin() {
             showMainScene();
             startPlayAssetPreload();
             deferProfileCatchBadgeRefresh();
+            void runBackgroundCatchSync();
             return;
         }
         sessionStorage.removeItem("monex_game_entry");
