@@ -36,6 +36,7 @@ const PLAY_SCRIPTS = [
   "js/claim-guard.js",
   "js/quest-client.js",
   "js/shop-client.js",
+  "js/mon-upgrade-client.js",
   "js/resource-chest-client.js",
   "js/battle-reward-client.js",
   "js/mailbox-client.js",
@@ -122,6 +123,9 @@ describe("play page scripts (shared browser global scope)", () => {
     assert.equal(typeof windowStub.MonExClaimGuard.runClaimOnce, "function");
     assert.ok(windowStub.MonExQuest, "window.MonExQuest must be defined");
     assert.ok(windowStub.MonExShop, "window.MonExShop must be defined");
+    assert.ok(windowStub.MonExMonUpgrade, "window.MonExMonUpgrade must be defined");
+    assert.equal(typeof windowStub.MonExMonUpgrade.levelUpMon, "function");
+    assert.equal(typeof windowStub.MonExMonUpgrade.ascendMonRarity, "function");
     assert.ok(windowStub.MonExResourceChest, "window.MonExResourceChest must be defined");
     assert.ok(windowStub.MonExBattle, "window.MonExBattle must be defined");
 
