@@ -3,7 +3,12 @@
  * and invalid progression jumps while allowing legitimate per-save gameplay deltas.
  */
 
-import { LIMITS, sanitizeReleaseLog, sanitizeReleasedRecoveryIds } from "./save-validate.js";
+import {
+  LIMITS,
+  RARITY_ORDER,
+  sanitizeReleaseLog,
+  sanitizeReleasedRecoveryIds,
+} from "./save-validate.js";
 import {
   mergeAccountBattleCompletions,
   maxAdventureGlobalFromCompletions,
@@ -365,6 +370,68 @@ export function preserveMonProgress(existing, incoming) {
   };
 }
 
+function rarityRank(rarity) {
+  const idx = RARITY_ORDER.indexOf(rarity);
+  return idx >= 0 ? idx : 0;
+}
+
+/**
+ * Full-save PUT must never invent upgrades. Level / stars / rarity may only rise
+ * via server mutation APIs (POST /api/mon/level-up, /api/mon/ascend-rarity).
+ * New mons (unknown identity) keep their incoming progress.
+ */
+function applyMonProgressCeiling(mon, progressIndex) {
+  const key = monIdentityKey(mon);
+  if (!key || !progressIndex.has(key)) return mon;
+  const ceiling = progressIndex.get(key);
+  const level = Math.max(1, Math.floor(Number(mon.level) || 1));
+  const ascensionStars = Math.max(0, Math.floor(Number(mon.ascensionStars) || 0));
+  const rarity = RARITY_ORDER.includes(mon.rarity) ? mon.rarity : "Common";
+  const ceilingRarity = RARITY_ORDER.includes(ceiling.rarity) ? ceiling.rarity : "Common";
+
+  let next = mon;
+  if (level > ceiling.level) {
+    next = { ...next, level: ceiling.level };
+  }
+  if (ascensionStars > ceiling.ascensionStars) {
+    next = { ...next, ascensionStars: ceiling.ascensionStars };
+  }
+  if (rarityRank(rarity) > rarityRank(ceilingRarity)) {
+    next = { ...next, rarity: ceilingRarity };
+  }
+  return next;
+}
+
+export function buildMonProgressCeilingIndex(party, box) {
+  const index = new Map();
+  for (const mon of [...(party || []), ...(box || [])]) {
+    const key = monIdentityKey(mon);
+    if (!key) continue;
+    const prev = index.get(key) || { level: 1, ascensionStars: 0, rarity: "Common" };
+    const rarity = RARITY_ORDER.includes(mon.rarity) ? mon.rarity : "Common";
+    const prevRarity = RARITY_ORDER.includes(prev.rarity) ? prev.rarity : "Common";
+    index.set(key, {
+      level: Math.max(prev.level, Math.max(1, Math.floor(Number(mon.level) || 1))),
+      ascensionStars: Math.max(
+        prev.ascensionStars,
+        Math.max(0, Math.floor(Number(mon.ascensionStars) || 0))
+      ),
+      rarity: rarityRank(rarity) >= rarityRank(prevRarity) ? rarity : prevRarity,
+    });
+  }
+  return index;
+}
+
+export function clampMonProgressCeiling(existing, incoming) {
+  const progressIndex = buildMonProgressCeilingIndex(existing?.party, existing?.box);
+  if (!progressIndex.size) return incoming;
+  return {
+    ...incoming,
+    party: (incoming?.party || []).map((mon) => applyMonProgressCeiling(mon, progressIndex)),
+    box: (incoming?.box || []).map((mon) => applyMonProgressCeiling(mon, progressIndex)),
+  };
+}
+
 /**
  * Trainer reward level may only advance modestly per save (blocks merge-max inflation).
  */
@@ -488,7 +555,9 @@ export function guardSavePayload(existing, incoming, options = {}) {
   out = reconcileQuestState(ex, out, options);
   out = clampInventoryGrowth(ex, out);
   out = clampInventoryShrink(ex, out);
+  // Floor first (block stale regress), then ceiling (block client-forged upgrades).
   out = preserveMonProgress(ex, out);
+  out = clampMonProgressCeiling(ex, out);
   out.releaseLog = mergeReleaseLog(ex, out);
   out.releasedRecoveryIds = mergeReleasedRecoveryIds(ex, out);
   out = stripReleasedMonsFromInventory(ex, out);

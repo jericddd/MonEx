@@ -46,6 +46,11 @@ export const QUEST_TRACK_TASKS = Object.freeze({
     { tab: "weeklies", id: "w4" },
     { tab: "weeklies", id: "w7" },
   ],
+  mon_level_up: [
+    { tab: "dailies", id: "d2" },
+    { tab: "dailies", id: "d12" },
+    { tab: "weeklies", id: "w10" },
+  ],
 });
 
 export const QUEST_TASK_DEFS = {

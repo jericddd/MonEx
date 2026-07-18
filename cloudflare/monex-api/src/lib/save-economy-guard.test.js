@@ -9,6 +9,7 @@ import {
   clampInventoryShrink,
   guardSavePayload,
   preserveMonProgress,
+  clampMonProgressCeiling,
   MAX_SAVE_DELTA,
   MAX_INVENTORY_SHRINK,
 } from "./save-economy-guard.js";
@@ -244,7 +245,7 @@ test("preserveMonProgress blocks stale client from regressing mon levels", () =>
   assert.equal(out.party[0].level, 8);
 });
 
-test("preserveMonProgress allows legitimate level increases", () => {
+test("preserveMonProgress alone does not block level increases (mutation APIs write directly)", () => {
   const existing = {
     party: [{ name: "Chog", rarity: "Common", level: 5, instanceId: "inst_chog" }],
     box: [],
@@ -255,6 +256,48 @@ test("preserveMonProgress allows legitimate level increases", () => {
   };
   const out = preserveMonProgress(existing, incoming);
   assert.equal(out.party[0].level, 6);
+});
+
+test("clampMonProgressCeiling blocks client-forged level increases on PUT", () => {
+  const existing = {
+    party: [{ name: "Chog", rarity: "Common", level: 5, instanceId: "inst_chog" }],
+    box: [],
+  };
+  const incoming = {
+    party: [{ name: "Chog", rarity: "Common", level: 6, instanceId: "inst_chog" }],
+    box: [],
+  };
+  const out = clampMonProgressCeiling(existing, incoming);
+  assert.equal(out.party[0].level, 5);
+});
+
+test("guardSavePayload clamps forged upgrades after preserve floor", () => {
+  const existing = {
+    money: 1000,
+    essence: 100,
+    adventureGlobalBest: 1,
+    party: [{ name: "Chog", rarity: "Common", level: 8, instanceId: "inst_chog" }],
+    box: [],
+    questState: { grantedKeys: [], tasks: { dailies: [], weeklies: [], campaign: [] } },
+  };
+  const incoming = {
+    money: 1000,
+    essence: 100,
+    adventureGlobalBest: 1,
+    party: [{ name: "Chog", rarity: "Common", level: 9, instanceId: "inst_chog" }],
+    box: [],
+    questState: {
+      grantedKeys: [],
+      ...currentQuestKeys(),
+      dailyPoints: 0,
+      weeklyPoints: 0,
+      dailyClaimedChests: [],
+      weeklyClaimedChests: [],
+      tasks: { dailies: [], weeklies: [], campaign: [] },
+    },
+  };
+  const out = guardSavePayload(existing, incoming, { now: QUEST_TEST_NOW });
+  assert.equal(out.party[0].level, 8);
 });
 
 test("guardSavePayload preserves large box against stale shrink", () => {

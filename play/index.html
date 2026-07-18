@@ -8511,6 +8511,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/quest-client.js?v=20260715c"></script>
 <script src="js/shop-client.js?v=20260715b"></script>
+<script src="js/mon-upgrade-client.js?v=20260718a"></script>
 <script src="js/resource-chest-client.js?v=20260713d"></script>
 <script src="js/battle-reward-client.js?v=20260713e"></script>
 <script src="js/mailbox-client.js?v=20260713a"></script>
@@ -15461,21 +15462,55 @@ function ascendMonRarity(index) {
     showConfirmModal(
         "Ascend " + mon.name + " from " + mon.rarity + " to " + next + "?\nCost: " + cost + " Mon Shards",
         () => {
-            if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
-                MonExAuth.cancelPendingCloudSave();
-            }
-            const live = party[index];
-            if (!live) return;
-            if (monShards < cost) return;
-            monShards -= cost;
-            live.rarity = next;
-            expandSkillsForRarity(live);
-            syncUltimateFromSkills(live);
-            refreshMonDerivedStats(live);
-            live.current_hp = live.max_hp;
-            void persistProgress();
-            updateUI();
-            showHubNotice(live.name + " ascended to " + next + "! New level cap: " + getLevelCap(live), "Ascended");
+            void (async () => {
+                const expectedKey = monProgressKey(mon);
+                await syncSaveBeforeGameplayMutation();
+                index = resolvePartyMonIndex(index, expectedKey);
+                const live = party[index];
+                if (!live || (expectedKey && monProgressKey(live) !== expectedKey)) return;
+                if (monShards < cost) return;
+
+                const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
+                if (loggedIn) {
+                    if (typeof MonExMonUpgrade === "undefined" || !MonExMonUpgrade.ascendMonRarity) {
+                        showHubNotice("Upgrade sync is unavailable. Refresh the page and try again.", "Upgrade offline");
+                        return;
+                    }
+                    await flushSaveToCloud();
+                    const result = await MonExMonUpgrade.ascendMonRarity(live, index);
+                    if (!result.ok) {
+                        if (result.status === 409 && result.error === "upgrade_conflict") {
+                            showHubNotice("Save was refreshed after a sync conflict. Check your party and try again.", "Upgrade sync");
+                        } else if (result.error === "insufficient_funds") {
+                            showHubNotice("Need " + cost + " Mon Shards to ascend.", "Can't ascend");
+                        } else {
+                            showHubNotice("Ascend could not sync with the server. Check your connection and try again.", "Upgrade error");
+                        }
+                        return;
+                    }
+                    if (result.save) {
+                        applyLoadedSave(result.save);
+                        writeLocalSave(result.save);
+                    }
+                    updateUI();
+                    const ascended = party[index] || live;
+                    showHubNotice(
+                        ascended.name + " ascended to " + (ascended.rarity || next) + "! New level cap: " + getLevelCap(ascended),
+                        "Ascended"
+                    );
+                    return;
+                }
+
+                monShards -= cost;
+                live.rarity = next;
+                expandSkillsForRarity(live);
+                syncUltimateFromSkills(live);
+                refreshMonDerivedStats(live);
+                live.current_hp = live.max_hp;
+                void persistProgress();
+                updateUI();
+                showHubNotice(live.name + " ascended to " + next + "! New level cap: " + getLevelCap(live), "Ascended");
+            })();
         },
         { title: "ASCEND", confirmLabel: "Ascend", cancelLabel: "Cancel" }
     );
@@ -16303,13 +16338,52 @@ function pickNewerSaveScalar(local, cloud, field, fallback = 0) {
     return Number(cloud[field]) || fallback;
 }
 
-/** On load merge, never drop granted economy — keep the higher value from either side. */
+/**
+ * Earn-only scalars (trainerXp): keep the higher value so grants are not dropped.
+ * Spendable currencies must NOT use this — Math.max + max(level) invents free upgrades.
+ */
 function pickMergedEconomyScalar(local, cloud, field, fallback = 0) {
     return Math.max(
         Number(pickNewerSaveScalar(local, cloud, field, fallback)) || 0,
         Number(local?.[field]) || 0,
         Number(cloud?.[field]) || 0
     );
+}
+
+/**
+ * Spendable wallet must stay atomic with mon progress.
+ * Taking max(money) while also taking max(level) refunds upgrade costs after refresh/conflict.
+ */
+function pickCoupledSpendableEconomy(local, cloud) {
+    const localAhead = localMonProgressAhead(local, cloud?.party, cloud?.box);
+    const cloudAhead = localMonProgressAhead(cloud, local?.party, local?.box);
+    if (localAhead && !cloudAhead) {
+        return {
+            money: Number(local?.money) || 0,
+            essence: Number(local?.essence) || 0,
+            monShards: Number(local?.monShards) || 0,
+        };
+    }
+    if (cloudAhead && !localAhead) {
+        return {
+            money: Number(cloud?.money) || 0,
+            essence: Number(cloud?.essence) || 0,
+            monShards: Number(cloud?.monShards) || 0,
+        };
+    }
+    const localRev = Number(local?.revision ?? 0);
+    const cloudRev = Number(cloud?.revision ?? 0);
+    let src;
+    if (cloudRev !== localRev) {
+        src = cloudRev > localRev ? cloud : local;
+    } else {
+        src = getSaveTimestamp(cloud) >= getSaveTimestamp(local) ? cloud : local;
+    }
+    return {
+        money: Number(src?.money) || 0,
+        essence: Number(src?.essence) || 0,
+        monShards: Number(src?.monShards) || 0,
+    };
 }
 
 function localEconomyBehindCloud(local, cloud) {
@@ -16485,14 +16559,16 @@ function resolvePartyMonIndex(index, expectedKey) {
 function reconcileSaveWithLocalMonProgress(saveData, localData) {
     if (!saveData) return saveData;
     if (!localData) return saveData;
-    const merged = { ...saveData };
-    const inv = mergeMonProgressOntoInventories(merged.party, merged.box, localData.party, localData.box);
+    // Prefer coherent merge — never frankenstein max(level) + max(wallet).
+    const merged = mergeSaveSnapshots(localData, saveData);
+    const inv = mergeInventoryWithMaxProgress(localData, saveData);
     merged.party = inv.party;
     merged.box = inv.box;
-    if (localMonProgressAhead(localData, merged.party, merged.box)) {
-        merged.money = Number(localData.money) || 0;
-        merged.essence = Number(localData.essence) || 0;
-    }
+    merged.revision = saveData.revision ?? merged.revision;
+    const spendable = pickCoupledSpendableEconomy(localData, saveData);
+    merged.money = spendable.money;
+    merged.essence = spendable.essence;
+    merged.monShards = spendable.monShards;
     return merged;
 }
 
@@ -16529,7 +16605,10 @@ function applyMonLevelIndexToInventories(partyList, boxList, levelIndex) {
     };
 }
 
-/** Party/box layout from the side with newer gameplay, levels max'd across both. */
+/**
+ * Party/box from one coherent side — do NOT max level/enhance across forks.
+ * Cross-max progress + Math.max(wallet) was the free-upgrade exploit after refresh.
+ */
 function mergeInventoryWithMaxProgress(local, cloud) {
     const localTs = getSaveTimestamp(local);
     const cloudTs = getSaveTimestamp(cloud);
@@ -16540,14 +16619,10 @@ function mergeInventoryWithMaxProgress(local, cloud) {
             : localTs >= cloudTs
                 || localMonProgressAhead(local, cloud?.party, cloud?.box)
                 || localHasUnsyncedPartyBoxMoves(local, cloud);
-    const comp = preferLocal
-        ? { party: [...(local?.party || [])], box: [...(local?.box || [])] }
-        : { party: [...(cloud?.party || [])], box: [...(cloud?.box || [])] };
-    const levelIndex = buildMonLevelIndexFromInventories(
-        local?.party, local?.box, cloud?.party, cloud?.box
-    );
-    const leveled = applyMonLevelIndexToInventories(comp.party, comp.box, levelIndex);
-    return mergeMonProgressOntoInventories(leveled.party, leveled.box, local?.party, local?.box);
+    if (preferLocal) {
+        return { party: [...(local?.party || [])], box: [...(local?.box || [])] };
+    }
+    return { party: [...(cloud?.party || [])], box: [...(cloud?.box || [])] };
 }
 
 function applyAuthoritativeSaveFromServer(save) {
@@ -16689,9 +16764,10 @@ window.handleCloudSaveConflict = function handleCloudSaveConflict(cloudSave) {
         merged.revision = cloudSave.revision ?? merged.revision;
         if (localMonProgressAhead(localData, merged.party, merged.box)) {
             // Local levels ahead ⇒ local wallet is the spend/earn source of truth.
-            // Do NOT Math.min — that erased battle/quest gold earned alongside upgrades.
-            merged.money = Number(localData.money) || 0;
-            merged.essence = Number(localData.essence) || 0;
+            const spendable = pickCoupledSpendableEconomy(localData, cloudSave);
+            merged.money = spendable.money;
+            merged.essence = spendable.essence;
+            merged.monShards = spendable.monShards;
         }
     }
 
@@ -16717,14 +16793,15 @@ function mergeSaveSnapshots(local, cloud) {
     const older = cloudTs >= localTs ? local : cloud;
     const merged = { ...newer };
 
-    merged.money = pickMergedEconomyScalar(local, cloud, "money");
-    merged.essence = pickMergedEconomyScalar(local, cloud, "essence");
+    const spendable = pickCoupledSpendableEconomy(local, cloud);
+    merged.money = spendable.money;
+    merged.essence = spendable.essence;
     merged.monballs = pickNewerMonballsScalar(local, cloud);
-    merged.monShards = pickMergedEconomyScalar(local, cloud, "monShards");
+    merged.monShards = spendable.monShards;
     merged.trainerXp = pickMergedEconomyScalar(local, cloud, "trainerXp");
     merged.trainerRewardLevel = pickNewerSaveScalar(local, cloud, "trainerRewardLevel");
 
-    // Inventory: max level/ascension per mon across both sides; layout from newer side.
+    // Inventory: one coherent side (no cross-fork level max).
     const inv = mergeInventoryWithMaxProgress(local, cloud);
     merged.party = inv.party;
     merged.box = inv.box;
@@ -16978,11 +17055,11 @@ async function loadData() {
             data.party = inv.party;
             data.box = inv.box;
             data.revision = cloudData.revision;
-            if (localMonProgressAhead(localData, data.party, data.box)) {
-                // Keep local wallet when local mon progress is ahead (spent + earned).
-                data.money = Number(localData.money) || 0;
-                data.essence = Number(localData.essence) || 0;
-            }
+            // Spendable wallet already coupled in mergeSaveSnapshots; re-apply if inventory prefer-side differs.
+            const spendable = pickCoupledSpendableEconomy(localData, cloudData);
+            data.money = spendable.money;
+            data.essence = spendable.essence;
+            data.monShards = spendable.monShards;
             shouldPersistLocal = true;
             shouldSyncCloud = localMonProgressAhead(localData, data.party, data.box)
                 || localTs >= cloudTs;
@@ -16996,6 +17073,10 @@ async function loadData() {
             const inv = mergeInventoryWithMaxProgress(localData, cloudData);
             data.party = inv.party;
             data.box = inv.box;
+            const spendable = pickCoupledSpendableEconomy(localData, cloudData);
+            data.money = spendable.money;
+            data.essence = spendable.essence;
+            data.monShards = spendable.monShards;
             shouldPersistLocal = true;
             shouldSyncCloud = localMonProgressAhead(localData, data.party, data.box);
         } else {
@@ -17005,9 +17086,11 @@ async function loadData() {
             data.party = inv.party;
             data.box = inv.box;
             data.revision = cloudData.revision ?? localData.revision;
+            const spendable = pickCoupledSpendableEconomy(localData, cloudData);
+            data.money = spendable.money;
+            data.essence = spendable.essence;
+            data.monShards = spendable.monShards;
             if (localMonProgressAhead(localData, data.party, data.box)) {
-                data.money = Number(localData.money) || 0;
-                data.essence = Number(localData.essence) || 0;
                 shouldSyncCloud = true;
             }
             shouldPersistLocal = true;
@@ -17828,6 +17911,36 @@ function levelUpMonManual(index, buttonEl) {
         if (Math.floor(live.level) >= getLevelCap(live)) return;
         const liveCost = getLevelCost(live);
         if (money < liveCost.gold || essence < liveCost.essence) return;
+
+        const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
+        if (loggedIn) {
+            if (typeof MonExMonUpgrade === "undefined" || !MonExMonUpgrade.levelUpMon) {
+                showHubNotice("Upgrade sync is unavailable. Refresh the page and try again.", "Upgrade offline");
+                return;
+            }
+            await flushSaveToCloud();
+            const result = await MonExMonUpgrade.levelUpMon(live, index);
+            if (!result.ok) {
+                if (result.status === 409 && result.error === "upgrade_conflict") {
+                    showHubNotice("Save was refreshed after a sync conflict. Check your party and try again.", "Upgrade sync");
+                } else if (result.error === "insufficient_funds") {
+                    showHubNotice("Not enough materials to level up.", "Can't level up");
+                } else if (result.error === "max_level") {
+                    showHubNotice(live.name + " is at the max level for its rarity.", "Max level");
+                } else {
+                    showHubNotice("Level-up could not sync with the server. Check your connection and try again.", "Upgrade error");
+                }
+                return;
+            }
+            if (result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(result.save);
+            }
+            playLevelUpBurstFx(buttonEl || document.querySelector(`#party-grid .mon-card:nth-child(${index + 1})`));
+            updateUI();
+            return;
+        }
+
         money -= liveCost.gold;
         essence -= liveCost.essence;
         levelUpMon(live);
@@ -18109,10 +18222,10 @@ async function syncXWildMons(silent, maxAttempts = 25) {
                     merged.party = inv.party;
                     merged.box = inv.box;
                     merged.revision = syncSave.revision ?? merged.revision;
-                    if (localMonProgressAhead(liveData, merged.party, merged.box)) {
-                        merged.money = Number(liveData.money) || 0;
-                        merged.essence = Number(liveData.essence) || 0;
-                    }
+                    const spendable = pickCoupledSpendableEconomy(liveData, syncSave);
+                    merged.money = spendable.money;
+                    merged.essence = spendable.essence;
+                    merged.monShards = spendable.monShards;
                     applyLoadedSave(merged);
                     writeLocalSave(buildSavePayload());
                     debugReleaseLog("sync response merged", {
