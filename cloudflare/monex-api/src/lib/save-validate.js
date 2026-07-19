@@ -660,6 +660,8 @@ export function validateAndSanitizeSave(src, session = {}, options = {}) {
     lastResetDate: typeof input.lastResetDate === "string" ? trimString(input.lastResetDate, 32) || null : null,
     patrolScansUsed: clampInt(input.patrolScansUsed ?? 0, 0, 50),
     patrolScansDay: typeof input.patrolScansDay === "string" ? trimString(input.patrolScansDay, 32) || null : null,
+    patrolBonusAttempts: clampInt(input.patrolBonusAttempts ?? 0, 0, 50),
+    patrolBonusDay: typeof input.patrolBonusDay === "string" ? trimString(input.patrolBonusDay, 32) || null : null,
     resourceChestLastCollectAt: sanitizeResourceChestTimestamp(input.resourceChestLastCollectAt, now),
     questState: sanitizeQuestState(input.questState),
     questMonballPaidAmounts: sanitizeQuestMonballPaidAmounts(input.questMonballPaidAmounts),

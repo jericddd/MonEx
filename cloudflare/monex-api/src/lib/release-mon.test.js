@@ -14,6 +14,40 @@ test("resolveMonInstanceId prefers instanceId then wildPendingId", () => {
   assert.equal(resolveMonInstanceId({ wildPendingId: "recovery_act_1_0" }), "recovery_act_1_0");
 });
 
+test("applyReleaseToSave returns equipped gear to inventory", () => {
+  const mon = {
+    name: "Chog",
+    rarity: "Common",
+    level: 3,
+    instanceId: "inst_gear_chog",
+    equipment: {
+      weapon: {
+        id: "gear_w1",
+        slot: "weapon",
+        house: "chog",
+        tier: 1,
+        rarity: "Common",
+        bonuses: { atk: 5 },
+      },
+    },
+  };
+  const save = {
+    party: [],
+    box: [mon],
+    money: 0,
+    essence: 0,
+    monShards: 0,
+    gearInventory: [],
+    releaseLog: [],
+    releasedRecoveryIds: [],
+  };
+  const result = applyReleaseToSave(save, mon);
+  assert.equal(result.ok, true);
+  assert.equal(result.save.box.length, 0);
+  assert.equal(result.save.gearInventory.length, 1);
+  assert.equal(result.save.gearInventory[0].id, "gear_w1");
+});
+
 test("applyReleaseToSave removes mon from box and records recovery ids", () => {
   const mon = {
     name: "Chog",

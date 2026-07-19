@@ -21,7 +21,17 @@
     return body;
   }
 
+  function saveMissingInstance(save, instanceId) {
+    if (!save || !instanceId) return false;
+    const id = String(instanceId).trim();
+    const lists = [...(save.box || []), ...(save.party || [])];
+    return !lists.some((mon) => mon?.instanceId === id || mon?.wildPendingId === id);
+  }
+
   async function releaseMon(instanceId, releaseToken) {
+    if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
+      await MonExAuth.awaitCloudSaveIdle();
+    }
     const res = await fetch(`${apiBase()}/api/release-mon`, {
       method: "POST",
       headers: MonExAuth.authHeaders({ "Content-Type": "application/json" }),
@@ -31,14 +41,15 @@
     if (res.status === 403 && data.error === "game_session_inactive") {
       window.MonExGameSession?.handleInactiveFromApi?.();
     }
-    if (res.status === 409 && data.error === "release_conflict" && data.save && typeof window.handleCloudSaveConflict === "function") {
-      window.handleCloudSaveConflict(data.save);
+
+    // Conflict with a save that already removed this mon is success (idempotent).
+    // Do NOT call handleCloudSaveConflict then fail — that restored the mon in UI.
+    const releasedOk = Boolean(data.save && saveMissingInstance(data.save, instanceId));
+    const ok = Boolean((res.ok && data.ok) || releasedOk);
+    if (ok && data.save && typeof MonExAuth !== "undefined" && MonExAuth.setSaveRevision) {
+      MonExAuth.setSaveRevision(data.save.revision);
     }
-    const result = { ok: res.ok && data.ok, status: res.status, ...data };
-    if (result.ok && result.save && MonExAuth.setSaveRevision) {
-      MonExAuth.setSaveRevision(result.save.revision);
-    }
-    return result;
+    return { ...data, ok, status: res.status, save: data.save };
   }
 
   window.MonExRelease = { releaseMon };

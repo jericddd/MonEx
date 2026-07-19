@@ -1,7 +1,7 @@
 import { loadCloudSave, writeCloudSave, buildSavePayload, preserveServerAuthoritativeFields } from "./save.js";
 import { guardSavePayload } from "./save-economy-guard.js";
 import { reconcileMonballsForCloudSave } from "./save-reconcile.js";
-import { sanitizeReleaseLog } from "./save-validate.js";
+import { sanitizeReleaseLog, sanitizeGear } from "./save-validate.js";
 import { nextReleaseLogNumber } from "./release-log.js";
 
 const MAX_RELEASE_RETRIES = 3;

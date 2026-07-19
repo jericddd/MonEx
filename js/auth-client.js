@@ -382,6 +382,8 @@ function buildSavePayload(state) {
     resourceChestLastCollectAt: state.resourceChestLastCollectAt,
     patrolScansUsed: state.patrolScansUsed,
     patrolScansDay: state.patrolScansDay,
+    patrolBonusAttempts: state.patrolBonusAttempts,
+    patrolBonusDay: state.patrolBonusDay,
     questState: state.questState,
     mailbox: state.mailbox,
     dailyLoginLastClaimAt: state.dailyLoginLastClaimAt,
