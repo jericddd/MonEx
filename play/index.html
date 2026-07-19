@@ -8497,7 +8497,7 @@ body.cloud-load-blocked .game-shell {
 
 <script src="js/daily-reset.js?v=20260716a"></script>
 <script src="js/monanimal-sprites.js?v=20260714d"></script>
-<script src="js/patrol-reset.js?v=20260711b"></script>
+<script src="js/patrol-reset.js?v=20260719a"></script>
 <script src="js/mana-system.js?v=20260712a"></script>
 <script src="js/equipment-unlock.js?v=20260711c"></script>
 <script src="js/staging-banner.js?v=20260710a"></script>
@@ -8506,7 +8506,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/activity-client.js?v=20260716a"></script>
 <script src="js/catch-claim-client.js?v=20260715a"></script>
 <script src="js/auth-client.js?v=20260714d"></script>
-<script src="js/release-client.js?v=20260714a"></script>
+<script src="js/release-client.js?v=20260719a"></script>
 <script src="js/game-session-client.js?v=20260710a"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/quest-client.js?v=20260715c"></script>
@@ -9107,6 +9107,8 @@ let activeBattleMode = "campaign";
 let activePatrolEncounter = null;
 let patrolScansUsed = 0;
 let patrolScansDay = null;
+let patrolBonusAttempts = 0;
+let patrolBonusDay = null;
 let patrolScanToken = 0;
 let activePatrolClaimToken = null;
 const PATROL_DAILY_MAX = 50;
@@ -14461,7 +14463,11 @@ async function equipGearOnMonAsync(location, monIndex, gearId) {
         showHubNotice(`${meta ? meta.label + " gear" : "This gear"} can only be worn by that house's Monanimals.`, "Can't equip");
         return;
     }
-    await syncSaveBeforeGameplayMutation();
+    // Wait for in-flight saves, but do NOT flush the pre-equip (unequipped) snapshot —
+    // that race made cloud prefer the old loadout and unequip after refresh/sync.
+    if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
+        await MonExAuth.awaitCloudSaveIdle();
+    }
     const liveList = getMonList(location);
     const liveMon = liveList[monIndex];
     if (!liveMon) return;
@@ -14480,11 +14486,15 @@ async function equipGearOnMonAsync(location, monIndex, gearId) {
     await persistProgress();
     updateUI();
 }
-function unequipGear(location, monIndex, slot) {
+async function unequipGear(location, monIndex, slot) {
     const mon = getMonList(location)[monIndex];
     if (!mon) return;
+    if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
+        await MonExAuth.awaitCloudSaveIdle();
+    }
     unequipToInventory(mon, slot);
-    saveData();
+    saveData({ immediate: true });
+    await persistProgress();
     updateUI();
 }
 function renderEquipOptionHtml(gear, mon, action, actionClass, options = {}) {
@@ -15900,19 +15910,26 @@ function getPatrolDayKey() {
 function ensurePatrolDailyReset(todayKey) {
     const api = window.MonExPatrolReset;
     if (!api) return false;
-    const result = api.applyPatrolDailyReset(patrolScansUsed, patrolScansDay, new Date());
+    const result = api.applyPatrolDailyReset(patrolScansUsed, patrolScansDay, new Date(), {
+        patrolBonusAttempts,
+        patrolBonusDay,
+    });
     const changed = result.changed
         || result.patrolScansUsed !== patrolScansUsed
-        || result.patrolScansDay !== patrolScansDay;
+        || result.patrolScansDay !== patrolScansDay
+        || (result.patrolBonusAttempts || 0) !== (patrolBonusAttempts || 0)
+        || (result.patrolBonusDay || null) !== (patrolBonusDay || null);
     patrolScansUsed = result.patrolScansUsed;
     patrolScansDay = result.patrolScansDay;
+    patrolBonusAttempts = result.patrolBonusAttempts || 0;
+    patrolBonusDay = result.patrolBonusDay || null;
     return changed;
 }
 
 function getPatrolScansRemaining() {
     if (isStagingTestUser()) return PATROL_DAILY_MAX;
     ensurePatrolDailyReset();
-    return Math.max(0, PATROL_DAILY_MAX - patrolScansUsed);
+    return Math.max(0, PATROL_DAILY_MAX - patrolScansUsed) + Math.max(0, patrolBonusAttempts || 0);
 }
 
 function getPatrolGearLevelLabel() {
@@ -16274,6 +16291,7 @@ function buildSavePayload() {
         adventureBattleActive: isInAdventureBattle,
         resourceChestLastCollectAt,
         patrolScansUsed, patrolScansDay,
+        patrolBonusAttempts, patrolBonusDay,
         questState,
         mailbox,
         dailyLoginLastClaimAt,
@@ -16532,6 +16550,28 @@ function localMonProgressAhead(localData, partyList, boxList) {
     return false;
 }
 
+/** Local equipment loadout differs from cloud for the same mon identity. */
+function localHasUnsyncedEquipmentChanges(local, cloud) {
+    if (!local || !cloud) return false;
+    const cloudByKey = new Map();
+    for (const mon of [...(cloud.party || []), ...(cloud.box || [])]) {
+        const key = monProgressKey(mon);
+        if (key) cloudByKey.set(key, mon);
+    }
+    for (const mon of [...(local.party || []), ...(local.box || [])]) {
+        const key = monProgressKey(mon);
+        if (!key) continue;
+        const other = cloudByKey.get(key);
+        if (!other) continue;
+        for (const slot of GEAR_SLOTS) {
+            const localId = mon?.equipment?.[slot]?.id || null;
+            const cloudId = other?.equipment?.[slot]?.id || null;
+            if (localId !== cloudId) return true;
+        }
+    }
+    return false;
+}
+
 /** Local moved mons between party/box that cloud save does not reflect yet (stale layout). */
 function localHasUnsyncedPartyBoxMoves(local, cloud) {
     if (!local || !cloud) return false;
@@ -16618,7 +16658,8 @@ function mergeInventoryWithMaxProgress(local, cloud) {
             ? false
             : localTs >= cloudTs
                 || localMonProgressAhead(local, cloud?.party, cloud?.box)
-                || localHasUnsyncedPartyBoxMoves(local, cloud);
+                || localHasUnsyncedPartyBoxMoves(local, cloud)
+                || localHasUnsyncedEquipmentChanges(local, cloud);
     if (preferLocal) {
         return { party: [...(local?.party || [])], box: [...(local?.box || [])] };
     }
@@ -16705,18 +16746,31 @@ window.applyServerSaveCorrections = function applyServerSaveCorrections(serverSa
     }
     ensurePatrolDailyReset();
     const serverUsed = Math.max(0, Math.floor(Number(serverSave.patrolScansUsed) || 0));
-    const serverDay = serverSave.patrolScansDay || patrolScansDay;
-    // Only apply patrol counters from a successful autosave when the day matches.
-    // Never rewind a higher same-day client count from a stale correction race.
-    if (serverDay === patrolScansDay) {
-        if (serverUsed > patrolScansUsed) {
+    const serverDay = serverSave.patrolScansDay || null;
+    const serverBonus = Math.max(0, Math.floor(Number(serverSave.patrolBonusAttempts) || 0));
+    const serverBonusDay = serverSave.patrolBonusDay || null;
+    // Same-day: never re-inflate a fresh 0 from a depleted cloud stamp (stuck reset bug).
+    // Still accept real claim increments when local used is already > 0.
+    if (serverDay && serverDay === patrolScansDay) {
+        if (serverUsed > patrolScansUsed && !(patrolScansUsed === 0 && serverUsed >= PATROL_DAILY_MAX)) {
             patrolScansUsed = serverUsed;
             changed = true;
         }
-    } else if (serverDay !== patrolScansDay) {
-        patrolScansUsed = serverUsed;
-        patrolScansDay = serverDay;
-        changed = true;
+        if (serverBonus > patrolBonusAttempts && (!serverBonusDay || serverBonusDay === patrolScansDay)) {
+            patrolBonusAttempts = serverBonus;
+            patrolBonusDay = serverBonusDay || patrolScansDay;
+            changed = true;
+        }
+    } else if (serverDay && serverDay !== patrolScansDay) {
+        // Prefer the server day only when it is today; otherwise keep client rollover.
+        const today = getPatrolDayKey();
+        if (serverDay === today) {
+            patrolScansDay = serverDay;
+            patrolScansUsed = serverUsed;
+            patrolBonusAttempts = serverBonus;
+            patrolBonusDay = serverBonusDay;
+            changed = true;
+        }
     }
     const levelIndex = buildMonLevelIndexFromInventories(party, box, serverSave.party, serverSave.box);
     const inv = applyMonLevelIndexToInventories(party, box, levelIndex);
@@ -16909,6 +16963,8 @@ function mergeSaveSnapshots(local, cloud) {
     if (patrolMerged) {
         merged.patrolScansDay = patrolMerged.patrolScansDay;
         merged.patrolScansUsed = patrolMerged.patrolScansUsed;
+        merged.patrolBonusAttempts = patrolMerged.patrolBonusAttempts || 0;
+        merged.patrolBonusDay = patrolMerged.patrolBonusDay || null;
     } else {
         const patrolDay = newer.patrolScansDay || older.patrolScansDay || null;
         merged.patrolScansDay = patrolDay;
@@ -16988,6 +17044,8 @@ function applyLoadedSave(data) {
     loadResourceChestTimestamp(data, false);
     patrolScansUsed = data.patrolScansUsed ?? 0;
     patrolScansDay = data.patrolScansDay || null;
+    patrolBonusAttempts = data.patrolBonusAttempts ?? 0;
+    patrolBonusDay = data.patrolBonusDay || null;
     if (ensurePatrolDailyReset()) saveData();
     questState = normalizeQuestState(data.questState);
     ensureQuestResets();
@@ -18925,6 +18983,9 @@ async function executeMonRelease({ mon, index, source, instanceId, salvage, anch
         if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
             MonExAuth.cancelPendingCloudSave();
         }
+        if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
+            await MonExAuth.awaitCloudSaveIdle();
+        }
 
         const releaseToken = `relreq_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         const revBefore = typeof MonExAuth !== "undefined" && MonExAuth.getSaveRevision
@@ -18936,17 +18997,25 @@ async function executeMonRelease({ mon, index, source, instanceId, salvage, anch
             throw new Error("release API unavailable");
         }
         const result = await MonExRelease.releaseMon(instanceId, releaseToken);
-        if (!result.ok || !result.save) {
+        if (result.save && result.ok) {
+            applyLoadedSave(result.save);
+            writeLocalSave(result.save);
+            updateUI();
+            debugReleaseLog("release API completed", {
+                instanceId,
+                newSaveRevision: result.save.revision ?? null,
+            });
+            refreshProfileReleases({ force: true, silent: true });
+        } else if (result.save && ![...(result.save.box || []), ...(result.save.party || [])]
+            .some((m) => m?.instanceId === instanceId || m?.wildPendingId === instanceId)) {
+            // Server save already dropped the mon (conflict/idempotent) — keep it released.
+            applyLoadedSave(result.save);
+            writeLocalSave(result.save);
+            updateUI();
+            refreshProfileReleases({ force: true, silent: true });
+        } else {
             throw new Error(result.error || "release failed");
         }
-
-        applyLoadedSave(result.save);
-        writeLocalSave(result.save);
-        debugReleaseLog("release API completed", {
-            instanceId,
-            newSaveRevision: result.save.revision ?? null,
-        });
-        refreshProfileReleases({ force: true, silent: true });
     } catch (err) {
         party = snapshot.party;
         box = snapshot.box;
@@ -18965,6 +19034,7 @@ async function executeMonRelease({ mon, index, source, instanceId, salvage, anch
         releaseInFlight = false;
         if (source === "box") renderBox();
         else renderPartyGrid();
+        updateUI();
     }
 }
 

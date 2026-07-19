@@ -25,45 +25,106 @@ function isSamePatrolDay(storedDay, today) {
   return storedDay === today;
 }
 
+const PATROL_DAILY_MAX = 50;
+
 /**
- * Apply patrol day rollover. Returns { patrolScansUsed, patrolScansDay, changed }.
+ * Apply patrol day rollover. Returns { patrolScansUsed, patrolScansDay, patrolBonusAttempts, patrolBonusDay, changed }.
+ * Null day with a depleted counter is treated as stale — zero it instead of locking 0 remaining.
  */
-function applyPatrolDailyReset(patrolScansUsed, patrolScansDay, now = new Date()) {
+function applyPatrolDailyReset(patrolScansUsed, patrolScansDay, now = new Date(), extras = {}) {
   const today = getPatrolDayKey(now);
-  const used = Math.max(0, Math.floor(Number(patrolScansUsed) || 0));
+  let used = Math.max(0, Math.min(PATROL_DAILY_MAX, Math.floor(Number(patrolScansUsed) || 0)));
+  let bonus = Math.max(0, Math.min(PATROL_DAILY_MAX, Math.floor(Number(extras.patrolBonusAttempts) || 0)));
+  let bonusDay = extras.patrolBonusDay || null;
+  const prevDay = patrolScansDay || null;
+  const prevUsed = used;
+  const prevBonus = bonus;
+  const prevBonusDay = bonusDay;
 
   if (!patrolScansDay) {
-    return { patrolScansUsed: used, patrolScansDay: today, changed: patrolScansDay !== today };
+    if (used >= PATROL_DAILY_MAX) used = 0;
+    return {
+      patrolScansUsed: used,
+      patrolScansDay: today,
+      patrolBonusAttempts: bonusDay && bonusDay !== today ? 0 : bonus,
+      patrolBonusDay: bonusDay && bonusDay !== today ? null : (bonus > 0 ? today : null),
+      changed: true,
+    };
   }
 
-  if (isSamePatrolDay(patrolScansDay, today)) {
-    return { patrolScansUsed: used, patrolScansDay: today, changed: patrolScansDay !== today };
+  if (!isSamePatrolDay(patrolScansDay, today)) {
+    return {
+      patrolScansUsed: 0,
+      patrolScansDay: today,
+      patrolBonusAttempts: 0,
+      patrolBonusDay: null,
+      changed: true,
+    };
   }
 
-  return { patrolScansUsed: 0, patrolScansDay: today, changed: true };
+  if (bonus > 0 && bonusDay && bonusDay !== today) {
+    bonus = 0;
+    bonusDay = null;
+  }
+  if (bonus > 0 && !bonusDay) bonusDay = today;
+
+  return {
+    patrolScansUsed: used,
+    patrolScansDay: today,
+    patrolBonusAttempts: bonus,
+    patrolBonusDay: bonus > 0 ? bonusDay : null,
+    changed:
+      prevDay !== today
+      || prevUsed !== used
+      || prevBonus !== bonus
+      || prevBonusDay !== (bonus > 0 ? bonusDay : null),
+  };
 }
 
 /** Merge patrol counters from local + cloud snapshots without losing today's progress. */
 function mergePatrolProgress(local, cloud, now = new Date()) {
   const today = getPatrolDayKey(now);
-  const localUsed = Math.max(0, Math.floor(Number(local?.patrolScansUsed) || 0));
-  const cloudUsed = Math.max(0, Math.floor(Number(cloud?.patrolScansUsed) || 0));
+  const localReset = applyPatrolDailyReset(
+    local?.patrolScansUsed,
+    local?.patrolScansDay,
+    now,
+    { patrolBonusAttempts: local?.patrolBonusAttempts, patrolBonusDay: local?.patrolBonusDay }
+  );
+  const cloudReset = applyPatrolDailyReset(
+    cloud?.patrolScansUsed,
+    cloud?.patrolScansDay,
+    now,
+    { patrolBonusAttempts: cloud?.patrolBonusAttempts, patrolBonusDay: cloud?.patrolBonusDay }
+  );
+
   let mergedUsed = 0;
-
-  if (isSamePatrolDay(local?.patrolScansDay, today)) {
-    mergedUsed = Math.max(mergedUsed, localUsed);
+  if (isSamePatrolDay(localReset.patrolScansDay, today)) {
+    mergedUsed = Math.max(mergedUsed, localReset.patrolScansUsed);
   }
-  if (isSamePatrolDay(cloud?.patrolScansDay, today)) {
-    mergedUsed = Math.max(mergedUsed, cloudUsed);
+  if (isSamePatrolDay(cloudReset.patrolScansDay, today)) {
+    mergedUsed = Math.max(mergedUsed, cloudReset.patrolScansUsed);
   }
 
-  const localToday = isSamePatrolDay(local?.patrolScansDay, today) ? localUsed : 0;
-  const cloudToday = isSamePatrolDay(cloud?.patrolScansDay, today) ? cloudUsed : 0;
+  const localToday = isSamePatrolDay(localReset.patrolScansDay, today) ? localReset.patrolScansUsed : 0;
+  const cloudToday = isSamePatrolDay(cloudReset.patrolScansDay, today) ? cloudReset.patrolScansUsed : 0;
   if (localToday > 0 && cloudToday > 0 && Math.abs(localToday - cloudToday) > 1) {
     mergedUsed = Math.min(localToday, cloudToday);
   }
 
-  return { patrolScansDay: today, patrolScansUsed: mergedUsed };
+  let mergedBonus = 0;
+  if (isSamePatrolDay(localReset.patrolBonusDay || localReset.patrolScansDay, today)) {
+    mergedBonus = Math.max(mergedBonus, localReset.patrolBonusAttempts || 0);
+  }
+  if (isSamePatrolDay(cloudReset.patrolBonusDay || cloudReset.patrolScansDay, today)) {
+    mergedBonus = Math.max(mergedBonus, cloudReset.patrolBonusAttempts || 0);
+  }
+
+  return {
+    patrolScansDay: today,
+    patrolScansUsed: mergedUsed,
+    patrolBonusAttempts: mergedBonus,
+    patrolBonusDay: mergedBonus > 0 ? today : null,
+  };
 }
 
 function getPatrolResetCountdownLabel(now = new Date()) {
@@ -79,6 +140,7 @@ const api = {
   applyPatrolDailyReset,
   mergePatrolProgress,
   getPatrolResetCountdownLabel,
+  PATROL_DAILY_MAX,
 };
 
 if (typeof window !== "undefined") {

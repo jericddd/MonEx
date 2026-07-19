@@ -37,6 +37,25 @@ describe("applyPatrolDailyReset UTC+8", () => {
     assert.equal(result.patrolScansUsed, 0);
     assert.equal(result.patrolScansDay, "2026-07-11");
   });
+
+  it("zeros depleted null-day stamp instead of locking today at 0 remaining", () => {
+    const now = new Date("2026-07-10T14:00:00.000Z");
+    const result = patrol.applyPatrolDailyReset(50, null, now);
+    assert.equal(result.changed, true);
+    assert.equal(result.patrolScansUsed, 0);
+    assert.equal(result.patrolScansDay, "2026-07-10");
+  });
+
+  it("clears bonus attempts on day rollover", () => {
+    const now = new Date("2026-07-10T16:05:00.000Z");
+    const result = patrol.applyPatrolDailyReset(10, "2026-07-10", now, {
+      patrolBonusAttempts: 50,
+      patrolBonusDay: "2026-07-10",
+    });
+    assert.equal(result.patrolScansUsed, 0);
+    assert.equal(result.patrolBonusAttempts, 0);
+    assert.equal(result.patrolBonusDay, null);
+  });
 });
 
 describe("mergePatrolProgress UTC+8", () => {
