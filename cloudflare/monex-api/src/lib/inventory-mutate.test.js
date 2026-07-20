@@ -197,3 +197,80 @@ test("hero ascend removes dupes and spends gold", () => {
   assert.equal(result.save.box.length, 0);
   assert.equal(result.save.party.length, 1);
 });
+
+test("hero ascend rejects Rare duplicates for Mythic main", () => {
+  const save = {
+    money: 5000,
+    party: [{ name: "Chog", rarity: "Mythic", level: 80, instanceId: "main", max_hp: 200, current_hp: 200, ascensionStars: 0 }],
+    box: [
+      { name: "Chog", rarity: "Rare", level: 1, instanceId: "d1", max_hp: 100, current_hp: 100 },
+      { name: "Chog", rarity: "Rare", level: 1, instanceId: "d2", max_hp: 100, current_hp: 100 },
+    ],
+    gearInventory: [],
+  };
+  const result = applyHeroAscensionToSave(save, {
+    mainInstanceId: "main",
+    dupeInstanceIds: ["d1", "d2"],
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.error, "dupe_rarity_mismatch");
+});
+
+test("hero ascend allows Mythic main with Legendary duplicates", () => {
+  const save = {
+    money: 5000,
+    party: [{ name: "Chog", rarity: "Mythic", level: 80, instanceId: "main", max_hp: 200, current_hp: 200, ascensionStars: 0 }],
+    box: [
+      { name: "Chog", rarity: "Legendary", level: 1, instanceId: "d1", max_hp: 100, current_hp: 100 },
+      { name: "Chog", rarity: "Legendary", level: 1, instanceId: "d2", max_hp: 100, current_hp: 100 },
+    ],
+    gearInventory: [],
+  };
+  const result = applyHeroAscensionToSave(save, {
+    mainInstanceId: "main",
+    dupeInstanceIds: ["d1", "d2"],
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.save.money, 5000 - 2000);
+  assert.equal(result.save.box.length, 0);
+});
+
+test("party equip bumps gear_equip quest progress", () => {
+  const gear = {
+    id: "gear_1",
+    slot: "weapon",
+    tier: 1,
+    house: "chog",
+    bonuses: { atk: 10 },
+    baseBonuses: { atk: 10 },
+    enhanceLevel: 0,
+  };
+  const save = {
+    party: [{ name: "Chog", rarity: "Common", level: 10, instanceId: "p1", max_hp: 100, current_hp: 100, equipment: {} }],
+    box: [],
+    gearInventory: [gear],
+    questState: { tasks: { dailies: [{ id: "d7", progress: 0, claimed: false }], weeklies: [], campaign: [] } },
+  };
+  const result = applyEquipGearToSave(save, { instanceId: "p1", gearId: "gear_1" });
+  assert.equal(result.ok, true);
+  assert.equal(result.save.questState.tasks.dailies.find((t) => t.id === "d7").progress, 1);
+});
+
+test("preserveInventoryLayout strips forged gear ids from bag", () => {
+  const existing = {
+    party: [],
+    box: [],
+    gearInventory: [{ id: "known", slot: "weapon", tier: 1, house: "chog", bonuses: { atk: 1 }, baseBonuses: { atk: 1 } }],
+  };
+  const incoming = {
+    party: [],
+    box: [],
+    gearInventory: [
+      { id: "known", slot: "weapon", tier: 1, house: "chog", bonuses: { atk: 1 }, baseBonuses: { atk: 1 } },
+      { id: "forged", slot: "weapon", tier: 5, house: "chog", bonuses: { atk: 99 }, baseBonuses: { atk: 99 } },
+    ],
+  };
+  const out = preserveInventoryLayout(existing, incoming);
+  assert.equal(out.gearInventory.length, 1);
+  assert.equal(out.gearInventory[0].id, "known");
+});

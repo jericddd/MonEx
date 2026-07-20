@@ -2,6 +2,7 @@ import { loadCloudSave, writeCloudSave, buildSavePayload } from "./save.js";
 import { reconcileMonballsForCloudSave } from "./save-reconcile.js";
 import { LIMITS, GEAR_SLOTS } from "./save-validate.js";
 import { generateShopGear } from "./shop-gear.js";
+import { settleTrainerLevelRewards } from "./trainer-rewards.js";
 
 const MAX_CLAIM_RETRIES = 3;
 const CHEST_MAX_MS = LIMITS.resourceChestMaxMs;
@@ -122,7 +123,7 @@ export async function collectResourceChest(kv, session, { expectedRevision, now 
   const inventory = [...(save.gearInventory || [])];
   if (gear) inventory.push(gear);
 
-  let nextSave = {
+  let nextSave = settleTrainerLevelRewards({
     ...save,
     money: (save.money || 0) + grant.gold,
     essence: (save.essence || 0) + grant.essence,
@@ -130,7 +131,7 @@ export async function collectResourceChest(kv, session, { expectedRevision, now 
     gearInventory: inventory.slice(0, LIMITS.gearInventoryMax),
     resourceChestLastCollectAt: now,
     questState: bumpResourceCollectQuest(save.questState),
-  };
+  });
 
   const result = await persistChestSave(kv, session, nextSave, expectedRevision, startingMonballs, now);
   if (!result.ok) return result;

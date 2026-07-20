@@ -13673,13 +13673,16 @@ function addTrainerXp(amount) {
     trainerXp += amount;
     const after = getTrainerLevelInfo(trainerXp);
     if (after.level > before.level) {
-        for (let lv = before.level + 1; lv <= after.level; lv++) {
-            if (lv > trainerRewardLevel) {
-                grantTrainerLevelReward(lv);
-                trainerRewardLevel = lv;
+        // Logged-in: server settles gold/onion/shard bonuses atomically with XP grants.
+        if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
+            for (let lv = before.level + 1; lv <= after.level; lv++) {
+                if (lv > trainerRewardLevel) {
+                    grantTrainerLevelReward(lv);
+                    trainerRewardLevel = lv;
+                }
             }
+            void persistProgress();
         }
-        void persistProgress();
         updateUI();
     }
 }
@@ -14481,7 +14484,6 @@ async function equipGearOnMonAsync(location, monIndex, gearId) {
             applyLoadedSave(result.save);
             writeLocalSave(result.save);
         }
-        if (location === "party") bumpQuestProgress("gear_equip", 1);
         updateUI();
         return;
     }
@@ -15017,10 +15019,10 @@ function getHeroAscensionGoldCost(level) {
 
 function analyzeHeroAscension(mainMon, dupeMons) {
     const main = mainMon;
-    if (!main) return { type: "invalid", reason: "Click <b>MAIN</b> and choose a Legendary+ hero." };
+    if (!main) return { type: "invalid", reason: "Click <b>MAIN</b> and choose a Legendary or Mythic hero." };
     ensureMonReady(main);
     if (!isLegendaryOrAbove(main.rarity)) {
-        return { type: "invalid", reason: "Only <b>Legendary</b> and above can use Hero Ascension." };
+        return { type: "invalid", reason: "Only <b>Legendary</b> and <b>Mythic</b> can use Hero Ascension." };
     }
     const stars = main.ascensionStars || 0;
     if (main.ascensionSkillPending?.length) {
@@ -15031,7 +15033,7 @@ function analyzeHeroAscension(mainMon, dupeMons) {
     if (dupes.length !== required) {
         return {
             type: "invalid",
-            reason: `+${stars + 1} needs <b>1 main + ${required} duplicates</b> of the same species (${dupes.length}/${required} selected).`,
+            reason: `+${stars + 1} needs <b>1 main + ${required} Legendary duplicates</b> of the same species (${dupes.length}/${required} selected).`,
         };
     }
     for (const dupe of dupes) {
@@ -15039,6 +15041,9 @@ function analyzeHeroAscension(mainMon, dupeMons) {
         if (dupe === main) return { type: "invalid", reason: "The main hero cannot also be a duplicate." };
         if (dupe.name !== main.name) {
             return { type: "invalid", reason: "All duplicates must match the main hero's species." };
+        }
+        if (dupe.rarity !== "Legendary") {
+            return { type: "invalid", reason: "Duplicates must be <b>Legendary</b> (same species). Rare / Mythic copies cannot be used as material." };
         }
     }
     return {
@@ -15053,13 +15058,13 @@ function analyzeHeroAscension(mainMon, dupeMons) {
 }
 
 function describeHeroAscensionRecipe(recipe) {
-    if (!recipe) return "Click <b>MAIN</b> to choose a Legendary+ hero, then select duplicates below.";
+    if (!recipe) return "Click <b>MAIN</b> to choose a Legendary or Mythic hero, then select Legendary duplicates below.";
     if (recipe.type === "pending_skill") {
         return `<b>Skill unlock ready</b> — tap <b>🔓 UNLOCK</b> on ${recipe.main.name}'s card to choose a skill (${HERO_SKILL_UNLOCK_GOLD} Gold).`;
     }
     if (recipe.type === "invalid") return recipe.reason;
     const pct = Math.round(recipe.rate * 100);
-    return `<b>+${recipe.nextStar}</b> — ${recipe.main.name} + ${recipe.required}× duplicate(s) · <b>${pct}%</b> success · fail consumes duplicates`;
+    return `<b>+${recipe.nextStar}</b> — ${recipe.main.name} + ${recipe.required}× Legendary duplicate(s) · <b>${pct}%</b> success · fail consumes duplicates`;
 }
 
 function canMonHeroAscendMain(mon) {
@@ -15084,10 +15089,14 @@ function listHeroAscensionDuplicates(mainMon) {
     if (!mainMon) return [];
     const entries = [];
     party.forEach((mon, index) => {
-        if (mon !== mainMon && mon.name === mainMon.name) entries.push({ mon, location: "party", index });
+        if (mon !== mainMon && mon.name === mainMon.name && mon.rarity === "Legendary") {
+            entries.push({ mon, location: "party", index });
+        }
     });
     box.forEach((mon, index) => {
-        if (mon !== mainMon && mon.name === mainMon.name) entries.push({ mon, location: "box", index });
+        if (mon !== mainMon && mon.name === mainMon.name && mon.rarity === "Legendary") {
+            entries.push({ mon, location: "box", index });
+        }
     });
     return sortHeroAscensionEntries(entries);
 }
@@ -15191,7 +15200,7 @@ function removeHeroAscensionDupes(dupeMons) {
 function executeHeroAscension() {
     if (armoryForgeBusy) return;
     if (!heroAscensionMainMon) {
-        showArmoryForgeMessage(false, "Click MAIN and choose a Legendary+ hero first.");
+        showArmoryForgeMessage(false, "Click MAIN and choose a Legendary or Mythic hero first.");
         return;
     }
     const recipe = analyzeHeroAscension(heroAscensionMainMon, heroAscensionDupeMons);
@@ -15400,19 +15409,19 @@ function renderHeroAscensionPanel(container) {
     const mainListHtml = showMainPicker
         ? (mainCandidates.length
             ? `<div class="hero-ascension-list-section">
-                <p class="hero-ascension-list-title">CHOOSE MAIN — LEGENDARY+ ONLY</p>
+                <p class="hero-ascension-list-title">CHOOSE MAIN — LEGENDARY OR MYTHIC</p>
                 <div class="hero-ascension-pick-grid">${mainCandidates.map(renderHeroAscensionMainPickItem).join("")}</div>
                </div>`
-            : `<p class="hero-ascension-empty">No Legendary+ heroes in Party or Box.</p>`)
+            : `<p class="hero-ascension-empty">No Legendary or Mythic heroes in Party or Box.</p>`)
         : "";
 
     const dupeEntries = main ? listHeroAscensionDuplicates(main) : [];
     const dupeListHtml = main
         ? `<div class="hero-ascension-list-section">
-            <p class="hero-ascension-list-title">DUPLICATES — ${main.name}${required ? ` (${heroAscensionDupeMons.length}/${required})` : ""}</p>
+            <p class="hero-ascension-list-title">LEGENDARY DUPES — ${main.name}${required ? ` (${heroAscensionDupeMons.length}/${required})` : ""}</p>
             ${dupeEntries.length
                 ? `<div class="hero-ascension-pick-grid">${dupeEntries.map(renderHeroAscensionDupePickItem).join("")}</div>`
-                : `<p class="hero-ascension-empty">No other ${main.name} copies available as material.</p>`}
+                : `<p class="hero-ascension-empty">No Legendary ${main.name} copies available as material.</p>`}
            </div>`
         : "";
 
@@ -15421,7 +15430,7 @@ function renderHeroAscensionPanel(container) {
 
     el.innerHTML = `
         <div class="hero-ascension-panel">
-            <p class="gear-synth-note">Hero Ascension: <b>Legendary+</b> only. Dupes: <b>+1</b> = 2 · <b>+2</b> = 4 · <b>+3–5</b> = 5 · <b>+6+</b> = 6 · <b>75%</b> success. Each + grants <b>+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% base & gear stats</b>. Skills unlock through <b>+${HERO_ASCENSION_SKILL_CAP}</b> only. Tap 🔓 to unlock skills.</p>
+            <p class="gear-synth-note">Hero Ascension: <b>Legendary or Mythic</b> main. Materials: <b>Legendary duplicates</b> only (same species). Dupes: <b>+1</b> = 2 · <b>+2</b> = 4 · <b>+3–5</b> = 5 · <b>+6+</b> = 6 · <b>75%</b> success. Each + grants <b>+${Math.round(HERO_ASCENSION_STAT_BONUS_PCT * 100)}% base & gear stats</b>. Skills unlock through <b>+${HERO_ASCENSION_SKILL_CAP}</b> only. Tap 🔓 to unlock skills.</p>
             <div class="gear-synth-recipe-bar${recipeCls}">${describeHeroAscensionRecipe(recipe)}</div>
             <div class="hero-ascension-workbench">
                 <button type="button" class="hero-ascension-main-slot hero-ascension-main-slot-btn${main ? " filled" : ""}${showMainPicker ? " is-open" : ""}" onclick="heroAscensionMainSlotClick()" title="${main ? "Click to remove main hero" : "Choose main hero"}">
@@ -17172,7 +17181,15 @@ function applyLoadedSave(data) {
     trainerXp = Number(data.trainerXp ?? 0);
     trainerRewardLevel = Math.max(1, Math.floor(data.trainerRewardLevel ?? 1));
     const trainerInfo = getTrainerLevelInfo(trainerXp);
-    trainerRewardLevel = Math.max(trainerRewardLevel, trainerInfo.level);
+    if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+        // Server is truth for unpaid level bonuses — do not mark levels paid without grants.
+        trainerRewardLevel = Math.max(1, Math.floor(data.trainerRewardLevel ?? 1));
+    } else if (trainerInfo.level > trainerRewardLevel) {
+        for (let lv = trainerRewardLevel + 1; lv <= trainerInfo.level; lv++) {
+            grantTrainerLevelReward(lv);
+        }
+        trainerRewardLevel = trainerInfo.level;
+    }
     highestStageCleared = data.highestStageCleared ?? 0;
     adventureGlobalBest = data.adventureGlobalBest ?? highestStageCleared ?? 0;
     currentChapter = data.currentChapter ?? 1;
@@ -19839,7 +19856,7 @@ async function claimMailboxReward(mailId, buttonEl) {
                 return;
             }
             const claimedMail = mailBefore || (mailbox || []).find((m) => m.id === mailId);
-            if (claimedMail?.title === "Daily Login Reward") {
+            if (claimedMail?.title === "Daily Login Reward" && (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn())) {
                 bumpQuestProgress("daily_login", 1);
             }
             renderMailbox();

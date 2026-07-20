@@ -312,6 +312,7 @@ test("claimQuestChest completes milestone when monball was paid but chest not ma
       essence: 0,
       monShards: 0,
       trainerXp: 100,
+      trainerRewardLevel: 2,
       monballs: 11,
       party: [],
       box: [],

@@ -2,6 +2,8 @@ import { loadCloudSave, writeCloudSave, buildSavePayload } from "./save.js";
 import { creditCatchMonballs } from "./grant-monballs.js";
 import { appendMonballAudit } from "./monball-audit.js";
 import { mailboxHasCapacity } from "./save-validate.js";
+import { bumpQuestTrackProgress } from "./quest-rewards.js";
+import { settleTrainerLevelRewards } from "./trainer-rewards.js";
 
 import {
   isDailyLoginReady,
@@ -259,15 +261,25 @@ async function persistMailboxClaim(kv, session, mailId, attempt = 0) {
   item.claimedAt = new Date(now).toISOString();
   mailbox[idx] = item;
 
+  let claimedSave = settleTrainerLevelRewards({
+    ...save,
+    monballs: reward.monballs,
+    money: reward.money,
+    essence: reward.essence,
+    monShards: reward.monShards,
+    trainerXp: reward.trainerXp,
+    mailbox,
+  });
+  if (item.title === "Daily Login Reward") {
+    claimedSave = {
+      ...claimedSave,
+      questState: bumpQuestTrackProgress(claimedSave.questState, "daily_login", 1),
+    };
+  }
+
   const nextSave = buildSavePayload(
     {
-      ...save,
-      monballs: reward.monballs,
-      money: reward.money,
-      essence: reward.essence,
-      monShards: reward.monShards,
-      trainerXp: reward.trainerXp,
-      mailbox,
+      ...claimedSave,
       updatedAt: new Date(now).toISOString(),
     },
     session,

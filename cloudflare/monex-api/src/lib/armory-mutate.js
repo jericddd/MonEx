@@ -154,6 +154,8 @@ export function applyHeroAscensionToSave(save, { mainInstanceId, dupeInstanceIds
     const loc = findMonInSave(save, { instanceId: id });
     if (!loc) return { ok: false, error: "dupe_not_found" };
     if (loc.mon.name !== main.name) return { ok: false, error: "dupe_species_mismatch" };
+    // Materials must be Legendary only (Mythic mains still consume Legendary copies).
+    if (loc.mon.rarity !== "Legendary") return { ok: false, error: "dupe_rarity_mismatch" };
   }
 
   const goldCost = getHeroAscensionGoldCost(stars);
