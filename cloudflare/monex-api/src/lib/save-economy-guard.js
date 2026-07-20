@@ -6,6 +6,7 @@
 import {
   LIMITS,
   RARITY_ORDER,
+  GEAR_SLOTS,
   sanitizeReleaseLog,
   sanitizeReleasedRecoveryIds,
 } from "./save-validate.js";
@@ -432,6 +433,81 @@ export function clampMonProgressCeiling(existing, incoming) {
   };
 }
 
+function overlayMonScalars(baseMon, incomingMon) {
+  if (!incomingMon) return baseMon;
+  const next = { ...baseMon };
+  // Allow HP/mana combat writebacks via PUT; layout/equipment/progress come from mutation APIs.
+  if (incomingMon.current_hp != null) next.current_hp = incomingMon.current_hp;
+  if (incomingMon.max_hp != null) next.max_hp = incomingMon.max_hp;
+  if (incomingMon.current_mana != null) next.current_mana = incomingMon.current_mana;
+  if (incomingMon.max_mana != null) next.max_mana = incomingMon.max_mana;
+  // Keep server equipment / stars / level / rarity (already floored/ceilinged elsewhere).
+  next.equipment = baseMon.equipment;
+  next.level = baseMon.level;
+  next.rarity = baseMon.rarity;
+  next.ascensionStars = baseMon.ascensionStars;
+  if (baseMon.ascensionSkillPending) next.ascensionSkillPending = baseMon.ascensionSkillPending;
+  if (baseMon.skills) next.skills = baseMon.skills;
+  if (baseMon.ultimate) next.ultimate = baseMon.ultimate;
+  return next;
+}
+
+/**
+ * Full-save PUT cannot rearrange party/box seats or change equipment loadouts.
+ * Mutation APIs write those changes directly.
+ * Removals are allowed only when the mon is in the release blocklist.
+ */
+export function preserveInventoryLayout(existing, incoming) {
+  const exParty = Array.isArray(existing?.party) ? existing.party : [];
+  const exBox = Array.isArray(existing?.box) ? existing.box : [];
+  if (!exParty.length && !exBox.length) return incoming;
+
+  const incomingByKey = new Map();
+  for (const mon of [...(incoming?.party || []), ...(incoming?.box || [])]) {
+    const key = monIdentityKey(mon);
+    if (key) incomingByKey.set(key, mon);
+  }
+
+  const released = buildReleasedIdSet(existing, incoming);
+  const mapList = (list) => (list || [])
+    .filter((mon) => {
+      const key = monIdentityKey(mon);
+      if (key && released.has(key)) return false;
+      return true;
+    })
+    .map((mon) => {
+      const key = monIdentityKey(mon);
+      return overlayMonScalars(mon, key ? incomingByKey.get(key) : null);
+    });
+
+  // Gear enhance levels: never raise via PUT for known gear ids.
+  const enhanceCeiling = new Map();
+  const indexGear = (gear) => {
+    if (!gear?.id) return;
+    const lvl = Math.max(0, Math.floor(Number(gear.enhanceLevel) || 0));
+    enhanceCeiling.set(gear.id, Math.max(enhanceCeiling.get(gear.id) || 0, lvl));
+  };
+  for (const mon of [...exParty, ...exBox]) {
+    for (const slot of GEAR_SLOTS) indexGear(mon?.equipment?.[slot]);
+  }
+  for (const gear of existing?.gearInventory || []) indexGear(gear);
+
+  const clampGearEnhance = (gear) => {
+    if (!gear?.id || !enhanceCeiling.has(gear.id)) return gear;
+    const ceiling = enhanceCeiling.get(gear.id);
+    const lvl = Math.max(0, Math.floor(Number(gear.enhanceLevel) || 0));
+    if (lvl <= ceiling) return gear;
+    return { ...gear, enhanceLevel: ceiling };
+  };
+
+  return {
+    ...incoming,
+    party: mapList(exParty),
+    box: mapList(exBox),
+    gearInventory: (incoming?.gearInventory || []).map(clampGearEnhance),
+  };
+}
+
 /**
  * Trainer reward level may only advance modestly per save (blocks merge-max inflation).
  */
@@ -558,6 +634,8 @@ export function guardSavePayload(existing, incoming, options = {}) {
   // Floor first (block stale regress), then ceiling (block client-forged upgrades).
   out = preserveMonProgress(ex, out);
   out = clampMonProgressCeiling(ex, out);
+  // Seats + equipment are mutation-API only — PUT may only overlay combat scalars.
+  out = preserveInventoryLayout(ex, out);
   out.releaseLog = mergeReleaseLog(ex, out);
   out.releasedRecoveryIds = mergeReleasedRecoveryIds(ex, out);
   out = stripReleasedMonsFromInventory(ex, out);
