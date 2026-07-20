@@ -9099,6 +9099,8 @@ let adventureGlobalBest = 0;
 let lastResetDate = null;
 let isInAdventureBattle = false;
 let _battleRewardClaimInFlight = false;
+/** When adventure claim fails, keep chapter/stage so RETRY SYNC can re-claim. */
+let _pendingAdventureClaim = null;
 let adventureBattleToken = 0;
 let adventureForfeitNotice = false;
 let battlePaused = false;
@@ -17370,6 +17372,9 @@ async function loadData() {
     if (typeof MonExAuth !== "undefined" && MonExAuth.setLiveSaveProvider) {
         MonExAuth.setLiveSaveProvider(() => buildSavePayload());
     }
+    if (typeof MonExAuth !== "undefined" && MonExAuth.setCloudSaveGate) {
+        MonExAuth.setCloudSaveGate(() => isInAdventureBattle || _battleRewardClaimInFlight);
+    }
     updateUI();
 }
 
@@ -20433,6 +20438,11 @@ function startPatrolBattle(encounter) {
 
 function endPatrolBattle(win, player) {
     setBattleFightingUI(false);
+    // Lock cloud saves before clearing the battle flag — otherwise a visibility
+    // flush / autosave can push a pre-reward wallet and claw back gold.
+    if (typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+        _battleRewardClaimInFlight = true;
+    }
     isInAdventureBattle = false;
     clearAdventureBattleSession();
     activeBattleMode = "patrol";
@@ -20442,12 +20452,13 @@ function endPatrolBattle(win, player) {
 }
 
 async function claimServerBattleReward({ mode, win, encounterId, claimId, chapter, stage, patrolScansDay, patrolScansUsed, logTag }) {
-    if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
-        await MonExAuth.awaitCloudSaveIdle();
-    } else if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
+    _battleRewardClaimInFlight = true;
+    if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
         MonExAuth.cancelPendingCloudSave();
     }
-    _battleRewardClaimInFlight = true;
+    if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
+        await MonExAuth.awaitCloudSaveIdle();
+    }
     const claimFn = MonExBattle.claimBattleRewardWithRetry || MonExBattle.claimBattleReward;
     try {
         const result = await claimFn({
@@ -20462,7 +20473,7 @@ async function claimServerBattleReward({ mode, win, encounterId, claimId, chapte
         });
         if (result.ok && result.save) {
             applyLoadedSave(result.save);
-            writeLocalSave(buildSavePayload());
+            writeLocalSave(result.save);
             return {
                 gold: result.reward?.gold || 0,
                 essence: result.reward?.essence || 0,
@@ -20475,7 +20486,7 @@ async function claimServerBattleReward({ mode, win, encounterId, claimId, chapte
         console.warn(`[${logTag}] server reward claim failed`, result);
         if (result.alreadyClaimed && result.save) {
             applyLoadedSave(result.save);
-            writeLocalSave(buildSavePayload());
+            writeLocalSave(result.save);
             return {
                 gold: result.reward?.gold || 0,
                 essence: result.reward?.essence || 0,
@@ -20489,7 +20500,7 @@ async function claimServerBattleReward({ mode, win, encounterId, claimId, chapte
         showHubNotice(
             isPatrol
                 ? "Patrol results could not sync with the server. Your attempt was not consumed — tap Retry on the result screen."
-                : "Your win was saved, but rewards could not sync with the server. Refresh to pull the latest cloud save — your claim id is stored server-side and will not double-pay.",
+                : "Battle rewards could not sync with the server. Tap Retry Sync — your win is not credited until this succeeds.",
             isPatrol ? "Patrol sync failed" : "Reward sync failed"
         );
     } catch (e) {
@@ -20497,7 +20508,7 @@ async function claimServerBattleReward({ mode, win, encounterId, claimId, chapte
         showHubNotice(
             mode === "patrol"
                 ? "Network error while syncing patrol results. Your attempt was not consumed — tap Retry."
-                : "Network error while claiming battle rewards. Refresh to sync from the cloud.",
+                : "Network error while claiming battle rewards. Tap Retry Sync — do not refresh until it succeeds.",
             mode === "patrol" ? "Patrol sync failed" : "Reward sync failed"
         );
     } finally {
@@ -21936,6 +21947,11 @@ function endBattle(win, player) {
         return;
     }
     setBattleFightingUI(false);
+    // Lock cloud saves before clearing the battle flag — closes the race where
+    // tab-hide / autosave pushed a pre-reward wallet and wiped claim gold.
+    if (win && typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn()) {
+        _battleRewardClaimInFlight = true;
+    }
     isInAdventureBattle = false;
     clearAdventureBattleSession();
     void finishAdventureBattleRewards(win);
@@ -21944,66 +21960,76 @@ function endBattle(win, player) {
 async function finishAdventureBattleRewards(win) {
     let reward = { gold: 0, essence: 0, shards: 0, trainerXp: 0, gear: null };
     let rewardSynced = !win || !MonExAuth?.isLoggedIn?.();
-    if (win && typeof MonExBattle !== "undefined" && MonExAuth?.isLoggedIn?.()) {
-        const claimId = MonExBattle.buildCampaignCompletionId
-            ? MonExBattle.buildCampaignCompletionId(currentChapter, currentStage)
-            : `adv-${currentChapter}-${currentStage}-${adventureBattleToken}`;
-        const serverReward = await claimServerBattleReward({
-            mode: "adventure",
-            claimId,
-            chapter: currentChapter,
-            stage: currentStage,
-            logTag: "adventure",
-        });
-        if (serverReward) {
-            reward = serverReward;
-            rewardSynced = true;
-        } else {
+    const claimChapter = currentChapter;
+    const claimStage = currentStage;
+    try {
+        if (win && typeof MonExBattle !== "undefined" && MonExAuth?.isLoggedIn?.()) {
+            const claimId = MonExBattle.buildCampaignCompletionId
+                ? MonExBattle.buildCampaignCompletionId(claimChapter, claimStage)
+                : `adv-${claimChapter}-${claimStage}-${adventureBattleToken}`;
+            const serverReward = await claimServerBattleReward({
+                mode: "adventure",
+                claimId,
+                chapter: claimChapter,
+                stage: claimStage,
+                logTag: "adventure",
+            });
+            if (serverReward) {
+                reward = serverReward;
+                rewardSynced = true;
+                _pendingAdventureClaim = null;
+            } else {
+                rewardSynced = false;
+                _pendingAdventureClaim = { chapter: claimChapter, stage: claimStage, win: true };
+            }
+        } else if (win && MonExAuth?.isLoggedIn?.()) {
+            showHubNotice(
+                "Battle reward API is unavailable. Refresh the page to sync rewards from the cloud.",
+                "Reward offline"
+            );
+            _pendingAdventureClaim = { chapter: claimChapter, stage: claimStage, win: true };
             rewardSynced = false;
+        } else if (win) {
+            const boss = isBossStage(currentStage);
+            const mult = boss ? 2 : 1;
+            const globalP = getGlobalAdventureProgress(currentChapter, currentStage);
+            reward.gold = (80 + globalP * 12) * mult;
+            reward.essence = (10 + globalP * 4) * mult;
+            reward.trainerXp = Math.floor((50 + globalP * 25) * (boss ? 1.5 : 1));
+            if (boss && isEquipmentUnlocked()) {
+                const gear = rollGearDrop(currentChapter, true);
+                if (gear) { gearInventory.push(gear); reward.gear = gear; }
+                reward.shards = 1 + Math.floor(globalP / 15);
+            } else if (boss) {
+                reward.shards = 2 + Math.floor(globalP / 10);
+            } else if (isEquipmentUnlocked() && Math.random() < 0.12) {
+                const gear = rollGearDrop(currentChapter, false);
+                if (gear) { gearInventory.push(gear); reward.gear = gear; }
+            } else if (globalP >= 3 && Math.random() < 0.25) {
+                reward.shards = 1;
+            }
+            grantBattleRewards(reward);
+            adventureGlobalBest = Math.max(adventureGlobalBest, globalP);
+            const best = globalProgressToChapterStage(adventureGlobalBest);
+            highestStageCleared = best.stage;
+            bumpQuestProgress("adventure_win", 1);
+            if (boss) bumpQuestProgress("boss_win", 1);
+            syncCampaignQuestProgress();
+            if (currentStage >= STAGES_PER_CHAPTER) {
+                currentChapter++;
+                currentStage = 1;
+            } else {
+                currentStage++;
+            }
+            await persistBattleReward();
         }
-    } else if (win && MonExAuth?.isLoggedIn?.()) {
-        showHubNotice(
-            "Battle reward API is unavailable. Refresh the page to sync rewards from the cloud.",
-            "Reward offline"
-        );
-    } else if (win) {
-        const boss = isBossStage(currentStage);
-        const mult = boss ? 2 : 1;
-        const globalP = getGlobalAdventureProgress(currentChapter, currentStage);
-        reward.gold = (80 + globalP * 12) * mult;
-        reward.essence = (10 + globalP * 4) * mult;
-        reward.trainerXp = Math.floor((50 + globalP * 25) * (boss ? 1.5 : 1));
-        if (boss && isEquipmentUnlocked()) {
-            const gear = rollGearDrop(currentChapter, true);
-            if (gear) { gearInventory.push(gear); reward.gear = gear; }
-            reward.shards = 1 + Math.floor(globalP / 15);
-        } else if (boss) {
-            reward.shards = 2 + Math.floor(globalP / 10);
-        } else if (isEquipmentUnlocked() && Math.random() < 0.12) {
-            const gear = rollGearDrop(currentChapter, false);
-            if (gear) { gearInventory.push(gear); reward.gear = gear; }
-        } else if (globalP >= 3 && Math.random() < 0.25) {
-            reward.shards = 1;
-        }
-        grantBattleRewards(reward);
-        adventureGlobalBest = Math.max(adventureGlobalBest, globalP);
-        const best = globalProgressToChapterStage(adventureGlobalBest);
-        highestStageCleared = best.stage;
-        bumpQuestProgress("adventure_win", 1);
-        if (boss) bumpQuestProgress("boss_win", 1);
-        syncCampaignQuestProgress();
-        if (currentStage >= STAGES_PER_CHAPTER) {
-            currentChapter++;
-            currentStage = 1;
-        } else {
-            currentStage++;
-        }
-        await persistBattleReward();
-    }
 
-    restorePartyFullHp();
-    showBattleResult(win, reward, { rewardSynced });
-    if (!win) saveData();
+        restorePartyFullHp();
+        showBattleResult(win, reward, { rewardSynced });
+        if (!win) saveData();
+    } finally {
+        _battleRewardClaimInFlight = false;
+    }
 }
 
 function showBattleResult(win, reward, options = {}) {
@@ -22012,9 +22038,17 @@ function showBattleResult(win, reward, options = {}) {
     refreshAdventureChapterBackground();
     const content = document.getElementById("battle-content");
     content.className = "battle-scene-ui cover-art-layer";
+    const canRetry = win && !rewardSynced && _pendingAdventureClaim && MonExAuth?.isLoggedIn?.();
+    const retryButton = canRetry
+        ? `<button type="button" class="adventure-start-btn" onclick="retryAdventureBattleSync()">RETRY SYNC</button>`
+        : "";
+    const title = win
+        ? (rewardSynced ? "VICTORY!" : "SYNC FAILED")
+        : "DEFEAT";
+    const titleColor = win ? (rewardSynced ? "#16a34a" : "#b45309") : "#ef4444";
     const drops = win
         ? (!rewardSynced
-            ? `<p class="adv-desc" style="font-size:15px;margin:20px 0;">Victory recorded, but rewards did not sync. Refresh to load your cloud save.</p>`
+            ? `<p class="adv-desc" style="font-size:15px;margin:20px 0;">You cleared the fight, but rewards were <b>not saved</b> yet. Tap Retry Sync — reloading now can leave you on the same stage without gold.</p>${retryButton}`
             : `<div class="result-drops" style="margin:18px 0; font-size:15px;">
                <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("gold", 20)} <b>+${reward.gold}</b></div>
                <div class="inline-currency" style="margin:6px 0; justify-content:center;">${currencyIcon("essence", 20)} <b>+${reward.essence}</b></div>
@@ -22026,12 +22060,31 @@ function showBattleResult(win, reward, options = {}) {
         : `<p class="adv-desc" style="font-size:15px; margin:20px 0;">Your team was defeated. Everyone was restored to full HP — level up and try again!</p>`;
     content.innerHTML = `
         <div class="adventure-panel">
-            <h2 style="color:${win ? '#16a34a' : '#ef4444'};">${win ? 'VICTORY!' : 'DEFEAT'}</h2>
+            <h2 style="color:${titleColor};">${title}</h2>
             ${drops}
-            <button type="button" class="adventure-continue-btn" onclick="openAdventureStagePrep()">CONTINUE</button>
+            <button type="button" class="adventure-continue-btn" onclick="openAdventureStagePrep()" ${canRetry ? "disabled style='opacity:0.55'" : ""}>CONTINUE</button>
         </div>
     `;
     updateUI();
+}
+
+async function retryAdventureBattleSync() {
+    const pending = _pendingAdventureClaim;
+    if (!pending || !MonExAuth?.isLoggedIn?.() || typeof MonExBattle === "undefined") return;
+    const claimId = MonExBattle.buildCampaignCompletionId
+        ? MonExBattle.buildCampaignCompletionId(pending.chapter, pending.stage)
+        : `adv-${pending.chapter}-${pending.stage}-retry`;
+    const serverReward = await claimServerBattleReward({
+        mode: "adventure",
+        claimId,
+        chapter: pending.chapter,
+        stage: pending.stage,
+        logTag: "adventure-retry",
+    });
+    if (serverReward) {
+        _pendingAdventureClaim = null;
+        showBattleResult(true, serverReward, { rewardSynced: true });
+    }
 }
 function setInventoryCategory(categoryId) {
     inventoryActiveCategory = categoryId;
