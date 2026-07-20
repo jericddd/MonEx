@@ -52,6 +52,14 @@ import { guardSavePayload } from "./lib/save-economy-guard.js";
 import { claimQuestTask, claimQuestChest } from "./lib/quest-claim.js";
 import { purchaseShopItem } from "./lib/shop-purchase.js";
 import { levelUpMon, ascendMonRarity } from "./lib/mon-level-up.js";
+import { addFromBox, swapPartyWithBox, reorderParty } from "./lib/party-layout.js";
+import { equipGear, unequipGear } from "./lib/equip-gear.js";
+import {
+  heroAscend,
+  unlockAscensionSkill,
+  enhanceGear,
+  synthGear,
+} from "./lib/armory-mutate.js";
 import { listMonballPackages, purchaseMonballPackage, publicPackageView } from "./lib/monball-packages.js";
 import { listGoldPackages, purchaseGoldPackage, publicGoldPackageView } from "./lib/gold-packages.js";
 import { collectResourceChest } from "./lib/resource-chest.js";
@@ -1359,6 +1367,89 @@ async function handleRequest(request, env) {
       } catch (err) {
         return json({ ok: false, error: err.message || "ascend failed" }, 500, request, env);
       }
+    }
+
+    async function runInventoryMutation(pathKey, limit, handler) {
+      const body = await request.json().catch(() => ({}));
+      const auth = await requireGameplay(request, env, body);
+      if (!auth.ok) return json({ ok: false, error: auth.error, reason: auth.reason, canReclaim: auth.canReclaim }, auth.status, request, env);
+      await enforceRateLimit(request, env, pathKey, { limit, windowSec: 60, userId: auth.session.xUserId });
+      const starting = parseInt(env.STARTING_MONBALLS || "10", 10) || 10;
+      const expectedRevision = body?.baseRevision != null && Number.isFinite(Number(body.baseRevision))
+        ? Number(body.baseRevision)
+        : undefined;
+      try {
+        const result = await handler(body, auth.session, starting, expectedRevision);
+        const status = result.ok
+          ? 200
+          : (result.error || "").endsWith("_conflict")
+            ? 409
+            : 400;
+        return json(result, status, request, env);
+      } catch (err) {
+        return json({ ok: false, error: err.message || "mutation failed" }, 500, request, env);
+      }
+    }
+
+    if (path === "/api/party/add-from-box" && request.method === "POST") {
+      return runInventoryMutation("party-add", 60, (body, session, starting, expectedRevision) =>
+        addFromBox(env.MONEX_KV, session, { boxInstanceId: body?.boxInstanceId }, { expectedRevision, startingMonballs: starting })
+      );
+    }
+    if (path === "/api/party/swap-with-box" && request.method === "POST") {
+      return runInventoryMutation("party-swap", 60, (body, session, starting, expectedRevision) =>
+        swapPartyWithBox(env.MONEX_KV, session, {
+          partyInstanceId: body?.partyInstanceId,
+          boxInstanceId: body?.boxInstanceId,
+        }, { expectedRevision, startingMonballs: starting })
+      );
+    }
+    if (path === "/api/party/reorder" && request.method === "POST") {
+      return runInventoryMutation("party-reorder", 60, (body, session, starting, expectedRevision) =>
+        reorderParty(env.MONEX_KV, session, { partyInstanceIds: body?.partyInstanceIds }, { expectedRevision, startingMonballs: starting })
+      );
+    }
+    if (path === "/api/gear/equip" && request.method === "POST") {
+      return runInventoryMutation("gear-equip", 90, (body, session, starting, expectedRevision) =>
+        equipGear(env.MONEX_KV, session, {
+          instanceId: body?.instanceId,
+          gearId: body?.gearId,
+        }, { expectedRevision, startingMonballs: starting })
+      );
+    }
+    if (path === "/api/gear/unequip" && request.method === "POST") {
+      return runInventoryMutation("gear-unequip", 90, (body, session, starting, expectedRevision) =>
+        unequipGear(env.MONEX_KV, session, {
+          instanceId: body?.instanceId,
+          slot: body?.slot,
+        }, { expectedRevision, startingMonballs: starting })
+      );
+    }
+    if (path === "/api/armory/hero-ascend" && request.method === "POST") {
+      return runInventoryMutation("armory-hero-ascend", 30, (body, session, starting, expectedRevision) =>
+        heroAscend(env.MONEX_KV, session, {
+          mainInstanceId: body?.mainInstanceId,
+          dupeInstanceIds: body?.dupeInstanceIds,
+        }, { expectedRevision, startingMonballs: starting })
+      );
+    }
+    if (path === "/api/armory/unlock-skill" && request.method === "POST") {
+      return runInventoryMutation("armory-unlock-skill", 30, (body, session, starting, expectedRevision) =>
+        unlockAscensionSkill(env.MONEX_KV, session, {
+          instanceId: body?.instanceId,
+          skillIndex: body?.skillIndex,
+        }, { expectedRevision, startingMonballs: starting })
+      );
+    }
+    if (path === "/api/armory/enhance" && request.method === "POST") {
+      return runInventoryMutation("armory-enhance", 60, (body, session, starting, expectedRevision) =>
+        enhanceGear(env.MONEX_KV, session, { gearId: body?.gearId }, { expectedRevision, startingMonballs: starting })
+      );
+    }
+    if (path === "/api/armory/synth" && request.method === "POST") {
+      return runInventoryMutation("armory-synth", 60, (body, session, starting, expectedRevision) =>
+        synthGear(env.MONEX_KV, session, { gearIds: body?.gearIds }, { expectedRevision, startingMonballs: starting })
+      );
     }
 
     if (path === "/api/resource-chest/collect" && request.method === "POST") {

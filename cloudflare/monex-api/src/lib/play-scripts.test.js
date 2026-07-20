@@ -37,6 +37,7 @@ const PLAY_SCRIPTS = [
   "js/quest-client.js",
   "js/shop-client.js",
   "js/mon-upgrade-client.js",
+  "js/inventory-client.js",
   "js/resource-chest-client.js",
   "js/battle-reward-client.js",
   "js/mailbox-client.js",
@@ -124,8 +125,9 @@ describe("play page scripts (shared browser global scope)", () => {
     assert.ok(windowStub.MonExQuest, "window.MonExQuest must be defined");
     assert.ok(windowStub.MonExShop, "window.MonExShop must be defined");
     assert.ok(windowStub.MonExMonUpgrade, "window.MonExMonUpgrade must be defined");
-    assert.equal(typeof windowStub.MonExMonUpgrade.levelUpMon, "function");
-    assert.equal(typeof windowStub.MonExMonUpgrade.ascendMonRarity, "function");
+    assert.ok(windowStub.MonExInventory, "window.MonExInventory must be defined");
+    assert.equal(typeof windowStub.MonExInventory.swapWithBox, "function");
+    assert.equal(typeof windowStub.MonExInventory.equipGear, "function");
     assert.ok(windowStub.MonExResourceChest, "window.MonExResourceChest must be defined");
     assert.ok(windowStub.MonExBattle, "window.MonExBattle must be defined");
 

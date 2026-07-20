@@ -8512,6 +8512,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/quest-client.js?v=20260715c"></script>
 <script src="js/shop-client.js?v=20260715b"></script>
 <script src="js/mon-upgrade-client.js?v=20260718a"></script>
+<script src="js/inventory-client.js?v=20260720a"></script>
 <script src="js/resource-chest-client.js?v=20260713d"></script>
 <script src="js/battle-reward-client.js?v=20260713e"></script>
 <script src="js/mailbox-client.js?v=20260713a"></script>
@@ -14463,8 +14464,27 @@ async function equipGearOnMonAsync(location, monIndex, gearId) {
         showHubNotice(`${meta ? meta.label + " gear" : "This gear"} can only be worn by that house's Monanimals.`, "Can't equip");
         return;
     }
-    // Wait for in-flight saves, but do NOT flush the pre-equip (unequipped) snapshot —
-    // that race made cloud prefer the old loadout and unequip after refresh/sync.
+    const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
+    if (loggedIn) {
+        if (typeof MonExInventory === "undefined" || !MonExInventory.equipGear) {
+            showHubNotice("Equip sync is unavailable. Refresh and try again.", "Equip offline");
+            return;
+        }
+        ensureMonInstanceId(mon);
+        const result = await MonExInventory.equipGear(mon.instanceId || mon.wildPendingId, gearId);
+        if (!result.ok) {
+            if (result.status === 409) showHubNotice("Save refreshed after a sync conflict. Try again.", "Equip sync");
+            else showHubNotice("Could not equip gear. Try again.", "Equip error");
+            return;
+        }
+        if (result.save) {
+            applyLoadedSave(result.save);
+            writeLocalSave(result.save);
+        }
+        if (location === "party") bumpQuestProgress("gear_equip", 1);
+        updateUI();
+        return;
+    }
     if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
         await MonExAuth.awaitCloudSaveIdle();
     }
@@ -14489,6 +14509,26 @@ async function equipGearOnMonAsync(location, monIndex, gearId) {
 async function unequipGear(location, monIndex, slot) {
     const mon = getMonList(location)[monIndex];
     if (!mon) return;
+    const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
+    if (loggedIn) {
+        if (typeof MonExInventory === "undefined" || !MonExInventory.unequipGear) {
+            showHubNotice("Equip sync is unavailable. Refresh and try again.", "Equip offline");
+            return;
+        }
+        ensureMonInstanceId(mon);
+        const result = await MonExInventory.unequipGear(mon.instanceId || mon.wildPendingId, slot);
+        if (!result.ok) {
+            if (result.status === 409) showHubNotice("Save refreshed after a sync conflict. Try again.", "Equip sync");
+            else showHubNotice("Could not unequip gear. Try again.", "Equip error");
+            return;
+        }
+        if (result.save) {
+            applyLoadedSave(result.save);
+            writeLocalSave(result.save);
+        }
+        updateUI();
+        return;
+    }
     if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
         await MonExAuth.awaitCloudSaveIdle();
     }
@@ -14716,16 +14756,16 @@ async function runArmoryForgeAction(workFn) {
     if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
         MonExAuth.cancelPendingCloudSave();
     }
-    await syncSaveBeforeGameplayMutation();
+    if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
+        await MonExAuth.awaitCloudSaveIdle();
+    }
     await new Promise((resolve) => setTimeout(resolve, ARMORY_FORGE_DURATION_MS));
     try {
-        armoryForgeResult = workFn() || { ok: false, text: "Action failed." };
+        armoryForgeResult = (await workFn()) || { ok: false, text: "Action failed." };
     } catch (err) {
         armoryForgeResult = { ok: false, text: String(err?.message || "Action failed.") };
     }
     armoryForgeBusy = false;
-    saveData({ immediate: true });
-    await persistProgress();
     updateUI();
     renderArmoryPane();
     renderInventory();
@@ -14757,8 +14797,28 @@ function executeGearSynth() {
     const slotsSnapshot = gearSynthSlots.map((g) => g);
     const recipeSnapshot = { ...recipe };
     const goldCost = recipe.gold;
+    const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
 
-    runArmoryForgeAction(() => {
+    runArmoryForgeAction(async () => {
+        if (loggedIn) {
+            if (typeof MonExInventory === "undefined" || !MonExInventory.synthGear) {
+                return { ok: false, text: "Armory sync unavailable. Refresh and try again." };
+            }
+            const result = await MonExInventory.synthGear(ids);
+            if (!result.ok) {
+                if (result.status === 409) return { ok: false, text: "Save conflict — try again." };
+                return { ok: false, text: "Synthesis could not sync. Try again." };
+            }
+            if (result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(result.save);
+            }
+            clearGearSynthSlots();
+            if (result.success && result.resultGear) {
+                return { ok: true, text: `Synthesis success! Obtained: ${result.resultGear.name || "new gear"}` };
+            }
+            return { ok: false, text: "Synthesis failed. All materials were consumed." };
+        }
         bumpQuestProgress("armory_forge", 1);
         money -= goldCost;
         gearInventory = gearInventory.filter(g => !ids.includes(g.id));
@@ -14776,8 +14836,12 @@ function executeGearSynth() {
                 result = generateHouseGear(mainHouse, recipeSnapshot.resultTier, recipeSnapshot.slot, mainLvlTier);
             }
             gearInventory.push(result);
+            saveData({ immediate: true });
+            await persistProgress();
             return { ok: true, text: `Synthesis success! Obtained: ${result.name} — ${formatGearRngSummary(result)}` };
         }
+        saveData({ immediate: true });
+        await persistProgress();
         return { ok: false, text: "Synthesis failed. All materials were consumed." };
     });
 }
@@ -15147,14 +15211,38 @@ function executeHeroAscension() {
     const dupesToRemove = [...heroAscensionDupeMons];
     const goldCost = recipe.gold;
     const successRate = recipe.rate;
+    const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
 
-    runArmoryForgeAction(() => {
-        money -= goldCost;
-        removeHeroAscensionDupes(dupesToRemove);
-
+    runArmoryForgeAction(async () => {
         const main = heroAscensionMainMon;
         if (!main) return { ok: false, text: "Main hero is no longer available." };
-
+        ensureMonInstanceId(main);
+        if (loggedIn) {
+            if (typeof MonExInventory === "undefined" || !MonExInventory.heroAscend) {
+                return { ok: false, text: "Armory sync unavailable. Refresh and try again." };
+            }
+            const dupeIds = dupesToRemove.map((d) => {
+                ensureMonInstanceId(d);
+                return d.instanceId || d.wildPendingId;
+            });
+            const result = await MonExInventory.heroAscend(main.instanceId || main.wildPendingId, dupeIds);
+            if (!result.ok) {
+                if (result.status === 409) return { ok: false, text: "Save conflict — try again." };
+                return { ok: false, text: "Ascension could not sync. Try again." };
+            }
+            if (result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(result.save);
+            }
+            heroAscensionClearMain();
+            if (result.success) {
+                const stars = result.mon?.ascensionStars ?? ((main.ascensionStars || 0) + 1);
+                return { ok: true, text: `Ascension success! Hero is now +${stars}.` };
+            }
+            return { ok: false, text: "Ascension failed. Duplicates were consumed." };
+        }
+        money -= goldCost;
+        removeHeroAscensionDupes(dupesToRemove);
         const success = Math.random() < successRate;
         if (success) {
             main.ascensionStars = (main.ascensionStars || 0) + 1;
@@ -15171,9 +15259,13 @@ function executeHeroAscension() {
                 text += ` Skill unlock cap (+${HERO_ASCENSION_SKILL_CAP}) reached — further + levels grant stats only.`;
             }
             sortBox();
+            saveData({ immediate: true });
+            await persistProgress();
             return { ok: true, text };
         }
         sortBox();
+        saveData({ immediate: true });
+        await persistProgress();
         return { ok: false, text: "Ascension failed. Duplicates were consumed." };
     });
 }
@@ -15197,19 +15289,43 @@ function confirmHeroAscensionSkill(location, monIndex, optionIndex) {
         showHubNotice(`${skill.name} is already on this hero. Pick a different option.`, "Can't unlock");
         return;
     }
-    if (!freePick) money -= HERO_SKILL_UNLOCK_GOLD;
-    mon.skills.push({ ...skill });
-    migrateSkillDefinitions(mon);
-    syncUltimateFromSkills(mon);
-    refreshMonDerivedStats(mon);
-    delete mon.ascensionSkillPending;
-    delete mon.ascensionSkillFreePick;
-    repairAscensionSkillState(mon);
-    closeAscensionSkillPicker();
-    void persistProgress();
-    updateUI();
-    renderArmoryPane();
-    showHubNotice(`${mon.name} learned ${skill.name}!`, "Skill unlocked");
+    void (async () => {
+        const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
+        if (loggedIn) {
+            if (typeof MonExInventory === "undefined" || !MonExInventory.unlockSkill) {
+                showHubNotice("Armory sync unavailable. Refresh and try again.", "Skill unlock");
+                return;
+            }
+            ensureMonInstanceId(mon);
+            const result = await MonExInventory.unlockSkill(mon.instanceId || mon.wildPendingId, optionIndex);
+            if (!result.ok) {
+                showHubNotice("Skill unlock could not sync. Try again.", "Skill unlock");
+                return;
+            }
+            if (result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(result.save);
+            }
+            closeAscensionSkillPicker();
+            updateUI();
+            renderArmoryPane();
+            showHubNotice(`${mon.name} learned ${skill.name}!`, "Skill unlocked");
+            return;
+        }
+        if (!freePick) money -= HERO_SKILL_UNLOCK_GOLD;
+        mon.skills.push({ ...skill });
+        migrateSkillDefinitions(mon);
+        syncUltimateFromSkills(mon);
+        refreshMonDerivedStats(mon);
+        delete mon.ascensionSkillPending;
+        delete mon.ascensionSkillFreePick;
+        repairAscensionSkillState(mon);
+        closeAscensionSkillPicker();
+        void persistProgress();
+        updateUI();
+        renderArmoryPane();
+        showHubNotice(`${mon.name} learned ${skill.name}!`, "Skill unlocked");
+    })();
 }
 
 function openHeroAscensionSkillUnlock() {
@@ -15413,8 +15529,28 @@ function executeGearEnhance() {
     const successRate = getGearEnhanceSuccessRate(gear);
     const failDrop = getGearEnhanceFailDropLevel(gear);
     const gearId = gear.id;
+    const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
 
-    runArmoryForgeAction(() => {
+    runArmoryForgeAction(async () => {
+        if (loggedIn) {
+            if (typeof MonExInventory === "undefined" || !MonExInventory.enhanceGear) {
+                return { ok: false, text: "Armory sync unavailable. Refresh and try again." };
+            }
+            const result = await MonExInventory.enhanceGear(gearId);
+            if (!result.ok) {
+                if (result.status === 409) return { ok: false, text: "Save conflict — try again." };
+                return { ok: false, text: "Enhancement could not sync. Try again." };
+            }
+            if (result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(result.save);
+            }
+            const g = result.gear || gearInventory.find((item) => item.id === gearId);
+            if (result.success) {
+                return { ok: true, text: `Enhancement success! ${g ? formatGearDisplayName(g) : "Gear"}` };
+            }
+            return { ok: false, text: `Enhancement failed.${g ? ` Enhance level is +${g.enhanceLevel || 0}.` : ""}` };
+        }
         bumpQuestProgress("armory_forge", 1);
         const g = gearInventory.find((item) => item.id === gearId);
         if (!g) return { ok: false, text: "Selected gear is no longer in your inventory." };
@@ -15423,14 +15559,20 @@ function executeGearEnhance() {
         if (success) {
             applyGearEnhanceLevelUp(g);
             refreshEquippedGearStats();
+            saveData({ immediate: true });
+            await persistProgress();
             return { ok: true, text: `Enhancement success! ${formatGearDisplayName(g)} — ${formatGearRngSummary(g)}` };
         }
         if (failDrop != null && g.enhanceLevel > failDrop) {
             stripGearEnhanceLevels(g, failDrop);
             refreshEquippedGearStats();
+            saveData({ immediate: true });
+            await persistProgress();
             return { ok: false, text: `Enhancement failed. Enhance level dropped to +${g.enhanceLevel}.` };
         }
         refreshEquippedGearStats();
+        saveData({ immediate: true });
+        await persistProgress();
         return { ok: false, text: "Enhancement failed. No change to enhance level." };
     });
 }
@@ -18847,11 +18989,34 @@ function addToPartyFromBox(boxIndex) {
         ? (fn) => MonExClaimGuard.runClaimOnce(`party-add:${boxIndex}`, fn)
         : async (fn) => fn();
     return run(async () => {
-        await syncSaveBeforeGameplayMutation();
         if (party.length >= PARTY_MAX || !box[boxIndex]) return;
         const mon = box[boxIndex];
         if (partyHasSpecies(mon.name)) {
             showHubNotice(`You already have ${mon.name} in your party.\nOnly one of each species allowed.`, "Can't add");
+            return;
+        }
+        const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
+        if (loggedIn) {
+            if (typeof MonExInventory === "undefined" || !MonExInventory.addFromBox) {
+                showHubNotice("Party sync is unavailable. Refresh and try again.", "Party offline");
+                return;
+            }
+            ensureMonInstanceId(mon);
+            const result = await MonExInventory.addFromBox(mon.instanceId || mon.wildPendingId);
+            if (!result.ok) {
+                if (result.status === 409) showHubNotice("Save refreshed after a sync conflict. Try again.", "Party sync");
+                else showHubNotice("Could not add to party. Try again.", "Party error");
+                return;
+            }
+            if (result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(result.save);
+            }
+            updateUI();
+            closePartySwitchPicker();
+            if (battleScreen === "chapter" && document.getElementById("team-arrange")) {
+                renderTeamArrangement();
+            }
             return;
         }
         party.push(box.splice(boxIndex, 1)[0]);
@@ -18870,11 +19035,39 @@ function swapPartyWithBox(partyIndex, boxIndex) {
         ? (fn) => MonExClaimGuard.runClaimOnce(`party-swap:${partyIndex}:${boxIndex}`, fn)
         : async (fn) => fn();
     return run(async () => {
-        await syncSaveBeforeGameplayMutation();
         if (!party[partyIndex] || !box[boxIndex]) return;
         const incoming = box[boxIndex];
         if (partyHasSpecies(incoming.name, partyIndex)) {
             showHubNotice(`You already have ${incoming.name} in your party.\nOnly one of each species allowed.`, "Can't swap");
+            return;
+        }
+        const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
+        if (loggedIn) {
+            if (typeof MonExInventory === "undefined" || !MonExInventory.swapWithBox) {
+                showHubNotice("Party sync is unavailable. Refresh and try again.", "Party offline");
+                return;
+            }
+            const partyMon = party[partyIndex];
+            ensureMonInstanceId(partyMon);
+            ensureMonInstanceId(incoming);
+            const result = await MonExInventory.swapWithBox(
+                partyMon.instanceId || partyMon.wildPendingId,
+                incoming.instanceId || incoming.wildPendingId
+            );
+            if (!result.ok) {
+                if (result.status === 409) showHubNotice("Save refreshed after a sync conflict. Try again.", "Party sync");
+                else showHubNotice("Could not swap party. Try again.", "Party error");
+                return;
+            }
+            if (result.save) {
+                applyLoadedSave(result.save);
+                writeLocalSave(result.save);
+            }
+            updateUI();
+            closePartySwitchPicker();
+            if (battleScreen === "chapter" && document.getElementById("team-arrange")) {
+                renderTeamArrangement();
+            }
             return;
         }
         const temp = party[partyIndex];
@@ -20696,8 +20889,22 @@ function renderTeamArrangement() {
 
             if (fromIndex !== toIndex) {
                 [party[fromIndex], party[toIndex]] = [party[toIndex], party[fromIndex]];
-                saveData();
-                renderTeamArrangement();
+                const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
+                if (loggedIn && typeof MonExInventory !== "undefined" && MonExInventory.reorderParty) {
+                    party.forEach((mon) => ensureMonInstanceId(mon));
+                    const ids = party.map((mon) => mon.instanceId || mon.wildPendingId).filter(Boolean);
+                    void MonExInventory.reorderParty(ids).then((result) => {
+                        if (result.ok && result.save) {
+                            applyLoadedSave(result.save);
+                            writeLocalSave(result.save);
+                        }
+                        renderTeamArrangement();
+                        updateUI();
+                    });
+                } else {
+                    saveData();
+                    renderTeamArrangement();
+                }
             }
         });
 
