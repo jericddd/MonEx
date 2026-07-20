@@ -9,6 +9,7 @@ import {
   isMonballQuestFullyPaid,
 } from "./quest-monball-grants.js";
 import { applyOneTimeDailyQuestResetIfNeeded } from "./quest-one-time-reset.js";
+import { settleTrainerLevelRewards } from "./trainer-rewards.js";
 
 const MAX_CLAIM_RETRIES = 3;
 
@@ -19,7 +20,7 @@ function applyGrantToSave(save, grant) {
   if (grant.essence) out.essence = (out.essence || 0) + grant.essence;
   if (grant.monShards) out.monShards = (out.monShards || 0) + grant.monShards;
   if (grant.trainerXp) out.trainerXp = (out.trainerXp || 0) + grant.trainerXp;
-  return out;
+  return settleTrainerLevelRewards(out);
 }
 
 function normalizeQuestState(save) {

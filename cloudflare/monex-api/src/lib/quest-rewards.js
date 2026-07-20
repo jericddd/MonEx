@@ -28,6 +28,21 @@ export const QUEST_MILESTONES = DAILY_QUEST_MILESTONES;
 /** @deprecated Use DAILY_QUEST_CHEST_REWARDS */
 export const QUEST_CHEST_REWARDS = DAILY_QUEST_CHEST_REWARDS;
 
+/** Quest task goals mirrored from play/index.html (server enforcement). */
+export const QUEST_TASK_GOALS = {
+  dailies: {
+    d1: 2, d2: 2, d3: 1, d4: 2, d5: 1, d6: 1, d7: 2, d8: 1,
+    d9: 1, d10: 3, d11: 4, d12: 4, d13: 5,
+  },
+  weeklies: {
+    w1: 13, w2: 13, w3: 5, w4: 5, w5: 13, w6: 5, w7: 8,
+    w8: 8, w9: 10, w10: 12, w11: 20, w12: 5,
+  },
+  campaign: {
+    c1: 1, c2: 1, c3: 1, c4: 1, c5: 1, c6: 1, c7: 1,
+  },
+};
+
 /** Quest track → all task ids that share progress (mirrors play/index.html QUEST_TASK_DEFS track field). */
 export const QUEST_TRACK_TASKS = Object.freeze({
   adventure_win: [
@@ -51,7 +66,45 @@ export const QUEST_TRACK_TASKS = Object.freeze({
     { tab: "dailies", id: "d12" },
     { tab: "weeklies", id: "w10" },
   ],
+  gear_equip: [
+    { tab: "dailies", id: "d7" },
+    { tab: "weeklies", id: "w5" },
+  ],
+  daily_login: [
+    { tab: "dailies", id: "d8" },
+    { tab: "weeklies", id: "w6" },
+  ],
 });
+
+/** Bump all quest tasks sharing a track id (server mutation paths). */
+export function bumpQuestTrackProgress(questState, track, amount = 1) {
+  const entries = QUEST_TRACK_TASKS[track];
+  if (!entries || amount <= 0) return questState;
+  const qs = questState && typeof questState === "object" ? { ...questState } : {};
+  const tasks = {
+    dailies: Array.isArray(qs.tasks?.dailies) ? qs.tasks.dailies.map((t) => ({ ...t })) : [],
+    weeklies: Array.isArray(qs.tasks?.weeklies) ? qs.tasks.weeklies.map((t) => ({ ...t })) : [],
+    campaign: Array.isArray(qs.tasks?.campaign) ? qs.tasks.campaign.map((t) => ({ ...t })) : [],
+  };
+  const add = Math.max(1, Math.floor(Number(amount) || 1));
+  for (const { tab, id } of entries) {
+    const list = tasks[tab];
+    if (!list) continue;
+    const goal = QUEST_TASK_GOALS[tab]?.[id] ?? 1;
+    const idx = list.findIndex((t) => t?.id === id);
+    if (idx >= 0) {
+      const task = list[idx];
+      if (task.claimed) continue;
+      list[idx] = {
+        ...task,
+        progress: Math.min(goal, (task.progress || 0) + add),
+      };
+    } else {
+      list.push({ id, progress: Math.min(goal, add), claimed: false });
+    }
+  }
+  return { ...qs, tasks };
+}
 
 export const QUEST_TASK_DEFS = {
   dailies: [

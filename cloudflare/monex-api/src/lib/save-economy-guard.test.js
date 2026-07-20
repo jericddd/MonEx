@@ -34,16 +34,20 @@ test("blocks arbitrary money inflation on save PUT", () => {
   const existing = { money: 5000, essence: 100, monShards: 5, trainerXp: 200 };
   const incoming = { money: 99_999_999, essence: 9_999_999, monShards: 99_999, trainerXp: 99_999_999 };
   const out = clampEconomyScalars(existing, incoming);
-  assert.equal(out.money, 5000 + MAX_SAVE_DELTA.money);
-  assert.equal(out.essence, 100 + MAX_SAVE_DELTA.essence);
+  assert.equal(out.money, 5000);
+  assert.equal(out.essence, 100);
+  assert.equal(out.monShards, 5);
+  assert.equal(out.trainerXp, 200);
 });
 
-test("allows legitimate per-save reward increases", () => {
+test("blocks economy increases on save PUT (mutation APIs only)", () => {
   const existing = { money: 1000, essence: 50, monShards: 2, trainerXp: 100 };
   const incoming = { money: 1350, essence: 65, monShards: 4, trainerXp: 140 };
   const out = clampEconomyScalars(existing, incoming);
-  assert.equal(out.money, 1350);
-  assert.equal(out.essence, 65);
+  assert.equal(out.money, 1000);
+  assert.equal(out.essence, 50);
+  assert.equal(out.monShards, 2);
+  assert.equal(out.trainerXp, 100);
 });
 
 test("allows economy decreases (spends)", () => {
@@ -57,7 +61,7 @@ test("blocks adventure stage skip exploit", () => {
   const existing = { adventureGlobalBest: 10 };
   const incoming = { adventureGlobalBest: 500 };
   const out = clampAdventureProgress(existing, incoming);
-  assert.equal(out.adventureGlobalBest, 10 + MAX_SAVE_DELTA.adventureGlobalBest);
+  assert.equal(out.adventureGlobalBest, 10);
 });
 
 test("resource chest timestamp only advances forward", () => {
@@ -198,11 +202,11 @@ test("caps forged quest points jumps per save", () => {
   assert.equal(out.questState.dailyPoints, 35);
 });
 
-test("caps trainer reward level jumps per save", () => {
+test("blocks trainer reward level jumps on save PUT", () => {
   const existing = { trainerRewardLevel: 5 };
   const incoming = { trainerRewardLevel: 20 };
   const out = clampTrainerRewardLevel(existing, incoming);
-  assert.equal(out.trainerRewardLevel, 8);
+  assert.equal(out.trainerRewardLevel, 5);
 });
 
 test("blocks catastrophic party/box shrink on save PUT", () => {
@@ -325,7 +329,7 @@ test("guardSavePayload preserves large box against stale shrink", () => {
   };
   const out = guardSavePayload(existing, incoming, { now: QUEST_TEST_NOW });
   assert.equal(out.box.length, 200);
-  assert.equal(out.money, 1100);
+  assert.equal(out.money, 1000);
 });
 
 test("guardSavePayload applies all guards", () => {
@@ -352,7 +356,7 @@ test("guardSavePayload applies all guards", () => {
     },
   };
   const out = guardSavePayload(existing, incoming, { now: QUEST_TEST_NOW });
-  assert.ok(out.money < 99_999_999);
-  assert.ok(out.adventureGlobalBest < 999);
+  assert.equal(out.money, 1000);
+  assert.equal(out.adventureGlobalBest, 5);
   assert.equal(out.questState.dailyClaimedChests.length, 0);
 });

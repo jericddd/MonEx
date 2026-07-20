@@ -24,6 +24,7 @@ import {
 import { applyQuestResetsToState } from "./quest-reset.js";
 import {
   QUEST_TASK_DEFS,
+  QUEST_TASK_GOALS,
   DAILY_QUEST_MILESTONES,
   WEEKLY_QUEST_MILESTONES,
   DAILY_QUEST_MAX_POINTS,
@@ -35,14 +36,20 @@ import {
   WEEKLY_QUEST_CHEST_REWARDS,
 } from "./quest-rewards.js";
 
-/** Max increase per accepted save PUT (generous for one battle/quest/chest). */
+export { QUEST_TASK_GOALS };
+
+/**
+ * Max increase per accepted save PUT.
+ * Economy / adventure progress are mutation-API only — PUT may decrease (spend)
+ * but must not invent gains.
+ */
 export const MAX_SAVE_DELTA = {
-  money: 15_000,
-  essence: 500,
-  monShards: 25,
-  trainerXp: 1_000,
+  money: 0,
+  essence: 0,
+  monShards: 0,
+  trainerXp: 0,
   monballs: 12,
-  adventureGlobalBest: 45,
+  adventureGlobalBest: 0,
 };
 
 /** Max quest progress increase per save PUT (blocks progress: 9999 forgery). */
@@ -50,21 +57,6 @@ export const MAX_QUEST_PROGRESS_DELTA = 20;
 
 /** Max quest points increase per save PUT. */
 export const MAX_QUEST_POINTS_DELTA = 25;
-
-/** Quest task goals mirrored from play/index.html (server enforcement). */
-export const QUEST_TASK_GOALS = {
-  dailies: {
-    d1: 2, d2: 2, d3: 1, d4: 2, d5: 1, d6: 1, d7: 2, d8: 1,
-    d9: 1, d10: 3, d11: 4, d12: 4, d13: 5,
-  },
-  weeklies: {
-    w1: 13, w2: 13, w3: 5, w4: 5, w5: 13, w6: 5, w7: 8,
-    w8: 8, w9: 10, w10: 12, w11: 20, w12: 5,
-  },
-  campaign: {
-    c1: 1, c2: 1, c3: 1, c4: 1, c5: 1, c6: 1, c7: 1,
-  },
-};
 
 function clampInt(value, min, max) {
   const n = Math.floor(Number(value));
@@ -460,7 +452,37 @@ function overlayMonScalars(baseMon, incomingMon) {
 export function preserveInventoryLayout(existing, incoming) {
   const exParty = Array.isArray(existing?.party) ? existing.party : [];
   const exBox = Array.isArray(existing?.box) ? existing.box : [];
-  if (!exParty.length && !exBox.length) return incoming;
+
+  // Gear enhance levels: never raise via PUT for known gear ids.
+  // New gear ids cannot be invented via PUT (battle/chest/shop/synth APIs only).
+  const enhanceCeiling = new Map();
+  const knownGearIds = new Set();
+  const indexGear = (gear) => {
+    if (!gear?.id) return;
+    knownGearIds.add(gear.id);
+    const lvl = Math.max(0, Math.floor(Number(gear.enhanceLevel) || 0));
+    enhanceCeiling.set(gear.id, Math.max(enhanceCeiling.get(gear.id) || 0, lvl));
+  };
+  for (const mon of [...exParty, ...exBox]) {
+    for (const slot of GEAR_SLOTS) indexGear(mon?.equipment?.[slot]);
+  }
+  for (const gear of existing?.gearInventory || []) indexGear(gear);
+
+  const clampGearEnhance = (gear) => {
+    if (!gear?.id || !enhanceCeiling.has(gear.id)) return gear;
+    const ceiling = enhanceCeiling.get(gear.id);
+    const lvl = Math.max(0, Math.floor(Number(gear.enhanceLevel) || 0));
+    if (lvl <= ceiling) return gear;
+    return { ...gear, enhanceLevel: ceiling };
+  };
+
+  const nextBag = (incoming?.gearInventory || [])
+    .filter((gear) => gear?.id && knownGearIds.has(gear.id))
+    .map(clampGearEnhance);
+
+  if (!exParty.length && !exBox.length) {
+    return { ...incoming, gearInventory: nextBag };
+  }
 
   const incomingByKey = new Map();
   for (const mon of [...(incoming?.party || []), ...(incoming?.box || [])]) {
@@ -480,42 +502,22 @@ export function preserveInventoryLayout(existing, incoming) {
       return overlayMonScalars(mon, key ? incomingByKey.get(key) : null);
     });
 
-  // Gear enhance levels: never raise via PUT for known gear ids.
-  const enhanceCeiling = new Map();
-  const indexGear = (gear) => {
-    if (!gear?.id) return;
-    const lvl = Math.max(0, Math.floor(Number(gear.enhanceLevel) || 0));
-    enhanceCeiling.set(gear.id, Math.max(enhanceCeiling.get(gear.id) || 0, lvl));
-  };
-  for (const mon of [...exParty, ...exBox]) {
-    for (const slot of GEAR_SLOTS) indexGear(mon?.equipment?.[slot]);
-  }
-  for (const gear of existing?.gearInventory || []) indexGear(gear);
-
-  const clampGearEnhance = (gear) => {
-    if (!gear?.id || !enhanceCeiling.has(gear.id)) return gear;
-    const ceiling = enhanceCeiling.get(gear.id);
-    const lvl = Math.max(0, Math.floor(Number(gear.enhanceLevel) || 0));
-    if (lvl <= ceiling) return gear;
-    return { ...gear, enhanceLevel: ceiling };
-  };
-
   return {
     ...incoming,
     party: mapList(exParty),
     box: mapList(exBox),
-    gearInventory: (incoming?.gearInventory || []).map(clampGearEnhance),
+    gearInventory: nextBag,
   };
 }
 
 /**
- * Trainer reward level may only advance modestly per save (blocks merge-max inflation).
+ * Trainer reward level is settled server-side with level bonuses — PUT cannot advance it.
  */
 export function clampTrainerRewardLevel(existing, incoming) {
   const before = clampInt(existing?.trainerRewardLevel ?? 1, 1, 9999);
   const raw = clampInt(incoming?.trainerRewardLevel ?? before, 1, 9999);
   if (raw <= before) return { ...incoming, trainerRewardLevel: raw };
-  return { ...incoming, trainerRewardLevel: Math.min(raw, before + 3) };
+  return { ...incoming, trainerRewardLevel: before };
 }
 
 /**

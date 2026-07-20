@@ -23,6 +23,7 @@ import {
 import { applyQuestResetsToState } from "./quest-reset.js";
 import { QUEST_TRACK_TASKS } from "./quest-rewards.js";
 import { QUEST_TASK_GOALS } from "./save-economy-guard.js";
+import { settleTrainerLevelRewards } from "./trainer-rewards.js";
 import {
   applyPatrolDailyResetOnSave,
   consumePatrolAttempt,
@@ -148,6 +149,11 @@ export function mergeBattleClaimOntoLatest(latest, original, intended) {
   for (const field of ["money", "essence", "monShards", "trainerXp"]) {
     const d = delta(field);
     if (d !== 0) merged[field] = (latest[field] || 0) + d;
+  }
+  const intendedRewardLevel = Math.max(1, Math.floor(Number(intended.trainerRewardLevel) || 1));
+  const latestRewardLevel = Math.max(1, Math.floor(Number(merged.trainerRewardLevel) || 1));
+  if (intendedRewardLevel > latestRewardLevel) {
+    merged.trainerRewardLevel = intendedRewardLevel;
   }
 
   const latestGear = [...(latest.gearInventory || [])];
@@ -333,14 +339,14 @@ function applyRewardToSave(save, reward) {
   const inventory = [...(save.gearInventory || [])];
   if (reward.gear) inventory.push(reward.gear);
 
-  return {
+  return settleTrainerLevelRewards({
     ...save,
     money: (save.money || 0) + (reward.gold || 0),
     essence: (save.essence || 0) + (reward.essence || 0),
     monShards: (save.monShards || 0) + (reward.monShards || 0),
     trainerXp: (save.trainerXp || 0) + (reward.trainerXp || 0),
     gearInventory: inventory.slice(0, LIMITS.gearInventoryMax),
-  };
+  });
 }
 
 function advanceAdventureProgress(save, globalP) {

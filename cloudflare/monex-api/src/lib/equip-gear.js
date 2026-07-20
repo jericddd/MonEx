@@ -3,6 +3,7 @@
  */
 import { runSaveMutation, findMonInSave } from "./save-mutation.js";
 import { GEAR_SLOTS, sanitizeGear } from "./save-validate.js";
+import { bumpQuestTrackProgress } from "./quest-rewards.js";
 
 function canMonEquipGear(mon, gear) {
   if (!mon || !gear) return false;
@@ -41,9 +42,18 @@ export function applyEquipGearToSave(save, { instanceId, gearId } = {}) {
   if (found.list === "party") party[found.index] = mon;
   else box[found.index] = mon;
 
+  let nextSave = { ...save, party, box, gearInventory: inventory };
+  // Mirror client: only party equips count toward gear_equip quests.
+  if (found.list === "party") {
+    nextSave = {
+      ...nextSave,
+      questState: bumpQuestTrackProgress(nextSave.questState, "gear_equip", 1),
+    };
+  }
+
   return {
     ok: true,
-    save: { ...save, party, box, gearInventory: inventory },
+    save: nextSave,
   };
 }
 
