@@ -341,9 +341,23 @@ let _saveTimer = null;
 let _saveInflight = null;
 let _pendingSaveState = null;
 let _liveSaveProvider = null;
+/** Optional gate: when true, cloud autosave/flush/visibility must not push. */
+let _cloudSaveGate = null;
 
 function setLiveSaveProvider(fn) {
   _liveSaveProvider = typeof fn === "function" ? fn : null;
+}
+
+function setCloudSaveGate(fn) {
+  _cloudSaveGate = typeof fn === "function" ? fn : null;
+}
+
+function isCloudSaveBlocked() {
+  try {
+    return typeof _cloudSaveGate === "function" && !!_cloudSaveGate();
+  } catch (_) {
+    return false;
+  }
 }
 
 function cancelPendingCloudSave() {
@@ -484,6 +498,7 @@ async function runCloudSavePush() {
 
 function scheduleCloudSave(state, delayMs = 800) {
   if (!isLoggedIn()) return;
+  if (isCloudSaveBlocked()) return;
   _pendingSaveState = state;
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => {
@@ -493,6 +508,7 @@ function scheduleCloudSave(state, delayMs = 800) {
 
 async function flushCloudSave(state) {
   if (!isLoggedIn()) return null;
+  if (isCloudSaveBlocked()) return null;
   clearTimeout(_saveTimer);
   _pendingSaveState = state;
   if (_saveInflight) {
@@ -510,6 +526,7 @@ captureSessionFromUrl();
 if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden" && isLoggedIn()) {
+      if (isCloudSaveBlocked()) return;
       const payload = _liveSaveProvider ? _liveSaveProvider() : _pendingSaveState;
       if (payload) void flushCloudSave(payload);
     }
@@ -538,6 +555,7 @@ window.MonExAuth = {
   scheduleCloudSave,
   flushCloudSave,
   setLiveSaveProvider,
+  setCloudSaveGate,
   cancelPendingCloudSave,
   awaitCloudSaveIdle,
   buildSavePayload,
