@@ -560,6 +560,81 @@
         font-weight: 700;
         margin-top: 8px;
     }
+
+    /* Official token contract — footer strip under wild log (not in hero) */
+    .token-contract-strip {
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 4px;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 3px solid #6B21A8;
+        box-shadow: 3px 3px 0 #6B21A8;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px 16px;
+    }
+    .token-contract-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+        flex: 1 1 220px;
+    }
+    .token-contract-label {
+        font-family: "Press Start 2P", monospace;
+        font-size: 9px;
+        color: #6B21A8;
+        letter-spacing: 0.04em;
+    }
+    .token-contract-addr {
+        font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, monospace;
+        font-size: 12px;
+        color: #1f1235;
+        word-break: break-all;
+        line-height: 1.45;
+    }
+    .token-contract-addr a {
+        color: inherit;
+        text-decoration: none;
+        border-bottom: 1px dotted rgba(107, 33, 168, 0.45);
+    }
+    .token-contract-addr a:hover {
+        color: #6B21A8;
+        border-bottom-color: #6B21A8;
+    }
+    .token-contract-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+    .token-contract-btn {
+        font-family: "Press Start 2P", monospace;
+        font-size: 8px;
+        padding: 8px 12px;
+        border: 2px solid #6B21A8;
+        background: white;
+        color: #6B21A8;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+    }
+    .token-contract-btn:hover {
+        background: #6B21A8;
+        color: white;
+    }
+    .token-contract-btn.is-copied {
+        background: #16a34a;
+        border-color: #15803d;
+        color: white;
+    }
+
     @keyframes blink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.3; }
@@ -661,6 +736,23 @@
         <p class="wild-log-empty">Loading activity…</p>
     </div>
     <div class="wild-log-pagination" id="wild-log-pagination"></div>
+</div>
+
+<div class="token-contract-strip" aria-label="Official MonEx token contract">
+    <div class="token-contract-meta">
+        <span class="token-contract-label">OFFICIAL TOKEN · MONAD</span>
+        <span class="token-contract-addr">
+            <a id="token-contract-link"
+               href="https://monadscan.com/address/0x978Ae7298D48Cf0f8d1fdB26abC12bfACFcC7777"
+               target="_blank"
+               rel="noopener noreferrer"
+               title="View on Monad explorer">0x978Ae7298D48Cf0f8d1fdB26abC12bfACFcC7777</a>
+        </span>
+    </div>
+    <div class="token-contract-actions">
+        <button type="button" class="token-contract-btn" id="token-contract-copy" onclick="copyTokenContract()">COPY</button>
+        <a class="token-contract-btn" href="https://monadscan.com/address/0x978Ae7298D48Cf0f8d1fdB26abC12bfACFcC7777" target="_blank" rel="noopener noreferrer">EXPLORER</a>
+    </div>
 </div>
 
 </div>
@@ -993,6 +1085,26 @@ async function refreshHomeActivity(page) {
 
 refreshHomeActivity(1);
 setInterval(() => refreshHomeActivity(wildLogPage), 8000);
+
+const MONEX_TOKEN_CONTRACT = "0x978Ae7298D48Cf0f8d1fdB26abC12bfACFcC7777";
+
+async function copyTokenContract() {
+    const btn = document.getElementById("token-contract-copy");
+    try {
+        await navigator.clipboard.writeText(MONEX_TOKEN_CONTRACT);
+        if (btn) {
+            btn.textContent = "COPIED";
+            btn.classList.add("is-copied");
+            setTimeout(() => {
+                btn.textContent = "COPY";
+                btn.classList.remove("is-copied");
+            }, 1600);
+        }
+    } catch (_) {
+        if (btn) btn.textContent = "FAILED";
+        setTimeout(() => { if (btn) btn.textContent = "COPY"; }, 1600);
+    }
+}
 
 fetch((getMonexApiBase() || "") + "/api/health").then(r => r.ok && r.json()).then(d => {
     if (!d?.ok) return;
