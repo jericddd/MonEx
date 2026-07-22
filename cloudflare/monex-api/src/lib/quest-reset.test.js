@@ -1,12 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyQuestResetsToState } from "./quest-reset.js";
+import { applyQuestResetsToState, scrubQuestMonballPaidAmounts } from "./quest-reset.js";
+import { getDailyWeekKey } from "./daily-reset.js";
 
 test("applyQuestResetsToState resets stale daily tasks and milestones together", () => {
   const now = new Date("2026-07-14T20:00:00.000Z");
   const qs = {
     dailyResetKey: "2026-07-14",
-    weeklyResetKey: "2026-W28",
+    weeklyResetKey: getDailyWeekKey(now),
     dailyPoints: 0,
     weeklyPoints: 0,
     dailyClaimedChests: [],
@@ -21,7 +22,7 @@ test("applyQuestResetsToState resets stale daily tasks and milestones together",
 
   const changed = applyQuestResetsToState(qs, now);
 
-  assert.equal(changed, true);
+  assert.equal(changed, "daily");
   assert.equal(qs.dailyResetKey, "2026-07-15");
   assert.equal(qs.dailyPoints, 0);
   assert.deepEqual(qs.dailyClaimedChests, []);
@@ -33,7 +34,7 @@ test("applyQuestResetsToState repairs milestone/task desync", () => {
   const now = new Date("2026-07-14T20:00:00.000Z");
   const qs = {
     dailyResetKey: "2026-07-15",
-    weeklyResetKey: "2026-W29",
+    weeklyResetKey: getDailyWeekKey(now),
     dailyPoints: 0,
     weeklyPoints: 0,
     dailyClaimedChests: [],
@@ -48,7 +49,7 @@ test("applyQuestResetsToState repairs milestone/task desync", () => {
 
   const changed = applyQuestResetsToState(qs, now);
 
-  assert.equal(changed, true);
+  assert.equal(changed, "daily");
   assert.equal(qs.tasks.dailies[0].progress, 0);
   assert.equal(qs.tasks.dailies[0].claimed, false);
 });
@@ -72,11 +73,56 @@ test("applyQuestResetsToState resets weekly bundle and aligned dailies", () => {
 
   const changed = applyQuestResetsToState(qs, now);
 
-  assert.equal(changed, true);
+  assert.equal(changed, "weekly");
   assert.equal(qs.weeklyPoints, 0);
   assert.equal(qs.dailyPoints, 0);
   assert.deepEqual(qs.weeklyClaimedChests, []);
   assert.deepEqual(qs.dailyClaimedChests, []);
   assert.equal(qs.tasks.weeklies.every((t) => t.progress === 0 && !t.claimed), true);
   assert.equal(qs.tasks.dailies.every((t) => t.progress === 0 && !t.claimed), true);
+});
+
+test("scrubQuestMonballPaidAmounts clears daily chest receipts on daily reset", () => {
+  const paid = scrubQuestMonballPaidAmounts(
+    {
+      "chest:dailies:60": 1,
+      "chest:dailies:20": 0,
+      "task:dailies:d4": 1,
+      "task:campaign:c1": 15,
+      "chest:weeklies:40": 1,
+    },
+    { clearDailies: true, clearDailyChests: true }
+  );
+  assert.deepEqual(paid, {
+    "task:campaign:c1": 15,
+    "chest:weeklies:40": 1,
+  });
+});
+
+test("applyQuestResetsToState scrubs daily 60 monball receipt on daily rollover", () => {
+  const now = new Date("2026-07-14T20:00:00.000Z");
+  const qs = {
+    dailyResetKey: "2026-07-14",
+    weeklyResetKey: getDailyWeekKey(now),
+    dailyPoints: 0,
+    weeklyPoints: 10,
+    dailyClaimedChests: [],
+    weeklyClaimedChests: [],
+    grantedKeys: [],
+    tasks: {
+      dailies: [{ id: "d1", progress: 0, claimed: false }],
+      weeklies: [{ id: "w1", progress: 0, claimed: false }],
+      campaign: [],
+    },
+  };
+  const paidMap = {
+    "chest:dailies:60": 1,
+    "task:campaign:c1": 15,
+  };
+
+  const changed = applyQuestResetsToState(qs, now, { paidMap });
+
+  assert.equal(changed, "daily");
+  assert.equal(paidMap["chest:dailies:60"], undefined);
+  assert.equal(paidMap["task:campaign:c1"], 15);
 });

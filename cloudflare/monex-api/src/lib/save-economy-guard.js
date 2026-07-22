@@ -161,7 +161,14 @@ export function reconcileQuestState(existing, incoming, options = {}) {
       campaign: (inc.tasks?.campaign || []).map((t) => ({ ...t })),
     },
   };
-  applyQuestResetsToState(qs, new Date(now), { repairDesync: true });
+  const paidMap =
+    incoming.questMonballPaidAmounts && typeof incoming.questMonballPaidAmounts === "object"
+      ? { ...incoming.questMonballPaidAmounts }
+      : {};
+  const resetKind = applyQuestResetsToState(qs, new Date(now), {
+    repairDesync: true,
+    paidMap,
+  });
 
   const existingKeys = new Set(
     Array.isArray(ex.grantedKeys) ? ex.grantedKeys.map(String) : []
@@ -266,7 +273,7 @@ export function reconcileQuestState(existing, incoming, options = {}) {
     if (existingKeys.has(questChestGrantKey("weeklies", ms))) weeklyClaimed.push(ms);
   }
 
-  return {
+  const out = {
     ...incoming,
     questState: {
       ...qs,
@@ -278,6 +285,10 @@ export function reconcileQuestState(existing, incoming, options = {}) {
       grantedKeys: [...allowedKeys].slice(0, 120),
     },
   };
+  if (resetKind) {
+    out.questMonballPaidAmounts = paidMap;
+  }
+  return out;
 }
 
 /** Cap inventory growth per save (blocks mass mon injection). */

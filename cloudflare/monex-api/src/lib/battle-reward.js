@@ -173,7 +173,11 @@ export function mergeBattleClaimOntoLatest(latest, original, intended) {
 
   const base = normalizeQuestState(latest);
   const target = normalizeQuestState(intended);
-  applyQuestResetsToState(base);
+  const paidMap =
+    latest.questMonballPaidAmounts && typeof latest.questMonballPaidAmounts === "object"
+      ? { ...latest.questMonballPaidAmounts }
+      : {};
+  applyQuestResetsToState(base, new Date(), { paidMap });
   for (const tab of ["dailies", "weeklies", "campaign"]) {
     for (const task of target.tasks[tab] || []) {
       const existing = findTask(base, tab, task.id);
@@ -185,6 +189,7 @@ export function mergeBattleClaimOntoLatest(latest, original, intended) {
     }
   }
   merged.questState = base;
+  merged.questMonballPaidAmounts = paidMap;
   merged.accountBattleCompletions = mergeAccountBattleCompletions(
     latest.accountBattleCompletions,
     intended.accountBattleCompletions
@@ -223,7 +228,11 @@ function buildSaveAfterBattleClaim(save, computed, battleMode, completionId, ser
   const reward = computed.reward;
   let nextSave = applyRewardToSave(save, reward);
   const questState = normalizeQuestState(nextSave);
-  applyQuestResetsToState(questState);
+  const paidMap =
+    nextSave.questMonballPaidAmounts && typeof nextSave.questMonballPaidAmounts === "object"
+      ? { ...nextSave.questMonballPaidAmounts }
+      : {};
+  applyQuestResetsToState(questState, new Date(), { paidMap });
 
   if (battleMode === "patrol") {
     bumpQuestTrack(questState, "patrol_win", 1);
@@ -235,6 +244,7 @@ function buildSaveAfterBattleClaim(save, computed, battleMode, completionId, ser
   }
 
   nextSave.questState = questState;
+  nextSave.questMonballPaidAmounts = paidMap;
   nextSave.accountBattleCompletions = mergeAccountBattleCompletions(save.accountBattleCompletions, {
     [completionId]: {
       at: new Date().toISOString(),

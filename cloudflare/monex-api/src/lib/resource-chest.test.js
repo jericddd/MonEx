@@ -63,6 +63,9 @@ test("collectResourceChest grants rewards and resets timer", async () => {
   for (let lv = 2; lv <= info.level; lv++) bonusGold += trainerLevelRewardGrant(lv).gold;
   assert.equal(result.save.money, 100 + 720 + bonusGold);
   assert.equal(result.save.trainerRewardLevel, info.level);
-  assert.equal(result.save.questState.tasks.dailies[0].progress, 1);
+  const d5 = result.save.questState.tasks.dailies.find((t) => t.id === "d5");
+  const w12 = result.save.questState.tasks.weeklies.find((t) => t.id === "w12");
+  assert.equal(d5?.progress, 1);
+  assert.equal(w12?.progress, 1);
   assert.ok(Number(result.save.resourceChestLastCollectAt) > 0);
 });

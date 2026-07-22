@@ -75,12 +75,21 @@ function bumpResourceCollectQuest(questState) {
     weeklies: Array.isArray(qs.tasks?.weeklies) ? qs.tasks.weeklies.map((t) => ({ ...t })) : [],
     campaign: Array.isArray(qs.tasks?.campaign) ? qs.tasks.campaign.map((t) => ({ ...t })) : [],
   };
-  const idx = tasks.dailies.findIndex((t) => t?.id === "d5");
-  if (idx >= 0) {
-    const task = tasks.dailies[idx];
-    tasks.dailies[idx] = { ...task, progress: Math.min(1, (task.progress || 0) + 1) };
-  } else {
-    tasks.dailies.push({ id: "d5", progress: 1, claimed: false });
+  // d5 daily (goal 1) + w12 weekly (goal 5)
+  const targets = [
+    { tab: "dailies", id: "d5", goal: 1 },
+    { tab: "weeklies", id: "w12", goal: 5 },
+  ];
+  for (const { tab, id, goal } of targets) {
+    const list = tasks[tab];
+    const idx = list.findIndex((t) => t?.id === id);
+    if (idx >= 0) {
+      const task = list[idx];
+      if (task.claimed) continue;
+      list[idx] = { ...task, progress: Math.min(goal, (task.progress || 0) + 1) };
+    } else {
+      list.push({ id, progress: Math.min(goal, 1), claimed: false });
+    }
   }
   return { ...qs, tasks };
 }
