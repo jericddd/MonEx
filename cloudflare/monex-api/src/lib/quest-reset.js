@@ -34,6 +34,33 @@ function filterQuestGrantedKeys(keys, opts = {}) {
   });
 }
 
+/**
+ * Clear period-scoped monball payout receipts when daily/weekly quests roll.
+ * Without this, stale `chest:dailies:60` receipts make the next day's 60-pt
+ * milestone skip the monball grant (treat as already paid).
+ */
+export function scrubQuestMonballPaidAmounts(paidMap, opts = {}) {
+  if (!paidMap || typeof paidMap !== "object") return {};
+  const out = {};
+  for (const [key, val] of Object.entries(paidMap)) {
+    const k = String(key || "");
+    if (!k) continue;
+    if (opts.clearDailies && k.startsWith("task:dailies:")) continue;
+    if (opts.clearWeeklies && k.startsWith("task:weeklies:")) continue;
+    if (opts.clearDailyChests && (k.startsWith("chest:dailies:") || /^chest:\d+$/.test(k))) continue;
+    if (opts.clearWeeklyChests && k.startsWith("chest:weeklies:")) continue;
+    if (
+      opts.clearChests
+      && (k.startsWith("chest:dailies:") || k.startsWith("chest:weeklies:") || /^chest:\d+$/.test(k))
+    ) {
+      continue;
+    }
+    const n = Math.max(0, Math.floor(Number(val) || 0));
+    if (n > 0) out[k] = n;
+  }
+  return out;
+}
+
 function isDailyQuestBundleDesynced(qs, now = new Date()) {
   if (needsDailyQuestReset(qs?.dailyResetKey, now)) return false;
   const tasks = qs?.tasks?.dailies || [];
@@ -79,17 +106,39 @@ export function applyWeeklyQuestReset(qs, now = new Date()) {
   qs.dailyResetKey = getDailyDayKey(now);
 }
 
-/** Keep daily/weekly tasks and milestone tracks aligned on the UTC+8 schedule. */
+/**
+ * Keep daily/weekly tasks and milestone tracks aligned on the UTC+8 schedule.
+ * When options.paidMap is provided, period monball receipts are scrubbed in-place
+ * on the same object (callers should assign the returned map onto the save).
+ * @returns {false | "daily" | "weekly"}
+ */
 export function applyQuestResetsToState(questState, now = new Date(), options = {}) {
   const repairDesync = options.repairDesync !== false;
   if (!questState || typeof questState !== "object") return false;
   if (needsWeeklyQuestReset(questState.weeklyResetKey, now) || (repairDesync && isWeeklyQuestBundleDesynced(questState, now))) {
     applyWeeklyQuestReset(questState, now);
-    return true;
+    if (options.paidMap && typeof options.paidMap === "object") {
+      const next = scrubQuestMonballPaidAmounts(options.paidMap, {
+        clearDailies: true,
+        clearWeeklies: true,
+        clearChests: true,
+      });
+      for (const key of Object.keys(options.paidMap)) delete options.paidMap[key];
+      Object.assign(options.paidMap, next);
+    }
+    return "weekly";
   }
   if (needsDailyQuestReset(questState.dailyResetKey, now) || (repairDesync && isDailyQuestBundleDesynced(questState, now))) {
     applyDailyQuestReset(questState, now);
-    return true;
+    if (options.paidMap && typeof options.paidMap === "object") {
+      const next = scrubQuestMonballPaidAmounts(options.paidMap, {
+        clearDailies: true,
+        clearDailyChests: true,
+      });
+      for (const key of Object.keys(options.paidMap)) delete options.paidMap[key];
+      Object.assign(options.paidMap, next);
+    }
+    return "daily";
   }
   return false;
 }

@@ -13,9 +13,19 @@ export async function ensureCloudSaveQuestResets(kv, session, save, startingMonb
       : null;
   if (!questState) return save;
 
-  const changed = applyQuestResetsToState(questState, new Date(), { repairDesync: true });
+  const paidMap =
+    save.questMonballPaidAmounts && typeof save.questMonballPaidAmounts === "object"
+      ? { ...save.questMonballPaidAmounts }
+      : {};
+  const changed = applyQuestResetsToState(questState, new Date(), {
+    repairDesync: true,
+    paidMap,
+  });
   if (!changed) return save;
 
-  const payload = buildSavePayload({ ...save, questState }, session);
+  const payload = buildSavePayload(
+    { ...save, questState, questMonballPaidAmounts: paidMap },
+    session
+  );
   return writeCloudSave(kv, session.xUserId, payload, { skipStaleCheck: true });
 }

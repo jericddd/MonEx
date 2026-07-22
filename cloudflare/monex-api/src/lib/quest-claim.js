@@ -262,11 +262,15 @@ async function ensureQuestStateCurrent(kv, session, save, expectedRevision, star
   let questState = normalizeQuestState(save);
   let workingSave = save;
   let revision = expectedRevision;
-  if (applyQuestResetsToState(questState, new Date())) {
+  const paidMap =
+    save.questMonballPaidAmounts && typeof save.questMonballPaidAmounts === "object"
+      ? { ...save.questMonballPaidAmounts }
+      : {};
+  if (applyQuestResetsToState(questState, new Date(), { paidMap })) {
     const resetResult = await persistQuestSave(
       kv,
       session,
-      { ...workingSave, questState },
+      { ...workingSave, questState, questMonballPaidAmounts: paidMap },
       revision,
       startingMonballs
     );
@@ -386,9 +390,16 @@ export async function claimQuestChest(kv, session, { track, milestone, expectedR
   const monballAmount = clampMonballs(chest.grant.monballs || 0);
   if ((points || 0) < ms) return { ok: false, error: "points_insufficient" };
 
-  const monballAlreadyPaid = monballAmount > 0 && isMonballQuestFullyPaid(save, grantKey, monballAmount);
   const grantKeyRecorded = questState.grantedKeys.includes(grantKey);
-  if (monballAlreadyPaid || (grantKeyRecorded && monballAmount > 0)) {
+  // Only treat monballs as paid for the *current* period (claimed list / grant key).
+  // Stale questMonballPaidAmounts from a prior day must not skip today's grant.
+  const monballAlreadyPaid =
+    monballAmount > 0
+    && isMonballQuestFullyPaid(save, grantKey, monballAmount)
+    && (claimedList.includes(ms) || grantKeyRecorded);
+
+  // Repair: wallet already credited this period, but chest UI flag missing.
+  if (monballAlreadyPaid) {
     return finalizeQuestChestClaim(
       kv,
       session,
@@ -402,6 +413,26 @@ export async function claimQuestChest(kv, session, { track, milestone, expectedR
       startingMonballs,
       { skipMonballs: true }
     );
+  }
+
+  // Repair: grant key recorded without a paid receipt — credit monballs now.
+  if (grantKeyRecorded && monballAmount > 0) {
+    const monballResult = await persistMonballQuestChestClaim(
+      kv,
+      session,
+      save,
+      questState,
+      trackKey,
+      ms,
+      chest,
+      grantKey,
+      monballAmount,
+      expectedRev,
+      startingMonballs,
+      "quest_chest_claim"
+    );
+    if (!monballResult.ok) return monballResult;
+    return { ok: true, grantKey, grant: chest.grant, save: monballResult.save, alreadyClaimed: false };
   }
   if (grantKeyRecorded && monballAmount === 0) {
     return { ok: true, alreadyClaimed: true, save };

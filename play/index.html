@@ -17734,7 +17734,7 @@ async function executeShopPurchase(item, qty) {
             applyLoadedSave(result.save);
             writeLocalSave(result.save);
         }
-        bumpQuestProgress("shop_buy", qty);
+        // Logged-in shop purchases bump shop_buy server-side; do not double-count.
         updateUI();
         if (typeof renderShop === "function") renderShop();
         return true;
@@ -17918,7 +17918,7 @@ async function executeMonballPackagePurchase(pkg) {
     if (result.ok && result.save) {
         applyLoadedSave(result.save);
         writeLocalSave(result.save);
-        bumpQuestProgress("shop_buy", 1);
+        // Monball packages bump shop_buy server-side; do not double-count.
         updateUI();
         if (typeof renderShop === "function") renderShop();
         return result;
@@ -17944,7 +17944,7 @@ async function executeGoldPackagePurchase(pkg) {
     if (result.ok && result.save) {
         applyLoadedSave(result.save);
         writeLocalSave(result.save);
-        bumpQuestProgress("shop_buy", 1);
+        // Gold packages bump shop_buy server-side; do not double-count.
         updateUI();
         if (typeof renderShop === "function") renderShop();
         return result;
