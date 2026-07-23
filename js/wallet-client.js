@@ -350,5 +350,6 @@
     requestUnbindAndSign,
     payExactMonexForPack,
     monexPriceToWei,
+    readTokenBalance,
   };
 })();

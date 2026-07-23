@@ -260,12 +260,26 @@ export async function confirmWalletUnbind(kv, session, { signature } = {}) {
   return { ok: true, unbound: true, wallet };
 }
 
-export async function getWalletStatus(kv, session) {
+export async function getWalletStatus(kv, session, env = null) {
   const bound = await getBoundWallet(kv, session?.xUserId);
-  return {
+  const out = {
     ok: true,
     bound: !!bound,
     wallet: bound?.wallet || null,
     boundAt: bound?.boundAt || null,
+    monexBalance: null,
   };
+  if (bound?.wallet && env) {
+    try {
+      const { readMonexTokenBalance } = await import("./monex-tx-verify.js");
+      const bal = await readMonexTokenBalance(env, bound.wallet);
+      if (bal.ok) {
+        out.monexBalance = bal.balance;
+        out.monexBalanceWei = bal.balanceWei;
+      }
+    } catch {
+      // Balance is display-only; bind status still returns.
+    }
+  }
+  return out;
 }

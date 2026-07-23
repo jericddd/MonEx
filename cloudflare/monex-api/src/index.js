@@ -1256,7 +1256,7 @@ async function handleRequest(request, env) {
       const auth = await requireSession(request, env.MONEX_KV);
       if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
       await enforceRateLimit(request, env, "wallet-status", { limit: 60, windowSec: 60, userId: auth.session.xUserId });
-      const status = await getWalletStatus(env.MONEX_KV, auth.session);
+      const status = await getWalletStatus(env.MONEX_KV, auth.session, env);
       return json({ ...status, payment: publicPaymentConfigView(env) }, 200, request, env);
     }
 
