@@ -134,11 +134,21 @@
     return { ok: res.ok && data.ok, status: res.status, ...data };
   }
 
+  async function fetchPaymentConfig() {
+    const res = await fetch(`${apiBase()}/api/shop/payment-config`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok && data.ok, payment: data.payment || null, ...data };
+  }
+
   window.MonExShop = {
     purchaseShopItem,
     listMonballPackages,
     purchaseMonballPackage,
     listGoldPackages,
     purchaseGoldPackage,
+    fetchPaymentConfig,
   };
 })();

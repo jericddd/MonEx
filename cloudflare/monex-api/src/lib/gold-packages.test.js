@@ -78,6 +78,7 @@ test("purchaseGoldPackage requires MONEX payment when grants disabled", async ()
   assert.equal(result.error, "monex_payment_required");
   assert.equal(result.package.gold, 4000);
   assert.equal(result.currency, "MONEX");
+  assert.ok(result.payment?.vaultAddress);
 });
 
 test("purchaseGoldPackage grants when ENABLE_GOLD_PACKAGE_PURCHASE=1", async () => {

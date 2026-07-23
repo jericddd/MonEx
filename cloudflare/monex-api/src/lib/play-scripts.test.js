@@ -36,6 +36,7 @@ const PLAY_SCRIPTS = [
   "js/claim-guard.js",
   "js/quest-client.js",
   "js/shop-client.js",
+  "js/wallet-client.js",
   "js/mon-upgrade-client.js",
   "js/inventory-client.js",
   "js/resource-chest-client.js",

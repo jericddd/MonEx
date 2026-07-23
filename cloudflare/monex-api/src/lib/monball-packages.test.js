@@ -78,6 +78,34 @@ test("purchaseMonballPackage requires MONEX payment when grants disabled", async
   assert.equal(result.error, "monex_payment_required");
   assert.equal(result.package.amount, 10);
   assert.equal(result.currency, "MONEX");
+  assert.ok(result.payment?.vaultAddress);
+});
+
+test("purchaseMonballPackage requires bound wallet when paymentProof present", async () => {
+  const kv = makeKv({
+    "monex:save:u1": JSON.stringify({
+      revision: 1,
+      money: 0,
+      monballs: 10,
+      party: [],
+      box: [],
+      gearInventory: [],
+      updatedAt: new Date().toISOString(),
+    }),
+  });
+  const result = await purchaseMonballPackage(
+    kv,
+    { xUserId: "u1", username: "trainer" },
+    {
+      packageId: "mb_10",
+      expectedRevision: 1,
+      paymentProof: { txHash: "0x" + "ab".repeat(32) },
+    },
+    10,
+    {}
+  );
+  assert.equal(result.ok, false);
+  assert.equal(result.error, "wallet_not_bound");
 });
 
 test("purchaseMonballPackage grants when ENABLE_MONBALL_PACKAGE_PURCHASE=1", async () => {
