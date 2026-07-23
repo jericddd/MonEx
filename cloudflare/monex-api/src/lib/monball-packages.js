@@ -21,6 +21,12 @@ import {
   appendUserPurchase,
 } from "./monex-purchases.js";
 import { getMonexPaymentConfig } from "./monex-payment-config.js";
+import {
+  resolveCatchUserKv,
+  saveCatchUserRecord,
+} from "./catch-user-store.js";
+import { appendMonballAudit } from "./monball-audit.js";
+import { withUserSyncLock, userSyncLockKey } from "../kv-store.js";
 
 const MAX_CLAIM_RETRIES = 3;
 
@@ -159,6 +165,29 @@ function monballPackagePurchaseEnabled(env) {
   return String(env?.ENABLE_MONBALL_PACKAGE_PURCHASE || "") === "1";
 }
 
+/** Roll back catch-pool credit if cloud-save persist fails after payment claim. */
+async function debitCatchMonballs(kv, session, delta, startingMonballs = 10, auditSource = "monball_package_rollback") {
+  const amount = clampMonballs(delta);
+  if (!amount || !session?.xUserId) return null;
+  return withUserSyncLock(userSyncLockKey(session.xUserId, session.username), async () => {
+    const user = await resolveCatchUserKv(kv, session.xUserId, session.username, startingMonballs);
+    if (!user) return null;
+    const before = clampMonballs(user.monballs ?? 0);
+    user.monballs = clampMonballs(before - amount);
+    user.updatedAt = new Date().toISOString();
+    await saveCatchUserRecord(kv, session.xUserId, user);
+    await appendMonballAudit(kv, {
+      xUserId: session.xUserId,
+      username: session.username,
+      source: auditSource,
+      delta: -amount,
+      balanceAfter: user.monballs,
+      meta: { pool: "catch" },
+    });
+    return user.monballs;
+  });
+}
+
 async function persistPackageSave(kv, session, save, expectedRevision, startingMonballs, attempt = 0) {
   const now = Date.now();
   let payload = buildSavePayload(
@@ -242,6 +271,7 @@ export async function purchaseMonballPackage(
     };
   }
 
+  let catchCredited = false;
   try {
     const { save } = await loadCloudSave(kv, session.xUserId);
 
@@ -254,6 +284,7 @@ export async function purchaseMonballPackage(
       startingMonballs,
       "monball_package_purchase"
     );
+    catchCredited = true;
     const grantedBalance = clampMonballs(
       catchBalance != null ? catchBalance : (save.monballs || 0) + pkg.amount
     );
@@ -266,6 +297,13 @@ export async function purchaseMonballPackage(
 
     const result = await persistPackageSave(kv, session, nextSave, expectedRevision, startingMonballs);
     if (!result.ok) {
+      if (catchCredited) {
+        try {
+          await debitCatchMonballs(kv, session, pkg.amount, startingMonballs);
+        } catch (_) {
+          /* best-effort rollback */
+        }
+      }
       if (paymentMeta?.txHash) await releasePurchaseTxClaim(kv, paymentMeta.txHash);
       return result;
     }
@@ -298,6 +336,13 @@ export async function purchaseMonballPackage(
       save: result.save,
     };
   } catch (err) {
+    if (catchCredited) {
+      try {
+        await debitCatchMonballs(kv, session, pkg.amount, startingMonballs);
+      } catch (_) {
+        /* best-effort rollback */
+      }
+    }
     if (paymentMeta?.txHash) await releasePurchaseTxClaim(kv, paymentMeta.txHash);
     throw err;
   }
