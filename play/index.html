@@ -3000,6 +3000,28 @@ button,
     flex-shrink: 0;
 }
 .currency-pill .cur-qty { color: #6B21A8; font-weight: 700; font-size: 14px; }
+.currency-pill .cur-ico-text {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 2px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #047857;
+    flex-shrink: 0;
+    line-height: 1;
+}
+body.afk-layout .currency-pill .cur-ico-text { color: #6ee7b7; }
+.currency-pill.currency-pill--monex {
+    cursor: pointer;
+}
+.currency-pill.currency-pill--monex.is-connect .cur-qty {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
 .currency-pill .currency-tip {
     display: none;
     position: absolute;
@@ -4269,6 +4291,7 @@ body.afk-layout .header-currencies .currency-pill:nth-child(1) { background: rgb
 body.afk-layout .header-currencies .currency-pill:nth-child(2) { background: rgba(245, 158, 11, 0.2); }
 body.afk-layout .header-currencies .currency-pill:nth-child(3) { background: rgba(59, 130, 246, 0.18); }
 body.afk-layout .header-currencies .currency-pill:nth-child(4) { background: rgba(168, 85, 247, 0.22); }
+body.afk-layout .header-currencies .currency-pill:nth-child(5) { background: rgba(16, 185, 129, 0.2); }
 body.afk-layout .currency-pill .cur-qty {
     color: #e9d5ff;
     font-weight: 800;
@@ -8141,6 +8164,11 @@ body.cloud-load-blocked .game-shell {
                     <span class="cur-qty" id="shard-count">0</span>
                     <span class="currency-tip">Mon Shards</span>
                 </div>
+                <div class="currency-pill currency-pill--monex is-connect" id="header-monex-pill" tabindex="0" role="button" aria-label="$MONEX wallet">
+                    <span class="cur-ico-text" aria-hidden="true">$MONEX</span>
+                    <span class="cur-qty" id="monex-count">Connect</span>
+                    <span class="currency-tip">$MONEX · Connect wallet</span>
+                </div>
             </div>
         </div>
     </header>
@@ -10032,6 +10060,81 @@ function applyQuestGrantToResources(grant) {
     if (grant.trainerXp) addTrainerXp(Number(grant.trainerXp));
 }
 
+let _headerMonexBalanceCache = null;
+let _headerMonexBalanceAt = 0;
+let _headerMonexRefreshInFlight = null;
+const HEADER_MONEX_BALANCE_TTL_MS = 20_000;
+
+function formatHeaderMonexBalance(raw) {
+    const n = Math.floor(Number(raw));
+    if (!Number.isFinite(n) || n < 0) return "0";
+    return n.toLocaleString();
+}
+
+function setHeaderMonexDisplay({ bound, balance, wallet } = {}) {
+    const qtyEl = document.getElementById("monex-count");
+    const pill = document.getElementById("header-monex-pill");
+    const tip = pill?.querySelector(".currency-tip");
+    if (!qtyEl || !pill) return;
+    if (!bound) {
+        qtyEl.textContent = "Connect";
+        pill.classList.add("is-connect");
+        if (tip) tip.textContent = "$MONEX · Connect wallet";
+        pill.setAttribute("aria-label", "$MONEX — connect wallet");
+        return;
+    }
+    const shown = balance == null ? "…" : formatHeaderMonexBalance(balance);
+    qtyEl.textContent = shown;
+    pill.classList.remove("is-connect");
+    if (tip) {
+        tip.textContent = wallet
+            ? `$MONEX · ${shortWallet(wallet)}`
+            : "$MONEX balance";
+    }
+    pill.setAttribute("aria-label", `$MONEX balance ${shown}`);
+}
+
+async function refreshHeaderMonexBalance({ force = false } = {}) {
+    const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
+    if (!loggedIn || typeof MonExWallet === "undefined") {
+        _headerMonexBalanceCache = null;
+        setHeaderMonexDisplay({ bound: false });
+        return;
+    }
+    const now = Date.now();
+    if (
+        !force
+        && _headerMonexBalanceCache
+        && now - _headerMonexBalanceAt < HEADER_MONEX_BALANCE_TTL_MS
+    ) {
+        setHeaderMonexDisplay(_headerMonexBalanceCache);
+        return;
+    }
+    if (_headerMonexRefreshInFlight) return _headerMonexRefreshInFlight;
+    _headerMonexRefreshInFlight = (async () => {
+        try {
+            const status = await MonExWallet.fetchWalletStatus();
+            if (!status.ok) {
+                setHeaderMonexDisplay({ bound: false });
+                return;
+            }
+            const next = {
+                bound: !!status.bound,
+                wallet: status.wallet || null,
+                balance: status.bound ? status.monexBalance : null,
+            };
+            _headerMonexBalanceCache = next;
+            _headerMonexBalanceAt = Date.now();
+            setHeaderMonexDisplay(next);
+        } catch (_) {
+            if (!_headerMonexBalanceCache) setHeaderMonexDisplay({ bound: false });
+        } finally {
+            _headerMonexRefreshInFlight = null;
+        }
+    })();
+    return _headerMonexRefreshInFlight;
+}
+
 function updateHeaderCurrencies() {
     const monballEl = document.getElementById("monball-count");
     const goldEl = document.getElementById("gold-count");
@@ -10041,6 +10144,7 @@ function updateHeaderCurrencies() {
     if (goldEl) goldEl.innerText = money;
     if (essenceEl) essenceEl.innerText = essence;
     if (shardEl) shardEl.innerText = monShards;
+    void refreshHeaderMonexBalance();
     updateMailboxBadge();
     updateProfileCatchBadge();
     const tInfo = getTrainerLevelInfo(trainerXp);
@@ -18020,6 +18124,7 @@ async function executeVerifiedMonexPackPurchase(pkg, kind) {
         updateUI();
         if (typeof renderShop === "function") renderShop();
         refreshProfileTransactions({ silent: true });
+        void refreshHeaderMonexBalance({ force: true });
         return result;
     }
     if (!result.message && pay.txHash) {
@@ -18710,6 +18815,7 @@ async function bindProfileWallet() {
             "WALLET BOUND"
         );
         refreshProfileWalletStatus();
+        void refreshHeaderMonexBalance({ force: true });
     } catch (err) {
         if (err?.code === 4001) showHubNotice("Signature rejected in wallet.", "Cancelled");
         else showHubNotice(err?.message || "Could not bind wallet.", "Wallet error");
@@ -18729,6 +18835,9 @@ async function unbindProfileWallet() {
         }
         showHubNotice("Wallet unbound. You can bind a different wallet now.", "UNBOUND");
         refreshProfileWalletStatus();
+        _headerMonexBalanceCache = null;
+        setHeaderMonexDisplay({ bound: false });
+        void refreshHeaderMonexBalance({ force: true });
     } catch (err) {
         if (err?.code === 4001) showHubNotice("Unbind signature rejected in wallet.", "Cancelled");
         else showHubNotice(err?.message || "Could not unbind wallet.", "Unbind failed");
@@ -19097,6 +19206,26 @@ function bindHeaderCurrencyTips() {
         pill.addEventListener("focus", () => positionHeaderCurrencyTip(pill));
         pill.addEventListener("blur", () => clearHeaderCurrencyTip(pill));
     });
+    const monexPill = document.getElementById("header-monex-pill");
+    if (monexPill && !monexPill._monexClickBound) {
+        monexPill._monexClickBound = true;
+        monexPill.addEventListener("click", () => {
+            if (monexPill.classList.contains("is-connect")) {
+                void bindProfileWallet();
+                return;
+            }
+            // Bound: open profile wallet panel and refresh balance.
+            if (typeof openGameModal === "function") openGameModal("profile");
+            if (typeof setProfileTab === "function") setProfileTab("account");
+            void refreshHeaderMonexBalance({ force: true });
+        });
+        monexPill.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                monexPill.click();
+            }
+        });
+    }
 }
 
 function closePartySwitchPicker() {

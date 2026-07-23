@@ -36,6 +36,46 @@ function buildClient(rpcUrl, chainId) {
   });
 }
 
+const ERC20_BALANCE_OF_ABI = [
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+];
+
+/**
+ * Read whole-token $MONEX balance for a wallet (display helper).
+ * @returns {{ ok: true, balanceWei: string, balance: string } | { ok: false, error: string }}
+ */
+export async function readMonexTokenBalance(env, walletAddress) {
+  const cfg = getMonexPaymentConfig(env);
+  const wallet = normalizeAddress(walletAddress);
+  const token = normalizeAddress(cfg.tokenAddress);
+  if (!wallet || !token) return { ok: false, error: "invalid_wallet" };
+
+  const client = buildClient(cfg.rpcUrl, cfg.chainId);
+  try {
+    const balanceWei = await client.readContract({
+      address: getAddress(token),
+      abi: ERC20_BALANCE_OF_ABI,
+      functionName: "balanceOf",
+      args: [getAddress(wallet)],
+    });
+    const wei = BigInt(balanceWei);
+    const whole = wei / 10n ** BigInt(cfg.decimals);
+    return {
+      ok: true,
+      balanceWei: wei.toString(),
+      balance: whole.toString(),
+    };
+  } catch {
+    return { ok: false, error: "balance_read_failed" };
+  }
+}
+
 /**
  * Verify a confirmed ERC-20 Transfer matches exact pack payment rules.
  * @returns {{ ok: true, from, to, valueWei, blockNumber, txHash } | { ok: false, error, message? }}
