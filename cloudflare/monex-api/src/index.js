@@ -63,6 +63,14 @@ import {
 } from "./lib/armory-mutate.js";
 import { listMonballPackages, purchaseMonballPackage, publicPackageView } from "./lib/monball-packages.js";
 import { listGoldPackages, purchaseGoldPackage, publicGoldPackageView } from "./lib/gold-packages.js";
+import { publicPaymentConfigView } from "./lib/monex-payment-config.js";
+import {
+  issueWalletNonce,
+  confirmWalletBind,
+  confirmWalletUnbind,
+  getWalletStatus,
+} from "./lib/wallet-bind.js";
+import { listUserPurchases } from "./lib/monex-purchases.js";
 import { collectResourceChest } from "./lib/resource-chest.js";
 import { claimBattleReward } from "./lib/battle-reward.js";
 import { releaseMonFromBox } from "./lib/release-mon.js";
@@ -108,6 +116,42 @@ import { getDailyReplyLimitForUser } from "./lib/reply-limits.js";
 import { claimDailyLoginReward, claimMailboxItem, getDailyLoginStatus } from "./lib/mailbox.js";
 
 const API_CODE_VERSION = "fetch-oauth-v1";
+
+function packPurchaseHttpStatus(result) {
+  if (result?.ok) return 200;
+  const err = String(result?.error || "");
+  if (
+    err === "monex_payment_required"
+    || err === "monex_payment_unverified"
+    || err === "wallet_not_bound"
+    || err === "tx_not_found"
+    || err === "tx_unconfirmed"
+  ) {
+    return 402;
+  }
+  if (
+    err === "tx_already_used"
+    || err === "purchase_in_progress"
+    || err === "purchase_conflict"
+    || err === "wallet_taken"
+  ) {
+    return 409;
+  }
+  if (
+    err === "invalid_package"
+    || err === "invalid_tx_hash"
+    || err === "wrong_token"
+    || err === "wrong_amount"
+    || err === "wrong_vault"
+    || err === "wrong_sender"
+    || err === "wrong_chain"
+    || err === "tx_failed"
+    || err === "payment_mismatch"
+  ) {
+    return 400;
+  }
+  return 400;
+}
 
 async function requireGameplay(request, env, body = null) {
   const auth = await requireSession(request, env.MONEX_KV);
@@ -1203,10 +1247,90 @@ async function handleRequest(request, env) {
       }
     }
 
+    if (path === "/api/shop/payment-config" && request.method === "GET") {
+      await enforceRateLimit(request, env, "payment-config", { limit: 60, windowSec: 60 });
+      return json({ ok: true, payment: publicPaymentConfigView(env) }, 200, request, env);
+    }
+
+    if (path === "/api/wallet/status" && request.method === "GET") {
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      await enforceRateLimit(request, env, "wallet-status", { limit: 60, windowSec: 60, userId: auth.session.xUserId });
+      const status = await getWalletStatus(env.MONEX_KV, auth.session);
+      return json({ ...status, payment: publicPaymentConfigView(env) }, 200, request, env);
+    }
+
+    if (path === "/api/wallet/nonce" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      await enforceRateLimit(request, env, "wallet-nonce", { limit: 20, windowSec: 60, userId: auth.session.xUserId });
+      const result = await issueWalletNonce(env.MONEX_KV, auth.session, {
+        walletAddress: body?.walletAddress,
+        purpose: body?.purpose,
+      });
+      const status = result.ok
+        ? 200
+        : result.error === "wallet_taken" || result.error === "wallet_already_bound"
+          ? 409
+          : 400;
+      return json(result, status, request, env);
+    }
+
+    if (path === "/api/wallet/bind" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      await enforceRateLimit(request, env, "wallet-bind", { limit: 20, windowSec: 60, userId: auth.session.xUserId });
+      const result = await confirmWalletBind(env.MONEX_KV, auth.session, {
+        walletAddress: body?.walletAddress,
+        signature: body?.signature,
+      });
+      const status = result.ok
+        ? 200
+        : result.error === "wallet_taken" || result.error === "wallet_already_bound"
+          ? 409
+          : 400;
+      return json(result, status, request, env);
+    }
+
+    if (path === "/api/wallet/unbind" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      await enforceRateLimit(request, env, "wallet-unbind", { limit: 20, windowSec: 60, userId: auth.session.xUserId });
+      // Two-step: request nonce with purpose=unbind when signature missing.
+      if (!body?.signature) {
+        const nonce = await issueWalletNonce(env.MONEX_KV, auth.session, { purpose: "unbind" });
+        const status = nonce.ok ? 200 : nonce.error === "wallet_not_bound" ? 400 : 400;
+        return json(nonce, status, request, env);
+      }
+      const result = await confirmWalletUnbind(env.MONEX_KV, auth.session, {
+        signature: body?.signature,
+      });
+      const status = result.ok ? 200 : 400;
+      return json(result, status, request, env);
+    }
+
+    if (path === "/api/wallet/purchases" && request.method === "GET") {
+      const auth = await requireSession(request, env.MONEX_KV);
+      if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status, request, env);
+      await enforceRateLimit(request, env, "wallet-purchases", { limit: 60, windowSec: 60, userId: auth.session.xUserId });
+      const url = new URL(request.url);
+      const limit = parseBoundedInt(url.searchParams.get("limit"), { fallback: 50, min: 1, max: 100 });
+      const purchases = await listUserPurchases(env.MONEX_KV, auth.session.xUserId, { limit });
+      return json({ ok: true, purchases }, 200, request, env);
+    }
+
     if (path === "/api/shop/monball-packages" && request.method === "GET") {
       await enforceRateLimit(request, env, "monball-packages", { limit: 60, windowSec: 60 });
       const packages = listMonballPackages(env).map(publicPackageView);
-      return json({ ok: true, currency: "MONEX", packages }, 200, request, env);
+      return json({
+        ok: true,
+        currency: "MONEX",
+        packages,
+        payment: publicPaymentConfigView(env),
+      }, 200, request, env);
     }
 
     if (path === "/api/shop/monball-packages/purchase" && request.method === "POST") {
@@ -1230,13 +1354,7 @@ async function handleRequest(request, env) {
           starting,
           env
         );
-        const status = result.ok
-          ? 200
-          : result.error === "monex_payment_required" || result.error === "monex_payment_unverified"
-            ? 402
-            : result.error === "invalid_package"
-              ? 400
-              : 409;
+        const status = packPurchaseHttpStatus(result);
         return json(result, status, request, env);
       } catch (err) {
         return json({ ok: false, error: err.message || "purchase failed" }, 500, request, env);
@@ -1246,7 +1364,12 @@ async function handleRequest(request, env) {
     if (path === "/api/shop/gold-packages" && request.method === "GET") {
       await enforceRateLimit(request, env, "gold-packages", { limit: 60, windowSec: 60 });
       const packages = listGoldPackages(env).map(publicGoldPackageView);
-      return json({ ok: true, currency: "MONEX", packages }, 200, request, env);
+      return json({
+        ok: true,
+        currency: "MONEX",
+        packages,
+        payment: publicPaymentConfigView(env),
+      }, 200, request, env);
     }
 
     if (path === "/api/shop/gold-packages/purchase" && request.method === "POST") {
@@ -1270,13 +1393,7 @@ async function handleRequest(request, env) {
           starting,
           env
         );
-        const status = result.ok
-          ? 200
-          : result.error === "monex_payment_required" || result.error === "monex_payment_unverified"
-            ? 402
-            : result.error === "invalid_package"
-              ? 400
-              : 409;
+        const status = packPurchaseHttpStatus(result);
         return json(result, status, request, env);
       } catch (err) {
         return json({ ok: false, error: err.message || "purchase failed" }, 500, request, env);

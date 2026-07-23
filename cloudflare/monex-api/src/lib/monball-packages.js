@@ -13,6 +13,14 @@ import { loadCloudSave, writeCloudSave, buildSavePayload } from "./save.js";
 import { creditCatchMonballs, clampMonballs } from "./grant-monballs.js";
 import { reconcileMonballsForCloudSave } from "./save-reconcile.js";
 import { QUEST_TASK_GOALS } from "./save-economy-guard.js";
+import {
+  prepareVerifiedPackPayment,
+  buildPurchaseRecord,
+  finalizePurchaseTx,
+  releasePurchaseTxClaim,
+  appendUserPurchase,
+} from "./monex-purchases.js";
+import { getMonexPaymentConfig } from "./monex-payment-config.js";
 
 const MAX_CLAIM_RETRIES = 3;
 
@@ -176,10 +184,8 @@ async function persistPackageSave(kv, session, save, expectedRevision, startingM
 
 /**
  * Purchase a MonBall package by id.
- * Until on-chain $MONEX settlement is wired, returns monex_payment_required
- * unless ENABLE_MONBALL_PACKAGE_PURCHASE=1 (staging/dev grant path).
- *
- * Future: pass paymentProof.txHash for verified on-chain debit.
+ * Production: requires verified on-chain $MONEX payment (paymentProof.txHash).
+ * Staging: ENABLE_MONBALL_PACKAGE_PURCHASE=1 grants without payment.
  */
 export async function purchaseMonballPackage(
   kv,
@@ -192,61 +198,107 @@ export async function purchaseMonballPackage(
   if (!pkg) return { ok: false, error: "invalid_package" };
 
   const view = publicPackageView(pkg);
-
-  // On-chain verification placeholder — not implemented yet.
+  const stagingGrant = monballPackagePurchaseEnabled(env);
   const hasPaymentProof = !!(paymentProof && typeof paymentProof === "object" && paymentProof.txHash);
 
-  if (!monballPackagePurchaseEnabled(env) && !hasPaymentProof) {
+  let paymentMeta = null;
+  if (!stagingGrant) {
+    const prepared = await prepareVerifiedPackPayment(kv, session, env, {
+      packageId: pkg.id,
+      packageKind: "monball",
+      monexPrice: pkg.monexPrice,
+      paymentProof,
+    });
+    if (!prepared.ok) {
+      return {
+        ...prepared,
+        package: view,
+        currency: "MONEX",
+        payment: getMonexPaymentConfig(env),
+      };
+    }
+    if (prepared.alreadyGranted) {
+      const { save } = await loadCloudSave(kv, session.xUserId);
+      return {
+        ok: true,
+        alreadyGranted: true,
+        package: view,
+        currency: "MONEX",
+        monexPrice: pkg.monexPrice,
+        grantedMonballs: pkg.amount,
+        txHash: prepared.txHash,
+        save,
+      };
+    }
+    paymentMeta = prepared;
+  } else if (!hasPaymentProof && !stagingGrant) {
     return {
       ok: false,
       error: "monex_payment_required",
       package: view,
       currency: "MONEX",
-      message: "$MONEX payment integration coming soon.",
+      message: "Send exact $MONEX to the vault, then submit the transaction hash.",
+      payment: getMonexPaymentConfig(env),
     };
   }
 
-  if (hasPaymentProof && !monballPackagePurchaseEnabled(env)) {
-    // Ready for future verify-tx path; reject until verifier exists.
+  try {
+    const { save } = await loadCloudSave(kv, session.xUserId);
+
+    // Credit catch pool first so reconcile won't clamp large package grants
+    // under MAX_SAVE_DELTA.monballs.
+    const catchBalance = await creditCatchMonballs(
+      kv,
+      session,
+      pkg.amount,
+      startingMonballs,
+      "monball_package_purchase"
+    );
+    const grantedBalance = clampMonballs(
+      catchBalance != null ? catchBalance : (save.monballs || 0) + pkg.amount
+    );
+
+    let nextSave = {
+      ...save,
+      monballs: grantedBalance,
+    };
+    nextSave.questState = bumpShopBuyQuestProgress(nextSave.questState, 1);
+
+    const result = await persistPackageSave(kv, session, nextSave, expectedRevision, startingMonballs);
+    if (!result.ok) {
+      if (paymentMeta?.txHash) await releasePurchaseTxClaim(kv, paymentMeta.txHash);
+      return result;
+    }
+
+    if (paymentMeta?.txHash) {
+      const record = buildPurchaseRecord({
+        session,
+        packageId: pkg.id,
+        packageKind: "monball",
+        monexPrice: pkg.monexPrice,
+        grant: { monballs: pkg.amount },
+        txHash: paymentMeta.txHash,
+        wallet: paymentMeta.wallet,
+        verified: paymentMeta.verified,
+      });
+      await finalizePurchaseTx(kv, paymentMeta.txHash, record);
+      await appendUserPurchase(kv, session.xUserId, {
+        ...record,
+        explorerTxUrl: paymentMeta.explorerTxUrl,
+      });
+    }
+
     return {
-      ok: false,
-      error: "monex_payment_unverified",
+      ok: true,
       package: view,
       currency: "MONEX",
-      message: "$MONEX payment verification is not available yet.",
+      monexPrice: pkg.monexPrice,
+      grantedMonballs: pkg.amount,
+      txHash: paymentMeta?.txHash || null,
+      save: result.save,
     };
+  } catch (err) {
+    if (paymentMeta?.txHash) await releasePurchaseTxClaim(kv, paymentMeta.txHash);
+    throw err;
   }
-
-  const { save } = await loadCloudSave(kv, session.xUserId);
-
-  // Credit catch pool first so reconcile won't clamp large package grants
-  // under MAX_SAVE_DELTA.monballs.
-  const catchBalance = await creditCatchMonballs(
-    kv,
-    session,
-    pkg.amount,
-    startingMonballs,
-    "monball_package_purchase"
-  );
-  const grantedBalance = clampMonballs(
-    catchBalance != null ? catchBalance : (save.monballs || 0) + pkg.amount
-  );
-
-  let nextSave = {
-    ...save,
-    monballs: grantedBalance,
-  };
-  nextSave.questState = bumpShopBuyQuestProgress(nextSave.questState, 1);
-
-  const result = await persistPackageSave(kv, session, nextSave, expectedRevision, startingMonballs);
-  if (!result.ok) return result;
-
-  return {
-    ok: true,
-    package: view,
-    currency: "MONEX",
-    monexPrice: pkg.monexPrice,
-    grantedMonballs: pkg.amount,
-    save: result.save,
-  };
 }

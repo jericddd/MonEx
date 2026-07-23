@@ -8454,6 +8454,7 @@ body.cloud-load-blocked .game-shell {
                         <div class="profile-tabs-row" role="tablist" aria-label="Profile sections">
                             <button type="button" class="profile-tab-btn active" id="profile-tab-account" onclick="setProfileTab('account')">ACCOUNT</button>
                             <button type="button" class="profile-tab-btn" id="profile-tab-log" onclick="setProfileTab('log')">LOGS</button>
+                            <button type="button" class="profile-tab-btn" id="profile-tab-tx" onclick="setProfileTab('tx')">TRANSACTIONS</button>
                         </div>
                         <div id="profile-pane-account" class="profile-pane active">
                             <div class="profile-pending" id="profile-pending-panel">
@@ -8469,6 +8470,14 @@ body.cloud-load-blocked .game-shell {
                                 <button type="button" onclick="saveXHandle()">SAVE</button>
                             </div>
                             <p style="font-size:11px; margin:0;">On X post: <b>@monexmonad catch 1 monanimal</b> (1 Monball = 1 catch, max 10 per tweet)</p>
+                            <div class="profile-wallet-panel" id="profile-wallet-panel" style="margin-top:14px;">
+                                <h3 style="margin:0 0 6px; font-size:13px; letter-spacing:0.04em;">HOT WALLET</h3>
+                                <p id="profile-wallet-status" style="font-size:12px; margin:0 0 8px;">Log in to bind a Monad wallet for $MONEX pack purchases.</p>
+                                <div class="profile-x-row" style="gap:8px; flex-wrap:wrap;">
+                                    <button type="button" id="profile-wallet-bind-btn" onclick="bindProfileWallet()">CONNECT &amp; BIND</button>
+                                    <button type="button" id="profile-wallet-unbind-btn" onclick="unbindProfileWallet()" style="display:none;">UNBIND</button>
+                                </div>
+                            </div>
                         </div>
                         <div id="profile-pane-log" class="profile-pane profile-pane--log">
                             <div class="profile-log-section">
@@ -8484,6 +8493,16 @@ body.cloud-load-blocked .game-shell {
                                 <div class="profile-log-scroll hub-scrollbar-panel">
                                     <div id="profile-release-feed" class="activity-feed">
                                         <p class="activity-empty">Released monanimals will appear here.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="profile-pane-tx" class="profile-pane profile-pane--log">
+                            <div class="profile-log-section" style="grid-column:1 / -1;">
+                                <h3 class="profile-log-title">$MONEX PURCHASES</h3>
+                                <div class="profile-log-scroll hub-scrollbar-panel">
+                                    <div id="profile-tx-feed" class="activity-feed">
+                                        <p class="activity-empty">No pack purchases yet.</p>
                                     </div>
                                 </div>
                             </div>
@@ -8510,7 +8529,8 @@ body.cloud-load-blocked .game-shell {
 <script src="js/game-session-client.js?v=20260710a"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/quest-client.js?v=20260715c"></script>
-<script src="js/shop-client.js?v=20260715b"></script>
+<script src="js/shop-client.js?v=20260723a"></script>
+<script src="js/wallet-client.js?v=20260723a"></script>
 <script src="js/mon-upgrade-client.js?v=20260718a"></script>
 <script src="js/inventory-client.js?v=20260720a"></script>
 <script src="js/resource-chest-client.js?v=20260713d"></script>
@@ -17573,45 +17593,28 @@ function renderBox() {
 }
 
 // ==================== ACTIONS ====================
-const MONEX_TOKEN_COMING_SOON_HTML =
-    "$MONEX token integration coming soon.<br>Monballs and Gold are sold in fixed packages priced in $MONEX.";
-
 let _monballPackagesCache = null;
 let _monballPackagesCacheAt = 0;
 let _goldPackagesCache = null;
 let _goldPackagesCacheAt = 0;
+let _paymentConfigCache = null;
 const MONBALL_PACKAGES_CACHE_MS = 60_000;
 
 function isMonballPurchaseItem(item) {
     return !!(item?.grant?.monballs);
 }
 
-function showMonballComingSoonNotice(pkg) {
-    if (pkg && Number.isFinite(Number(pkg.monexPrice))) {
-        const amount = Math.floor(Number(pkg.amount) || 0);
-        const price = Number(pkg.monexPrice);
-        showHubNotice(
-            `${amount.toLocaleString()} MonBalls — <strong>${price.toLocaleString()} $MONEX</strong><br>$MONEX payment integration coming soon.`,
-            "COMING SOON",
-            { html: true }
-        );
-        return;
-    }
-    showHubNotice(MONEX_TOKEN_COMING_SOON_HTML, "COMING SOON", { html: true });
-}
-
-function showGoldComingSoonNotice(pkg) {
-    if (pkg && Number.isFinite(Number(pkg.monexPrice))) {
-        const gold = Math.floor(Number(pkg.gold) || 0);
-        const price = Number(pkg.monexPrice);
-        showHubNotice(
-            `${gold.toLocaleString()} Gold — <strong>${price.toLocaleString()} $MONEX</strong><br>$MONEX payment integration coming soon.`,
-            "COMING SOON",
-            { html: true }
-        );
-        return;
-    }
-    showHubNotice(MONEX_TOKEN_COMING_SOON_HTML, "COMING SOON", { html: true });
+function packPurchaseErrorNotice(result, kind) {
+    const label = kind === "gold" ? "Gold" : "MonBall";
+    const msg = result?.message || `Could not complete ${label} package purchase.`;
+    const title =
+        result?.error === "wallet_not_bound" ? "BIND WALLET"
+        : result?.error === "insufficient_monex" ? "NOT ENOUGH $MONEX"
+        : result?.error === "user_rejected" ? "CANCELLED"
+        : result?.error === "wrong_amount" || result?.error === "wrong_token" || result?.error === "wrong_vault"
+            ? "PAYMENT REJECTED"
+            : "Shop error";
+    showHubNotice(msg, title);
 }
 
 function formatGoldAmount(amount) {
@@ -17708,7 +17711,7 @@ function renderShopItemIconHtml(item) {
 
 async function executeShopPurchase(item, qty) {
     if (isMonballPurchaseItem(item)) {
-        showMonballComingSoonNotice();
+        openMonballPackagePopup();
         return false;
     }
     const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
@@ -17900,56 +17903,137 @@ function renderGoldPackageCards(packages, selectedId, currency) {
     }).join("");
 }
 
-async function executeMonballPackagePurchase(pkg) {
+async function ensurePaymentConfig() {
+    if (_paymentConfigCache) return _paymentConfigCache;
+    if (typeof MonExWallet !== "undefined" && MonExWallet.fetchPaymentConfig) {
+        const res = await MonExWallet.fetchPaymentConfig();
+        if (res.ok && res.payment) {
+            _paymentConfigCache = res.payment;
+            return _paymentConfigCache;
+        }
+    }
+    if (typeof MonExShop !== "undefined" && MonExShop.fetchPaymentConfig) {
+        const res = await MonExShop.fetchPaymentConfig();
+        if (res.ok && res.payment) {
+            _paymentConfigCache = res.payment;
+            return _paymentConfigCache;
+        }
+    }
+    return null;
+}
+
+/**
+ * Confirm exact $MONEX amount/token/vault before opening the wallet.
+ * Resolves true only when the player continues.
+ */
+function confirmExactMonexPayment({ title, grantLabel, monexPrice, payment, boundWallet }) {
+    return new Promise((resolve) => {
+        const price = Number(monexPrice).toLocaleString();
+        const vault = payment?.vaultAddress || "—";
+        const token = payment?.tokenAddress || "—";
+        const overlay = document.createElement("div");
+        overlay.className = "popup-overlay hub-popup-overlay";
+        overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); resolve(false); } };
+        overlay.innerHTML = `
+            <div class="hub-popup-frame hub-frame" onclick="event.stopPropagation()">
+                <button type="button" class="hub-popup-close-left" aria-label="Close">&times;</button>
+                <div class="hub-popup-inner">
+                    <h3 class="hub-popup-title">${title}</h3>
+                    <p class="hub-popup-sub">
+                        You will send <strong>exactly ${price} $MONEX</strong> for <strong>${grantLabel}</strong>.<br><br>
+                        From: <strong>${shortWallet(boundWallet)}</strong><br>
+                        To vault: <strong>${shortWallet(vault)}</strong><br>
+                        Token: <strong>$MONEX</strong> on Monad<br><br>
+                        Review this before your wallet opens. Wrong network / token / amount is blocked in the next step when possible.
+                    </p>
+                    <div class="hub-popup-actions">
+                        <button type="button" class="hub-popup-btn hub-popup-cancel-btn">CANCEL</button>
+                        <button type="button" class="hub-popup-btn hub-popup-btn-primary hub-popup-confirm-pay-btn">OPEN WALLET</button>
+                    </div>
+                </div>
+            </div>`;
+        // Keep token CA available for power users without crowding the first read.
+        void token;
+        overlay.querySelector(".hub-popup-close-left").onclick = () => { overlay.remove(); resolve(false); };
+        overlay.querySelector(".hub-popup-cancel-btn").onclick = () => { overlay.remove(); resolve(false); };
+        overlay.querySelector(".hub-popup-confirm-pay-btn").onclick = () => { overlay.remove(); resolve(true); };
+        document.body.appendChild(overlay);
+    });
+}
+
+async function executeVerifiedMonexPackPurchase(pkg, kind) {
+    const isGold = kind === "gold";
     const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
     if (!loggedIn) {
-        showHubNotice("Log in with X to buy MonBall packages.", "LOGIN REQUIRED");
+        showHubNotice(`Log in with X to buy ${isGold ? "Gold" : "MonBall"} packages.`, "LOGIN REQUIRED");
         return { ok: false, error: "login_required" };
     }
-    if (typeof MonExShop === "undefined" || !MonExShop.purchaseMonballPackage) {
+    if (typeof MonExShop === "undefined") {
         showHubNotice("Shop sync is unavailable. Refresh the page and try again.", "Shop offline");
         return { ok: false, error: "shop_offline" };
     }
+    if (typeof MonExWallet === "undefined") {
+        showHubNotice("Wallet client unavailable. Refresh and try again.", "Wallet offline");
+        return { ok: false, error: "wallet_offline" };
+    }
+
+    let status = await MonExWallet.fetchWalletStatus();
+    if (!status.ok) {
+        return { ok: false, error: "wallet_status_failed", message: "Could not load wallet status." };
+    }
+    if (!status.bound || !status.wallet) {
+        const bind = await MonExWallet.connectAndBind();
+        if (!bind.ok) return bind;
+        status = await MonExWallet.fetchWalletStatus();
+    }
+
+    const payment = status.payment || await ensurePaymentConfig();
+    if (!payment) {
+        return { ok: false, error: "payment_config_unavailable", message: "Payment config unavailable." };
+    }
+
+    const grantLabel = isGold
+        ? `${Math.floor(Number(pkg.gold) || 0).toLocaleString()} Gold`
+        : `${Math.floor(Number(pkg.amount) || 0).toLocaleString()} MonBalls`;
+    const confirmed = await confirmExactMonexPayment({
+        title: isGold ? "BUY GOLD PACK" : "BUY MONBALL PACK",
+        grantLabel,
+        monexPrice: pkg.monexPrice,
+        payment,
+        boundWallet: status.wallet,
+    });
+    if (!confirmed) return { ok: false, error: "user_cancelled" };
+
+    const pay = await MonExWallet.payExactMonexForPack(payment, pkg.monexPrice, status.wallet);
+    if (!pay.ok) return pay;
+
     if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
         await MonExAuth.awaitCloudSaveIdle();
     }
     await flushSaveToCloud();
-    const result = await MonExShop.purchaseMonballPackage(pkg.id);
+
+    const purchaseFn = isGold ? MonExShop.purchaseGoldPackage : MonExShop.purchaseMonballPackage;
+    const result = await purchaseFn(pkg.id, { txHash: pay.txHash });
     if (result.ok && result.save) {
         applyLoadedSave(result.save);
         writeLocalSave(result.save);
-        // Monball packages bump shop_buy server-side; do not double-count.
         updateUI();
         if (typeof renderShop === "function") renderShop();
+        refreshProfileTransactions({ silent: true });
         return result;
+    }
+    if (!result.message && pay.txHash) {
+        result.message = `Payment sent (${shortWallet(pay.txHash)}) but grant failed: ${result.error || "unknown"}. Contact support with this hash — do not pay again.`;
     }
     return result;
 }
 
+async function executeMonballPackagePurchase(pkg) {
+    return executeVerifiedMonexPackPurchase(pkg, "monball");
+}
+
 async function executeGoldPackagePurchase(pkg) {
-    const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
-    if (!loggedIn) {
-        showHubNotice("Log in with X to buy Gold packages.", "LOGIN REQUIRED");
-        return { ok: false, error: "login_required" };
-    }
-    if (typeof MonExShop === "undefined" || !MonExShop.purchaseGoldPackage) {
-        showHubNotice("Shop sync is unavailable. Refresh the page and try again.", "Shop offline");
-        return { ok: false, error: "shop_offline" };
-    }
-    if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
-        await MonExAuth.awaitCloudSaveIdle();
-    }
-    await flushSaveToCloud();
-    const result = await MonExShop.purchaseGoldPackage(pkg.id);
-    if (result.ok && result.save) {
-        applyLoadedSave(result.save);
-        writeLocalSave(result.save);
-        // Gold packages bump shop_buy server-side; do not double-count.
-        updateUI();
-        if (typeof renderShop === "function") renderShop();
-        return result;
-    }
-    return result;
+    return executeVerifiedMonexPackPurchase(pkg, "gold");
 }
 
 function bindMonballPackageCardInteractions(container, packages, { onSelect, onPurchaseSuccess } = {}) {
@@ -17981,14 +18065,14 @@ function bindMonballPackageCardInteractions(container, packages, { onSelect, onP
                 const result = await executeMonballPackagePurchase(pkg);
                 if (result.ok) {
                     onPurchaseSuccess?.(pkg, result);
+                    showHubNotice(
+                        `Granted ${Math.floor(Number(pkg.amount) || 0).toLocaleString()} MonBalls.`,
+                        "PURCHASED"
+                    );
                     return;
                 }
-                if (result.error === "monex_payment_required" || result.error === "monex_payment_unverified") {
-                    showMonballComingSoonNotice(result.package || pkg);
-                    return;
-                }
-                if (result.error === "login_required" || result.error === "shop_offline") return;
-                showHubNotice(result.message || "Could not complete MonBall package purchase.", "Shop error");
+                if (result.error === "login_required" || result.error === "shop_offline" || result.error === "user_cancelled") return;
+                packPurchaseErrorNotice(result, "monball");
             }, { button: btn, loadingText: "BUYING...", resetOnError: true });
         };
     });
@@ -18023,14 +18107,14 @@ function bindGoldPackageCardInteractions(container, packages, { onSelect, onPurc
                 const result = await executeGoldPackagePurchase(pkg);
                 if (result.ok) {
                     onPurchaseSuccess?.(pkg, result);
+                    showHubNotice(
+                        `Granted ${Math.floor(Number(pkg.gold) || 0).toLocaleString()} Gold.`,
+                        "PURCHASED"
+                    );
                     return;
                 }
-                if (result.error === "monex_payment_required" || result.error === "monex_payment_unverified") {
-                    showGoldComingSoonNotice(result.package || pkg);
-                    return;
-                }
-                if (result.error === "login_required" || result.error === "shop_offline") return;
-                showHubNotice(result.message || "Could not complete Gold package purchase.", "Shop error");
+                if (result.error === "login_required" || result.error === "shop_offline" || result.error === "user_cancelled") return;
+                packPurchaseErrorNotice(result, "gold");
             }, { button: btn, loadingText: "BUYING...", resetOnError: true });
         };
     });
@@ -18542,14 +18626,152 @@ function renderProfile() {
 }
 
 function setProfileTab(tab) {
-    const valid = ["account", "log"];
+    const valid = ["account", "log", "tx"];
     profileActiveTab = valid.includes(tab) ? tab : "account";
     valid.forEach((t) => {
         document.getElementById("profile-pane-" + t)?.classList.toggle("active", t === profileActiveTab);
         const tabBtn = document.getElementById("profile-tab-" + t);
         tabBtn?.classList.toggle("active", t === profileActiveTab);
     });
-    document.querySelector(".profile-hub-frame .profile-panel")?.classList.toggle("profile-panel--logs", profileActiveTab === "log");
+    document.querySelector(".profile-hub-frame .profile-panel")?.classList.toggle(
+        "profile-panel--logs",
+        profileActiveTab === "log" || profileActiveTab === "tx"
+    );
+    if (profileActiveTab === "account") refreshProfileWalletStatus();
+    if (profileActiveTab === "tx") refreshProfileTransactions({ force: true });
+}
+
+function shortWallet(addr) {
+    const a = String(addr || "");
+    if (a.length < 12) return a;
+    return a.slice(0, 6) + "…" + a.slice(-4);
+}
+
+async function refreshProfileWalletStatus() {
+    const statusEl = document.getElementById("profile-wallet-status");
+    const bindBtn = document.getElementById("profile-wallet-bind-btn");
+    const unbindBtn = document.getElementById("profile-wallet-unbind-btn");
+    if (!statusEl) return;
+    const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
+    if (!loggedIn) {
+        statusEl.textContent = "Log in with X to bind a Monad hot wallet for $MONEX purchases.";
+        if (bindBtn) bindBtn.style.display = "none";
+        if (unbindBtn) unbindBtn.style.display = "none";
+        return;
+    }
+    if (typeof MonExWallet === "undefined") {
+        statusEl.textContent = "Wallet client unavailable. Refresh the page.";
+        return;
+    }
+    if (bindBtn) bindBtn.style.display = "";
+    try {
+        const status = await MonExWallet.fetchWalletStatus();
+        if (status.bound && status.wallet) {
+            statusEl.textContent = `Bound: ${shortWallet(status.wallet)} (Monad) — used for $MONEX pack buys.`;
+            if (bindBtn) bindBtn.textContent = "RECONNECT";
+            if (unbindBtn) unbindBtn.style.display = "";
+        } else {
+            statusEl.textContent = "No wallet bound. Connect a hot wallet, then sign to link it to this account.";
+            if (bindBtn) bindBtn.textContent = "CONNECT & BIND";
+            if (unbindBtn) unbindBtn.style.display = "none";
+        }
+    } catch (_) {
+        statusEl.textContent = "Could not load wallet status.";
+    }
+}
+
+async function bindProfileWallet() {
+    if (typeof MonExAuth === "undefined" || !MonExAuth.isLoggedIn()) {
+        showHubNotice("Log in with X first.", "LOGIN REQUIRED");
+        return;
+    }
+    if (typeof MonExWallet === "undefined") {
+        showHubNotice("Wallet client unavailable. Refresh and try again.", "Wallet offline");
+        return;
+    }
+    try {
+        const result = await MonExWallet.connectAndBind();
+        if (!result.ok) {
+            if (result.error === "wallet_taken") {
+                showHubNotice(result.message || "This wallet is already linked to another account.", "Wallet taken");
+            } else if (result.error === "wallet_already_bound") {
+                showHubNotice(result.message || "Unbind your current wallet before linking a new one.", "Already bound");
+            } else if (result.error === "no_provider") {
+                showHubNotice(result.message || "Install a Monad hot wallet (MetaMask, Rabby, etc.).", "No wallet");
+            } else {
+                showHubNotice(result.message || "Could not bind wallet.", "Wallet error");
+            }
+            return;
+        }
+        showHubNotice(
+            result.alreadyBound
+                ? `Wallet ${shortWallet(result.wallet)} is already bound.`
+                : `Bound ${shortWallet(result.wallet)}. You can buy Monball and Gold packs with $MONEX.`,
+            "WALLET BOUND"
+        );
+        refreshProfileWalletStatus();
+    } catch (err) {
+        if (err?.code === 4001) showHubNotice("Signature rejected in wallet.", "Cancelled");
+        else showHubNotice(err?.message || "Could not bind wallet.", "Wallet error");
+    }
+}
+
+async function unbindProfileWallet() {
+    if (typeof MonExWallet === "undefined") {
+        showHubNotice("Wallet client unavailable. Refresh and try again.", "Wallet offline");
+        return;
+    }
+    try {
+        const result = await MonExWallet.requestUnbindAndSign();
+        if (!result.ok) {
+            showHubNotice(result.message || "Could not unbind wallet.", "Unbind failed");
+            return;
+        }
+        showHubNotice("Wallet unbound. You can bind a different wallet now.", "UNBOUND");
+        refreshProfileWalletStatus();
+    } catch (err) {
+        if (err?.code === 4001) showHubNotice("Unbind signature rejected in wallet.", "Cancelled");
+        else showHubNotice(err?.message || "Could not unbind wallet.", "Unbind failed");
+    }
+}
+
+async function refreshProfileTransactions(opts = {}) {
+    const el = document.getElementById("profile-tx-feed");
+    if (!el) return;
+    const loggedIn = typeof MonExAuth !== "undefined" && MonExAuth.isLoggedIn();
+    if (!loggedIn) {
+        el.innerHTML = '<div class="activity-empty">Log in to see $MONEX pack purchases.</div>';
+        return;
+    }
+    if (typeof MonExWallet === "undefined") {
+        el.innerHTML = '<div class="activity-empty">Wallet client unavailable.</div>';
+        return;
+    }
+    if (!opts.silent) el.innerHTML = '<div class="activity-empty">Loading purchases…</div>';
+    try {
+        const result = await MonExWallet.fetchPurchases(50);
+        const rows = result.purchases || [];
+        if (!rows.length) {
+            el.innerHTML = '<div class="activity-empty">No pack purchases yet.</div>';
+            return;
+        }
+        el.innerHTML = rows.map((row) => {
+            const when = row.grantedAt ? new Date(row.grantedAt).toLocaleString() : "";
+            const grant = row.packageKind === "gold"
+                ? `${Math.floor(Number(row.grant?.gold) || 0).toLocaleString()} Gold`
+                : `${Math.floor(Number(row.grant?.monballs) || 0).toLocaleString()} MonBalls`;
+            const price = `${Math.floor(Number(row.monexPrice) || 0).toLocaleString()} $MONEX`;
+            const hash = String(row.txHash || "");
+            const link = row.explorerTxUrl || (hash ? `https://monadvision.com/tx/${hash}` : "#");
+            const safeHash = typeof escapeHtml === "function" ? escapeHtml(shortWallet(hash)) : shortWallet(hash);
+            return `<div class="activity-item">
+                <div class="activity-item-main"><strong>${grant}</strong> · ${price}</div>
+                <div class="activity-item-meta">${when} · <a href="${link}" target="_blank" rel="noopener noreferrer">${safeHash}</a></div>
+            </div>`;
+        }).join("");
+    } catch (_) {
+        el.innerHTML = '<div class="activity-empty">Could not load purchases.</div>';
+    }
 }
 
 async function refreshProfileActivity(opts = {}) {
