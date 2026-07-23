@@ -1,5 +1,9 @@
 /**
  * On-chain pack purchase ledger + used-tx replay protection.
+ *
+ * Claim locks are SHORT-lived. Finalized purchase records keep a long TTL.
+ * Stale/abandoned claims can be reclaimed so a Worker crash cannot permanently
+ * strand a paid txHash (the noajolouis mb_50 incident).
  */
 
 import { normalizeTxHash } from "./monex-payment-config.js";
@@ -9,7 +13,16 @@ import { getMonexPaymentConfig } from "./monex-payment-config.js";
 
 const USED_TX_PREFIX = "monex:tx-used:";
 const USER_PURCHASES_PREFIX = "monex:purchases:user:";
-const USED_TX_TTL_SEC = 60 * 60 * 24 * 365 * 3; // 3 years
+/** Finalized purchase receipts stay for years (replay protection). */
+const USED_TX_TTL_SEC = 60 * 60 * 24 * 365 * 3;
+/**
+ * In-progress claim locks must expire quickly.
+ * A Worker crash/timeout after claim + before finalize previously wrote a
+ * 3-year claim lock and permanently blocked retries.
+ */
+const CLAIM_TTL_SEC = 120;
+/** Claims older than this may be taken over by a retry. */
+const CLAIM_STALE_MS = 90_000;
 const MAX_USER_PURCHASES = 100;
 const CLAIM_PREFIX = "claim:";
 
@@ -31,41 +44,94 @@ async function readJson(kv, key) {
   }
 }
 
-function isCompletedUsedMarker(value) {
-  if (!value || typeof value !== "string") return false;
-  if (value.startsWith(CLAIM_PREFIX)) return false;
+function parseUsedTxValue(value) {
+  if (!value || typeof value !== "string") return { kind: "empty" };
+  if (value.startsWith(CLAIM_PREFIX)) {
+    // Legacy plain claim:<uuid> — no timestamp → treat as immediately stale.
+    return {
+      kind: "claim",
+      claimId: value,
+      at: null,
+      stale: true,
+      legacy: true,
+    };
+  }
   try {
     const parsed = JSON.parse(value);
-    return !!parsed?.grantedAt;
+    if (parsed?.status === "claim" || parsed?.kind === "claim") {
+      const atMs = parsed.at ? Date.parse(parsed.at) : NaN;
+      const age = Number.isFinite(atMs) ? Date.now() - atMs : Number.POSITIVE_INFINITY;
+      return {
+        kind: "claim",
+        claimId: parsed.claimId || null,
+        at: parsed.at || null,
+        xUserId: parsed.xUserId || null,
+        packageId: parsed.packageId || null,
+        packageKind: parsed.packageKind || null,
+        stale: age > CLAIM_STALE_MS,
+        ageMs: age,
+        legacy: false,
+      };
+    }
+    if (parsed?.grantedAt || parsed?.status === "confirmed") {
+      return { kind: "finalized", record: parsed };
+    }
+    // Unknown JSON — treat as finalized to avoid replay.
+    return { kind: "finalized", record: parsed };
   } catch {
-    return true;
+    return { kind: "finalized", record: null };
   }
+}
+
+function isCompletedUsedMarker(value) {
+  return parseUsedTxValue(value).kind === "finalized";
+}
+
+function buildClaimPayload({ claimId, xUserId, packageId, packageKind }) {
+  return JSON.stringify({
+    status: "claim",
+    claimId,
+    at: new Date().toISOString(),
+    xUserId: xUserId != null ? String(xUserId) : null,
+    packageId: packageId != null ? String(packageId) : null,
+    packageKind: packageKind != null ? String(packageKind) : null,
+  });
 }
 
 /**
  * Claim a txHash for granting. Losers of the race must not grant.
+ * Stale / legacy long-lived claims are reclaimed.
  */
-export async function tryClaimPurchaseTx(kv, txHash) {
+export async function tryClaimPurchaseTx(kv, txHash, meta = {}) {
   const hash = normalizeTxHash(txHash);
   if (!kv || !hash) return { claimed: false, reason: "invalid_tx_hash" };
   const key = usedTxKey(hash);
+
   const existing = await kv.get(key);
   if (existing) {
-    if (isCompletedUsedMarker(existing)) {
-      let record = null;
-      try {
-        record = JSON.parse(existing);
-      } catch {
-        record = null;
-      }
-      return { claimed: false, reason: "already_used", record };
+    const parsed = parseUsedTxValue(existing);
+    if (parsed.kind === "finalized") {
+      return { claimed: false, reason: "already_used", record: parsed.record };
     }
-    return { claimed: false, reason: "in_progress" };
+    if (parsed.kind === "claim" && !parsed.stale) {
+      return { claimed: false, reason: "in_progress", claim: parsed };
+    }
+    // Stale claim — delete then fall through to reclaim.
+    if (parsed.kind === "claim" && parsed.stale) {
+      await kv.delete(key);
+    }
   }
+
   const claimId = `${CLAIM_PREFIX}${crypto.randomUUID()}`;
-  await kv.put(key, claimId, { expirationTtl: USED_TX_TTL_SEC });
+  const payload = buildClaimPayload({
+    claimId,
+    xUserId: meta.xUserId,
+    packageId: meta.packageId,
+    packageKind: meta.packageKind,
+  });
+  await kv.put(key, payload, { expirationTtl: CLAIM_TTL_SEC });
   const verify = await kv.get(key);
-  if (verify !== claimId) {
+  if (verify !== payload) {
     return { claimed: false, reason: "lost_race" };
   }
   return { claimed: true, claimId, txHash: hash };
@@ -82,7 +148,8 @@ export async function releasePurchaseTxClaim(kv, txHash) {
   if (!kv || !hash) return;
   const key = usedTxKey(hash);
   const existing = await kv.get(key);
-  if (typeof existing === "string" && existing.startsWith(CLAIM_PREFIX)) {
+  const parsed = parseUsedTxValue(existing);
+  if (parsed.kind === "claim") {
     await kv.delete(key);
   }
 }
@@ -91,7 +158,11 @@ export async function appendUserPurchase(kv, xUserId, entry) {
   if (!kv || !xUserId || !entry) return;
   const key = userPurchasesKey(xUserId);
   const list = (await readJson(kv, key)) || [];
-  const next = [entry, ...(Array.isArray(list) ? list : [])].slice(0, MAX_USER_PURCHASES);
+  const txHash = normalizeTxHash(entry.txHash);
+  const filtered = (Array.isArray(list) ? list : []).filter(
+    (row) => normalizeTxHash(row?.txHash) !== txHash
+  );
+  const next = [entry, ...filtered].slice(0, MAX_USER_PURCHASES);
   await kv.put(key, JSON.stringify(next));
 }
 
@@ -100,6 +171,22 @@ export async function listUserPurchases(kv, xUserId, { limit = 50 } = {}) {
   const list = (await readJson(kv, userPurchasesKey(xUserId))) || [];
   const lim = Math.max(1, Math.min(100, Math.floor(Number(limit) || 50)));
   return (Array.isArray(list) ? list : []).slice(0, lim);
+}
+
+export async function findUserPurchaseByTx(kv, xUserId, txHash) {
+  const hash = normalizeTxHash(txHash);
+  if (!kv || !xUserId || !hash) return null;
+  const list = await listUserPurchases(kv, xUserId, { limit: 100 });
+  return list.find((row) => normalizeTxHash(row?.txHash) === hash) || null;
+}
+
+function sameGrantTarget(record, session, packageId, packageKind) {
+  return (
+    record
+    && String(record.xUserId) === String(session.xUserId)
+    && String(record.packageId) === String(packageId)
+    && String(record.packageKind) === String(packageKind)
+  );
 }
 
 /**
@@ -130,34 +217,38 @@ export async function prepareVerifiedPackPayment(kv, session, env, {
     };
   }
 
+  // Ledger fast path (survives stuck used-tx claim bugs).
+  const ledgerHit = await findUserPurchaseByTx(kv, session.xUserId, txHash);
+  if (ledgerHit && sameGrantTarget(ledgerHit, session, packageId, packageKind)) {
+    return {
+      ok: true,
+      alreadyGranted: true,
+      txHash,
+      wallet: bound.wallet,
+      record: ledgerHit,
+    };
+  }
+
   // Fast path: already finalized for this user
   const existingRaw = await kv.get(usedTxKey(txHash));
-  if (existingRaw && isCompletedUsedMarker(existingRaw)) {
-    let record = null;
-    try {
-      record = JSON.parse(existingRaw);
-    } catch {
-      record = null;
-    }
-    if (
-      record
-      && String(record.xUserId) === String(session.xUserId)
-      && String(record.packageId) === String(packageId)
-      && String(record.packageKind) === String(packageKind)
-    ) {
+  if (existingRaw) {
+    const parsed = parseUsedTxValue(existingRaw);
+    if (parsed.kind === "finalized") {
+      if (sameGrantTarget(parsed.record, session, packageId, packageKind)) {
+        return {
+          ok: true,
+          alreadyGranted: true,
+          txHash,
+          wallet: bound.wallet,
+          record: parsed.record,
+        };
+      }
       return {
-        ok: true,
-        alreadyGranted: true,
-        txHash,
-        wallet: bound.wallet,
-        record,
+        ok: false,
+        error: "tx_already_used",
+        message: "This transaction was already used for a purchase.",
       };
     }
-    return {
-      ok: false,
-      error: "tx_already_used",
-      message: "This transaction was already used for a purchase.",
-    };
   }
 
   const verified = await verifyMonexPackPayment(env, {
@@ -167,16 +258,15 @@ export async function prepareVerifiedPackPayment(kv, session, env, {
   });
   if (!verified.ok) return verified;
 
-  const claim = await tryClaimPurchaseTx(kv, txHash);
+  const claim = await tryClaimPurchaseTx(kv, txHash, {
+    xUserId: session.xUserId,
+    packageId,
+    packageKind,
+  });
   if (!claim.claimed) {
     if (claim.reason === "already_used") {
       const record = claim.record;
-      if (
-        record
-        && String(record.xUserId) === String(session.xUserId)
-        && String(record.packageId) === String(packageId)
-        && String(record.packageKind) === String(packageKind)
-      ) {
+      if (sameGrantTarget(record, session, packageId, packageKind)) {
         return {
           ok: true,
           alreadyGranted: true,
@@ -237,3 +327,11 @@ export function buildPurchaseRecord({
     status: "confirmed",
   };
 }
+
+export {
+  CLAIM_TTL_SEC,
+  CLAIM_STALE_MS,
+  USED_TX_TTL_SEC,
+  parseUsedTxValue,
+  isCompletedUsedMarker,
+};
