@@ -128,6 +128,15 @@ export async function buildLeaderboard(kv, board, { limit = DEFAULT_LIMIT } = {}
   };
 }
 
+function sanitizeLeaderboardEntries(entries) {
+  const cleaned = (Array.isArray(entries) ? entries : [])
+    .filter((row) => row && !isPublicHiddenUsername(row.username));
+  return cleaned.map((row, idx) => ({
+    ...row,
+    rank: idx + 1,
+  }));
+}
+
 export async function getLeaderboard(kv, board, { limit = DEFAULT_LIMIT, bypassCache = false } = {}) {
   const boardId = LEADERBOARD_BOARDS.includes(board) ? board : null;
   if (!boardId) return { ok: false, error: "invalid_board" };
@@ -140,9 +149,10 @@ export async function getLeaderboard(kv, board, { limit = DEFAULT_LIMIT, bypassC
       try {
         const cached = JSON.parse(cachedRaw);
         if (cached?.ok && Array.isArray(cached.entries)) {
+          const entries = sanitizeLeaderboardEntries(cached.entries).slice(0, lim);
           return {
             ...cached,
-            entries: cached.entries.slice(0, lim),
+            entries,
             cached: true,
           };
         }
@@ -154,10 +164,12 @@ export async function getLeaderboard(kv, board, { limit = DEFAULT_LIMIT, bypassC
 
   const built = await buildLeaderboard(kv, boardId, { limit: MAX_LIMIT });
   if (!built.ok) return built;
-  await kv.put(key, JSON.stringify(built), { expirationTtl: CACHE_TTL_SEC });
+  const entries = sanitizeLeaderboardEntries(built.entries);
+  const payload = { ...built, entries };
+  await kv.put(key, JSON.stringify(payload), { expirationTtl: CACHE_TTL_SEC });
   return {
-    ...built,
-    entries: built.entries.slice(0, lim),
+    ...payload,
+    entries: entries.slice(0, lim),
     cached: false,
   };
 }

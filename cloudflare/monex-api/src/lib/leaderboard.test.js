@@ -131,6 +131,26 @@ test("leaderboard omits public-hidden test account", async () => {
   assert.equal(power.entries.every((e) => e.username !== "test"), true);
 });
 
+test("getLeaderboard strips hidden users even from stale cache", async () => {
+  const store = {
+    "monex:leaderboard:v4:campaign": JSON.stringify({
+      ok: true,
+      board: "campaign",
+      generatedAt: "2026-07-24T00:00:00.000Z",
+      preview: false,
+      entries: [
+        { rank: 1, username: "test", score: 99, label: "Ch.3 Stage 19" },
+        { rank: 2, username: "alice", score: 10, label: "Ch.1 Stage 10" },
+      ],
+    }),
+  };
+  const result = await getLeaderboard(makeKv(store), "campaign", { limit: 10 });
+  assert.equal(result.cached, true);
+  assert.equal(result.entries.length, 1);
+  assert.equal(result.entries[0].username, "alice");
+  assert.equal(result.entries[0].rank, 1);
+});
+
 test("getLeaderboard rejects invalid board", async () => {
   const result = await getLeaderboard(makeKv({}), "nope");
   assert.equal(result.ok, false);

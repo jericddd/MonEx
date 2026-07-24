@@ -17,7 +17,7 @@ There was **no** prior leaderboard system. New rankings must follow this norm so
 
 - Public read: `GET /api/leaderboard?board=campaign|power&limit=1..50`
 - Response: `{ ok, board, generatedAt, entries: [{ rank, username, score, label }] }`
-- Cache snapshot in KV (`monex:leaderboard:v3:{board}`) with **30 minute** TTL — do not scan every request.
+- Cache snapshot in KV (`monex:leaderboard:v4:{board}`) with **30 minute** TTL — do not scan every request.
 - Rate-limit like other public list endpoints.
 - Accounts in `public-account-exclusions` (e.g. `test`) are omitted from all public boards / feeds.
 
