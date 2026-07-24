@@ -1,0 +1,53 @@
+# Power rating standard-norm (FROZEN)
+
+Combat **power** is the single comparable strength number for a Monanimal. Client UI, party/box sort, and the power leaderboard must use this formula — never a second ad-hoc score.
+
+## What power is
+
+Power is **computed live** from the Mon’s effective combat state. It is **not** stored in cloud save and must not be client-submitted as a trusted score.
+
+## Inputs (per Mon)
+
+| Input | Source |
+|-------|--------|
+| Effective ATK / SPD / CRIT / DODGE / BLOCK / HIT / PIERCE | `getEffectiveStats` (base + gear + ascension mult) |
+| Effective HP | `max_hp` after gear HP (same as UI HP) |
+| Unlocked skills | Count of unlocked skill slots on the Mon |
+| Ascension | `ascensionStars` |
+
+- **Gear** is included only via effective stats / HP — do not add a separate gear sum on top (double-count).
+- **Level** is included only via ATK / HP / level-scaled hero ratings — do not add a raw `level × N` term (double-count).
+- **Rarity** is included only via base ATK/HP tables and skill-slot caps — no extra rarity flat bonus.
+
+## Frozen formula
+
+```text
+power = floor(
+  atk × 5
++ hp  × 0.4
++ spd × 2.5
++ (crit + dodge + block + hit + pierce) × 3
++ unlockedSkills × 45
++ ascensionStars × 35
+)
+```
+
+Party / trainer power for leaderboards = **sum** of each party Mon’s power (empty slots = 0).
+
+## Why these weights
+
+- HP is damped (`× 0.4`) so it does not dominate (~75%+ under the old raw sum).
+- ATK and secondary ratings stay first-class so builds / specialties matter.
+- Skill count and ascension stars reward progression that raw stats alone under-represent.
+
+## Product rules
+
+1. **One function** — client `getMonPower(mon)` and server leaderboard scorer must match this formula bit-for-bit (shared constants).
+2. **Display** — show power on each Mon card as a computed `PWR` value; tooltip may break down pillars later, but the headline number is this formula only.
+3. **Leaderboard** — power board uses this formula only; drop “preview” labeling once server + client are wired.
+4. **No save field** — never persist `power` / `monPower` on the save blob; recompute on read.
+5. **No forging** — public rankings stay server-built from cloud saves (see leaderboard standard-norm).
+
+## One-line summary
+
+**Live weighted power: ATK×5 + HP×0.4 + SPD×2.5 + secondaries×3 + skills×45 + ascension×35; gear/level via effective stats only; never save or trust client power.**
