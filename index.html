@@ -448,11 +448,29 @@
         pointer-events: none;
     }
     .home-rankings-table tr.rank-vip-row-2 {
-        background: linear-gradient(90deg, #eef2f7 0%, #d5dee9 55%, #f5f7fa 100%);
-        box-shadow: inset 0 0 0 2px #9aabbf;
-        animation: home-vip2-sheen 3.2s ease-in-out infinite;
+        background: linear-gradient(90deg, #c5d0e0 0%, #91a4bc 42%, #dbe3ee 100%);
+        box-shadow: inset 0 0 0 2px #6f8299, 0 0 12px rgba(90, 110, 140, 0.28);
+        animation: home-vip2-aura 2.8s ease-in-out infinite;
     }
-    .home-rankings-table tr.rank-vip-row-2 td { color: #2a3648; font-weight: 700; }
+    .home-rankings-table tr.rank-vip-row-2 td {
+        color: #1f2a3a;
+        font-weight: 700;
+    }
+    .home-rankings-table tr.rank-vip-row-2 .score-col {
+        color: #3a4d66;
+    }
+    .home-rankings-table tr.rank-vip-row-2 td.rank-col {
+        position: relative;
+        overflow: hidden;
+    }
+    .home-rankings-table tr.rank-vip-row-2 td.rank-col::after {
+        content: "";
+        position: absolute;
+        inset: -20% -40%;
+        background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.75) 50%, transparent 70%);
+        animation: home-vip1-shine 3.2s linear infinite;
+        pointer-events: none;
+    }
     .home-rankings-table tr.rank-vip-row-3 {
         background: linear-gradient(90deg, #f8e6d2 0%, #e8b888 55%, #fff1e4 100%);
         box-shadow: inset 0 0 0 2px #c47a3a;
@@ -478,9 +496,11 @@
         animation: home-vip1-badge 1.8s ease-in-out infinite;
     }
     .home-rankings-table .rank-vip-badge.rank-vip-2 {
-        background: linear-gradient(180deg, #f3f6fa 0%, #b8c4d4 55%, #8a97ab 100%);
-        color: #243041;
-        border: 1px solid #d8e0ea;
+        background: linear-gradient(180deg, #e8eef6 0%, #9aadc4 45%, #5f738c 100%);
+        color: #16202c;
+        border: 1px solid #c5d3e4;
+        box-shadow: 0 0 10px rgba(120, 145, 175, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        animation: home-vip2-badge 2s ease-in-out infinite;
     }
     .home-rankings-table .rank-vip-badge.rank-vip-3 {
         background: linear-gradient(180deg, #f0c090 0%, #c47a3a 55%, #8a4a1e 100%);
@@ -499,9 +519,13 @@
         0%, 100% { transform: scale(1); }
         50% { transform: scale(1.06); }
     }
-    @keyframes home-vip2-sheen {
-        0%, 100% { filter: brightness(1); }
-        50% { filter: brightness(1.05); }
+    @keyframes home-vip2-aura {
+        0%, 100% { box-shadow: inset 0 0 0 2px #6f8299, 0 0 8px rgba(90, 110, 140, 0.22); }
+        50% { box-shadow: inset 0 0 0 2px #8ea0b8, 0 0 16px rgba(110, 135, 170, 0.4); }
+    }
+    @keyframes home-vip2-badge {
+        0%, 100% { transform: scale(1); filter: brightness(1); }
+        50% { transform: scale(1.05); filter: brightness(1.08); }
     }
     .home-rankings-pager {
         display: flex;
