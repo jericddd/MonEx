@@ -344,7 +344,88 @@
         margin-right: 6px;
     }
 
-    /* X Wild Log — same width as 3 columns above (inside main-container) */
+    /* X Wild Log + Rankings — same width as 3 columns above (inside main-container) */
+    .wild-log-section,
+    .home-rankings-section {
+        width: 100%;
+        box-sizing: border-box;
+        background: rgba(255, 255, 255, 0.96);
+        border: 4px solid #6B21A8;
+        box-shadow: 4px 4px 0px #6B21A8;
+        padding: 16px 18px 14px;
+        border-radius: 4px;
+    }
+    .home-rankings-section {
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+    .home-rankings-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+        border-bottom: 2px solid #e9d5ff;
+        padding-bottom: 10px;
+    }
+    .home-rankings-header h2 {
+        margin: 0 0 6px;
+        font-size: 13px;
+        font-family: "Press Start 2P", sans-serif;
+        color: #6B21A8;
+    }
+    .home-rankings-sub {
+        margin: 0;
+        font-size: 12px;
+        color: #5b4a7a;
+    }
+    .home-rankings-tabs {
+        display: flex;
+        gap: 8px;
+    }
+    .home-rankings-tab {
+        border: 2px solid #6B21A8;
+        background: #fff;
+        color: #4c1d95;
+        font-family: "Press Start 2P", sans-serif;
+        font-size: 9px;
+        padding: 8px 10px;
+        cursor: pointer;
+    }
+    .home-rankings-tab.is-active {
+        background: #6B21A8;
+        color: #fff;
+    }
+    .home-rankings-note {
+        margin: 0 0 12px;
+        font-size: 12px;
+        color: #5b4a7a;
+        line-height: 1.45;
+    }
+    .home-rankings-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+    .home-rankings-table th,
+    .home-rankings-table td {
+        border-bottom: 1px solid #e9d5ff;
+        padding: 8px 6px;
+        text-align: left;
+    }
+    .home-rankings-table th {
+        font-family: "Press Start 2P", sans-serif;
+        font-size: 8px;
+        color: #6B21A8;
+    }
+    .home-rankings-table .rank-col { width: 44px; }
+    .home-rankings-table .score-col { text-align: right; white-space: nowrap; }
+    .home-rankings-empty {
+        margin: 18px 0;
+        text-align: center;
+        color: #666;
+    }
     .wild-log-section {
         width: 100%;
         box-sizing: border-box;
@@ -705,6 +786,7 @@
     <div class="sidebar-btn" onclick="window.location.href='docs.html'">DOCS</div>
     
     <div class="sidebar-btn" onclick="openMarketplaceNotice()">MARKETPLACE</div>
+    <div class="sidebar-btn" onclick="scrollToHomeRankings()">RANKINGS</div>
     </div>
 
     <div class="showcase-panel">
@@ -767,6 +849,23 @@
     </div>
     <div class="wild-log-pagination" id="wild-log-pagination"></div>
 </div>
+
+<section class="home-rankings-section" id="home-rankings" aria-label="Player rankings">
+    <div class="home-rankings-header">
+        <div>
+            <h2>RANKINGS</h2>
+            <p class="home-rankings-sub">Cloud-save leaderboards · Campaign stage + party power preview</p>
+        </div>
+        <div class="home-rankings-tabs" role="tablist">
+            <button type="button" class="home-rankings-tab is-active" id="home-rankings-tab-campaign" data-board="campaign" onclick="setHomeRankingsBoard('campaign')">Campaign</button>
+            <button type="button" class="home-rankings-tab" id="home-rankings-tab-power" data-board="power" onclick="setHomeRankingsBoard('power')">Power</button>
+        </div>
+    </div>
+    <p class="home-rankings-note" id="home-rankings-note">Campaign uses highest cleared adventure stage. Power is a temporary party ATK+HP preview until full gear power ranking ships.</p>
+    <div class="home-rankings-body" id="home-rankings-body">
+        <p class="home-rankings-empty">Loading rankings…</p>
+    </div>
+</section>
 
 <div class="token-contract-strip" aria-label="Official MonEx token contract">
     <div class="token-contract-meta">
@@ -837,6 +936,7 @@ startAutoPlay();
 <script src="js/auth-client.js?v=20260714c"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/mailbox-client.js?v=20260713a"></script>
+<script src="js/leaderboard-client.js?v=20260724a"></script>
 <script>
 // Dynamic Header Logic
 async function updateHeader() {
@@ -1123,6 +1223,74 @@ async function refreshHomeActivity(page) {
 
 refreshHomeActivity(1);
 setInterval(() => refreshHomeActivity(wildLogPage), 8000);
+
+let homeRankingsBoard = "campaign";
+let homeRankingsLoadToken = 0;
+
+function scrollToHomeRankings() {
+    const el = document.getElementById("home-rankings");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    loadHomeRankings();
+}
+
+function setHomeRankingsBoard(board) {
+    homeRankingsBoard = board === "power" ? "power" : "campaign";
+    document.getElementById("home-rankings-tab-campaign")?.classList.toggle("is-active", homeRankingsBoard === "campaign");
+    document.getElementById("home-rankings-tab-power")?.classList.toggle("is-active", homeRankingsBoard === "power");
+    const note = document.getElementById("home-rankings-note");
+    if (note) {
+        note.textContent = homeRankingsBoard === "power"
+            ? "Power is a temporary party ATK+HP preview until full gear power ranking ships."
+            : "Campaign uses highest cleared adventure stage from cloud saves.";
+    }
+    loadHomeRankings();
+}
+
+async function loadHomeRankings() {
+    const body = document.getElementById("home-rankings-body");
+    if (!body) return;
+    const token = ++homeRankingsLoadToken;
+    const board = homeRankingsBoard;
+    body.innerHTML = '<p class="home-rankings-empty">Loading rankings…</p>';
+    if (typeof MonExLeaderboard === "undefined" || !MonExLeaderboard.fetchLeaderboard) {
+        body.innerHTML = '<p class="home-rankings-empty">Ranking client unavailable. Refresh and try again.</p>';
+        return;
+    }
+    const result = await MonExLeaderboard.fetchLeaderboard(board, { limit: 25 });
+    if (token !== homeRankingsLoadToken) return;
+    if (!result.ok) {
+        body.innerHTML = '<p class="home-rankings-empty">Could not load rankings. Try again shortly.</p>';
+        return;
+    }
+    const entries = result.entries || [];
+    if (!entries.length) {
+        body.innerHTML = '<p class="home-rankings-empty">No ranked trainers yet. Clear stages and train your party!</p>';
+        return;
+    }
+    const esc = typeof escapeHtml === "function" ? escapeHtml : (v) => String(v ?? "");
+    const scoreHeader = board === "power" ? "POWER" : "PROGRESS";
+    body.innerHTML = `
+        <table class="home-rankings-table" aria-label="${board} leaderboard">
+            <thead>
+                <tr>
+                    <th class="rank-col">#</th>
+                    <th>TRAINER</th>
+                    <th class="score-col">${scoreHeader}</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${entries.map((row) => `
+                    <tr>
+                        <td class="rank-col">${esc(row.rank)}</td>
+                        <td>@${esc(row.username)}</td>
+                        <td class="score-col">${esc(row.label || row.score)}</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>`;
+}
+
+loadHomeRankings();
 
 const MONEX_TOKEN_CONTRACT = "0x978Ae7298D48Cf0f8d1fdB26abC12bfACFcC7777";
 

@@ -27,6 +27,7 @@ import { uploadTwitterMedia } from "./lib/x-media.js";
 import { getFirstCaughtMon } from "./lib/catch-card-core.js";
 import { renderCatchCardPng } from "./lib/catch-card.js";
 import { generateSkills } from "./lib/catch-engine.js";
+import { getLeaderboard, LEADERBOARD_BOARDS } from "./lib/leaderboard.js";
 import {
   oauthConfigured,
   devAuthAllowed,
@@ -976,6 +977,18 @@ async function handleRequest(request, env) {
       const username = url.searchParams.get("username") || null;
       const result = await listActivities(env.MONEX_KV, { limit, page, username, successOnly: true });
       return json({ ok: true, ...result }, 200, request, env);
+    }
+
+    if (path === "/api/leaderboard" && request.method === "GET") {
+      await enforceRateLimit(request, env, "leaderboard", { limit: 60, windowSec: 60 });
+      const board = String(url.searchParams.get("board") || "campaign").trim().toLowerCase();
+      if (!LEADERBOARD_BOARDS.includes(board)) {
+        return json({ ok: false, error: "invalid_board", boards: LEADERBOARD_BOARDS }, 400, request, env);
+      }
+      const limit = parseBoundedInt(url.searchParams.get("limit"), { fallback: 25, min: 1, max: 50 });
+      const result = await getLeaderboard(env.MONEX_KV, board, { limit });
+      if (!result.ok) return json(result, 400, request, env);
+      return json(result, 200, request, env);
     }
 
     if (path === "/api/activity/mine" && request.method === "GET") {
