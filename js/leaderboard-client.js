@@ -31,5 +31,28 @@
     };
   }
 
-  window.MonExLeaderboard = { fetchLeaderboard };
+  function vipRank(rank) {
+    const n = Math.floor(Number(rank) || 0);
+    return n >= 1 && n <= 3 ? n : 0;
+  }
+
+  function rankRowClass(rank) {
+    const n = vipRank(rank);
+    return n ? `rank-vip rank-vip-row-${n}` : "";
+  }
+
+  function formatRankCell(rank) {
+    const n = Math.floor(Number(rank) || 0);
+    const vip = vipRank(n);
+    if (!vip) return String(n || "");
+    const labels = { 1: "1st", 2: "2nd", 3: "3rd" };
+    return `<span class="rank-vip-badge rank-vip-${vip}" aria-label="Rank ${n}">${labels[vip]}</span>`;
+  }
+
+  window.MonExLeaderboard = {
+    fetchLeaderboard,
+    vipRank,
+    rankRowClass,
+    formatRankCell,
+  };
 })();
