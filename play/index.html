@@ -2070,14 +2070,146 @@ button.green:hover {
     color: #ffffff;
     background: rgba(255, 255, 255, 0.06);
 }
-.ranking-table .rank-col { width: 44px; }
+.ranking-table .rank-col { width: 52px; }
 .ranking-table .score-col { text-align: right; white-space: nowrap; color: #fde68a; }
 .ranking-table th.score-col { color: #e9d5ff; }
+
+/* Top-3 VIP podium rows */
+.ranking-table tr.rank-vip td {
+    border-bottom-color: transparent;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+.ranking-table tr.rank-vip-row-1 {
+    position: relative;
+    background: linear-gradient(90deg, rgba(120, 72, 12, 0.55) 0%, rgba(212, 160, 40, 0.38) 45%, rgba(255, 220, 120, 0.22) 100%);
+    box-shadow: inset 0 0 0 1px rgba(255, 214, 102, 0.55), 0 0 18px rgba(255, 196, 64, 0.28);
+    animation: ranking-vip1-aura 2.4s ease-in-out infinite;
+}
+.ranking-table tr.rank-vip-row-1 td {
+    color: #fff8e7;
+    font-weight: 700;
+    text-shadow: 0 1px 0 rgba(80, 40, 0, 0.45);
+}
+.ranking-table tr.rank-vip-row-1 .score-col {
+    color: #ffe566;
+}
+.ranking-table tr.rank-vip-row-1 td.rank-col {
+    position: relative;
+    overflow: hidden;
+}
+.ranking-table tr.rank-vip-row-1 td.rank-col::after {
+    content: "";
+    position: absolute;
+    inset: -20% -40%;
+    background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%);
+    animation: ranking-vip1-shine 2.8s linear infinite;
+    pointer-events: none;
+}
+.ranking-table tr.rank-vip-row-2 {
+    background: linear-gradient(90deg, rgba(70, 80, 100, 0.5) 0%, rgba(170, 185, 205, 0.28) 55%, rgba(220, 230, 240, 0.12) 100%);
+    box-shadow: inset 0 0 0 1px rgba(200, 214, 230, 0.45);
+    animation: ranking-vip2-sheen 3.2s ease-in-out infinite;
+}
+.ranking-table tr.rank-vip-row-2 td {
+    color: #eef3f8;
+}
+.ranking-table tr.rank-vip-row-2 .score-col {
+    color: #d7e3f4;
+}
+.ranking-table tr.rank-vip-row-3 {
+    background: linear-gradient(90deg, rgba(90, 48, 24, 0.48) 0%, rgba(176, 110, 58, 0.28) 55%, rgba(220, 160, 100, 0.12) 100%);
+    box-shadow: inset 0 0 0 1px rgba(210, 140, 80, 0.4);
+}
+.ranking-table tr.rank-vip-row-3 td {
+    color: #f6e4d0;
+}
+.ranking-table tr.rank-vip-row-3 .score-col {
+    color: #e8b87a;
+}
+.rank-vip-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 4px;
+    font-family: "Press Start 2P", monospace;
+    font-size: 9px;
+    line-height: 1;
+    letter-spacing: 0.02em;
+}
+.rank-vip-badge.rank-vip-1 {
+    background: linear-gradient(180deg, #ffe566 0%, #f0b429 45%, #c47a12 100%);
+    color: #3d2200;
+    border: 1px solid #ffe9a0;
+    box-shadow: 0 0 10px rgba(255, 200, 64, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    animation: ranking-vip1-badge 1.8s ease-in-out infinite;
+}
+.rank-vip-badge.rank-vip-2 {
+    background: linear-gradient(180deg, #f3f6fa 0%, #b8c4d4 55%, #8a97ab 100%);
+    color: #243041;
+    border: 1px solid #e8eef6;
+    box-shadow: 0 0 8px rgba(180, 200, 220, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+.rank-vip-badge.rank-vip-3 {
+    background: linear-gradient(180deg, #f0c090 0%, #c47a3a 55%, #8a4a1e 100%);
+    color: #2f1608;
+    border: 1px solid #f0c89a;
+    box-shadow: 0 0 6px rgba(196, 122, 58, 0.4), inset 0 1px 0 rgba(255, 230, 190, 0.45);
+}
+@keyframes ranking-vip1-aura {
+    0%, 100% { box-shadow: inset 0 0 0 1px rgba(255, 214, 102, 0.45), 0 0 12px rgba(255, 196, 64, 0.2); }
+    50% { box-shadow: inset 0 0 0 1px rgba(255, 230, 140, 0.85), 0 0 22px rgba(255, 210, 80, 0.45); }
+}
+@keyframes ranking-vip1-shine {
+    0% { transform: translateX(-60%); }
+    100% { transform: translateX(120%); }
+}
+@keyframes ranking-vip1-badge {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.06); filter: brightness(1.12); }
+}
+@keyframes ranking-vip2-sheen {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.08); }
+}
 .ranking-empty {
     margin: 28px 8px;
     text-align: center;
     color: #e8d5b7;
     font-size: 12px;
+}
+.ranking-pager {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 12px;
+}
+.ranking-pager-btn {
+    border: 2px solid #c4b5fd;
+    background: rgba(255, 248, 240, 0.92);
+    color: #4c1d95;
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+}
+.ranking-pager-btn.is-active {
+    background: #6B21A8;
+    border-color: #e9d5ff;
+    color: #fff;
+}
+.ranking-pager-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+.ranking-pager-meta {
+    font-size: 10px;
+    color: #d6c4a8;
 }
 .quest-advance-btn.loading,
 .quest-chest-btn.loading,
@@ -8673,7 +8805,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/game-session-client.js?v=20260710a"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/quest-client.js?v=20260715c"></script>
-<script src="js/leaderboard-client.js?v=20260724a"></script>
+<script src="js/leaderboard-client.js?v=20260724d"></script>
 <script src="js/shop-client.js?v=20260723a"></script>
 <script src="js/wallet-client.js?v=20260723b"></script>
 <script src="js/mon-upgrade-client.js?v=20260718a"></script>
@@ -20313,9 +20445,12 @@ function renderMailbox() {
 
 let rankingActiveBoard = "campaign";
 let rankingLoadToken = 0;
+let rankingPage = 1;
+const rankingEntriesByBoard = { campaign: [], power: [] };
 
 function setRankingBoard(board) {
     rankingActiveBoard = board === "power" ? "power" : "campaign";
+    rankingPage = 1;
     document.getElementById("ranking-tab-campaign")?.classList.toggle("active", rankingActiveBoard === "campaign");
     document.getElementById("ranking-tab-power")?.classList.toggle("active", rankingActiveBoard === "power");
     const note = document.getElementById("ranking-note");
@@ -20325,6 +20460,61 @@ function setRankingBoard(board) {
             : "Campaign: highest adventure progress leads the board.";
     }
     renderRankingBoard();
+}
+
+function setRankingPage(page) {
+    rankingPage = Math.max(1, Math.min(2, Math.floor(Number(page) || 1)));
+    paintRankingBoard();
+}
+
+function rankingPagerHtml(pageInfo) {
+    if (!pageInfo || pageInfo.total <= 0) return "";
+    const page1Active = pageInfo.page === 1 ? " is-active" : "";
+    const page2Active = pageInfo.page === 2 ? " is-active" : "";
+    const page2Disabled = pageInfo.totalPages < 2 ? " disabled" : "";
+    return `
+        <div class="ranking-pager" role="navigation" aria-label="Ranking pages">
+            <button type="button" class="ranking-pager-btn${page1Active}" onclick="setRankingPage(1)">1–25</button>
+            <button type="button" class="ranking-pager-btn${page2Active}" onclick="setRankingPage(2)"${page2Disabled}>26–50</button>
+            <span class="ranking-pager-meta">Showing ${pageInfo.rangeLabel} of ${pageInfo.total}</span>
+        </div>`;
+}
+
+function paintRankingBoard() {
+    const content = document.getElementById("ranking-content");
+    if (!content) return;
+    const board = rankingActiveBoard;
+    const all = rankingEntriesByBoard[board] || [];
+    if (!all.length) {
+        content.innerHTML = '<p class="ranking-empty">No ranked trainers yet. Clear stages and train your party!</p>';
+        return;
+    }
+    const pageInfo = MonExLeaderboard.paginateEntries(all, rankingPage);
+    rankingPage = pageInfo.page;
+    const esc = typeof escapeHtml === "function" ? escapeHtml : (v) => String(v ?? "");
+    const scoreHeader = board === "power" ? "POWER" : "PROGRESS";
+    const rowClass = (rank) => MonExLeaderboard.rankRowClass?.(rank) || "";
+    const rankCell = (rank) => MonExLeaderboard.formatRankCell?.(rank) ?? esc(rank);
+    content.innerHTML = `
+        <table class="ranking-table" aria-label="${board} leaderboard">
+            <thead>
+                <tr>
+                    <th class="rank-col">#</th>
+                    <th>TRAINER</th>
+                    <th class="score-col">${scoreHeader}</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${pageInfo.entries.map((row) => `
+                    <tr class="${rowClass(row.rank)}">
+                        <td class="rank-col">${rankCell(row.rank)}</td>
+                        <td>@${esc(row.username)}</td>
+                        <td class="score-col">${esc(row.label || row.score)}</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+        ${rankingPagerHtml(pageInfo)}`;
 }
 
 async function renderRankingBoard() {
@@ -20339,38 +20529,14 @@ async function renderRankingBoard() {
         return;
     }
 
-    const result = await MonExLeaderboard.fetchLeaderboard(board, { limit: 25 });
+    const result = await MonExLeaderboard.fetchLeaderboard(board, { limit: MonExLeaderboard.MAX_ENTRIES || 50 });
     if (token !== rankingLoadToken) return;
     if (!result.ok) {
         content.innerHTML = '<p class="ranking-empty">Could not load rankings. Try again shortly.</p>';
         return;
     }
-    const entries = result.entries || [];
-    if (!entries.length) {
-        content.innerHTML = '<p class="ranking-empty">No ranked trainers yet. Clear stages and train your party!</p>';
-        return;
-    }
-    const esc = typeof escapeHtml === "function" ? escapeHtml : (v) => String(v ?? "");
-    const scoreHeader = board === "power" ? "POWER" : "PROGRESS";
-    content.innerHTML = `
-        <table class="ranking-table" aria-label="${board} leaderboard">
-            <thead>
-                <tr>
-                    <th class="rank-col">#</th>
-                    <th>TRAINER</th>
-                    <th class="score-col">${scoreHeader}</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${entries.map((row) => `
-                    <tr>
-                        <td class="rank-col">${esc(row.rank)}</td>
-                        <td>@${esc(row.username)}</td>
-                        <td class="score-col">${esc(row.label || row.score)}</td>
-                    </tr>
-                `).join("")}
-            </tbody>
-        </table>`;
+    rankingEntriesByBoard[board] = result.entries || [];
+    paintRankingBoard();
 }
 
 const mailboxClaimInFlight = new Set();
