@@ -473,6 +473,35 @@
         0%, 100% { filter: brightness(1); }
         50% { filter: brightness(1.05); }
     }
+    .home-rankings-pager {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        justify-content: center;
+        margin-top: 12px;
+    }
+    .home-rankings-pager-btn {
+        border: 2px solid #6B21A8;
+        background: #fff;
+        color: #4c1d95;
+        font-family: "Press Start 2P", sans-serif;
+        font-size: 8px;
+        padding: 8px 10px;
+        cursor: pointer;
+    }
+    .home-rankings-pager-btn.is-active {
+        background: #6B21A8;
+        color: #fff;
+    }
+    .home-rankings-pager-btn:disabled {
+        opacity: 0.45;
+        cursor: default;
+    }
+    .home-rankings-pager-meta {
+        font-size: 11px;
+        color: #5b4a7a;
+    }
     .home-rankings-empty {
         margin: 18px 0;
         text-align: center;
@@ -988,7 +1017,7 @@ startAutoPlay();
 <script src="js/auth-client.js?v=20260708b"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/mailbox-client.js?v=20260713a"></script>
-<script src="js/leaderboard-client.js?v=20260724c"></script>
+<script src="js/leaderboard-client.js?v=20260724d"></script>
 <script>
 // Dynamic Header Logic
 async function updateHeader() {
@@ -1270,6 +1299,8 @@ setInterval(() => refreshHomeActivity(wildLogPage), 8000);
 
 let homeRankingsBoard = "campaign";
 let homeRankingsLoadToken = 0;
+let homeRankingsPage = 1;
+const homeRankingsEntriesByBoard = { campaign: [], power: [] };
 
 function scrollToHomeRankings() {
     const el = document.getElementById("home-rankings");
@@ -1279,6 +1310,7 @@ function scrollToHomeRankings() {
 
 function setHomeRankingsBoard(board) {
     homeRankingsBoard = board === "power" ? "power" : "campaign";
+    homeRankingsPage = 1;
     document.getElementById("home-rankings-tab-campaign")?.classList.toggle("is-active", homeRankingsBoard === "campaign");
     document.getElementById("home-rankings-tab-power")?.classList.toggle("is-active", homeRankingsBoard === "power");
     const note = document.getElementById("home-rankings-note");
@@ -1288,6 +1320,61 @@ function setHomeRankingsBoard(board) {
             : "Campaign uses highest cleared adventure stage from cloud saves.";
     }
     loadHomeRankings();
+}
+
+function setHomeRankingsPage(page) {
+    homeRankingsPage = Math.max(1, Math.min(2, Math.floor(Number(page) || 1)));
+    paintHomeRankings();
+}
+
+function homeRankingsPagerHtml(pageInfo) {
+    if (!pageInfo || pageInfo.total <= 0) return "";
+    const page1Active = pageInfo.page === 1 ? " is-active" : "";
+    const page2Active = pageInfo.page === 2 ? " is-active" : "";
+    const page2Disabled = pageInfo.totalPages < 2 ? " disabled" : "";
+    return `
+        <div class="home-rankings-pager" role="navigation" aria-label="Ranking pages">
+            <button type="button" class="home-rankings-pager-btn${page1Active}" onclick="setHomeRankingsPage(1)">1–25</button>
+            <button type="button" class="home-rankings-pager-btn${page2Active}" onclick="setHomeRankingsPage(2)"${page2Disabled}>26–50</button>
+            <span class="home-rankings-pager-meta">Showing ${pageInfo.rangeLabel} of ${pageInfo.total}</span>
+        </div>`;
+}
+
+function paintHomeRankings() {
+    const body = document.getElementById("home-rankings-body");
+    if (!body) return;
+    const board = homeRankingsBoard;
+    const all = homeRankingsEntriesByBoard[board] || [];
+    if (!all.length) {
+        body.innerHTML = '<p class="home-rankings-empty">No ranked trainers yet. Clear stages and train your party!</p>';
+        return;
+    }
+    const pageInfo = MonExLeaderboard.paginateEntries(all, homeRankingsPage);
+    homeRankingsPage = pageInfo.page;
+    const esc = typeof escapeHtml === "function" ? escapeHtml : (v) => String(v ?? "");
+    const scoreHeader = board === "power" ? "POWER" : "PROGRESS";
+    const rowClass = (rank) => MonExLeaderboard.rankRowClass?.(rank) || "";
+    const rankCell = (rank) => MonExLeaderboard.formatRankCell?.(rank) ?? esc(rank);
+    body.innerHTML = `
+        <table class="home-rankings-table" aria-label="${board} leaderboard">
+            <thead>
+                <tr>
+                    <th class="rank-col">#</th>
+                    <th>TRAINER</th>
+                    <th class="score-col">${scoreHeader}</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${pageInfo.entries.map((row) => `
+                    <tr class="${rowClass(row.rank)}">
+                        <td class="rank-col">${rankCell(row.rank)}</td>
+                        <td>@${esc(row.username)}</td>
+                        <td class="score-col">${esc(row.label || row.score)}</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+        ${homeRankingsPagerHtml(pageInfo)}`;
 }
 
 async function loadHomeRankings() {
@@ -1300,44 +1387,14 @@ async function loadHomeRankings() {
         body.innerHTML = '<p class="home-rankings-empty">Ranking client unavailable. Refresh and try again.</p>';
         return;
     }
-    const result = await MonExLeaderboard.fetchLeaderboard(board, { limit: 25 });
+    const result = await MonExLeaderboard.fetchLeaderboard(board, { limit: MonExLeaderboard.MAX_ENTRIES || 50 });
     if (token !== homeRankingsLoadToken) return;
     if (!result.ok) {
         body.innerHTML = '<p class="home-rankings-empty">Could not load rankings. Try again shortly.</p>';
         return;
     }
-    const entries = result.entries || [];
-    if (!entries.length) {
-        body.innerHTML = '<p class="home-rankings-empty">No ranked trainers yet. Clear stages and train your party!</p>';
-        return;
-    }
-    const esc = typeof escapeHtml === "function" ? escapeHtml : (v) => String(v ?? "");
-    const scoreHeader = board === "power" ? "POWER" : "PROGRESS";
-    const rowClass = (rank) => (typeof MonExLeaderboard !== "undefined" && MonExLeaderboard.rankRowClass
-        ? MonExLeaderboard.rankRowClass(rank)
-        : "");
-    const rankCell = (rank) => (typeof MonExLeaderboard !== "undefined" && MonExLeaderboard.formatRankCell
-        ? MonExLeaderboard.formatRankCell(rank)
-        : esc(rank));
-    body.innerHTML = `
-        <table class="home-rankings-table" aria-label="${board} leaderboard">
-            <thead>
-                <tr>
-                    <th class="rank-col">#</th>
-                    <th>TRAINER</th>
-                    <th class="score-col">${scoreHeader}</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${entries.map((row) => `
-                    <tr class="${rowClass(row.rank)}">
-                        <td class="rank-col">${rankCell(row.rank)}</td>
-                        <td>@${esc(row.username)}</td>
-                        <td class="score-col">${esc(row.label || row.score)}</td>
-                    </tr>
-                `).join("")}
-            </tbody>
-        </table>`;
+    homeRankingsEntriesByBoard[board] = result.entries || [];
+    paintHomeRankings();
 }
 
 loadHomeRankings();

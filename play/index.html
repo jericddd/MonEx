@@ -2181,6 +2181,36 @@ button.green:hover {
     color: #e8d5b7;
     font-size: 12px;
 }
+.ranking-pager {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 12px;
+}
+.ranking-pager-btn {
+    border: 2px solid #c4b5fd;
+    background: rgba(255, 248, 240, 0.92);
+    color: #4c1d95;
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+}
+.ranking-pager-btn.is-active {
+    background: #6B21A8;
+    border-color: #e9d5ff;
+    color: #fff;
+}
+.ranking-pager-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+.ranking-pager-meta {
+    font-size: 10px;
+    color: #d6c4a8;
+}
 .quest-advance-btn.loading,
 .quest-chest-btn.loading,
 .resource-chest-collect-btn.loading {
@@ -8775,7 +8805,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/game-session-client.js?v=20260710a"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/quest-client.js?v=20260715c"></script>
-<script src="js/leaderboard-client.js?v=20260724c"></script>
+<script src="js/leaderboard-client.js?v=20260724d"></script>
 <script src="js/shop-client.js?v=20260723a"></script>
 <script src="js/wallet-client.js?v=20260723b"></script>
 <script src="js/mon-upgrade-client.js?v=20260718a"></script>
@@ -20415,9 +20445,12 @@ function renderMailbox() {
 
 let rankingActiveBoard = "campaign";
 let rankingLoadToken = 0;
+let rankingPage = 1;
+const rankingEntriesByBoard = { campaign: [], power: [] };
 
 function setRankingBoard(board) {
     rankingActiveBoard = board === "power" ? "power" : "campaign";
+    rankingPage = 1;
     document.getElementById("ranking-tab-campaign")?.classList.toggle("active", rankingActiveBoard === "campaign");
     document.getElementById("ranking-tab-power")?.classList.toggle("active", rankingActiveBoard === "power");
     const note = document.getElementById("ranking-note");
@@ -20427,6 +20460,61 @@ function setRankingBoard(board) {
             : "Campaign: highest adventure progress leads the board.";
     }
     renderRankingBoard();
+}
+
+function setRankingPage(page) {
+    rankingPage = Math.max(1, Math.min(2, Math.floor(Number(page) || 1)));
+    paintRankingBoard();
+}
+
+function rankingPagerHtml(pageInfo) {
+    if (!pageInfo || pageInfo.total <= 0) return "";
+    const page1Active = pageInfo.page === 1 ? " is-active" : "";
+    const page2Active = pageInfo.page === 2 ? " is-active" : "";
+    const page2Disabled = pageInfo.totalPages < 2 ? " disabled" : "";
+    return `
+        <div class="ranking-pager" role="navigation" aria-label="Ranking pages">
+            <button type="button" class="ranking-pager-btn${page1Active}" onclick="setRankingPage(1)">1–25</button>
+            <button type="button" class="ranking-pager-btn${page2Active}" onclick="setRankingPage(2)"${page2Disabled}>26–50</button>
+            <span class="ranking-pager-meta">Showing ${pageInfo.rangeLabel} of ${pageInfo.total}</span>
+        </div>`;
+}
+
+function paintRankingBoard() {
+    const content = document.getElementById("ranking-content");
+    if (!content) return;
+    const board = rankingActiveBoard;
+    const all = rankingEntriesByBoard[board] || [];
+    if (!all.length) {
+        content.innerHTML = '<p class="ranking-empty">No ranked trainers yet. Clear stages and train your party!</p>';
+        return;
+    }
+    const pageInfo = MonExLeaderboard.paginateEntries(all, rankingPage);
+    rankingPage = pageInfo.page;
+    const esc = typeof escapeHtml === "function" ? escapeHtml : (v) => String(v ?? "");
+    const scoreHeader = board === "power" ? "POWER" : "PROGRESS";
+    const rowClass = (rank) => MonExLeaderboard.rankRowClass?.(rank) || "";
+    const rankCell = (rank) => MonExLeaderboard.formatRankCell?.(rank) ?? esc(rank);
+    content.innerHTML = `
+        <table class="ranking-table" aria-label="${board} leaderboard">
+            <thead>
+                <tr>
+                    <th class="rank-col">#</th>
+                    <th>TRAINER</th>
+                    <th class="score-col">${scoreHeader}</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${pageInfo.entries.map((row) => `
+                    <tr class="${rowClass(row.rank)}">
+                        <td class="rank-col">${rankCell(row.rank)}</td>
+                        <td>@${esc(row.username)}</td>
+                        <td class="score-col">${esc(row.label || row.score)}</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+        ${rankingPagerHtml(pageInfo)}`;
 }
 
 async function renderRankingBoard() {
@@ -20441,44 +20529,14 @@ async function renderRankingBoard() {
         return;
     }
 
-    const result = await MonExLeaderboard.fetchLeaderboard(board, { limit: 25 });
+    const result = await MonExLeaderboard.fetchLeaderboard(board, { limit: MonExLeaderboard.MAX_ENTRIES || 50 });
     if (token !== rankingLoadToken) return;
     if (!result.ok) {
         content.innerHTML = '<p class="ranking-empty">Could not load rankings. Try again shortly.</p>';
         return;
     }
-    const entries = result.entries || [];
-    if (!entries.length) {
-        content.innerHTML = '<p class="ranking-empty">No ranked trainers yet. Clear stages and train your party!</p>';
-        return;
-    }
-    const esc = typeof escapeHtml === "function" ? escapeHtml : (v) => String(v ?? "");
-    const scoreHeader = board === "power" ? "POWER" : "PROGRESS";
-    const rowClass = (rank) => (typeof MonExLeaderboard !== "undefined" && MonExLeaderboard.rankRowClass
-        ? MonExLeaderboard.rankRowClass(rank)
-        : "");
-    const rankCell = (rank) => (typeof MonExLeaderboard !== "undefined" && MonExLeaderboard.formatRankCell
-        ? MonExLeaderboard.formatRankCell(rank)
-        : esc(rank));
-    content.innerHTML = `
-        <table class="ranking-table" aria-label="${board} leaderboard">
-            <thead>
-                <tr>
-                    <th class="rank-col">#</th>
-                    <th>TRAINER</th>
-                    <th class="score-col">${scoreHeader}</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${entries.map((row) => `
-                    <tr class="${rowClass(row.rank)}">
-                        <td class="rank-col">${rankCell(row.rank)}</td>
-                        <td>@${esc(row.username)}</td>
-                        <td class="score-col">${esc(row.label || row.score)}</td>
-                    </tr>
-                `).join("")}
-            </tbody>
-        </table>`;
+    rankingEntriesByBoard[board] = result.entries || [];
+    paintRankingBoard();
 }
 
 const mailboxClaimInFlight = new Set();
