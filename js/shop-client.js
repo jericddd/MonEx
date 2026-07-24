@@ -39,6 +39,9 @@
   }
 
   async function purchaseShopItem(itemId, qty) {
+    if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
+      MonExAuth.cancelPendingCloudSave();
+    }
     if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
       await MonExAuth.awaitCloudSaveIdle();
     }
@@ -76,6 +79,9 @@
   }
 
   async function purchaseMonballPackage(packageId, paymentProof) {
+    if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
+      MonExAuth.cancelPendingCloudSave();
+    }
     if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
       await MonExAuth.awaitCloudSaveIdle();
     }
@@ -115,6 +121,9 @@
   }
 
   async function purchaseGoldPackage(packageId, paymentProof) {
+    if (typeof MonExAuth !== "undefined" && MonExAuth.cancelPendingCloudSave) {
+      MonExAuth.cancelPendingCloudSave();
+    }
     if (typeof MonExAuth !== "undefined" && MonExAuth.awaitCloudSaveIdle) {
       await MonExAuth.awaitCloudSaveIdle();
     }

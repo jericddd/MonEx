@@ -11,6 +11,7 @@ import {
   preserveMonProgress,
   clampMonProgressCeiling,
   MAX_SAVE_DELTA,
+  MAX_SAVE_DROP,
   MAX_INVENTORY_SHRINK,
 } from "./save-economy-guard.js";
 import { getDailyDayKey, getDailyWeekKey } from "./daily-reset.js";
@@ -55,6 +56,21 @@ test("allows economy decreases (spends)", () => {
   const incoming = { money: 3000, essence: 80, monShards: 3, trainerXp: 150 };
   const out = clampEconomyScalars(existing, incoming);
   assert.equal(out.money, 3000);
+});
+
+test("blocks catastrophic money drop that would wipe a gold pack grant", () => {
+  const existing = { money: 41_578, essence: 4453, monShards: 5, trainerXp: 200 };
+  const incoming = { money: 1_578, essence: 4453, monShards: 5, trainerXp: 200 };
+  const out = clampEconomyScalars(existing, incoming);
+  assert.equal(out.money, 41_578);
+  assert.ok(41_578 - 1_578 > MAX_SAVE_DROP.money);
+});
+
+test("allows money drops within MAX_SAVE_DROP", () => {
+  const existing = { money: 50_000, essence: 100, monShards: 5, trainerXp: 200 };
+  const incoming = { money: 50_000 - MAX_SAVE_DROP.money, essence: 100, monShards: 5, trainerXp: 200 };
+  const out = clampEconomyScalars(existing, incoming);
+  assert.equal(out.money, 50_000 - MAX_SAVE_DROP.money);
 });
 
 test("blocks adventure stage skip exploit", () => {
