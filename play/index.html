@@ -6484,6 +6484,45 @@ body.afk-layout:has(.game-container.adventure-mode) > .game-container-bg {
     margin: 0 0 18px;
     line-height: 1.45;
 }
+.release-confirm-ask {
+    margin: 0 0 12px;
+}
+.release-obtains-label {
+    margin: 0 0 8px;
+    font-weight: 700;
+    color: #fde68a;
+}
+.release-obtains-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px 4px;
+    margin: 0 0 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff8e7;
+}
+.release-obtain-item {
+    gap: 4px;
+}
+.release-obtain-item .cur-ico-img {
+    vertical-align: middle;
+}
+.release-obtains-sep {
+    opacity: 0.55;
+    font-weight: 600;
+    padding: 0 2px;
+}
+.release-obtains-empty {
+    font-weight: 600;
+    opacity: 0.85;
+}
+.release-obtains-note {
+    margin-top: 6px;
+    font-size: 12px;
+    opacity: 0.8;
+}
 .hub-popup-qty-row {
     display: flex;
     align-items: center;
@@ -11392,7 +11431,7 @@ const ASCEND_SHARD_COST = { Legendary: 40 };
 const MIN_RARITY_TO_ASCEND = "Legendary";
 const RELEASE_SHARD_REWARD = { Common: 0, Uncommon: 1, Rare: 2, Legendary: 4, Mythic: 0 };
 const RELEASE_ONION_BASE = { Common: 5, Uncommon: 12, Rare: 25, Legendary: 50, Mythic: 0 };
-const RELEASE_LEVEL_REFUND_RATE = 0.8;
+const RELEASE_LEVEL_REFUND_RATE = 0.6;
 
 function canAscendRarity(rarity) {
     return rarity === MIN_RARITY_TO_ASCEND;
@@ -11425,15 +11464,36 @@ function getReleaseSalvage(mon) {
     };
 }
 
-function formatReleaseSalvageMessage(salvage) {
-    const lines = [];
-    if (salvage.gold > 0) lines.push(`${salvage.gold} Gold`);
-    if (salvage.essence > 0) lines.push(`${salvage.essence} ${KBS_ONION_NAME}`);
-    if (salvage.shards > 0) lines.push(`${salvage.shards} Mon Shard${salvage.shards === 1 ? "" : "s"}`);
-    const rewardBlock = lines.length
-        ? `\n\nYou will receive:\n• ${lines.join("\n• ")}\n\nEquipped gear returns to Inventory.`
-        : "\n\nNo resource rewards for this release.\nEquipped gear returns to Inventory.";
-    return `Are you sure you want to release this monanimal?${rewardBlock}`;
+function formatReleaseObtainPart(amount, iconKey) {
+    const n = Math.max(0, Math.floor(Number(amount) || 0));
+    if (n <= 0) return "";
+    return `<span class="release-obtain-item inline-currency">+${n}${currencyIcon(iconKey, 18)}</span>`;
+}
+
+function monHasEquippedGear(mon) {
+    const eq = mon?.equipment;
+    if (!eq || typeof eq !== "object") return false;
+    return ["weapon", "armor", "helmet", "boots"].some((slot) => Boolean(eq[slot]));
+}
+
+function formatReleaseSalvageMessage(salvage, mon = null) {
+    const parts = [
+        formatReleaseObtainPart(salvage?.gold, "gold"),
+        formatReleaseObtainPart(salvage?.essence, "essence"),
+        formatReleaseObtainPart(salvage?.shards, "shards"),
+    ].filter(Boolean);
+    const obtainsRow = parts.length
+        ? parts.join(`<span class="release-obtains-sep" aria-hidden="true"> | </span>`)
+        : `<span class="release-obtains-empty">No resource rewards</span>`;
+    const gearNote = monHasEquippedGear(mon)
+        ? `<div class="release-obtains-note">Equipped gear returns to Inventory.</div>`
+        : "";
+    return [
+        `<div class="release-confirm-ask">Are you sure you want to release this monanimal?</div>`,
+        `<div class="release-obtains-label">Release monanimal obtains:</div>`,
+        `<div class="release-obtains-row">${obtainsRow}</div>`,
+        gearNote,
+    ].join("");
 }
 
 function recordRelease(mon, salvage, source = "box") {
@@ -19736,6 +19796,13 @@ function showConfirmModal(message, onConfirm, options = {}) {
     const confirmLabel = options.confirmLabel || "Yes, Release";
     const cancelLabel = options.cancelLabel || "Cancel";
     const title = options.title || "CONFIRM";
+    const bodyHtml = options.html
+        ? String(message || "")
+        : String(message || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\n/g, "<br>");
     const overlay = document.createElement("div");
     overlay.className = "popup-overlay hub-popup-overlay";
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
@@ -19744,7 +19811,7 @@ function showConfirmModal(message, onConfirm, options = {}) {
             <button type="button" class="hub-popup-close-left" aria-label="Close">&times;</button>
             <div class="hub-popup-inner">
                 <h3 class="hub-popup-title">${title}</h3>
-                <p class="hub-popup-sub">${message}</p>
+                <div class="hub-popup-sub">${bodyHtml}</div>
                 <div class="hub-popup-actions hub-popup-actions-split">
                     <button type="button" class="hub-popup-btn hub-popup-btn-danger" id="confirm-yes">${confirmLabel}</button>
                     <button type="button" class="hub-popup-btn hub-popup-btn-muted" id="confirm-no">${cancelLabel}</button>
@@ -19766,11 +19833,11 @@ function releaseFromBox(index) {
     if (!mon) return;
     const instanceId = ensureMonInstanceId(mon);
     const salvage = getReleaseSalvage(mon);
-    showConfirmModal(formatReleaseSalvageMessage(salvage), () => {
+    showConfirmModal(formatReleaseSalvageMessage(salvage, mon), () => {
         const anchorEl = document.querySelector(`#box-content .mon-card[data-box-index="${index}"]`)
             || document.getElementById("box-content");
         void executeMonRelease({ mon, index, source: "box", instanceId, salvage, anchorEl });
-    });
+    }, { html: true, title: "RELEASE", confirmLabel: "Yes, Release" });
 }
 
 async function executeMonRelease({ mon, index, source, instanceId, salvage, anchorEl }) {

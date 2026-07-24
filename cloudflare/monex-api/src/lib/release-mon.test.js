@@ -151,10 +151,19 @@ test("releaseMonFromBox is idempotent when mon already released", async () => {
   assert.equal(result.idempotent, true);
 });
 
-test("getReleaseSalvage refunds level investment partially", () => {
+test("getReleaseSalvage refunds 60% of level investment", () => {
   const salvage = getReleaseSalvage({ name: "Chog", rarity: "Common", level: 3 });
-  assert.ok(salvage.gold > 0);
-  assert.ok(salvage.essence >= 5);
+  // Lv1→2: 50g / 8e; Lv2→3: 100g / 11e → 150g / 19e invested
+  assert.equal(salvage.gold, 90); // floor(150 * 0.6)
+  assert.equal(salvage.essence, 16); // 5 base + floor(19 * 0.6)
+  assert.equal(salvage.shards, 0);
+});
+
+test("getReleaseSalvage includes rarity shards and base essence", () => {
+  const salvage = getReleaseSalvage({ name: "Salmonad", rarity: "Rare", level: 1 });
+  assert.equal(salvage.gold, 0);
+  assert.equal(salvage.essence, 25);
+  assert.equal(salvage.shards, 2);
 });
 
 test("collectReleaseRecoveryKeys includes activity signature", () => {
