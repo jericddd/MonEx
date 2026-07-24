@@ -52,6 +52,19 @@ export const MAX_SAVE_DELTA = {
   adventureGlobalBest: 0,
 };
 
+/**
+ * Max decrease per accepted save PUT for soft currencies.
+ * Logged-in spends go through mutation APIs; a single autosave must not be able
+ * to wipe a whole $MONEX pack grant (e.g. gp_40k = 40_000) after a mobile
+ * client misses applyLoadedSave and later pushes a stale low balance.
+ */
+export const MAX_SAVE_DROP = {
+  money: 20_000,
+  essence: 5_000,
+  monShards: 50,
+  trainerXp: 50_000,
+};
+
 /** Max quest progress increase per save PUT (blocks progress: 9999 forgery). */
 export const MAX_QUEST_PROGRESS_DELTA = 20;
 
@@ -73,7 +86,8 @@ function scalarField(name) {
 }
 
 /**
- * Clamp economy scalars: allow decreases freely; cap increases per save.
+ * Clamp economy scalars: allow modest decreases (legacy/offline spends);
+ * reject catastrophic drops (stale overwrite of server grants); cap increases.
  */
 export function clampEconomyScalars(existing, incoming) {
   const out = { ...incoming };
@@ -81,7 +95,9 @@ export function clampEconomyScalars(existing, incoming) {
     const before = clampInt(existing?.[field] ?? 0, 0, LIMITS[field] || 99_999_999);
     const raw = clampInt(incoming?.[field] ?? before, 0, LIMITS[field] || 99_999_999);
     if (raw <= before) {
-      out[field] = raw;
+      const drop = before - raw;
+      const maxDrop = MAX_SAVE_DROP[field] ?? Number.POSITIVE_INFINITY;
+      out[field] = drop > maxDrop ? before : raw;
       continue;
     }
     const maxDelta = MAX_SAVE_DELTA[field] ?? 0;
