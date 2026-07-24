@@ -4,6 +4,7 @@ import {
   formatCampaignLabel,
   getLeaderboard,
   buildLeaderboard,
+  leaderboardCacheKey,
 } from "./leaderboard.js";
 import { getMonPower, getPartyPower } from "./power-rating.js";
 
@@ -133,7 +134,7 @@ test("leaderboard omits public-hidden test account", async () => {
 
 test("getLeaderboard strips hidden users even from stale cache", async () => {
   const store = {
-    "monex:leaderboard:v4:campaign": JSON.stringify({
+    [leaderboardCacheKey("campaign")]: JSON.stringify({
       ok: true,
       board: "campaign",
       generatedAt: "2026-07-24T00:00:00.000Z",
