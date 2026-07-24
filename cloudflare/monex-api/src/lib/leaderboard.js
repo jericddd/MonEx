@@ -10,13 +10,17 @@ import { getPartyPower } from "./power-rating.js";
 import { isPublicHiddenUsername } from "./public-account-exclusions.js";
 
 const SAVE_PREFIX = "monex:save:";
-const CACHE_PREFIX = "monex:leaderboard:v3:";
+const CACHE_PREFIX = "monex:leaderboard:v4:";
 const CACHE_TTL_SEC = 60 * 30; // 30 minutes
 const MAX_LIMIT = 50;
 const DEFAULT_LIMIT = 25;
 const STAGES_PER_CHAPTER = 40;
 
 export const LEADERBOARD_BOARDS = Object.freeze(["campaign", "power"]);
+
+export function leaderboardCacheKey(board) {
+  return `${CACHE_PREFIX}${board}`;
+}
 
 function clampInt(value, min, max) {
   const n = Math.floor(Number(value));
@@ -43,7 +47,7 @@ export function formatCampaignLabel(adventureGlobalBest) {
 }
 
 function cacheKey(board) {
-  return `${CACHE_PREFIX}${board}`;
+  return leaderboardCacheKey(board);
 }
 
 async function listSaveKeys(kv) {
