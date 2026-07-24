@@ -207,7 +207,8 @@ async function persistMonballQuestChestClaim(
   monballAmount,
   expectedRev,
   startingMonballs,
-  auditSource
+  auditSource,
+  { skipNonMonballGrant = false } = {}
 ) {
   let grantedSave;
   try {
@@ -223,14 +224,19 @@ async function persistMonballQuestChestClaim(
   }
 
   const claimedList = trackKey === "weeklies" ? questState.weeklyClaimedChests : questState.dailyClaimedChests;
+  const nextClaimed = [...new Set([...claimedList, ms])].sort((a, b) => a - b);
   if (trackKey === "weeklies") {
-    questState.weeklyClaimedChests = [...claimedList, ms].sort((a, b) => a - b);
+    questState.weeklyClaimedChests = nextClaimed;
   } else {
-    questState.dailyClaimedChests = [...claimedList, ms].sort((a, b) => a - b);
+    questState.dailyClaimedChests = nextClaimed;
   }
   if (!questState.grantedKeys.includes(grantKey)) questState.grantedKeys.push(grantKey);
 
-  let nextSave = applyGrantToSave(grantedSave, chest.grant);
+  const nonMonballGrant = skipNonMonballGrant
+    ? null
+    : { ...chest.grant, monballs: 0 };
+  let nextSave = applyGrantToSave(grantedSave, nonMonballGrant);
+  // Keep authoritative monball total from the grant step (applyGrantToSave ignores monballs).
   nextSave.questState = questState;
   const paidMap = normalizePaidMap(nextSave);
   paidMap[grantKey] = monballAmount;
@@ -384,7 +390,38 @@ export async function claimQuestChest(kv, session, { track, milestone, expectedR
   const claimedList = trackKey === "weeklies" ? questState.weeklyClaimedChests : questState.dailyClaimedChests;
 
   if (claimedList.includes(ms)) {
-    return { ok: true, alreadyClaimed: true, save };
+    const monballAmountEarly = clampMonballs(chest.grant.monballs || 0);
+    // Standard-norm: already-claimed must still pay unpaid monballs (no silent zero).
+    if (
+      monballAmountEarly > 0
+      && !isMonballQuestFullyPaid(save, grantKey, monballAmountEarly)
+    ) {
+      const monballResult = await persistMonballQuestChestClaim(
+        kv,
+        session,
+        save,
+        questState,
+        trackKey,
+        ms,
+        chest,
+        grantKey,
+        monballAmountEarly,
+        expectedRev,
+        startingMonballs,
+        "quest_chest_claim",
+        { skipNonMonballGrant: true }
+      );
+      if (!monballResult.ok) return monballResult;
+      return {
+        ok: true,
+        grantKey,
+        grant: chest.grant,
+        save: monballResult.save,
+        alreadyClaimed: false,
+        repaired: true,
+      };
+    }
+    return { ok: true, alreadyClaimed: true, save, grantKey, grant: chest.grant };
   }
 
   const monballAmount = clampMonballs(chest.grant.monballs || 0);

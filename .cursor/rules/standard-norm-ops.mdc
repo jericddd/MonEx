@@ -27,6 +27,14 @@ Use `accountCompensationsApplied` exactly like existing campaign/patrol comps:
 
 Call `MonExAuth.cancelPendingCloudSave()` so stale autosaves cannot overwrite the grant (same as release / battle / quest).
 
+## Quest milestone chests (daily + weekly)
+
+- Claims go only through `POST /api/quest/claim-chest` / `claimQuestChest`.
+- Persist **claimed list + grant key + monball paid receipt** together.
+- Save PUT must **preserve existing period claim markers** (do not wipe `weeklyClaimedChests` / `dailyClaimedChests` via stale client).
+- Scrub period-scoped `questMonballPaidAmounts` on daily/weekly reset so 60-pt monball chests can pay again next period.
+- `alreadyClaimed` responses must still repair unpaid monballs — never silent zero.
+
 ## Save PUT economy
 
 Soft currencies are mutation-API authoritative for gains. Catastrophic drops on full-save PUT (stale mobile overwrite of a pack grant) must be blocked — see `MAX_SAVE_DROP` in `save-economy-guard.js`.
@@ -36,7 +44,7 @@ Soft currencies are mutation-API authoritative for gains. Catastrophic drops on 
 - [ ] Compensation ids ≤ 64 and `{ amount, at }` only
 - [ ] Idempotent if script/endpoint is re-run
 - [ ] No second save system; apply server save after grants
-- [ ] Stale autosave cannot undo the grant
+- [ ] Stale autosave cannot undo the grant **or** quest milestone claim markers
 - [ ] `npm test` in `cloudflare/monex-api` for touched libs
 
 ## One-line summary

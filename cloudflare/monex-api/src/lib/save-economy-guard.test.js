@@ -58,6 +58,34 @@ test("allows economy decreases (spends)", () => {
   assert.equal(out.money, 3000);
 });
 
+test("preserves weekly milestone claims against stale client PUT without grant keys", () => {
+  const existing = {
+    questState: {
+      ...currentQuestKeys(),
+      weeklyPoints: 70,
+      weeklyClaimedChests: [20, 40, 60],
+      dailyClaimedChests: [],
+      grantedKeys: [],
+      tasks: { dailies: [], weeklies: [], campaign: [] },
+    },
+  };
+  const incoming = {
+    questState: {
+      ...currentQuestKeys(),
+      weeklyPoints: 70,
+      weeklyClaimedChests: [],
+      dailyClaimedChests: [],
+      grantedKeys: [],
+      tasks: { dailies: [], weeklies: [], campaign: [] },
+    },
+  };
+  const out = reconcileAtTestNow(existing, incoming);
+  assert.deepEqual(out.questState.weeklyClaimedChests, [20, 40, 60]);
+  assert.ok(out.questState.grantedKeys.includes("chest:weeklies:60"));
+  assert.ok(out.questState.grantedKeys.includes("chest:weeklies:20"));
+  assert.ok(out.questState.grantedKeys.includes("chest:weeklies:40"));
+});
+
 test("blocks catastrophic money drop that would wipe a gold pack grant", () => {
   const existing = { money: 41_578, essence: 4453, monShards: 5, trainerXp: 200 };
   const incoming = { money: 1_578, essence: 4453, monShards: 5, trainerXp: 200 };
