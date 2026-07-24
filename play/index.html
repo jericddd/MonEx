@@ -505,6 +505,7 @@ button.green:hover {
 #modal-profile .game-modal-panel,
 #modal-daily-quest .game-modal-panel,
 #modal-mailbox .game-modal-panel,
+#modal-ranking .game-modal-panel,
 #modal-party-switch .game-modal-panel {
     width: min(920px, 96vw);
     max-width: min(920px, 96vw);
@@ -526,6 +527,7 @@ button.green:hover {
 #modal-profile .game-modal-header,
 #modal-daily-quest .game-modal-header,
 #modal-mailbox .game-modal-header,
+#modal-ranking .game-modal-header,
 #modal-party-switch .game-modal-header {
     display: none;
 }
@@ -537,6 +539,7 @@ button.green:hover {
 #modal-profile .game-modal-body,
 #modal-daily-quest .game-modal-body,
 #modal-mailbox .game-modal-body,
+#modal-ranking .game-modal-body,
 #modal-party-switch .game-modal-body {
     padding: 0;
 }
@@ -1989,6 +1992,64 @@ button.green:hover {
     opacity: 0.7;
     cursor: wait;
     pointer-events: none;
+}
+.ranking-hub-content {
+    padding: 8px 10px 14px;
+    min-height: 280px;
+}
+.ranking-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.ranking-tab-btn {
+    flex: 1;
+    border: 2px solid #6B21A8;
+    background: #fff;
+    color: #4c1d95;
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 9px;
+    padding: 10px 8px;
+    cursor: pointer;
+}
+.ranking-tab-btn.active {
+    background: #6B21A8;
+    color: #fff;
+}
+.ranking-note {
+    margin: 0 0 10px;
+    font-size: 11px;
+    color: #555;
+    line-height: 1.45;
+}
+.ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+.ranking-table th,
+.ranking-table td {
+    border-bottom: 1px solid #e9d5ff;
+    padding: 8px 6px;
+    text-align: left;
+}
+.ranking-table th {
+    font-family: "Press Start 2P", sans-serif;
+    font-size: 8px;
+    color: #6B21A8;
+}
+.ranking-table .rank-col { width: 44px; }
+.ranking-table .score-col { text-align: right; white-space: nowrap; }
+.ranking-empty {
+    margin: 28px 8px;
+    text-align: center;
+    color: #666;
+    font-size: 12px;
+}
+.ranking-status {
+    margin: 0 0 8px;
+    font-size: 10px;
+    color: #888;
 }
 .quest-advance-btn.loading,
 .quest-chest-btn.loading,
@@ -8270,6 +8331,10 @@ body.cloud-load-blocked .game-shell {
             <img src="game_icons/button%20tabs/catch.png?v=5" alt="">
             <span class="rail-tip">CATCH ON X</span>
         </button>
+        <button type="button" class="side-icon-btn" id="rail-ranking" onclick="openGameModal('ranking')">
+            <img src="game_icons/button%20tabs/ranking.png?v=1" alt="">
+            <span class="rail-tip">RANKING</span>
+        </button>
     </nav>
     </div>
     </div>
@@ -8460,6 +8525,30 @@ body.cloud-load-blocked .game-shell {
     </div>
 </div>
 
+<!-- Ranking modal -->
+<div id="modal-ranking" class="game-modal" onclick="if(event.target===this)closeGameModal('ranking')">
+    <div class="game-modal-panel game-modal-wide" onclick="event.stopPropagation()">
+        <div class="game-modal-header">
+            <h2>RANKING</h2>
+            <button type="button" class="game-modal-close" onclick="closeGameModal('ranking')">×</button>
+        </div>
+        <div class="game-modal-body">
+            <div class="hub-frame">
+                <button type="button" class="hub-close-btn" onclick="closeGameModal('ranking')" aria-label="Close ranking">×</button>
+                <div class="ranking-hub-content hub-scrollbar-panel">
+                    <div class="ranking-tabs" role="tablist" aria-label="Ranking boards">
+                        <button type="button" class="ranking-tab-btn active" id="ranking-tab-campaign" onclick="setRankingBoard('campaign')">CAMPAIGN</button>
+                        <button type="button" class="ranking-tab-btn" id="ranking-tab-power" onclick="setRankingBoard('power')">POWER</button>
+                    </div>
+                    <p class="ranking-note" id="ranking-note">Highest campaign progress leads the board.</p>
+                    <p class="ranking-status" id="ranking-status">Loading…</p>
+                    <div id="ranking-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Profile modal -->
 <div id="modal-profile" class="game-modal" onclick="if(event.target===this)closeGameModal('profile')">
     <div class="game-modal-panel game-modal-wide" onclick="event.stopPropagation()">
@@ -8557,6 +8646,7 @@ body.cloud-load-blocked .game-shell {
 <script src="js/game-session-client.js?v=20260710a"></script>
 <script src="js/claim-guard.js?v=20260713a"></script>
 <script src="js/quest-client.js?v=20260715c"></script>
+<script src="js/leaderboard-client.js?v=20260724a"></script>
 <script src="js/shop-client.js?v=20260723a"></script>
 <script src="js/wallet-client.js?v=20260723b"></script>
 <script src="js/mon-upgrade-client.js?v=20260718a"></script>
@@ -20167,6 +20257,77 @@ function renderMailbox() {
     }).join("");
 }
 
+let rankingActiveBoard = "campaign";
+let rankingLoadToken = 0;
+
+function setRankingBoard(board) {
+    rankingActiveBoard = board === "power" ? "power" : "campaign";
+    document.getElementById("ranking-tab-campaign")?.classList.toggle("active", rankingActiveBoard === "campaign");
+    document.getElementById("ranking-tab-power")?.classList.toggle("active", rankingActiveBoard === "power");
+    const note = document.getElementById("ranking-note");
+    if (note) {
+        note.textContent = rankingActiveBoard === "power"
+            ? "Power (preview): party combat score from cloud saves. Full gear-aware ranking comes later."
+            : "Campaign: highest adventure progress leads the board.";
+    }
+    renderRankingBoard();
+}
+
+async function renderRankingBoard() {
+    const content = document.getElementById("ranking-content");
+    const status = document.getElementById("ranking-status");
+    if (!content) return;
+    const token = ++rankingLoadToken;
+    const board = rankingActiveBoard;
+    if (status) status.textContent = "Loading…";
+    content.innerHTML = '<p class="ranking-empty">Loading rankings…</p>';
+
+    if (typeof MonExLeaderboard === "undefined" || !MonExLeaderboard.fetchLeaderboard) {
+        if (status) status.textContent = "Ranking offline";
+        content.innerHTML = '<p class="ranking-empty">Ranking client unavailable. Refresh and try again.</p>';
+        return;
+    }
+
+    const result = await MonExLeaderboard.fetchLeaderboard(board, { limit: 25 });
+    if (token !== rankingLoadToken) return;
+    if (!result.ok) {
+        if (status) status.textContent = "Could not load";
+        content.innerHTML = '<p class="ranking-empty">Could not load rankings. Try again shortly.</p>';
+        return;
+    }
+    if (status) {
+        status.textContent = result.preview
+            ? "Power preview · updates about every minute"
+            : "Live from cloud saves · updates about every minute";
+    }
+    const entries = result.entries || [];
+    if (!entries.length) {
+        content.innerHTML = '<p class="ranking-empty">No ranked trainers yet. Clear stages and train your party!</p>';
+        return;
+    }
+    const esc = typeof escapeHtml === "function" ? escapeHtml : (v) => String(v ?? "");
+    const scoreHeader = board === "power" ? "POWER" : "PROGRESS";
+    content.innerHTML = `
+        <table class="ranking-table" aria-label="${board} leaderboard">
+            <thead>
+                <tr>
+                    <th class="rank-col">#</th>
+                    <th>TRAINER</th>
+                    <th class="score-col">${scoreHeader}</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${entries.map((row) => `
+                    <tr>
+                        <td class="rank-col">${esc(row.rank)}</td>
+                        <td>@${esc(row.username)}</td>
+                        <td class="score-col">${esc(row.label || row.score)}</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>`;
+}
+
 const mailboxClaimInFlight = new Set();
 
 async function claimMailboxReward(mailId, buttonEl) {
@@ -20240,6 +20401,7 @@ const RAIL_TAB_BY_MODAL = {
     party: "rail-party",
     box: "rail-box",
     inventory: "rail-inventory",
+    ranking: "rail-ranking",
 };
 
 function clearActiveRailTabs() {
@@ -20315,6 +20477,7 @@ function openGameModal(name) {
         renderDailyQuest();
     }
     if (name === "mailbox") renderMailbox();
+    if (name === "ranking") renderRankingBoard();
     syncActiveRailTab();
 }
 

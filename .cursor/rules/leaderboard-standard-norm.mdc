@@ -1,0 +1,39 @@
+# Leaderboards standard-norm (FROZEN)
+
+There was **no** prior leaderboard system. New rankings must follow this norm so boards cannot be client-forged and stay aligned with save integrity.
+
+## Source of truth
+
+| Board | Score | Source |
+|-------|-------|--------|
+| Campaign | `adventureGlobalBest` (global stage index) | Cloud save only |
+| Power | Sum of party combat score (preview) | Cloud save party only |
+
+- Rankings are **server-built from cloud saves** — never trust client-submitted scores.
+- Display handle from `xHandle` / catch username — never invent identities.
+- Ties break by higher score first, then earlier `updatedAt`, then username.
+
+## API
+
+- Public read: `GET /api/leaderboard?board=campaign|power&limit=1..50`
+- Response: `{ ok, board, generatedAt, entries: [{ rank, username, score, label }] }`
+- Cache snapshot in KV (`monex:leaderboard:v1:{board}`) with short TTL — do not scan every request forever.
+- Rate-limit like other public list endpoints.
+
+## Product rules
+
+1. **Campaign board is live** — highest `adventureGlobalBest` on top; label as `Ch.X Stage Y`.
+2. **Power board may be preview** until full gear-aware power is product-frozen — label UI as Power (preview) when approximate.
+3. Boards must not expose private economy (gold, monballs, wallet, mailbox).
+4. Excluded / empty handles are skipped.
+5. Client UIs (`/play` Ranking modal, homepage) only **display** API results — no local fake ranks for logged-in competition.
+
+## Save integrity
+
+- Do not write rankings into user saves.
+- Do not let full-save PUT invent `adventureGlobalBest` (already capped by economy guard).
+- Rebuilding the board must read current cloud saves, not a second parallel progression system.
+
+## One-line summary
+
+**Cloud save scores only; public read API; campaign = adventureGlobalBest; power = server-computed party score (preview until frozen).**
