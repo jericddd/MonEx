@@ -13,8 +13,8 @@ function getMonexApiBase() {
     return MONEX_API_PRODUCTION;
 }
 
-/** Hidden from home X Wild Log (global feed only). */
-const HIDDEN_WILD_LOG_USERS = new Set(["yesdraken_"]);
+/** Hidden from home X Wild Log (global feed only). Keep in sync with server public-account-exclusions. */
+const HIDDEN_WILD_LOG_USERS = new Set(["test", "yesdraken_"]);
 
 function isHiddenWildLogUser(username) {
     return HIDDEN_WILD_LOG_USERS.has(String(username || "").toLowerCase().replace(/^@/, ""));

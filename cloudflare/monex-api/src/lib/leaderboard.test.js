@@ -109,6 +109,28 @@ test("power leaderboard ranks by frozen party power", async () => {
   assert.ok(result.entries[0].score > getMonPower(weakParty[0]));
 });
 
+test("leaderboard omits public-hidden test account", async () => {
+  const store = {
+    "monex:save:1": JSON.stringify({
+      xHandle: "test",
+      adventureGlobalBest: 999,
+      party: [sampleMon({ level: 80, rarity: "Mythic" })],
+      updatedAt: "2026-07-24T00:00:00.000Z",
+    }),
+    "monex:save:2": JSON.stringify({
+      xHandle: "alice",
+      adventureGlobalBest: 10,
+      party: [sampleMon()],
+      updatedAt: "2026-07-24T00:00:00.000Z",
+    }),
+  };
+  const campaign = await buildLeaderboard(makeKv(store), "campaign", { limit: 10 });
+  assert.equal(campaign.entries.length, 1);
+  assert.equal(campaign.entries[0].username, "alice");
+  const power = await buildLeaderboard(makeKv(store), "power", { limit: 10 });
+  assert.equal(power.entries.every((e) => e.username !== "test"), true);
+});
+
 test("getLeaderboard rejects invalid board", async () => {
   const result = await getLeaderboard(makeKv({}), "nope");
   assert.equal(result.ok, false);
