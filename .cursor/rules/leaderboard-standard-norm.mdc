@@ -7,7 +7,7 @@ There was **no** prior leaderboard system. New rankings must follow this norm so
 | Board | Score | Source |
 |-------|-------|--------|
 | Campaign | `adventureGlobalBest` (global stage index) | Cloud save only |
-| Power | Sum of party combat score (preview) | Cloud save party only |
+| Power | Sum of party Mons’ **frozen** `getMonPower` (see power-rating standard-norm) | Cloud save party only |
 
 - Rankings are **server-built from cloud saves** — never trust client-submitted scores.
 - Display handle from `xHandle` / catch username — never invent identities.
@@ -23,7 +23,7 @@ There was **no** prior leaderboard system. New rankings must follow this norm so
 ## Product rules
 
 1. **Campaign board is live** — highest `adventureGlobalBest` on top; label as `Ch.X Stage Y`.
-2. **Power board may be preview** until full gear-aware power is product-frozen — label UI as Power (preview) when approximate.
+2. **Power board uses the frozen power-rating formula** — same weights as client `getMonPower`. Until server/client are both wired, temporary “preview” UI copy is allowed; remove it once matched.
 3. Boards must not expose private economy (gold, monballs, wallet, mailbox).
 4. Excluded / empty handles are skipped.
 5. Client UIs (`/play` Ranking modal, homepage) only **display** API results — no local fake ranks for logged-in competition.
@@ -36,4 +36,4 @@ There was **no** prior leaderboard system. New rankings must follow this norm so
 
 ## One-line summary
 
-**Cloud save scores only; public read API; campaign = adventureGlobalBest; power = server-computed party score (preview until frozen).**
+**Cloud save scores only; public read API; campaign = adventureGlobalBest; power = sum of frozen per-Mon power rating.**
