@@ -23,7 +23,7 @@ There was **no** prior leaderboard system. New rankings must follow this norm so
 ## Product rules
 
 1. **Campaign board is live** — highest `adventureGlobalBest` on top; label as `Ch.X Stage Y`.
-2. **Power board uses the frozen power-rating formula** — same weights as client `getMonPower`. Until server/client are both wired, temporary “preview” UI copy is allowed; remove it once matched.
+2. **Power board uses the frozen power-rating formula** — same weights as client `getMonPower`. No preview / approximate boards.
 3. Boards must not expose private economy (gold, monballs, wallet, mailbox).
 4. Excluded / empty handles are skipped.
 5. Client UIs (`/play` Ranking modal, homepage) only **display** API results — no local fake ranks for logged-in competition.

@@ -1,5 +1,5 @@
 /**
- * Public leaderboard client (campaign + power preview).
+ * Public leaderboard client (campaign + frozen power rating).
  */
 (function () {
   function apiBase() {
