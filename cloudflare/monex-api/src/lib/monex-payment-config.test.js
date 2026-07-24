@@ -25,7 +25,7 @@ test("monexPriceToWei converts whole tokens to exact wei", () => {
 });
 
 test("normalize helpers reject malformed inputs", () => {
-  assert.equal(normalizeAddress("0x449AeAc701C33D86e7533ef4b3c6DdBf76981667"), "0x449aeac701c33d86e7533ef4b3c6ddbf76981667");
+  assert.equal(normalizeAddress("0x6C24509a1fD993C5372620923223a69Fd17AA2F2"), "0x6c24509a1fd993c5372620923223a69fd17aa2f2");
   assert.equal(normalizeAddress("not-an-address"), null);
   assert.equal(normalizeTxHash("0x" + "ab".repeat(32)), "0x" + "ab".repeat(32));
   assert.equal(normalizeTxHash("0x1234"), null);
