@@ -9,7 +9,7 @@ const GEAR_SLOTS = ["weapon", "armor", "helmet", "boots"];
 
 const RELEASE_SHARD_REWARD = { Common: 0, Uncommon: 1, Rare: 2, Legendary: 4, Mythic: 0 };
 const RELEASE_ONION_BASE = { Common: 5, Uncommon: 12, Rare: 25, Legendary: 50, Mythic: 0 };
-const RELEASE_LEVEL_REFUND_RATE = 0.8;
+const RELEASE_LEVEL_REFUND_RATE = 0.6;
 
 function getCumulativeLevelInvestment(level) {
   const lv = Math.max(1, Math.floor(level || 1));
