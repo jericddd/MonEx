@@ -43,8 +43,8 @@ Party / trainer power for leaderboards = **sum** of each party Mon’s power (em
 ## Product rules
 
 1. **One function** — client `getMonPower(mon)` and server leaderboard scorer must match this formula bit-for-bit (shared constants).
-2. **Display** — show power on each Mon card as a computed `PWR` value; tooltip may break down pillars later, but the headline number is this formula only.
-3. **Leaderboard** — power board uses this formula only; drop “preview” labeling once server + client are wired.
+2. **Display** — show power on each Mon card chrome as computed `PWR` (between house badge and combat `i`); tooltip may break down pillars later, but the headline number is this formula only.
+3. **Leaderboard** — power board uses this formula only.
 4. **No save field** — never persist `power` / `monPower` on the save blob; recompute on read.
 5. **No forging** — public rankings stay server-built from cloud saves (see leaderboard standard-norm).
 

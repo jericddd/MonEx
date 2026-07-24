@@ -1,12 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  estimateMonPowerPreview,
-  estimatePartyPowerPreview,
   formatCampaignLabel,
   getLeaderboard,
   buildLeaderboard,
 } from "./leaderboard.js";
+import { getMonPower, getPartyPower } from "./power-rating.js";
 
 function makeKv(store = {}) {
   return {
@@ -25,6 +24,18 @@ function makeKv(store = {}) {
   };
 }
 
+function sampleMon(overrides = {}) {
+  return {
+    level: 10,
+    rarity: "Common",
+    ascensionStars: 0,
+    stats: { spd: 90, crit: 22, dodge: 22, block: 22, hit: 22, pierce: 22 },
+    skills: [{ name: "u" }, { name: "p" }, { name: "a" }, { name: "b" }],
+    equipment: {},
+    ...overrides,
+  };
+}
+
 test("formatCampaignLabel maps global best to chapter/stage", () => {
   assert.equal(formatCampaignLabel(0), "Ch.1 Stage 0");
   assert.equal(formatCampaignLabel(1), "Ch.1 Stage 1");
@@ -32,40 +43,24 @@ test("formatCampaignLabel maps global best to chapter/stage", () => {
   assert.equal(formatCampaignLabel(41), "Ch.2 Stage 1");
 });
 
-test("estimateMonPowerPreview grows with level and rarity", () => {
-  const common = estimateMonPowerPreview({ name: "Chog", level: 10, rarity: "Common" });
-  const mythic = estimateMonPowerPreview({ name: "Chog", level: 10, rarity: "Mythic" });
-  assert.ok(mythic > common);
-  assert.ok(common > 0);
-});
-
-test("estimatePartyPowerPreview sums party only", () => {
-  const party = [
-    { name: "A", level: 5, rarity: "Common" },
-    { name: "B", level: 5, rarity: "Common" },
-  ];
-  assert.equal(estimatePartyPowerPreview(party), estimateMonPowerPreview(party[0]) * 2);
-  assert.equal(estimatePartyPowerPreview([]), 0);
-});
-
 test("campaign leaderboard ranks by adventureGlobalBest", async () => {
   const store = {
     "monex:save:1": JSON.stringify({
       xHandle: "alice",
       adventureGlobalBest: 12,
-      party: [{ level: 1, rarity: "Common" }],
+      party: [sampleMon()],
       updatedAt: "2026-07-24T00:00:00.000Z",
     }),
     "monex:save:2": JSON.stringify({
       xHandle: "bob",
       adventureGlobalBest: 45,
-      party: [{ level: 1, rarity: "Common" }],
+      party: [sampleMon()],
       updatedAt: "2026-07-24T00:00:00.000Z",
     }),
     "monex:save:3": JSON.stringify({
       xHandle: "cara",
       adventureGlobalBest: 45,
-      party: [{ level: 1, rarity: "Common" }],
+      party: [sampleMon()],
       updatedAt: "2026-07-24T01:00:00.000Z",
     }),
   };
@@ -79,29 +74,39 @@ test("campaign leaderboard ranks by adventureGlobalBest", async () => {
   assert.equal(result.entries[2].username, "alice");
 });
 
-test("power leaderboard ranks by party preview score", async () => {
+test("power leaderboard ranks by frozen party power", async () => {
+  const weakParty = [sampleMon({ level: 2 })];
+  const strongParty = [
+    sampleMon({
+      level: 40,
+      rarity: "Mythic",
+      ascensionStars: 3,
+      stats: { spd: 140, crit: 70, dodge: 60, block: 60, hit: 60, pierce: 70 },
+      skills: Array.from({ length: 9 }, (_, i) => ({ name: `s${i}` })),
+      equipment: { weapon: { bonuses: { atk: 40 } }, armor: { bonuses: { hp: 200 } } },
+    }),
+  ];
   const store = {
     "monex:save:1": JSON.stringify({
       xHandle: "weak",
       adventureGlobalBest: 99,
-      party: [{ level: 2, rarity: "Common" }],
+      party: weakParty,
       updatedAt: "2026-07-24T00:00:00.000Z",
     }),
     "monex:save:2": JSON.stringify({
       xHandle: "strong",
       adventureGlobalBest: 1,
-      party: [
-        { level: 20, rarity: "Mythic", ascensionStars: 2 },
-        { level: 18, rarity: "Legendary" },
-      ],
+      party: strongParty,
       updatedAt: "2026-07-24T00:00:00.000Z",
     }),
   };
   const result = await getLeaderboard(makeKv(store), "power", { limit: 5, bypassCache: true });
   assert.equal(result.ok, true);
-  assert.equal(result.preview, true);
+  assert.equal(result.preview, false);
   assert.equal(result.entries[0].username, "strong");
+  assert.equal(result.entries[0].score, getPartyPower(strongParty));
   assert.ok(result.entries[0].score > result.entries[1].score);
+  assert.ok(result.entries[0].score > getMonPower(weakParty[0]));
 });
 
 test("getLeaderboard rejects invalid board", async () => {

@@ -3,32 +3,17 @@
  *
  * Boards:
  * - campaign: adventureGlobalBest
- * - power: approximate party combat score (preview until full power is product-frozen)
+ * - power: sum of frozen per-Mon power rating (power-rating standard-norm)
  */
 
+import { getPartyPower } from "./power-rating.js";
+
 const SAVE_PREFIX = "monex:save:";
-const CACHE_PREFIX = "monex:leaderboard:v1:";
+const CACHE_PREFIX = "monex:leaderboard:v2:";
 const CACHE_TTL_SEC = 60;
 const MAX_LIMIT = 50;
 const DEFAULT_LIMIT = 25;
 const STAGES_PER_CHAPTER = 40;
-const HERO_ASCENSION_STAT_BONUS_PCT = 0.05;
-
-const RARITY_ATK_BONUS = Object.freeze({
-  Common: 0,
-  Uncommon: 8,
-  Rare: 15,
-  Legendary: 28,
-  Mythic: 28,
-});
-
-const RARITY_HP_BONUS = Object.freeze({
-  Common: 0,
-  Uncommon: 22,
-  Rare: 52,
-  Legendary: 105,
-  Mythic: 165,
-});
 
 export const LEADERBOARD_BOARDS = Object.freeze(["campaign", "power"]);
 
@@ -46,48 +31,6 @@ function cleanUsername(raw) {
     .slice(0, 32);
   if (!s || s === "trainer" || s === "unknown") return null;
   return s;
-}
-
-function getBaseAtk(level, rarity) {
-  let atk = Math.floor(level * 4.2) + 14;
-  atk += RARITY_ATK_BONUS[rarity] || 0;
-  return atk;
-}
-
-function getMaxHP(level, rarity) {
-  return Math.floor(120 + level * 46 + (RARITY_HP_BONUS[rarity] || 0));
-}
-
-function gearBonusSum(mon, key) {
-  const eq = mon?.equipment;
-  if (!eq || typeof eq !== "object") return 0;
-  let total = 0;
-  for (const slot of Object.keys(eq)) {
-    const gear = eq[slot];
-    const val = gear?.bonuses?.[key];
-    if (Number.isFinite(Number(val))) total += Math.floor(Number(val));
-  }
-  return total;
-}
-
-/**
- * Preview party power — mirrors play getMonPower shape with a simplified
- * ATK+HP core (spd/crit/… omitted until a frozen server power formula lands).
- */
-export function estimateMonPowerPreview(mon) {
-  if (!mon || typeof mon !== "object") return 0;
-  const level = Math.max(1, Math.floor(Number(mon.level) || 1));
-  const rarity = String(mon.rarity || "Common");
-  const ascStars = Math.max(0, Math.floor(Number(mon.ascensionStars) || 0));
-  const ascMult = 1 + ascStars * HERO_ASCENSION_STAT_BONUS_PCT;
-  const atk = Math.round((getBaseAtk(level, rarity) + gearBonusSum(mon, "atk")) * ascMult);
-  const hp = Math.round((getMaxHP(level, rarity) + gearBonusSum(mon, "hp")) * ascMult);
-  return Math.max(0, atk + hp);
-}
-
-export function estimatePartyPowerPreview(party) {
-  if (!Array.isArray(party)) return 0;
-  return party.reduce((sum, mon) => sum + estimateMonPowerPreview(mon), 0);
 }
 
 export function formatCampaignLabel(adventureGlobalBest) {
@@ -123,11 +66,10 @@ function scoreSave(board, save) {
       label: formatCampaignLabel(score),
     };
   }
-  const score = estimatePartyPowerPreview(save?.party);
+  const score = getPartyPower(save?.party);
   return {
     score,
     label: `${score.toLocaleString()} PWR`,
-    preview: true,
   };
 }
 
@@ -163,7 +105,6 @@ export async function buildLeaderboard(kv, board, { limit = DEFAULT_LIMIT } = {}
       username,
       score: scored.score,
       label: scored.label,
-      preview: scored.preview === true,
       updatedAt: save?.updatedAt || null,
     });
   }
@@ -174,14 +115,13 @@ export async function buildLeaderboard(kv, board, { limit = DEFAULT_LIMIT } = {}
     username: row.username,
     score: row.score,
     label: row.label,
-    ...(row.preview ? { preview: true } : {}),
   }));
 
   return {
     ok: true,
     board: boardId,
     generatedAt: new Date().toISOString(),
-    preview: boardId === "power",
+    preview: false,
     entries,
   };
 }

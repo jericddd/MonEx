@@ -955,9 +955,33 @@ button.green:hover {
     min-width: 24px;
     min-height: 24px;
 }
+.mon-card-chrome-power {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    font-family: "Press Start 2P", monospace;
+    font-size: 7px;
+    line-height: 1.2;
+    color: #6B21A8;
+    letter-spacing: 0.02em;
+    text-align: center;
+    white-space: nowrap;
+    padding: 0 4px;
+}
+.mon-card-chrome-power .pwr-label {
+    color: #7c3aed;
+    margin-right: 4px;
+}
+.mon-card-chrome-power .pwr-value {
+    color: #3d1a08;
+    font-weight: normal;
+}
 .mon-card-chrome-info {
     flex: 0 0 auto;
-    margin-left: auto;
+    margin-left: 0;
     display: flex;
     align-items: center;
     min-height: 24px;
@@ -12723,10 +12747,36 @@ function getRarityRank(rarity) {
     return i >= 0 ? i : -1;
 }
 
+const POWER_RATING_WEIGHTS = Object.freeze({
+    atk: 5,
+    hp: 0.4,
+    spd: 2.5,
+    secondary: 3,
+    skill: 45,
+    ascension: 35,
+});
+
+function countUnlockedSkillsForPower(mon) {
+    if (!Array.isArray(mon?.skills)) return 0;
+    return mon.skills.filter((s) => s && (s.name || s.type)).length;
+}
+
 function getMonPower(mon) {
     ensureMonReady(mon);
     const eff = getEffectiveStats(mon);
-    return eff.atk + mon.max_hp + eff.spd + eff.crit + eff.dodge + eff.block + eff.hit + eff.pierce;
+    const hp = mon.max_hp || 0;
+    const secondary = (eff.crit || 0) + (eff.dodge || 0) + (eff.block || 0) + (eff.hit || 0) + (eff.pierce || 0);
+    const unlockedSkills = countUnlockedSkillsForPower(mon);
+    const ascensionStars = Math.max(0, Math.floor(mon.ascensionStars || 0));
+    const w = POWER_RATING_WEIGHTS;
+    return Math.max(0, Math.floor(
+        (eff.atk || 0) * w.atk
+        + hp * w.hp
+        + (eff.spd || 0) * w.spd
+        + secondary * w.secondary
+        + unlockedSkills * w.skill
+        + ascensionStars * w.ascension
+    ));
 }
 
 function getGearPower(gear) {
@@ -17643,6 +17693,7 @@ function renderMonCardInner(mon, index, location) {
     return `
     <div class="mon-card-chrome">
         <div class="mon-card-chrome-house">${renderHouseBadge(mon, location)}</div>
+        <div class="mon-card-chrome-power" title="Combat power rating"><span class="pwr-label">PWR</span><span class="pwr-value">${getMonPower(mon).toLocaleString()}</span></div>
         <div class="mon-card-chrome-info">${renderStatsInfo(mon)}</div>
     </div>
     <div class="mon-card-top">
@@ -20267,7 +20318,7 @@ function setRankingBoard(board) {
     const note = document.getElementById("ranking-note");
     if (note) {
         note.textContent = rankingActiveBoard === "power"
-            ? "Power (preview): party combat score from cloud saves. Full gear-aware ranking comes later."
+            ? "Power: frozen party combat rating (ATK, HP-damped, stats, skills, ascension, gear)."
             : "Campaign: highest adventure progress leads the board.";
     }
     renderRankingBoard();
@@ -20296,9 +20347,7 @@ async function renderRankingBoard() {
         return;
     }
     if (status) {
-        status.textContent = result.preview
-            ? "Power preview · updates about every minute"
-            : "Live from cloud saves · updates about every minute";
+        status.textContent = "Live from cloud saves · updates about every minute";
     }
     const entries = result.entries || [];
     if (!entries.length) {

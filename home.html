@@ -824,14 +824,14 @@
     <div class="home-rankings-header">
         <div>
             <h2>RANKINGS</h2>
-            <p class="home-rankings-sub">Cloud-save leaderboards · Campaign stage + party power preview</p>
+            <p class="home-rankings-sub">Cloud-save leaderboards · Campaign stage + party power rating</p>
         </div>
         <div class="home-rankings-tabs" role="tablist">
             <button type="button" class="home-rankings-tab is-active" id="home-rankings-tab-campaign" data-board="campaign" onclick="setHomeRankingsBoard('campaign')">Campaign</button>
             <button type="button" class="home-rankings-tab" id="home-rankings-tab-power" data-board="power" onclick="setHomeRankingsBoard('power')">Power</button>
         </div>
     </div>
-    <p class="home-rankings-note" id="home-rankings-note">Campaign uses highest cleared adventure stage. Power is a temporary party ATK+HP preview until full gear power ranking ships.</p>
+    <p class="home-rankings-note" id="home-rankings-note">Campaign uses highest cleared adventure stage. Power uses the frozen party combat rating (stats, skills, gear, ascension).</p>
     <div class="home-rankings-body" id="home-rankings-body">
         <p class="home-rankings-empty">Loading rankings…</p>
     </div>
@@ -1202,7 +1202,7 @@ function setHomeRankingsBoard(board) {
     const note = document.getElementById("home-rankings-note");
     if (note) {
         note.textContent = homeRankingsBoard === "power"
-            ? "Power is a temporary party ATK+HP preview until full gear power ranking ships."
+            ? "Power uses the frozen party combat rating (stats, skills, gear, ascension)."
             : "Campaign uses highest cleared adventure stage from cloud saves.";
     }
     loadHomeRankings();
