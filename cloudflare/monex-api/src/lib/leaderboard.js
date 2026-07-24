@@ -10,7 +10,7 @@ import { getPartyPower } from "./power-rating.js";
 
 const SAVE_PREFIX = "monex:save:";
 const CACHE_PREFIX = "monex:leaderboard:v2:";
-const CACHE_TTL_SEC = 60;
+const CACHE_TTL_SEC = 60 * 30; // 30 minutes
 const MAX_LIMIT = 50;
 const DEFAULT_LIMIT = 25;
 const STAGES_PER_CHAPTER = 40;
