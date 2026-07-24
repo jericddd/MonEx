@@ -508,3 +508,210 @@ test("claimQuestChest ignores stale paid receipt without current-period claim ma
   assert.equal(result.save.money, 1150);
   assert.ok(result.save.questState.dailyClaimedChests.includes(60));
 });
+test("claimQuestChest weekly 60 grants 4 monballs + 700 gold", async () => {
+  const now = new Date();
+  const store = {
+    "monex:state": JSON.stringify({ processedTweetIds: [], users: {} }),
+    "monex:save:u1": JSON.stringify({
+      revision: 2,
+      money: 1000,
+      essence: 0,
+      monShards: 0,
+      trainerXp: 0,
+      monballs: 2,
+      party: [],
+      box: [],
+      questState: {
+        dailyResetKey: getDailyDayKey(now),
+        weeklyResetKey: getDailyWeekKey(now),
+        grantedKeys: [],
+        dailyPoints: 0,
+        weeklyPoints: 65,
+        dailyClaimedChests: [],
+        weeklyClaimedChests: [],
+        tasks: { dailies: [], weeklies: [], campaign: [] },
+      },
+      questOneTimeResetsApplied: [...QUEST_ONE_TIME_DAILY_RESET_IDS],
+      updatedAt: now.toISOString(),
+    }),
+  };
+  seedCatchUser(store, 2);
+  const kv = makeKv(store);
+
+  const result = await claimQuestChest(
+    kv,
+    { xUserId: "u1", username: "trainer" },
+    { track: "weeklies", milestone: 60, expectedRevision: 2 },
+    10
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(result.save.monballs, 6);
+  assert.equal(result.save.money, 1700);
+  assert.ok(result.save.questState.weeklyClaimedChests.includes(60));
+  assert.ok(result.save.questState.grantedKeys.includes("chest:weeklies:60"));
+  assert.equal(result.save.questMonballPaidAmounts["chest:weeklies:60"], 4);
+});
+
+test("claimQuestChest weekly milestones grant full catalog rewards", async () => {
+  const now = new Date();
+  const cases = [
+    { ms: 20, dMoney: 300, dEssence: 0, dMonballs: 0, dShards: 0, dXp: 0 },
+    { ms: 40, dMoney: 0, dEssence: 40, dMonballs: 0, dShards: 0, dXp: 0 },
+    { ms: 80, dMoney: 0, dEssence: 0, dMonballs: 0, dShards: 6, dXp: 0 },
+    { ms: 100, dMoney: 1000, dEssence: 60, dMonballs: 6, dShards: 0, dXp: 150 },
+  ];
+  for (const c of cases) {
+    const store = {
+      "monex:state": JSON.stringify({ processedTweetIds: [], users: {} }),
+      "monex:save:u1": JSON.stringify({
+        revision: 1,
+        money: 1000,
+        essence: 10,
+        monShards: 0,
+        trainerXp: 0,
+        // Prevent settleTrainerLevelRewards from adding bonus gold on XP grant.
+        trainerRewardLevel: 99,
+        monballs: 5,
+        party: [],
+        box: [],
+        questState: {
+          dailyResetKey: getDailyDayKey(now),
+          weeklyResetKey: getDailyWeekKey(now),
+          grantedKeys: [],
+          dailyPoints: 0,
+          weeklyPoints: 100,
+          dailyClaimedChests: [],
+          weeklyClaimedChests: [],
+          tasks: { dailies: [], weeklies: [], campaign: [] },
+        },
+        questOneTimeResetsApplied: [...QUEST_ONE_TIME_DAILY_RESET_IDS],
+        updatedAt: now.toISOString(),
+      }),
+    };
+    seedCatchUser(store, 5);
+    const kv = makeKv(store);
+    const result = await claimQuestChest(
+      kv,
+      { xUserId: "u1", username: "trainer" },
+      { track: "weeklies", milestone: c.ms, expectedRevision: 1 },
+      10
+    );
+    assert.equal(result.ok, true, `weekly ${c.ms} should claim`);
+    assert.equal(result.save.money, 1000 + c.dMoney, `weekly ${c.ms} gold`);
+    assert.equal(result.save.essence, 10 + c.dEssence, `weekly ${c.ms} essence`);
+    assert.equal(result.save.monballs, 5 + c.dMonballs, `weekly ${c.ms} monballs`);
+    assert.equal(result.save.monShards, c.dShards, `weekly ${c.ms} shards`);
+    assert.equal(result.save.trainerXp, c.dXp, `weekly ${c.ms} xp`);
+    assert.ok(result.save.questState.weeklyClaimedChests.includes(c.ms));
+    assert.ok(result.save.questState.grantedKeys.includes(`chest:weeklies:${c.ms}`));
+  }
+});
+
+test("claimQuestChest repairs unpaid weekly 60 monballs when already marked claimed", async () => {
+  const now = new Date();
+  const store = {
+    "monex:state": JSON.stringify({ processedTweetIds: [], users: {} }),
+    "monex:save:u1": JSON.stringify({
+      revision: 3,
+      money: 1700,
+      essence: 0,
+      monShards: 0,
+      trainerXp: 0,
+      monballs: 2,
+      party: [],
+      box: [],
+      questState: {
+        dailyResetKey: getDailyDayKey(now),
+        weeklyResetKey: getDailyWeekKey(now),
+        grantedKeys: ["chest:weeklies:60"],
+        dailyPoints: 0,
+        weeklyPoints: 70,
+        dailyClaimedChests: [],
+        weeklyClaimedChests: [60],
+        tasks: { dailies: [], weeklies: [], campaign: [] },
+      },
+      questMonballPaidAmounts: {},
+      questOneTimeResetsApplied: [...QUEST_ONE_TIME_DAILY_RESET_IDS],
+      updatedAt: now.toISOString(),
+    }),
+  };
+  seedCatchUser(store, 2);
+  const kv = makeKv(store);
+
+  const result = await claimQuestChest(
+    kv,
+    { xUserId: "u1", username: "trainer" },
+    { track: "weeklies", milestone: 60, expectedRevision: 3 },
+    10
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(result.repaired, true);
+  assert.equal(result.save.monballs, 6);
+  assert.equal(result.save.money, 1700, "must not re-grant gold on monball repair");
+  assert.equal(result.save.questMonballPaidAmounts["chest:weeklies:60"], 4);
+  assert.deepEqual(result.save.questState.weeklyClaimedChests, [60]);
+});
+
+test("claimQuestChest weekly 60 grants monball again after weekly reset clears paid receipt", async () => {
+  const now = new Date();
+  const oldWeek = "2020-W01";
+  const store = {
+    "monex:state": JSON.stringify({ processedTweetIds: [], users: {} }),
+    "monex:save:u1": JSON.stringify({
+      revision: 4,
+      money: 2000,
+      essence: 0,
+      monShards: 0,
+      trainerXp: 0,
+      monballs: 3,
+      party: [],
+      box: [],
+      questState: {
+        dailyResetKey: getDailyDayKey(now),
+        weeklyResetKey: oldWeek,
+        grantedKeys: [],
+        dailyPoints: 0,
+        weeklyPoints: 70,
+        dailyClaimedChests: [],
+        weeklyClaimedChests: [],
+        tasks: { dailies: [], weeklies: [], campaign: [] },
+      },
+      questMonballPaidAmounts: { "chest:weeklies:60": 4, "task:campaign:c1": 15 },
+      questOneTimeResetsApplied: [...QUEST_ONE_TIME_DAILY_RESET_IDS],
+      updatedAt: now.toISOString(),
+    }),
+  };
+  seedCatchUser(store, 3);
+  const kv = makeKv(store);
+
+  const resetProbe = await claimQuestChest(
+    kv,
+    { xUserId: "u1", username: "trainer" },
+    { track: "weeklies", milestone: 60, expectedRevision: 4 },
+    10
+  );
+  assert.equal(resetProbe.ok, false);
+  assert.equal(resetProbe.error, "points_insufficient");
+  const afterReset = JSON.parse(await kv.get("monex:save:u1"));
+  assert.equal(afterReset.questMonballPaidAmounts["chest:weeklies:60"], undefined);
+  assert.equal(afterReset.questMonballPaidAmounts["task:campaign:c1"], 15);
+  assert.equal(afterReset.questState.weeklyResetKey, getDailyWeekKey(now));
+  assert.equal(afterReset.questState.weeklyPoints, 0);
+
+  afterReset.questState.weeklyPoints = 70;
+  store["monex:save:u1"] = JSON.stringify(afterReset);
+
+  const result = await claimQuestChest(
+    kv,
+    { xUserId: "u1", username: "trainer" },
+    { track: "weeklies", milestone: 60, expectedRevision: afterReset.revision },
+    10
+  );
+  assert.equal(result.ok, true);
+  assert.equal(result.save.monballs, 7);
+  assert.equal(result.save.money, 2700);
+  assert.ok(result.save.questState.weeklyClaimedChests.includes(60));
+  assert.equal(result.save.questMonballPaidAmounts["chest:weeklies:60"], 4);
+});

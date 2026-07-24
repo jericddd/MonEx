@@ -147,8 +147,8 @@ function taskDef(tab, taskId) {
 }
 
 function chestReward(track, milestone) {
-  if (track === "daily") return DAILY_QUEST_CHEST_REWARDS[milestone];
-  if (track === "weekly") return WEEKLY_QUEST_CHEST_REWARDS[milestone];
+  if (track === "daily" || track === "dailies") return DAILY_QUEST_CHEST_REWARDS[milestone];
+  if (track === "weekly" || track === "weeklies") return WEEKLY_QUEST_CHEST_REWARDS[milestone];
   return null;
 }
 
@@ -265,9 +265,15 @@ export function reconcileQuestState(existing, incoming, options = {}) {
       allowedKeys.add(key);
     }
   }
-  for (const ms of ex.dailyClaimedChests || []) {
-    if (dailyClaimed.includes(ms)) continue;
-    if (existingKeys.has(questChestGrantKey("dailies", ms))) dailyClaimed.push(ms);
+  // Standard-norm: server claim markers are authoritative. Stale client PUTs must
+  // not wipe chests already claimed this period (even if grant key was missing).
+  if (!dailyResetChanged) {
+    for (const ms of ex.dailyClaimedChests || []) {
+      if (!DAILY_QUEST_MILESTONES.includes(ms)) continue;
+      if (dailyClaimed.includes(ms)) continue;
+      dailyClaimed.push(ms);
+      allowedKeys.add(questChestGrantKey("dailies", ms));
+    }
   }
 
   const weeklyClaimed = [];
@@ -284,9 +290,13 @@ export function reconcileQuestState(existing, incoming, options = {}) {
       allowedKeys.add(key);
     }
   }
-  for (const ms of ex.weeklyClaimedChests || []) {
-    if (weeklyClaimed.includes(ms)) continue;
-    if (existingKeys.has(questChestGrantKey("weeklies", ms))) weeklyClaimed.push(ms);
+  if (!weeklyResetChanged) {
+    for (const ms of ex.weeklyClaimedChests || []) {
+      if (!WEEKLY_QUEST_MILESTONES.includes(ms)) continue;
+      if (weeklyClaimed.includes(ms)) continue;
+      weeklyClaimed.push(ms);
+      allowedKeys.add(questChestGrantKey("weeklies", ms));
+    }
   }
 
   const out = {
