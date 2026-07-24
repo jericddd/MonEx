@@ -8,8 +8,8 @@ export const MONAD_CHAIN_ID = 143;
 /** Official $MONEX ERC-20 on Monad. */
 export const MONEX_TOKEN_ADDRESS = "0x978Ae7298D48Cf0f8d1fdB26abC12bfACFcC7777";
 
-/** Single shop vault — all pack purchases send here. */
-export const MONEX_VAULT_ADDRESS = "0x449AeAc701C33D86e7533ef4b3c6DdBf76981667";
+/** Single shop vault — all pack purchases send here. Receive-only MonEx Vault. */
+export const MONEX_VAULT_ADDRESS = "0x6C24509a1fD993C5372620923223a69Fd17AA2F2";
 
 /** Confirmed on-chain via decimals() — 18. */
 export const MONEX_TOKEN_DECIMALS = 18;
