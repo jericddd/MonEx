@@ -1,5 +1,6 @@
 import { mergeMonballBalances } from "./lib/grant-monballs.js";
 import { safeJsonParse } from "./lib/safe-json.js";
+import { isPublicHiddenUsername } from "./lib/public-account-exclusions.js";
 
 const STATE_KEY = "monex:state";
 const ACTIVITY_KEY = "monex:activity";
@@ -8,9 +9,6 @@ const POLL_STATUS_KEY = "monex:poll:lastStatus";
 const RESET_EPOCH_KEY = "monex:resetEpoch";
 const RATE_LIMIT_PREFIX = "monex:rl:";
 const MAX_ACTIVITY = 500;
-
-/** Hidden from global /api/activity feed (home X Wild Log). Personal /mine still works. */
-const HIDDEN_ACTIVITY_USERNAMES = new Set(["yesdraken_"]);
 
 /** Matches GAME_PARTY_MAX in backfill-pending.js (client party slots). */
 export const DEFAULT_PARTY_MAX = 3;
@@ -318,7 +316,7 @@ export async function listActivities(kv, { limit = 40, page = 1, username = null
     const u = username.toLowerCase().replace("@", "");
     rows = rows.filter((e) => e.xUsername?.toLowerCase() === u);
   } else {
-    rows = rows.filter((e) => !HIDDEN_ACTIVITY_USERNAMES.has((e.xUsername || "").toLowerCase().replace("@", "")));
+    rows = rows.filter((e) => !isPublicHiddenUsername(e.xUsername));
   }
   const total = rows.length;
   const totalPages = Math.max(1, Math.ceil(total / safeLimit));

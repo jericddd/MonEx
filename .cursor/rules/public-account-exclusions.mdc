@@ -1,0 +1,28 @@
+# Public account exclusions (FROZEN)
+
+Test / internal accounts must never appear mixed with live players on public surfaces.
+
+## Hidden usernames
+
+Canonical list: `cloudflare/monex-api/src/lib/public-account-exclusions.js` → `PUBLIC_HIDDEN_USERNAMES`.
+
+Includes at least:
+- `test` — staging / QA account
+- `yesdraken_` — legacy wild-log hide
+
+## Where they must be omitted
+
+| Surface | Enforcement |
+|---------|-------------|
+| Campaign / Power leaderboards | Server `buildLeaderboard` skips hidden handles |
+| Global X Wild Log (`GET /api/activity` without username) | Server `listActivities` + client filter |
+| Future public arena / PvP boards | Reuse `isPublicHiddenUsername` — do not invent a second list |
+
+## Still allowed
+
+- Account can log in, play, save, and use personal `/api/activity/mine`
+- Ops / admin tooling may still address the account by username
+
+## One-line summary
+
+**`test` (and other public-hidden handles) never show on rankings, wild log, or future public boards.**

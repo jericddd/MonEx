@@ -17,15 +17,16 @@ There was **no** prior leaderboard system. New rankings must follow this norm so
 
 - Public read: `GET /api/leaderboard?board=campaign|power&limit=1..50`
 - Response: `{ ok, board, generatedAt, entries: [{ rank, username, score, label }] }`
-- Cache snapshot in KV (`monex:leaderboard:v2:{board}`) with **30 minute** TTL — do not scan every request.
+- Cache snapshot in KV (`monex:leaderboard:v4:{board}`) with **30 minute** TTL — do not scan every request.
 - Rate-limit like other public list endpoints.
+- Accounts in `public-account-exclusions` (e.g. `test`) are omitted from all public boards / feeds.
 
 ## Product rules
 
 1. **Campaign board is live** — highest `adventureGlobalBest` on top; label as `Ch.X Stage Y`.
 2. **Power board uses the frozen power-rating formula** — same weights as client `getMonPower`. No preview / approximate boards.
 3. Boards must not expose private economy (gold, monballs, wallet, mailbox).
-4. Excluded / empty handles are skipped.
+4. Excluded / empty / public-hidden handles (e.g. `test`) are skipped.
 5. Client UIs (`/play` Ranking modal, homepage) only **display** API results — no local fake ranks for logged-in competition.
 
 ## Save integrity
